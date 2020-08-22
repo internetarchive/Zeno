@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	workers int
 	maxHops  uint8
 	logDebug bool
 	logJSON  bool
@@ -53,6 +54,11 @@ to quickly create a Cobra application.`,
 			log.Fatal("Unable to parse --max-hops")
 		}
 
+		workers, err := cmd.Flags().GetInt("workers")
+		if err != nil {
+			log.Fatal("Unable to parse --workers")
+		}
+
 		// Validate input URL
 		URL, err := url.ParseRequestURI(args[0])
 		if err != nil {
@@ -63,6 +69,7 @@ to quickly create a Cobra application.`,
 
 		// Initialize crawl
 		crawl := crawl.Create()
+		crawl.Workers = workers
 		crawl.MaxHops = maxHops
 		crawl.Origin = URL
 		crawl.Log = log.WithFields(log.Fields{
@@ -110,6 +117,7 @@ func init() {
 	rootCmd.AddCommand(getCmd)
 
 	// Log flags
+	getCmd.PersistentFlags().Int("workers", 1, "Number of concurrent workers to run")
 	getCmd.PersistentFlags().Bool("debug", false, "Turn on debug mode")
 	getCmd.PersistentFlags().Bool("json", false, "Turn on JSON logging")
 

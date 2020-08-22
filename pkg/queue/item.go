@@ -2,7 +2,7 @@ package queue
 
 import "net/url"
 
-// Item is crawlable object
+// Item is crawl-able object
 type Item struct {
 	Hop        uint8
 	Host       string

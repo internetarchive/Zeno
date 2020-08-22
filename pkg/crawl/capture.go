@@ -2,29 +2,18 @@ package crawl
 
 import (
 	"context"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-	"mvdan.cc/xurls/v2"
-
 	"github.com/CorentinB/Zeno/pkg/queue"
-	"github.com/CorentinB/Zeno/pkg/utils"
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
+	log "github.com/sirupsen/logrus"
 )
 
-// Capture capture a page and queue the outlinks
-func (c *Crawl) Capture(item *queue.Item) (outlinks []url.URL, err error) {
-	_ = log.WithFields(log.Fields{
-		"status_code": nil,
-		"hop":         item.Hop,
-	})
-
-	// Create context
-	ctx, cancel := chromedp.NewContext(context.Background())
-	defer cancel()
-
+func (c *Crawl) captureWithBrowser(ctx context.Context, item *queue.Item) (outlinks []url.URL, err error) {
 	// Log requests
 	chromedp.ListenBrowser(ctx, func(ev interface{}) {
 		switch ev := ev.(type) {
@@ -45,30 +34,59 @@ func (c *Crawl) Capture(item *queue.Item) (outlinks []url.URL, err error) {
 					return err
 				}
 				str, err := dom.GetOuterHTML().WithNodeID(node.NodeID).Do(ctx)
-
-				// Extract outlinks and dedupe them
-				rxStrict := xurls.Strict()
-				rawOutlinks := utils.DedupeStringSlice(rxStrict.FindAllString(str, -1))
-
-				// Validate outlinks
-				for _, outlink := range rawOutlinks {
-					URL, err := url.Parse(outlink)
-					if err != nil {
-						continue
-					}
-					err = utils.ValidateURL(URL)
-					if err != nil {
-						continue
-					}
-					outlinks = append(outlinks, *URL)
+				if err != nil {
+					return err
 				}
+
+				// Extract outlinks
+				outlinks = extractOutlinks(str)
 
 				return err
 			}
+			return err
 		}),
 	)
 	if err != nil {
-		log.Info(err.Error())
+		return outlinks, err
+	}
+
+	return outlinks, nil
+}
+
+func (c *Crawl) captureWithGET(ctx context.Context, item *queue.Item) (outlinks []url.URL, err error) {
+	// Execute GET request
+	resp, err := http.Get(item.URL.String())
+	if err != nil {
+		return outlinks, err
+	}
+
+	log.WithFields(log.Fields{
+		"status_code": resp.StatusCode,
+		"hop":         item.Hop,
+	}).Info(item.URL.String())
+
+	// Read body
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return outlinks, err
+	}
+
+	// Extract outlinks
+	outlinks = extractOutlinks(string(body))
+
+	return outlinks, nil
+}
+
+// Capture capture a page and queue the outlinks
+func (c *Crawl) Capture(ctx context.Context, item *queue.Item) (outlinks []url.URL, err error) {
+	// Check with HTTP HEAD request if the URL need a full headless browser or a simple GET request
+	if needBrowser(item) {
+		outlinks, err = c.captureWithBrowser(ctx, item)
+	} else {
+		outlinks, err = c.captureWithGET(ctx, item)
+	}
+
+	if err != nil {
 		return nil, err
 	}
 

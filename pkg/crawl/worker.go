@@ -1,6 +1,9 @@
 package crawl
 
 import (
+	"context"
+	"github.com/chromedp/chromedp"
+	"github.com/remeh/sizedwaitgroup"
 	"strings"
 	"time"
 
@@ -9,7 +12,13 @@ import (
 )
 
 // Worker archive the items!
-func (c *Crawl) Worker(writerChan chan *queue.Item) {
+func (c *Crawl) Worker(writerChan chan *queue.Item, worker *sizedwaitgroup.SizedWaitGroup) {
+	defer worker.Done()
+
+	// Create context for headless browser
+	ctx, cancel := chromedp.NewContext(context.Background())
+	defer cancel()
+
 	// Get item from queue
 	for {
 		// Dequeue an item from the local queue
@@ -20,11 +29,10 @@ func (c *Crawl) Worker(writerChan chan *queue.Item) {
 				"error": err,
 			}).Error("Unable to dequeue item")
 
-			// If the queue is empty, we wait 5 seconds
+			// If the queue is empty, we wait 1 seconds
 			if strings.Compare(err.Error(), "goque: Stack or queue is empty") == 0 {
 				time.Sleep(1 * time.Second)
 			}
-
 			continue
 		}
 
@@ -36,15 +44,15 @@ func (c *Crawl) Worker(writerChan chan *queue.Item) {
 				"item":  queueItem,
 				"error": err,
 			}).Error("Unable to parse queue's item")
+			continue
 		}
 
 		// Capture the page
-		outlinks, err := c.Capture(item)
+		outlinks, err := c.Capture(ctx, item)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"item":  queueItem,
 				"error": err,
-			}).Error("Error when capturing URL")
+			}).Error(item.URL.String())
 			continue
 		}
 
