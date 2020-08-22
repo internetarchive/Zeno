@@ -38,7 +38,7 @@ func (c *Crawl) Start() (err error) {
 	go queue.StartWriter(writerChan, c.Queue)
 
 	// TODO Start the workers
-	go Worker(writerChan, c.Queue)
+	go c.Worker(writerChan)
 
 	// Push the original seed to the queue
 	originalItem := queue.NewItem(c.Origin, nil, 0)

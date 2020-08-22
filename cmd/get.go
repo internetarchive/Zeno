@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	maxHops  int
+	maxHops  uint8
 	logDebug bool
 	logJSON  bool
 )
@@ -48,7 +48,7 @@ to quickly create a Cobra application.`,
 		}
 
 		// Parse some arguments
-		maxHops, err := cmd.Flags().GetInt("max-hops")
+		maxHops, err := cmd.Flags().GetUint8("max-hops")
 		if err != nil {
 			log.Fatal("Unable to parse --max-hops")
 		}
@@ -114,5 +114,5 @@ func init() {
 	getCmd.PersistentFlags().Bool("json", false, "Turn on JSON logging")
 
 	// Crawl flags
-	getCmd.PersistentFlags().Int("max-hops", 0, "Maximum number of hops")
+	getCmd.PersistentFlags().Uint8("max-hops", 0, "Maximum number of hops")
 }
