@@ -29,6 +29,7 @@ import (
 var (
 	workers int
 	maxHops  uint8
+	headless bool
 	logDebug bool
 	logJSON  bool
 )
@@ -61,8 +62,14 @@ to quickly create a Cobra application.`,
 			log.Fatal("Unable to parse --workers")
 		}
 
+		headless, err := cmd.Flags().GetBool("headless")
+		if err != nil {
+			log.Fatal("Unable to parse --headless")
+		}
+
 		// Initialize Crawl
 		crawl := crawl.Create()
+		crawl.Headless = headless
 		crawl.Workers = workers
 		crawl.MaxHops = maxHops
 		crawl.Log = log.WithFields(log.Fields{
@@ -132,6 +139,7 @@ func init() {
 
 	// Log flags
 	getCmd.PersistentFlags().Int("workers", 1, "Number of concurrent workers to run")
+	getCmd.PersistentFlags().Bool("headless", false, "Use headless browser when needed")
 	getCmd.PersistentFlags().Bool("debug", false, "Turn on debug mode")
 	getCmd.PersistentFlags().Bool("json", false, "Turn on JSON logging")
 

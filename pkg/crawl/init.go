@@ -3,8 +3,10 @@ package crawl
 import (
 	"github.com/CorentinB/Zeno/pkg/queue"
 	"github.com/beeker1121/goque"
+	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 // Crawl define the parameters of a crawl process
@@ -16,11 +18,16 @@ type Crawl struct {
 	DispatcherChan *chan *queue.Item
 	MaxHops        uint8
 	Workers int
+	URLsPerSecond *ratecounter.RateCounter
+	Headless bool
 }
 
 // Create initialize a Crawl structure and return it
 func Create() *Crawl {
-	return new(Crawl)
+	crawl := new(Crawl)
+	crawl.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
+
+	return crawl
 }
 
 // Start fire up the crawling process
