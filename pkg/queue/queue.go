@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// NewQueue initialize a new goque PriorityQueue
+// NewQueue initialize a new goque.PriorityQueue
 func NewQueue() (queue *goque.PriorityQueue, err error) {
 	// All on-disk queues are in the "./jobs" directory
 	queueUUID, err := uuid.NewUUID()

@@ -1,11 +1,29 @@
 package utils
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
-	"net/url"
-
 	"github.com/asaskevich/govalidator"
+	"net/url"
 )
+
+// GetSHA1 take a string and return the SHA1 hash of the string, as a string
+func GetSHA1(str string) string {
+	hash := sha1.New()
+	hash.Write([]byte(str))
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+// StringInSlice return true if the string is in the slice
+func StringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
 
 // DedupeStringSlice take a slice of string and dedupe it
 func DedupeStringSlice(stringSlice []string) []string {

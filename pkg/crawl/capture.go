@@ -2,9 +2,11 @@ package crawl
 
 import (
 	"context"
+	"github.com/CorentinB/Zeno/pkg/utils"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/CorentinB/Zeno/pkg/queue"
 	"github.com/chromedp/cdproto/dom"
@@ -15,12 +17,26 @@ import (
 
 func (c *Crawl) captureWithBrowser(ctx context.Context, item *queue.Item) (outlinks []url.URL, err error) {
 	// Log requests
-	chromedp.ListenBrowser(ctx, func(ev interface{}) {
+	chromedp.ListenTarget(ctx, func(ev interface{}) {
 		switch ev := ev.(type) {
-		case *network.EventLoadingFinished:
-			log.Info(ev.RequestID.String())
+		case *network.EventResponseReceived:
+			if strings.Compare(ev.Response.URL, item.URL.String()) == 0 {
+				log.WithFields(log.Fields{
+					"status_code": ev.Response.Status,
+					"hash": utils.GetSHA1(ev.Response.URL),
+					"hop":         item.Hop,
+				}).Info(ev.Response.URL)
+			} else {
+				log.WithFields(log.Fields{
+					"type": "asset",
+					"status_code": ev.Response.Status,
+					"hash": utils.GetSHA1(ev.Response.URL),
+					"hop":         item.Hop,
+				}).Debug(ev.Response.URL)
+			}
 		}
 	})
+
 
 	// Run task
 	err = chromedp.Run(ctx,
@@ -43,6 +59,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *queue.Item) (outli
 
 				return err
 			}
+
 			return err
 		}),
 	)
@@ -62,6 +79,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *queue.Item) (outlinks 
 
 	log.WithFields(log.Fields{
 		"status_code": resp.StatusCode,
+		"hash": item.Hash,
 		"hop":         item.Hop,
 	}).Info(item.URL.String())
 

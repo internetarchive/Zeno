@@ -16,6 +16,8 @@ limitations under the License.
 package cmd
 
 import (
+	"github.com/CorentinB/Zeno/pkg/queue"
+	"github.com/CorentinB/Zeno/pkg/utils"
 	"net/url"
 
 	"github.com/CorentinB/Zeno/pkg/crawl"
@@ -59,24 +61,36 @@ to quickly create a Cobra application.`,
 			log.Fatal("Unable to parse --workers")
 		}
 
-		// Validate input URL
-		URL, err := url.ParseRequestURI(args[0])
-		if err != nil {
-			log.WithFields(log.Fields{
-				"url": args[0],
-			}).Fatal("This is not a valid URL")
-		}
-
-		// Initialize crawl
+		// Initialize Crawl
 		crawl := crawl.Create()
 		crawl.Workers = workers
 		crawl.MaxHops = maxHops
-		crawl.Origin = URL
 		crawl.Log = log.WithFields(log.Fields{
 			"crawl": crawl,
 		})
 
-		crawl.Log.Info("Crawl starting")
+		// Check if input is a seed list
+		seeds, err := queue.IsSeedList(args[0])
+		if err != nil || len(seeds) <= 0 {
+			log.WithFields(log.Fields{
+				"input": args[0],
+				"error": err.Error(),
+			}).Fatal("This is not a valid input")
+		}
+
+		// Seed isn't a list, but a single input
+		if len(seeds) <= 0 {
+			input, err := url.Parse(args[0])
+			err = utils.ValidateURL(input)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"input": args[0],
+					"error": err.Error(),
+				}).Fatal("This is not a valid input")
+			}
+			seeds = append(seeds, *queue.NewItem(input, nil, 0))
+		}
+		crawl.SeedList = seeds
 
 		// Start crawl
 		err = crawl.Start()

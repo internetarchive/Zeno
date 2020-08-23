@@ -27,7 +27,7 @@ func (c *Crawl) Worker(writerChan chan *queue.Item, worker *sizedwaitgroup.Sized
 			log.WithFields(log.Fields{
 				"item":  queueItem,
 				"error": err,
-			}).Error("Unable to dequeue item")
+			}).Debug("Unable to dequeue item")
 
 			// If the queue is empty, we wait 1 seconds
 			if strings.Compare(err.Error(), "goque: Stack or queue is empty") == 0 {

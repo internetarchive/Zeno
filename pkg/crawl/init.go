@@ -3,14 +3,13 @@ package crawl
 import (
 	"github.com/CorentinB/Zeno/pkg/queue"
 	"github.com/beeker1121/goque"
-	log "github.com/sirupsen/logrus"
 	"github.com/remeh/sizedwaitgroup"
-	"net/url"
+	log "github.com/sirupsen/logrus"
 )
 
 // Crawl define the parameters of a crawl process
 type Crawl struct {
-	Origin         *url.URL
+	SeedList []queue.Item
 	Log            *log.Entry
 	Queue          *goque.PriorityQueue
 	ReceiverChan   *chan *queue.Item
@@ -39,9 +38,10 @@ func (c *Crawl) Start() (err error) {
 	writerChan := queue.NewWriter()
 	go queue.StartWriter(writerChan, c.Queue)
 
-	// Push the original seed to the queue
-	originalItem := queue.NewItem(c.Origin, nil, 0)
-	writerChan <- originalItem
+	// Push the seed list to the queue
+	for _, item := range c.SeedList {
+		writerChan <- &item
+	}
 
 	// Start the workers
 	for i := 0; i < c.Workers; i++ {
