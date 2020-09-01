@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"sync"
 	"time"
 
 	"github.com/CorentinB/Zeno/pkg/queue"
@@ -33,6 +34,7 @@ func Create() *Crawl {
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
 	var wg = sizedwaitgroup.New(c.Workers)
+	var m sync.Mutex
 
 	// Create the crawling queue
 	c.Queue, err = queue.NewQueue()
@@ -48,7 +50,7 @@ func (c *Crawl) Start() (err error) {
 	// Start the frontiers
 	for i := 0; i < c.Workers; i++ {
 		wg.Add()
-		go c.Worker(pullChan, pushChan, &wg)
+		go c.Worker(pullChan, pushChan, &wg, &m)
 	}
 
 	c.Manager(pushChan, pullChan)
