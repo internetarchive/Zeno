@@ -24,7 +24,7 @@ func (c *Crawl) Worker(pullChan <-chan *queue.Item, pushChan chan *queue.Item, w
 		c.ActiveWorkers++
 		m.Unlock()
 		// Capture the page
-		outlinks, err := c.Capture(ctx, item)
+		outlinks, err := c.Capture(ctx, item, m)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
