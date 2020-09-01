@@ -78,10 +78,10 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *queue.Item) (outlinks 
 	}
 
 	log.WithFields(log.Fields{
-		"rate":        c.URLsPerSecond.Rate(),
-		"status_code": resp.StatusCode,
-		"hash":        item.Hash,
-		"hop":         item.Hop,
+		"rate":           c.URLsPerSecond.Rate(),
+		"status_code":    resp.StatusCode,
+		"active_workers": c.ActiveWorkers,
+		"hop":            item.Hop,
 	}).Info(item.URL.String())
 
 	// Read body
@@ -100,11 +100,12 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *queue.Item) (outlinks 
 func (c *Crawl) Capture(ctx context.Context, item *queue.Item) (outlinks []url.URL, err error) {
 	// Check with HTTP HEAD request if the URL need a full headless browser or a simple GET request
 	if needBrowser(item) && c.Headless == true {
+		c.URLsPerSecond.Incr(1)
 		outlinks, err = c.captureWithBrowser(ctx, item)
 	} else {
+		c.URLsPerSecond.Incr(1)
 		outlinks, err = c.captureWithGET(ctx, item)
 	}
-	c.URLsPerSecond.Incr(1)
 
 	if err != nil {
 		return nil, err

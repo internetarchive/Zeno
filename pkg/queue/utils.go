@@ -2,11 +2,12 @@ package queue
 
 import (
 	"bufio"
-	"github.com/CorentinB/Zeno/pkg/utils"
-	log "github.com/sirupsen/logrus"
+	"errors"
 	"net/url"
 	"os"
-	"errors"
+
+	"github.com/CorentinB/Zeno/pkg/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 // IsSeedList validates if the path is a seed list, and return an array of the seeds if it is a seed list
@@ -30,18 +31,18 @@ func IsSeedList(path string) (seeds []Item, err error) {
 		URL, err := url.Parse(scanner.Text())
 		if err != nil {
 			log.WithFields(log.Fields{
-				"url": scanner.Text(),
+				"url":   scanner.Text(),
 				"error": err.Error(),
-			}).Error("This is not a valid URL")
+			}).Debug("This is not a valid URL")
 			continue
 		}
 
 		err = utils.ValidateURL(URL)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"url": scanner.Text(),
+				"url":   scanner.Text(),
 				"error": err.Error(),
-			}).Error("This is not a valid URL")
+			}).Debug("This is not a valid URL")
 			continue
 		}
 

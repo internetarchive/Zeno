@@ -12,15 +12,14 @@ import (
 
 // Crawl define the parameters of a crawl process
 type Crawl struct {
-	SeedList       []queue.Item
-	Log            *log.Entry
-	Queue          *goque.PriorityQueue
-	ReceiverChan   *chan *queue.Item
-	DispatcherChan *chan *queue.Item
-	MaxHops        uint8
-	Workers        int
-	URLsPerSecond  *ratecounter.RateCounter
-	Headless       bool
+	SeedList      []queue.Item
+	Log           *log.Entry
+	Queue         *goque.PriorityQueue
+	MaxHops       uint8
+	Workers       int
+	URLsPerSecond *ratecounter.RateCounter
+	ActiveWorkers int
+	Headless      bool
 }
 
 // Create initialize a Crawl structure and return it
@@ -52,7 +51,7 @@ func (c *Crawl) Start() (err error) {
 		go c.Worker(pullChan, pushChan, &wg)
 	}
 
-	go c.Manager(pushChan, pullChan)
+	c.Manager(pushChan, pullChan)
 
 	// Push the seed list to the queue
 	for _, item := range c.SeedList {
