@@ -1,25 +1,26 @@
 package crawl
 
 import (
+	"time"
+
 	"github.com/CorentinB/Zeno/pkg/queue"
 	"github.com/beeker1121/goque"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 // Crawl define the parameters of a crawl process
 type Crawl struct {
-	SeedList []queue.Item
+	SeedList       []queue.Item
 	Log            *log.Entry
 	Queue          *goque.PriorityQueue
 	ReceiverChan   *chan *queue.Item
 	DispatcherChan *chan *queue.Item
 	MaxHops        uint8
-	Workers int
-	URLsPerSecond *ratecounter.RateCounter
-	Headless bool
+	Workers        int
+	URLsPerSecond  *ratecounter.RateCounter
+	Headless       bool
 }
 
 // Create initialize a Crawl structure and return it
@@ -41,19 +42,22 @@ func (c *Crawl) Start() (err error) {
 	}
 	defer c.Queue.Close()
 
-	// Start the queue writer
-	writerChan := queue.NewWriter()
-	go queue.StartWriter(writerChan, c.Queue)
+	// Initialize the frontier
+	pullChan := make(chan *queue.Item)
+	pushChan := make(chan *queue.Item)
+
+	// Start the frontiers
+	for i := 0; i < c.Workers; i++ {
+		wg.Add()
+		go c.Worker(pullChan, pushChan, &wg)
+	}
+
+	go c.Manager(pushChan, pullChan)
 
 	// Push the seed list to the queue
 	for _, item := range c.SeedList {
-		writerChan <- &item
-	}
-
-	// Start the workers
-	for i := 0; i < c.Workers; i++ {
-		wg.Add()
-		go c.Worker(writerChan, &wg)
+		item := item
+		pushChan <- &item
 	}
 
 	// Wait for workers to finish and drop the local queue

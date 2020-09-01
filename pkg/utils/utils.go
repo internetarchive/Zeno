@@ -4,8 +4,9 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
-	"github.com/asaskevich/govalidator"
 	"net/url"
+
+	"github.com/asaskevich/govalidator"
 )
 
 // GetSHA1 take a string and return the SHA1 hash of the string, as a string

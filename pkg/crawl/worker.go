@@ -2,51 +2,25 @@ package crawl
 
 import (
 	"context"
+
 	"github.com/chromedp/chromedp"
-	"github.com/remeh/sizedwaitgroup"
-	"strings"
-	"time"
+	swg "github.com/remeh/sizedwaitgroup"
 
 	"github.com/CorentinB/Zeno/pkg/queue"
 	log "github.com/sirupsen/logrus"
 )
 
 // Worker archive the items!
-func (c *Crawl) Worker(writerChan chan *queue.Item, worker *sizedwaitgroup.SizedWaitGroup) {
+func (c *Crawl) Worker(pullChan, pushChan chan *queue.Item, worker *swg.SizedWaitGroup) {
 	defer worker.Done()
 
 	// Create context for headless browser
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
-	// Get item from queue
 	for {
-		// Dequeue an item from the local queue
-		queueItem, err := c.Queue.Dequeue()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"item":  queueItem,
-				"error": err,
-			}).Debug("Unable to dequeue item")
-
-			// If the queue is empty, we wait 1 seconds
-			if strings.Compare(err.Error(), "goque: Stack or queue is empty") == 0 {
-				time.Sleep(1 * time.Second)
-			}
-			continue
-		}
-
-		// Turn the item from the queue into an Item
-		var item *queue.Item
-		err = queueItem.ToObject(&item)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"item":  queueItem,
-				"error": err,
-			}).Error("Unable to parse queue's item")
-			continue
-		}
-
+		// Pull item from channel
+		item := <-pullChan
 		// Capture the page
 		outlinks, err := c.Capture(ctx, item)
 		if err != nil {
@@ -56,11 +30,12 @@ func (c *Crawl) Worker(writerChan chan *queue.Item, worker *sizedwaitgroup.Sized
 			continue
 		}
 
-		// Send the outlinks for queuing
+		// Send the outlinks to the pool of workers
 		if item.Hop < c.MaxHops {
 			for _, outlink := range outlinks {
+				outlink := outlink
 				newItem := queue.NewItem(&outlink, item, item.Hop+1)
-				writerChan <- newItem
+				pushChan <- newItem
 			}
 		}
 	}

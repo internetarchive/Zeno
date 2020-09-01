@@ -26,6 +26,8 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/syndtr/goleveldb v1.0.0 // indirect
+	github.com/t-yuki/goid v0.0.0-20170422090504-ec7c454ec92a
+	github.com/urfave/cli v1.22.4
 	github.com/xujiajun/nutsdb v0.5.0 // indirect
 	golang.org/x/sys v0.0.0-20200821140526-fda516888d29 // indirect
 	gopkg.in/ini.v1 v1.60.1 // indirect

@@ -15,8 +15,38 @@ limitations under the License.
 */
 package main
 
-import "github.com/CorentinB/Zeno/cmd"
+import (
+	"os"
+
+	"github.com/CorentinB/Zeno/cmd"
+	_ "github.com/CorentinB/Zeno/cmd/all"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
+)
+
+// Version - defined default version if it's not passed through flags during build
+var Version string = "master"
 
 func main() {
-	cmd.Execute()
+	app := cli.NewApp()
+	app.Name = "Zeno"
+	app.Version = Version
+	app.Author = "Corentin Barreau"
+	app.Email = "corentin.barreau24@gmail.com"
+	app.Usage = ""
+
+	app.Flags = cmd.GlobalFlags
+	app.Commands = cmd.Commands
+	app.CommandNotFound = cmd.CommandNotFound
+	app.Before = func(context *cli.Context) error {
+		return nil
+	}
+	app.After = func(context *cli.Context) error {
+		return nil
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		logrus.Panic(err)
+	}
 }

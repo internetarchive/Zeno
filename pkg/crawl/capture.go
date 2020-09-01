@@ -2,11 +2,12 @@ package crawl
 
 import (
 	"context"
-	"github.com/CorentinB/Zeno/pkg/utils"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/CorentinB/Zeno/pkg/utils"
 
 	"github.com/CorentinB/Zeno/pkg/queue"
 	"github.com/chromedp/cdproto/dom"
@@ -23,20 +24,19 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *queue.Item) (outli
 			if strings.Compare(ev.Response.URL, item.URL.String()) == 0 {
 				log.WithFields(log.Fields{
 					"status_code": ev.Response.Status,
-					"hash": utils.GetSHA1(ev.Response.URL),
+					"hash":        utils.GetSHA1(ev.Response.URL),
 					"hop":         item.Hop,
 				}).Info(ev.Response.URL)
 			} else {
 				log.WithFields(log.Fields{
-					"type": "asset",
+					"type":        "asset",
 					"status_code": ev.Response.Status,
-					"hash": utils.GetSHA1(ev.Response.URL),
+					"hash":        utils.GetSHA1(ev.Response.URL),
 					"hop":         item.Hop,
 				}).Debug(ev.Response.URL)
 			}
 		}
 	})
-
 
 	// Run task
 	err = chromedp.Run(ctx,
@@ -78,9 +78,9 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *queue.Item) (outlinks 
 	}
 
 	log.WithFields(log.Fields{
-		"rate": c.URLsPerSecond.Rate(),
+		"rate":        c.URLsPerSecond.Rate(),
 		"status_code": resp.StatusCode,
-		"hash": item.Hash,
+		"hash":        item.Hash,
 		"hop":         item.Hop,
 	}).Info(item.URL.String())
 
