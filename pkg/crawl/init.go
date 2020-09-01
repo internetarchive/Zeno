@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/pkg/queue"
-	"github.com/beeker1121/goque"
 	"github.com/gojektech/heimdall/v6/httpclient"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
@@ -17,7 +16,7 @@ type Crawl struct {
 	Client        *httpclient.Client
 	SeedList      []queue.Item
 	Log           *log.Entry
-	Queue         *goque.PriorityQueue
+	Queue         []queue.Item
 	MaxHops       uint8
 	Workers       int
 	URLsPerSecond *ratecounter.RateCounter
@@ -31,7 +30,7 @@ func Create() *Crawl {
 	crawl.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
 	// Initialize HTTP client
-	timeout := 1000 * time.Millisecond
+	timeout := 2000 * time.Millisecond
 	crawl.Client = httpclient.NewClient(httpclient.WithHTTPTimeout(timeout))
 
 	return crawl
@@ -41,13 +40,6 @@ func Create() *Crawl {
 func (c *Crawl) Start() (err error) {
 	var wg = sizedwaitgroup.New(c.Workers)
 	var m sync.Mutex
-
-	// Create the crawling queue
-	c.Queue, err = queue.NewQueue()
-	if err != nil {
-		return err
-	}
-	defer c.Queue.Close()
 
 	// Initialize the frontier
 	pullChan := make(chan *queue.Item)
@@ -69,10 +61,6 @@ func (c *Crawl) Start() (err error) {
 
 	// Wait for workers to finish and drop the local queue
 	wg.Wait()
-	err = c.Queue.Drop()
-	if err != nil {
-		return nil
-	}
 
 	return nil
 }
