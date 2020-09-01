@@ -10,6 +10,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.0.3 // indirect
+	github.com/gojektech/heimdall/v6 v6.1.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/mailru/easyjson v0.7.6 // indirect

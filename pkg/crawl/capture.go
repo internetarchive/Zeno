@@ -3,7 +3,6 @@ package crawl
 import (
 	"context"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -77,7 +76,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *queue.Item, m *syn
 
 func (c *Crawl) captureWithGET(ctx context.Context, item *queue.Item, m *sync.Mutex) (outlinks []url.URL, err error) {
 	// Execute GET request
-	resp, err := http.Get(item.URL.String())
+	resp, err := c.Client.Get(item.URL.String(), nil)
 	if err != nil {
 		return outlinks, err
 	}

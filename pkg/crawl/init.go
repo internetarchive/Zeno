@@ -6,6 +6,7 @@ import (
 
 	"github.com/CorentinB/Zeno/pkg/queue"
 	"github.com/beeker1121/goque"
+	"github.com/gojektech/heimdall/v6/httpclient"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
 	log "github.com/sirupsen/logrus"
@@ -13,6 +14,7 @@ import (
 
 // Crawl define the parameters of a crawl process
 type Crawl struct {
+	Client        *httpclient.Client
 	SeedList      []queue.Item
 	Log           *log.Entry
 	Queue         *goque.PriorityQueue
@@ -27,6 +29,10 @@ type Crawl struct {
 func Create() *Crawl {
 	crawl := new(Crawl)
 	crawl.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
+
+	// Initialize HTTP client
+	timeout := 1000 * time.Millisecond
+	crawl.Client = httpclient.NewClient(httpclient.WithHTTPTimeout(timeout))
 
 	return crawl
 }
