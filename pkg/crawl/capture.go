@@ -27,6 +27,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *queue.Item) (outli
 					"hash":        utils.GetSHA1(ev.Response.URL),
 					"hop":         item.Hop,
 				}).Info(ev.Response.URL)
+				c.URLsPerSecond.Incr(1)
 			} else {
 				log.WithFields(log.Fields{
 					"type":        "asset",
@@ -34,6 +35,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *queue.Item) (outli
 					"hash":        utils.GetSHA1(ev.Response.URL),
 					"hop":         item.Hop,
 				}).Debug(ev.Response.URL)
+				c.URLsPerSecond.Incr(1)
 			}
 		}
 	})
@@ -100,7 +102,6 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *queue.Item) (outlinks 
 func (c *Crawl) Capture(ctx context.Context, item *queue.Item) (outlinks []url.URL, err error) {
 	// Check with HTTP HEAD request if the URL need a full headless browser or a simple GET request
 	if needBrowser(item) && c.Headless == true {
-		c.URLsPerSecond.Incr(1)
 		outlinks, err = c.captureWithBrowser(ctx, item)
 	} else {
 		c.URLsPerSecond.Incr(1)
