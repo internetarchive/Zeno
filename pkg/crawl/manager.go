@@ -1,55 +1,63 @@
 package crawl
 
 import (
-	"sync"
-
 	"github.com/CorentinB/Zeno/pkg/queue"
 	log "github.com/sirupsen/logrus"
 )
 
-func (c *Crawl) writeItemsToQueue(pullChan <-chan *queue.Item, mutex *sync.Mutex) {
-	for item := range pullChan {
+func (c *Crawl) writeItemsToQueue(pullChan chan *queue.Item) {
+	for {
+		item := <-pullChan
 		// Add item to queue
-		mutex.Lock()
-		c.Queue.PushBack(item)
-		mutex.Unlock()
-
+		_, err := c.Queue.EnqueueObject(item.Hop, item)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Unable to enqueue item")
+		}
 		log.WithFields(log.Fields{
 			"url": item.URL,
 		}).Debug("Item enqueued")
 	}
 }
 
-func (c *Crawl) readItemsFromQueue(outChan chan *queue.Item, mutex *sync.Mutex) {
+func (c *Crawl) readItemsFromQueue(outChan chan *queue.Item) {
 	for {
-		mutex.Lock()
-		if c.Queue.Len() > 0 {
-			// Dequeue an item from the queue
-			itemQueue := c.Queue.Front()
-			item, ok := itemQueue.Value.(*queue.Item)
-			if ok {
-				// Sending the item to the workers via outChan
-				outChan <- item
-				log.WithFields(log.Fields{
-					"url": item.URL,
-				}).Debug("Item sent to workers pool")
-			}
-			c.Queue.Remove(itemQueue)
+		// Dequeue an item from the local queue
+		queueItem, err := c.Queue.Dequeue()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Debug("Unable to dequeue item")
+			continue
 		}
-		mutex.Unlock()
+
+		// Turn the item from the queue into an Item
+		var item *queue.Item
+		err = queueItem.ToObject(&item)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Unable to parse queue's item")
+			continue
+		}
+
+		// Sending the item to the workers via outChan
+		outChan <- item
+		log.WithFields(log.Fields{
+			"url": item.URL,
+		}).Debug("Item sent to workers pool")
 	}
 }
 
 // Manager manage the crawl frontier
 func (c *Crawl) Manager(inChan, outChan chan *queue.Item) {
-	var mutex sync.Mutex
-
 	// Function responsible for writing the items received on inChan to the
 	// local queue, items received on this channels are typically initial seeds
 	// or outlinks discovered on web pages
-	go c.writeItemsToQueue(inChan, &mutex)
+	go c.writeItemsToQueue(inChan)
 
 	// Function responsible fro reading the items from the queue and dispatching
 	// them to the workers listening on the outChan
-	go c.readItemsFromQueue(outChan, &mutex)
+	go c.readItemsFromQueue(outChan)
 }

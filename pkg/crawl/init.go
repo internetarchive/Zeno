@@ -1,11 +1,11 @@
 package crawl
 
 import (
-	"container/list"
 	"sync"
 	"time"
 
 	"github.com/CorentinB/Zeno/pkg/queue"
+	"github.com/beeker1121/goque"
 	"github.com/gojektech/heimdall/v6/httpclient"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
@@ -17,21 +17,21 @@ type Crawl struct {
 	Client        *httpclient.Client
 	SeedList      []queue.Item
 	Log           *log.Entry
-	Queue         *list.List
+	Queue         *goque.PriorityQueue
 	MaxHops       uint8
 	Workers       int
 	URLsPerSecond *ratecounter.RateCounter
-	ActiveWorkers int
+	ActiveWorkers *ratecounter.Counter
+	Mutex         *sync.Mutex
 	Headless      bool
 }
 
 // Create initialize a Crawl structure and return it
 func Create() *Crawl {
 	crawl := new(Crawl)
+	crawl.Mutex = new(sync.Mutex)
+	crawl.ActiveWorkers = new(ratecounter.Counter)
 	crawl.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
-
-	// Initialize queue
-	crawl.Queue = list.New()
 
 	// Initialize HTTP client
 	timeout := 2000 * time.Millisecond
@@ -43,16 +43,22 @@ func Create() *Crawl {
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
 	var wg = sizedwaitgroup.New(c.Workers)
-	var m sync.Mutex
 
-	// Initialize the frontier
+	// Initialize the frontier channels
 	pullChan := make(chan *queue.Item)
 	pushChan := make(chan *queue.Item)
 
-	// Start the frontiers
+	// Initialize queue
+	c.Queue, err = queue.NewQueue()
+	if err != nil {
+		return err
+	}
+	defer c.Queue.Close()
+
+	// Start the workers
 	for i := 0; i < c.Workers; i++ {
 		wg.Add()
-		go c.Worker(pullChan, pushChan, &wg, &m)
+		go c.Worker(pullChan, pushChan, &wg)
 	}
 
 	c.Manager(pushChan, pullChan)
@@ -65,6 +71,10 @@ func (c *Crawl) Start() (err error) {
 
 	// Wait for workers to finish and drop the local queue
 	wg.Wait()
+	err = c.Queue.Drop()
+	if err != nil {
+		return nil
+	}
 
 	return nil
 }
