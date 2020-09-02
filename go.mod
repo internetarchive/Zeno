@@ -15,7 +15,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mitchellh/mapstructure v1.3.3 // indirect
+	github.com/mitchellh/mapstructure v1.3.3
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/remeh/sizedwaitgroup v1.0.0

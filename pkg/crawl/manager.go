@@ -11,7 +11,7 @@ func (c *Crawl) writeItemsToQueue(pullChan <-chan *queue.Item, mutex *sync.Mutex
 	for item := range pullChan {
 		// Add item to queue
 		mutex.Lock()
-		c.Queue = append(c.Queue, *item)
+		c.Queue.PushBack(item)
 		mutex.Unlock()
 
 		log.WithFields(log.Fields{
@@ -21,20 +21,20 @@ func (c *Crawl) writeItemsToQueue(pullChan <-chan *queue.Item, mutex *sync.Mutex
 }
 
 func (c *Crawl) readItemsFromQueue(outChan chan *queue.Item, mutex *sync.Mutex) {
-	var item queue.Item
-
 	for {
 		mutex.Lock()
-		if len(c.Queue) > 0 {
+		if c.Queue.Len() > 0 {
 			// Dequeue an item from the queue
-			item, c.Queue = c.Queue[0], c.Queue[1:]
-
-			// Sending the item to the workers via outChan
-			item := item
-			outChan <- &item
-			log.WithFields(log.Fields{
-				"url": item.URL,
-			}).Debug("Item sent to workers pool")
+			itemQueue := c.Queue.Front()
+			item, ok := itemQueue.Value.(*queue.Item)
+			if ok {
+				// Sending the item to the workers via outChan
+				outChan <- item
+				log.WithFields(log.Fields{
+					"url": item.URL,
+				}).Debug("Item sent to workers pool")
+			}
+			c.Queue.Remove(itemQueue)
 		}
 		mutex.Unlock()
 	}

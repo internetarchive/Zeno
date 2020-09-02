@@ -1,12 +1,13 @@
 package crawl
 
 import (
-	"github.com/CorentinB/Zeno/pkg/queue"
-	"github.com/CorentinB/Zeno/pkg/utils"
-	"mvdan.cc/xurls/v2"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/CorentinB/Zeno/pkg/queue"
+	"github.com/CorentinB/Zeno/pkg/utils"
+	"mvdan.cc/xurls/v2"
 )
 
 func needBrowser(item *queue.Item) bool {

@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"container/list"
 	"sync"
 	"time"
 
@@ -16,7 +17,7 @@ type Crawl struct {
 	Client        *httpclient.Client
 	SeedList      []queue.Item
 	Log           *log.Entry
-	Queue         []queue.Item
+	Queue         *list.List
 	MaxHops       uint8
 	Workers       int
 	URLsPerSecond *ratecounter.RateCounter
@@ -28,6 +29,9 @@ type Crawl struct {
 func Create() *Crawl {
 	crawl := new(Crawl)
 	crawl.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
+
+	// Initialize queue
+	crawl.Queue = list.New()
 
 	// Initialize HTTP client
 	timeout := 2000 * time.Millisecond
