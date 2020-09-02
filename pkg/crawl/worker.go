@@ -18,9 +18,7 @@ func (c *Crawl) Worker(pullChan, pushChan chan *queue.Item, worker *swg.SizedWai
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
-	for {
-		item := <-pullChan
-
+	for item := range pullChan {
 		c.ActiveWorkers.Incr(1)
 
 		// Capture the page

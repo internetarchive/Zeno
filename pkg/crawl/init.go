@@ -14,23 +14,32 @@ import (
 
 // Crawl define the parameters of a crawl process
 type Crawl struct {
-	Client        *httpclient.Client
-	SeedList      []queue.Item
-	Log           *log.Entry
-	Queue         *goque.PriorityQueue
-	MaxHops       uint8
-	Workers       int
+	SeedList []queue.Item
+	Mutex    *sync.Mutex
+
+	// Queue
+	Queue    *goque.PrefixQueue
+	HostPool *HostPool
+
+	// Crawl settings
+	Client   *httpclient.Client
+	Log      *log.Entry
+	MaxHops  uint8
+	Headless bool
+	Workers  int
+
+	// Real time statistics
 	URLsPerSecond *ratecounter.RateCounter
 	ActiveWorkers *ratecounter.Counter
-	Mutex         *sync.Mutex
-	Headless      bool
 }
 
 // Create initialize a Crawl structure and return it
 func Create() *Crawl {
 	crawl := new(Crawl)
-	crawl.Mutex = new(sync.Mutex)
 	crawl.ActiveWorkers = new(ratecounter.Counter)
+	crawl.HostPool = new(HostPool)
+	crawl.HostPool.Mutex = new(sync.Mutex)
+	crawl.HostPool.Hosts = make([]Host, 0)
 	crawl.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
 	// Initialize HTTP client

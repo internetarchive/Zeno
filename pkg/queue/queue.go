@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// NewQueue initialize a new goque.PriorityQueue
-func NewQueue() (queue *goque.PriorityQueue, err error) {
+// NewQueue initialize a new goque.PrefixQueue
+func NewQueue() (queue *goque.PrefixQueue, err error) {
 	// All on-disk queues are in the "./jobs" directory
 	queueUUID, err := uuid.NewUUID()
 	if err != nil {
@@ -17,7 +17,7 @@ func NewQueue() (queue *goque.PriorityQueue, err error) {
 	queuePath := filepath.Join(".", "jobs", queueUUID.String())
 
 	// Initialize a prefix queue
-	queue, err = goque.OpenPriorityQueue(queuePath, goque.ASC)
+	queue, err = goque.OpenPrefixQueue(queuePath)
 	if err != nil {
 		return nil, err
 	}
