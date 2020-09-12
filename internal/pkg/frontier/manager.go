@@ -33,7 +33,10 @@ func (f *Frontier) writeItemsToQueue() {
 func (f *Frontier) readItemsFromQueue() {
 	for {
 		f.HostPool.Mutex.Lock()
-		for _, host := range f.HostPool.Hosts {
+		currentPool := f.HostPool.Hosts
+		f.HostPool.Mutex.Unlock()
+
+		for key, host := range currentPool {
 			if host.Count.Value() == 0 {
 				continue
 			}
@@ -63,8 +66,9 @@ func (f *Frontier) readItemsFromQueue() {
 				"url": item.URL,
 			}).Debug("Item sent to workers pool")
 
-			host.Count.Incr(-1)
+			f.HostPool.Mutex.Lock()
+			f.HostPool.Hosts[key].Count.Incr(-1)
+			f.HostPool.Mutex.Unlock()
 		}
-		f.HostPool.Mutex.Unlock()
 	}
 }

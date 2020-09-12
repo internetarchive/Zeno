@@ -28,7 +28,10 @@ func CmdGetURL(c *cli.Context) {
 	}
 
 	// Initialize Crawl
-	crawl := crawl.Create()
+	crawl, err := crawl.Create()
+	if err != nil {
+		log.Fatal("Unable to initialize crawl job")
+	}
 	crawl.Headless = config.App.Flags.Headless
 	crawl.Workers = config.App.Flags.Workers
 	crawl.MaxHops = uint8(config.App.Flags.MaxHops)

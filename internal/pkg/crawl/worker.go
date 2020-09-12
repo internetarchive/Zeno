@@ -26,7 +26,7 @@ func (c *Crawl) Worker(worker *swg.SizedWaitGroup) {
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
-			}).Error(item.URL.String())
+			}).Debug(item.URL.String())
 			c.ActiveWorkers.Incr(-1)
 			continue
 		}

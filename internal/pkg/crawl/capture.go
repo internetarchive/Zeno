@@ -3,6 +3,8 @@ package crawl
 import (
 	"context"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"strings"
 
@@ -25,6 +27,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 					"hop":            item.Hop,
 				}).Info(ev.Response.URL)
 				c.URLsPerSecond.Incr(1)
+				c.Crawled.Incr(1)
 			} else {
 				log.WithFields(log.Fields{
 					"type":           "asset",
@@ -33,6 +36,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 					"hop":            item.Hop,
 				}).Debug(ev.Response.URL)
 				c.URLsPerSecond.Incr(1)
+				c.Crawled.Incr(1)
 			}
 		}
 	})
@@ -70,13 +74,41 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 }
 
 func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
+	// Prepare GET request
+	req, err := http.NewRequest("GET", item.URL.String(), nil)
+	if err != nil {
+		return outlinks, err
+	}
+
+	trace := &httptrace.ClientTrace{
+		DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
+			c.URLsPerSecond.Incr(1)
+			if dnsInfo.Err == nil {
+				log.WithFields(log.Fields{
+					"crawled":        c.Crawled.Value(),
+					"host":           item.Host,
+					"rate":           c.URLsPerSecond.Rate(),
+					"source_url":     item.URL.String(),
+					"active_workers": c.ActiveWorkers.Value(),
+					"hop":            item.Hop,
+				}).Info("dns:" + item.Host)
+			}
+		},
+	}
+
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+	if _, err := http.DefaultTransport.RoundTrip(req); err != nil {
+		return outlinks, err
+	}
+
 	// Execute GET request
-	resp, err := c.Client.Get(item.URL.String(), nil)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return outlinks, err
 	}
 
 	log.WithFields(log.Fields{
+		"crawled":        c.Crawled.Value(),
 		"host":           item.Host,
 		"rate":           c.URLsPerSecond.Rate(),
 		"status_code":    resp.StatusCode,
@@ -104,6 +136,7 @@ func (c *Crawl) capture(ctx context.Context, item *frontier.Item) (outlinks []ur
 	} else {
 		c.URLsPerSecond.Incr(1)
 		outlinks, err = c.captureWithGET(ctx, item)
+		c.Crawled.Incr(1)
 	}
 
 	if err != nil {

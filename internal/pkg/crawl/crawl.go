@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/gojektech/heimdall"
 	"github.com/gojektech/heimdall/v6/httpclient"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
@@ -21,29 +22,45 @@ type Crawl struct {
 	Frontier *frontier.Frontier
 
 	// Crawl settings
-	Client   *httpclient.Client
-	Log      *log.Entry
-	MaxHops  uint8
-	Headless bool
-	Workers  int
+	Client    *httpclient.Client
+	Log       *log.Entry
+	MaxHops   uint8
+	Headless  bool
+	Seencheck bool
+	Workers   int
 
 	// Real time statistics
 	URLsPerSecond *ratecounter.RateCounter
 	ActiveWorkers *ratecounter.Counter
+	Crawled       *ratecounter.Counter
 }
 
 // Create initialize a Crawl structure and return it
-func Create() *Crawl {
-	crawl := new(Crawl)
+func Create() (crawl *Crawl, err error) {
+	crawl = new(Crawl)
+	crawl.Crawled = new(ratecounter.Counter)
 	crawl.ActiveWorkers = new(ratecounter.Counter)
 	crawl.Frontier = new(frontier.Frontier)
 	crawl.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
 	// Initialize HTTP client
-	timeout := 2000 * time.Millisecond
-	crawl.Client = httpclient.NewClient(httpclient.WithHTTPTimeout(timeout))
+	var maximumJitterInterval time.Duration = 2 * time.Millisecond // Max jitter interval
+	var initalTimeout time.Duration = 2 * time.Millisecond         // Inital timeout
+	var maxTimeout time.Duration = 9 * time.Millisecond            // Max time out
+	var timeout time.Duration = 1000 * time.Millisecond
+	var exponentFactor float64 = 2 // Multiplier
 
-	return crawl
+	backoff := heimdall.NewExponentialBackoff(initalTimeout, maxTimeout, exponentFactor, maximumJitterInterval)
+	retrier := heimdall.NewRetrier(backoff)
+
+	// Create a new client, sets the retry mechanism, and the number of retries
+	crawl.Client = httpclient.NewClient(
+		httpclient.WithHTTPTimeout(timeout),
+		httpclient.WithRetrier(retrier),
+		httpclient.WithRetryCount(4),
+	)
+
+	return crawl, nil
 }
 
 // Start fire up the crawling process

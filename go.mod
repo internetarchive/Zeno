@@ -11,6 +11,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.0.4 // indirect
+	github.com/gojektech/heimdall v5.0.2+incompatible
 	github.com/gojektech/heimdall/v6 v6.1.0
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
@@ -29,6 +30,5 @@ require (
 	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009 // indirect
 	golang.org/x/text v0.3.3 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
-	mvdan.cc/xurls v1.1.0
 	mvdan.cc/xurls/v2 v2.2.0
 )
