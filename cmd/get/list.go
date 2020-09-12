@@ -2,8 +2,8 @@ package get
 
 import (
 	"github.com/CorentinB/Zeno/config"
-	"github.com/CorentinB/Zeno/pkg/crawl"
-	"github.com/CorentinB/Zeno/pkg/queue"
+	"github.com/CorentinB/Zeno/internal/pkg/crawl"
+	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -34,7 +34,7 @@ func CmdGetList(c *cli.Context) {
 	})
 
 	// Initialize initial seed list
-	crawl.SeedList, err = queue.IsSeedList(c.Args().Get(0))
+	crawl.SeedList, err = frontier.IsSeedList(c.Args().Get(0))
 	if err != nil || len(crawl.SeedList) <= 0 {
 		log.WithFields(log.Fields{
 			"input": c.Args().Get(0),

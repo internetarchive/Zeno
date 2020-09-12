@@ -4,9 +4,9 @@ import (
 	"net/url"
 
 	"github.com/CorentinB/Zeno/config"
-	"github.com/CorentinB/Zeno/pkg/crawl"
-	"github.com/CorentinB/Zeno/pkg/queue"
-	"github.com/CorentinB/Zeno/pkg/utils"
+	"github.com/CorentinB/Zeno/internal/pkg/crawl"
+	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -45,7 +45,7 @@ func CmdGetURL(c *cli.Context) {
 			"error": err.Error(),
 		}).Fatal("This is not a valid input")
 	}
-	crawl.SeedList = append(crawl.SeedList, *queue.NewItem(input, nil, 0))
+	crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, 0))
 
 	// Start crawl
 	err = crawl.Start()

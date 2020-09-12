@@ -6,14 +6,14 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/CorentinB/Zeno/pkg/queue"
+	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 	log "github.com/sirupsen/logrus"
 )
 
-func (c *Crawl) captureWithBrowser(ctx context.Context, item *queue.Item) (outlinks []url.URL, err error) {
+func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
 	// Log requests
 	chromedp.ListenTarget(ctx, func(ev interface{}) {
 		switch ev := ev.(type) {
@@ -69,7 +69,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *queue.Item) (outli
 	return outlinks, nil
 }
 
-func (c *Crawl) captureWithGET(ctx context.Context, item *queue.Item) (outlinks []url.URL, err error) {
+func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
 	// Execute GET request
 	resp, err := c.Client.Get(item.URL.String(), nil)
 	if err != nil {
@@ -77,6 +77,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *queue.Item) (outlinks 
 	}
 
 	log.WithFields(log.Fields{
+		"host":           item.Host,
 		"rate":           c.URLsPerSecond.Rate(),
 		"status_code":    resp.StatusCode,
 		"active_workers": c.ActiveWorkers.Value(),
@@ -96,7 +97,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *queue.Item) (outlinks 
 }
 
 // Capture capture a page and queue the outlinks
-func (c *Crawl) Capture(ctx context.Context, item *queue.Item) (outlinks []url.URL, err error) {
+func (c *Crawl) capture(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
 	// Check with HTTP HEAD request if the URL need a full headless browser or a simple GET request
 	if needBrowser(item) && c.Headless == true {
 		outlinks, err = c.captureWithBrowser(ctx, item)

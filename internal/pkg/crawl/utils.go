@@ -5,12 +5,12 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/CorentinB/Zeno/pkg/queue"
-	"github.com/CorentinB/Zeno/pkg/utils"
+	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"mvdan.cc/xurls/v2"
 )
 
-func needBrowser(item *queue.Item) bool {
+func needBrowser(item *frontier.Item) bool {
 	res, err := http.Head(item.URL.String())
 	if err != nil {
 		return true

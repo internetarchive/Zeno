@@ -1,4 +1,4 @@
-package queue
+package frontier
 
 import (
 	"bufio"
@@ -7,12 +7,13 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/CorentinB/Zeno/pkg/utils"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/gosuri/uilive"
 	log "github.com/sirupsen/logrus"
 )
 
-// IsSeedList validates if the path is a seed list, and return an array of the seeds if it is a seed list
+// IsSeedList validates if the path is a seed list, and return an array of
+// frontier.Item made of the seeds if it can
 func IsSeedList(path string) (seeds []Item, err error) {
 	var totalCount, validCount int
 	writer := uilive.New()
