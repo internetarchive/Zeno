@@ -3,12 +3,14 @@ package crawl
 import (
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
-	"mvdan.cc/xurls/v2"
 )
+
+var regexOutlinks *regexp.Regexp
 
 func needBrowser(item *frontier.Item) bool {
 	res, err := http.Head(item.URL.String())
@@ -27,8 +29,7 @@ func needBrowser(item *frontier.Item) bool {
 
 func extractOutlinks(source string) (outlinks []url.URL) {
 	// Extract outlinks and dedupe them
-	rxStrict := xurls.Strict()
-	rawOutlinks := utils.DedupeStringSlice(rxStrict.FindAllString(source, -1))
+	rawOutlinks := utils.DedupeStringSlice(regexOutlinks.FindAllString(source, -1))
 
 	// Validate outlinks
 	for _, outlink := range rawOutlinks {

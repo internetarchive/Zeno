@@ -20,6 +20,7 @@ require (
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/profile v1.5.0
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1 // indirect
@@ -28,5 +29,6 @@ require (
 	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009 // indirect
 	golang.org/x/text v0.3.3 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
+	mvdan.cc/xurls v1.1.0
 	mvdan.cc/xurls/v2 v2.2.0
 )

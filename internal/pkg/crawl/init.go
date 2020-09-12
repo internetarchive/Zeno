@@ -9,6 +9,7 @@ import (
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
 	log "github.com/sirupsen/logrus"
+	"mvdan.cc/xurls/v2"
 )
 
 // Crawl define the parameters of a crawl process
@@ -47,6 +48,7 @@ func Create() *Crawl {
 
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
+	regexOutlinks = xurls.Relaxed()
 	var wg = sizedwaitgroup.New(c.Workers)
 
 	// Initialize the frontier
