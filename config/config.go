@@ -1,11 +1,12 @@
 package config
 
 type Flags struct {
-	Workers  int
-	MaxHops  uint
-	Headless bool
-	JSON     bool
-	Debug    bool
+	Workers   int
+	MaxHops   uint
+	Headless  bool
+	Seencheck bool
+	JSON      bool
+	Debug     bool
 }
 
 type Application struct {
