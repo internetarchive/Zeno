@@ -4,7 +4,7 @@ import (
 	"github.com/CorentinB/Zeno/cmd"
 	"github.com/CorentinB/Zeno/config"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func initLogging(c *cli.Context) (err error) {
@@ -26,7 +26,7 @@ func init() {
 		cli.Command{
 			Name:  "get",
 			Usage: "All commands that get URLs",
-			Subcommands: []cli.Command{
+			Subcommands: []*cli.Command{
 				NewGetURLCmd(),
 				NewGetListCmd(),
 			},

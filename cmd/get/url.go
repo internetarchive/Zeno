@@ -8,11 +8,11 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-func NewGetURLCmd() cli.Command {
-	return cli.Command{
+func NewGetURLCmd() *cli.Command {
+	return &cli.Command{
 		Name:      "url",
 		Usage:     "Start crawling with a single URL",
 		Action:    CmdGetURL,
@@ -21,23 +21,30 @@ func NewGetURLCmd() cli.Command {
 	}
 }
 
-func CmdGetURL(c *cli.Context) {
+func CmdGetURL(c *cli.Context) error {
 	err := initLogging(c)
 	if err != nil {
-		log.Fatal("Unable to parse arguments")
+		log.Error("Unable to parse arguments")
+		return err
 	}
 
 	// Initialize Crawl
 	crawl, err := crawl.Create()
 	if err != nil {
-		log.Fatal("Unable to initialize crawl job")
+		log.Error("Unable to initialize crawl job")
+		return err
 	}
+
 	crawl.Headless = config.App.Flags.Headless
+	crawl.WARC = config.App.Flags.WARC
 	crawl.Workers = config.App.Flags.Workers
 	crawl.MaxHops = uint8(config.App.Flags.MaxHops)
 	crawl.Log = log.WithFields(log.Fields{
 		"crawl": crawl,
 	})
+
+	// Initialize client
+	crawl.InitHTTPClient()
 
 	// Initialize initial seed list
 	input, err := url.Parse(c.Args().Get(0))
@@ -46,7 +53,8 @@ func CmdGetURL(c *cli.Context) {
 		log.WithFields(log.Fields{
 			"input": c.Args().Get(0),
 			"error": err.Error(),
-		}).Fatal("This is not a valid input")
+		}).Error("This is not a valid input")
+		return err
 	}
 	crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, 0))
 
@@ -56,8 +64,10 @@ func CmdGetURL(c *cli.Context) {
 		log.WithFields(log.Fields{
 			"crawl": crawl,
 			"error": err,
-		}).Fatal("Crawl exited due to error")
+		}).Error("Crawl exited due to error")
+		return err
 	}
 
 	crawl.Log.Info("Crawl finished")
+	return err
 }

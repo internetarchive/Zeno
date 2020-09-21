@@ -91,7 +91,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 					"source_url":     item.URL.String(),
 					"active_workers": c.ActiveWorkers.Value(),
 					"hop":            item.Hop,
-				}).Info("dns:" + item.Host)
+				}).Debug("dns:" + item.Host)
 			}
 		},
 	}
@@ -119,12 +119,14 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 	// Read body
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		resp.Body.Close()
 		return outlinks, err
 	}
 
 	// Extract outlinks
 	outlinks = extractOutlinks(string(body))
 
+	resp.Body.Close()
 	return outlinks, nil
 }
 

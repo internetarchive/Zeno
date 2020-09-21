@@ -6,6 +6,16 @@ import (
 
 func (f *Frontier) writeItemsToQueue() {
 	for item := range f.PushChan {
+		// If --seencheck is enabled, then we check if the URI is in the
+		// seencheck DB before doing anything. If it is in it, we skip the item
+		if f.UseSeencheck {
+			if f.Seencheck[item.Hash] {
+				continue
+			} else {
+				f.Seencheck[item.Hash] = true
+			}
+		}
+
 		// Check if host is in the pool, if it is not, we add it
 		// if it is, we increment its counter
 		f.HostPool.Mutex.Lock()
@@ -21,6 +31,7 @@ func (f *Frontier) writeItemsToQueue() {
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
+				"item":  item,
 			}).Error("Unable to enqueue item")
 		}
 

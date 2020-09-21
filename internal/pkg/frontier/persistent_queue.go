@@ -6,11 +6,13 @@ import (
 
 	"github.com/beeker1121/goque"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
+	"github.com/zeebo/xxh3"
 )
 
 // Item is crawl-able object
 type Item struct {
-	Hash       string
+	Hash       uint64
 	Hop        uint8
 	Host       string
 	URL        *url.URL
@@ -21,11 +23,11 @@ type Item struct {
 func NewItem(URL *url.URL, parentItem *Item, hop uint8) *Item {
 	item := new(Item)
 
-	//item.Hash = utils.GetSHA1(URL.String())
-	item.Hop = hop
-	item.Host = URL.Host
 	item.URL = URL
+	item.Host = URL.Host
+	item.Hop = hop
 	item.ParentItem = parentItem
+	item.Hash = xxh3.HashString(URL.String())
 
 	return item
 }
@@ -41,6 +43,9 @@ func newPersistentQueue() (queue *goque.PrefixQueue, err error) {
 	// Initialize a prefix queue
 	queue, err = goque.OpenPrefixQueue(queuePath)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Unable to create prefix queue")
 		return nil, err
 	}
 

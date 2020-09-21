@@ -21,7 +21,7 @@ import (
 	"github.com/CorentinB/Zeno/cmd"
 	_ "github.com/CorentinB/Zeno/cmd/all"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // Version - defined default version if it's not passed through flags during build
@@ -31,8 +31,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "Zeno"
 	app.Version = Version
-	app.Author = "Corentin Barreau"
-	app.Email = "corentin.barreau24@gmail.com"
+	app.Authors = append(app.Authors, &cli.Author{Name: "Corentin Barreau", Email: "corentin@archive.org"})
 	app.Usage = ""
 
 	app.Flags = cmd.GlobalFlags

@@ -21,6 +21,9 @@ type Frontier struct {
 	// that Zeno crawled, with a counter for each, going through
 	// that pull gives us the prefix to query from the queue
 	HostPool *HostPool
+
+	UseSeencheck bool
+	Seencheck    map[uint64]bool
 }
 
 // Init ininitialize the components of a frontier
@@ -39,6 +42,9 @@ func (f *Frontier) Init() (err error) {
 	if err != nil {
 		return err
 	}
+
+	// Initialize the seencheck
+	f.Seencheck = make(map[uint64]bool)
 
 	return nil
 }
