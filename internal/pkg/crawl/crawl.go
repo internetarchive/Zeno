@@ -68,11 +68,6 @@ func (c *Crawl) Finish() {
 	c.Finished = true
 	c.WorkerPool.Wait()
 
-	if c.Seencheck {
-		c.Frontier.Seencheck.SeenDB.Close()
-		logrus.Warning("Seencheck database closed")
-	}
-
 	if c.WARC {
 		close(c.WARCWriter)
 		<-c.WARCWriterFinish
@@ -80,6 +75,12 @@ func (c *Crawl) Finish() {
 	}
 
 	c.Frontier.Queue.Close()
+
+	if c.Seencheck {
+		c.Frontier.Seencheck.SeenDB.Close()
+		logrus.Warning("Seencheck database closed")
+	}
+
 	logrus.Warning("Frontier queue closed")
 }
 
