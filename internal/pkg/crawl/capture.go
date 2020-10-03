@@ -80,6 +80,8 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		return outlinks, err
 	}
 
+	req.Header.Set("User-Agent", c.UserAgent)
+
 	trace := &httptrace.ClientTrace{
 		DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
 			c.URLsPerSecond.Incr(1)

@@ -36,6 +36,7 @@ func CmdGetURL(c *cli.Context) error {
 	}
 
 	crawl.Headless = config.App.Flags.Headless
+	crawl.UserAgent = config.App.Flags.UserAgent
 	crawl.WARC = config.App.Flags.WARC
 	crawl.Workers = config.App.Flags.Workers
 	crawl.MaxHops = uint8(config.App.Flags.MaxHops)

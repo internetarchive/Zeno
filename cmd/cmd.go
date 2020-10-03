@@ -11,6 +11,12 @@ import (
 
 var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
+		Name:        "user-agent",
+		Value:       "Zeno",
+		Usage:       "User agent to use when requesting URLs",
+		Destination: &config.App.Flags.UserAgent,
+	},
+	&cli.StringFlag{
 		Name:        "job",
 		Value:       "",
 		Usage:       "Job name to use, will determine the path for the persistent queue, seencheck database, and WARC files",

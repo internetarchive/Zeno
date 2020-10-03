@@ -15,7 +15,7 @@ func NewGetKafkaCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "kafka",
 		Usage:     "Start crawling with the Kafka connector",
-		Action:    CmdGetList,
+		Action:    CmdGetKafka,
 		Flags:     []cli.Flag{},
 		UsageText: "<FILE> [ARGUMENTS]",
 	}
@@ -45,6 +45,7 @@ func CmdGetKafka(c *cli.Context) error {
 	}
 
 	crawl.JobPath = path.Join("jobs", config.App.Flags.Job)
+	crawl.UserAgent = config.App.Flags.UserAgent
 	crawl.Headless = config.App.Flags.Headless
 	crawl.WARC = config.App.Flags.WARC
 	crawl.Workers = config.App.Flags.Workers
