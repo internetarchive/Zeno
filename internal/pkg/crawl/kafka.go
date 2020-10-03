@@ -33,7 +33,7 @@ func (crawl *Crawl) KafkaConnector() {
 	}).Info("Starting Kafka consuming, it may take some time to actually start pulling messages..")
 
 	for {
-		for crawl.Frontier.QueueCount.Value() > int64(crawl.Workers*10) {
+		for crawl.Frontier.QueueCount.Value() > int64(crawl.Workers*crawl.Workers) {
 			time.Sleep(time.Second * 1)
 		}
 
