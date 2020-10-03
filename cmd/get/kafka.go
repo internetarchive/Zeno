@@ -51,6 +51,7 @@ func CmdGetKafka(c *cli.Context) error {
 	crawl.Workers = config.App.Flags.Workers
 	crawl.WorkerPool = sizedwaitgroup.New(crawl.Workers)
 	crawl.Seencheck = config.App.Flags.Seencheck
+	crawl.Proxy = config.App.Flags.Proxy
 	crawl.MaxHops = uint8(config.App.Flags.MaxHops)
 	crawl.Log = log.WithFields(log.Fields{
 		"crawl": crawl,

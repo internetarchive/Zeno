@@ -2,7 +2,6 @@ package crawl
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -81,6 +80,11 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 	}
 
 	req.Header.Set("User-Agent", c.UserAgent)
+	if item.Hop > 0 {
+		req.Header.Set("Referer", item.ParentItem.URL.String())
+	} else {
+		req.Header.Set("Referer", item.URL.String())
+	}
 
 	trace := &httptrace.ClientTrace{
 		DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
@@ -119,15 +123,11 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		"hop":            item.Hop,
 	}).Info(item.URL.String())
 
-	// Read body
-	body, err := ioutil.ReadAll(resp.Body)
+	// Extract outlinks
+	outlinks, err = extractOutlinksGoquery(resp)
 	if err != nil {
-		resp.Body.Close()
 		return outlinks, err
 	}
-
-	// Extract outlinks
-	outlinks = extractOutlinksRegex(string(body))
 
 	resp.Body.Close()
 	return outlinks, nil

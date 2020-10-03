@@ -7,18 +7,19 @@ import (
 	"time"
 
 	"github.com/CorentinB/warc"
+	"github.com/go-resty/resty/v2"
 	"github.com/gojektech/heimdall/v6"
 	"github.com/gojektech/heimdall/v6/httpclient"
 	log "github.com/sirupsen/logrus"
 )
 
-type warcHTTPClient struct {
-	client       http.Client
-	writeChannel chan *warc.RecordBatch
+type customHTTPClient struct {
+	client           *resty.Client
+	warcWriteChannel chan *warc.RecordBatch
 }
 
-func (c *warcHTTPClient) Do(request *http.Request) (resp *http.Response, err error) {
-	resp, err = c.client.Do(request)
+func (c *customHTTPClient) Do(request *http.Request) (resp *http.Response, err error) {
+	resp, err = c.client.GetClient().Do(request)
 	if err != nil {
 		return resp, err
 	}
@@ -32,7 +33,7 @@ func (c *warcHTTPClient) Do(request *http.Request) (resp *http.Response, err err
 		}).Error("error when turning HTTP resp into WARC records")
 		return resp, err
 	}
-	c.writeChannel <- records
+	c.warcWriteChannel <- records
 
 	return resp, nil
 }
@@ -52,24 +53,36 @@ func (crawl *Crawl) InitHTTPClient() (err error) {
 	var clientOptions []httpclient.Option
 	clientOptions = append(clientOptions, httpclient.WithHTTPTimeout(timeout), httpclient.WithRetrier(retrier), httpclient.WithRetryCount(4))
 
-	// Initialize WARC writer if --warc is specified
-	if crawl.WARC {
-		var rotatorSettings = warc.NewRotatorSettings()
-		rotatorSettings.OutputDirectory = path.Join(crawl.JobPath, "warcs")
-		rotatorSettings.Compression = "GZIP"
-		rotatorSettings.Prefix = "ZENO"
-		crawl.WARCWriter, crawl.WARCWriterFinish, err = rotatorSettings.NewWARCRotator()
-		if err != nil {
-			return err
+	if crawl.WARC || len(crawl.Proxy) > 0 {
+		customClient := new(customHTTPClient)
+		customClient.client = resty.New()
+
+		// Set Socks5 proxy if one is specified
+		if len(crawl.Proxy) > 0 {
+			customClient.client.SetProxy("socks5://" + crawl.Proxy)
 		}
 
-		// Disable HTTP/2: Empty TLSNextProto map
-		warcClient := &warcHTTPClient{client: *http.DefaultClient, writeChannel: *&crawl.WARCWriter}
-		warcClient.client.Transport = http.DefaultTransport
-		warcClient.client.Transport.(*http.Transport).TLSNextProto =
-			make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+		// Initialize WARC writer if --warc is specified
+		if crawl.WARC {
+			var rotatorSettings = warc.NewRotatorSettings()
+			rotatorSettings.OutputDirectory = path.Join(crawl.JobPath, "warcs")
+			rotatorSettings.Compression = "GZIP"
+			rotatorSettings.Prefix = "ZENO"
 
-		clientOptions = append(clientOptions, httpclient.WithHTTPClient(warcClient))
+			crawl.WARCWriter, crawl.WARCWriterFinish, err = rotatorSettings.NewWARCRotator()
+			if err != nil {
+				return err
+			}
+
+			// Disable HTTP/2: Empty TLSNextProto map
+			customClient.client.GetClient().Transport = http.DefaultTransport
+			customClient.client.GetClient().Transport.(*http.Transport).TLSNextProto =
+				make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+
+			customClient.warcWriteChannel = crawl.WARCWriter
+		}
+
+		clientOptions = append(clientOptions, httpclient.WithHTTPClient(customClient))
 	}
 
 	crawl.Client = httpclient.NewClient(clientOptions...)

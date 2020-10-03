@@ -26,6 +26,7 @@ type Crawl struct {
 	WorkerPool sizedwaitgroup.SizedWaitGroup
 	Client     *httpclient.Client
 	Log        *log.Entry
+	Proxy      string
 	UserAgent  string
 	JobPath    string
 	MaxHops    uint8

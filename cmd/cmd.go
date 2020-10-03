@@ -11,6 +11,12 @@ import (
 
 var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
+		Name:        "socks5-proxy",
+		Value:       "",
+		Usage:       "Socks5 proxy to use when requesting pages",
+		Destination: &config.App.Flags.Proxy,
+	},
+	&cli.StringFlag{
 		Name:        "user-agent",
 		Value:       "Zeno",
 		Usage:       "User agent to use when requesting URLs",

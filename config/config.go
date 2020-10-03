@@ -3,6 +3,7 @@ package config
 import "github.com/urfave/cli/v2"
 
 type Flags struct {
+	Proxy     string
 	UserAgent string
 	Job       string
 	Workers   int
