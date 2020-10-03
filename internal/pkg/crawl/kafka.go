@@ -35,6 +35,11 @@ func (crawl *Crawl) KafkaConnector() {
 
 	var kafkaWorkerPool = sizedwaitgroup.New(crawl.Workers / 2)
 	for {
+		if crawl.Finished {
+			kafkaWorkerPool.Wait()
+			break
+		}
+
 		for crawl.Frontier.QueueCount.Value() > int64(crawl.Workers*crawl.Workers) {
 			time.Sleep(time.Second * 1)
 		}
