@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/url"
+	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/segmentio/kafka-go"
@@ -32,8 +33,8 @@ func (crawl *Crawl) KafkaConnector() {
 	}).Info("Starting Kafka consuming, it may take some time to actually start pulling messages..")
 
 	for {
-		if crawl.ActiveWorkers.Value() > int64(crawl.Workers-crawl.Workers/10) {
-			continue
+		for crawl.Frontier.QueueCount.Value() > int64(crawl.Workers*10) {
+			time.Sleep(time.Second * 1)
 		}
 
 		var newKafkaMessage = new(kafkaMessage)
