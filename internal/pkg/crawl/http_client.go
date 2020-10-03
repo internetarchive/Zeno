@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"crypto/tls"
 	"net/http"
 	"time"
 
@@ -53,12 +54,20 @@ func (crawl *Crawl) InitHTTPClient() (err error) {
 	if crawl.WARC {
 		var rotatorSettings = warc.NewRotatorSettings()
 		rotatorSettings.OutputDirectory = "./warcs"
+		rotatorSettings.Compression = "GZIP"
 		rotatorSettings.Prefix = "ZENO"
 		WARCWriter, WARCWriterFinish, err = rotatorSettings.NewWARCRotator()
 		if err != nil {
 			return err
 		}
-		clientOptions = append(clientOptions, httpclient.WithHTTPClient(&warcHTTPClient{client: *http.DefaultClient}))
+
+		// Disable HTTP/2: Empty TLSNextProto map
+		warcClient := &warcHTTPClient{client: *http.DefaultClient}
+		warcClient.client.Transport = http.DefaultTransport
+		warcClient.client.Transport.(*http.Transport).TLSNextProto =
+			make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+
+		clientOptions = append(clientOptions, httpclient.WithHTTPClient(warcClient))
 	}
 
 	crawl.Client = httpclient.NewClient(clientOptions...)
