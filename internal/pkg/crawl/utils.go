@@ -16,7 +16,7 @@ import (
 
 var regexOutlinks *regexp.Regexp
 
-func setupCloseHandler(crawl *Crawl) {
+func (crawl *Crawl) setupCloseHandler() {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {

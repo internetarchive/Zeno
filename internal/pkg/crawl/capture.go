@@ -132,7 +132,17 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 }
 
 // Capture capture a page and queue the outlinks
-func (c *Crawl) capture(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
+func (c *Crawl) capture(item *frontier.Item) (outlinks []url.URL, err error) {
+	var ctx context.Context
+
+	// Create context for headless requests
+	if c.Headless {
+		ctx, cancel := chromedp.NewContext(context.Background())
+		// Useless but avoir warning
+		_ = ctx
+		defer cancel()
+	}
+
 	// Check with HTTP HEAD request if the URL need a full headless browser or a simple GET request
 	if needBrowser(item) && c.Headless == true {
 		outlinks, err = c.captureWithBrowser(ctx, item)

@@ -1,29 +1,19 @@
 package crawl
 
 import (
-	"context"
-
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/chromedp/chromedp"
 
 	log "github.com/sirupsen/logrus"
 )
 
 // Worker archive the items!
 func (c *Crawl) Worker(item *frontier.Item) {
-	// Create context for headless browser
-	ctx, cancel := chromedp.NewContext(context.Background())
-	defer cancel()
-
-	c.ActiveWorkers.Incr(1)
-
 	// Capture the page
-	outlinks, err := c.capture(ctx, item)
+	outlinks, err := c.capture(item)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Debug(item.URL.String())
-		c.ActiveWorkers.Incr(-1)
 		return
 	}
 
@@ -35,6 +25,4 @@ func (c *Crawl) Worker(item *frontier.Item) {
 			c.Frontier.PushChan <- newItem
 		}
 	}
-
-	c.ActiveWorkers.Incr(-1)
 }

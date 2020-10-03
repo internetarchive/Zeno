@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"os"
 	"sync"
 	"time"
 
@@ -32,6 +31,7 @@ type Crawl struct {
 	Headless   bool
 	Seencheck  bool
 	Workers    int
+	Finished   bool
 	WARC       bool
 
 	// Real time statistics
@@ -47,18 +47,20 @@ type Crawl struct {
 // Create initialize a Crawl structure and return it
 func Create() (crawl *Crawl, err error) {
 	crawl = new(Crawl)
+
 	crawl.Crawled = new(ratecounter.Counter)
 	crawl.ActiveWorkers = new(ratecounter.Counter)
 	crawl.Frontier = new(frontier.Frontier)
 	crawl.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
-
-	crawl.WorkerPool = sizedwaitgroup.New(crawl.Workers)
 
 	return crawl, nil
 }
 
 // Finish handle the closing of the different crawl components
 func (c *Crawl) Finish() {
+	c.Finished = true
+	c.WorkerPool.Wait()
+
 	if c.Seencheck {
 		c.Frontier.Seencheck.SeenDB.Close()
 		logrus.Warning("Seencheck database closed")
@@ -72,8 +74,6 @@ func (c *Crawl) Finish() {
 
 	c.Frontier.Queue.Close()
 	logrus.Warning("Frontier queue closed")
-
-	os.Exit(0)
 }
 
 // Start fire up the crawling process
@@ -82,7 +82,7 @@ func (c *Crawl) Start() (err error) {
 
 	// Start the background process that will handle os signals
 	// to exit Zeno, like CTRL+c
-	setupCloseHandler(c)
+	c.setupCloseHandler()
 
 	// Initialize the frontier
 	c.Frontier.Init(c.JobPath, c.Seencheck)
@@ -96,18 +96,26 @@ func (c *Crawl) Start() (err error) {
 
 	// Start archiving the URLs!
 	for item := range c.Frontier.PullChan {
-		c.WorkerPool.Add()
+		if c.Finished {
+			for {
+				time.Sleep(1 * time.Minute)
+			}
+		}
+
 		item := item
-		go func() {
+
+		c.WorkerPool.Add()
+		go func(wg *sizedwaitgroup.SizedWaitGroup) {
+			c.ActiveWorkers.Incr(1)
 			c.Worker(item)
-			c.WorkerPool.Done()
-		}()
+			wg.Done()
+			c.ActiveWorkers.Incr(-1)
+		}(&c.WorkerPool)
 	}
 
-	// Wait for workers to finish
-	c.WorkerPool.Wait()
-
-	c.Finish()
+	if c.Finished == false {
+		c.Finish()
+	}
 
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/crawl"
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/google/uuid"
+	"github.com/remeh/sizedwaitgroup"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -48,6 +49,7 @@ func CmdGetList(c *cli.Context) error {
 	crawl.Headless = config.App.Flags.Headless
 	crawl.WARC = config.App.Flags.WARC
 	crawl.Workers = config.App.Flags.Workers
+	crawl.WorkerPool = sizedwaitgroup.New(crawl.Workers)
 	crawl.Seencheck = config.App.Flags.Seencheck
 	crawl.MaxHops = uint8(config.App.Flags.MaxHops)
 	crawl.Log = log.WithFields(log.Fields{
@@ -81,8 +83,6 @@ func CmdGetList(c *cli.Context) error {
 		}).Error("Crawl exited due to error")
 		return err
 	}
-
-	//crawl.Log.Info("Crawl finished")
 
 	return nil
 }
