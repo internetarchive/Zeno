@@ -58,7 +58,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 				}
 
 				// Extract outlinks
-				outlinks = extractOutlinks(str)
+				outlinks = extractOutlinksRegex(str)
 
 				return err
 			}
@@ -125,7 +125,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 	}
 
 	// Extract outlinks
-	outlinks = extractOutlinks(string(body))
+	outlinks = extractOutlinksRegex(string(body))
 
 	resp.Body.Close()
 	return outlinks, nil

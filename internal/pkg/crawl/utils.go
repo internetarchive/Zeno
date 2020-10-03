@@ -3,14 +3,29 @@ package crawl
 import (
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
+	"github.com/sirupsen/logrus"
 )
 
 var regexOutlinks *regexp.Regexp
+
+func setupCloseHandler(crawl *Crawl) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		logrus.Warning("CTRL+C catched.. cleaning up and exiting.")
+		crawl.Finish()
+		os.Exit(0)
+	}()
+}
 
 func needBrowser(item *frontier.Item) bool {
 	res, err := http.Head(item.URL.String())
@@ -27,7 +42,7 @@ func needBrowser(item *frontier.Item) bool {
 	return false
 }
 
-func extractOutlinks(source string) (outlinks []url.URL) {
+func extractOutlinksRegex(source string) (outlinks []url.URL) {
 	// Extract outlinks and dedupe them
 	rawOutlinks := utils.DedupeStringSlice(regexOutlinks.FindAllString(source, -1))
 

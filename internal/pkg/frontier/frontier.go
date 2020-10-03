@@ -62,13 +62,6 @@ func (f *Frontier) Init(jobPath string, useSeencheck bool) (err error) {
 	return nil
 }
 
-// Stop close the frontier's components properly
-func (f *Frontier) Stop() {
-	defer f.Queue.Close()
-
-	_ = f.Queue.Drop()
-}
-
 // Start fire up the background processes that handle the frontier
 func (f *Frontier) Start() {
 	// Function responsible for writing the items push on PushChan to the

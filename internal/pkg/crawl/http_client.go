@@ -13,7 +13,8 @@ import (
 )
 
 type warcHTTPClient struct {
-	client http.Client
+	client       http.Client
+	writeChannel chan *warc.RecordBatch
 }
 
 func (c *warcHTTPClient) Do(request *http.Request) (resp *http.Response, err error) {
@@ -31,7 +32,7 @@ func (c *warcHTTPClient) Do(request *http.Request) (resp *http.Response, err err
 		}).Error("error when turning HTTP resp into WARC records")
 		return resp, err
 	}
-	WARCWriter <- records
+	c.writeChannel <- records
 
 	return resp, nil
 }
@@ -57,13 +58,13 @@ func (crawl *Crawl) InitHTTPClient() (err error) {
 		rotatorSettings.OutputDirectory = path.Join(crawl.JobPath, "warcs")
 		rotatorSettings.Compression = "GZIP"
 		rotatorSettings.Prefix = "ZENO"
-		WARCWriter, WARCWriterFinish, err = rotatorSettings.NewWARCRotator()
+		crawl.WARCWriter, crawl.WARCWriterFinish, err = rotatorSettings.NewWARCRotator()
 		if err != nil {
 			return err
 		}
 
 		// Disable HTTP/2: Empty TLSNextProto map
-		warcClient := &warcHTTPClient{client: *http.DefaultClient}
+		warcClient := &warcHTTPClient{client: *http.DefaultClient, writeChannel: *&crawl.WARCWriter}
 		warcClient.client.Transport = http.DefaultTransport
 		warcClient.client.Transport.(*http.Transport).TLSNextProto =
 			make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
