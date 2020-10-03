@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/remeh/sizedwaitgroup"
 	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 )
@@ -32,50 +33,59 @@ func (crawl *Crawl) KafkaConnector() {
 		"topic":   crawl.KafkaFeedTopic,
 	}).Info("Starting Kafka consuming, it may take some time to actually start pulling messages..")
 
+	var kafkaWorkerPool = sizedwaitgroup.New(crawl.Workers / 2)
 	for {
 		for crawl.Frontier.QueueCount.Value() > int64(crawl.Workers*crawl.Workers) {
 			time.Sleep(time.Second * 1)
 		}
 
-		var newKafkaMessage = new(kafkaMessage)
+		kafkaWorkerPool.Add()
+		go func(wg *sizedwaitgroup.SizedWaitGroup) {
+			var newKafkaMessage = new(kafkaMessage)
 
-		m, err := r.ReadMessage(context.Background())
-		if err != nil {
+			m, err := r.ReadMessage(context.Background())
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"error": err,
+				}).Warning("Unable to read message from Kafka")
+				wg.Done()
+				return
+			}
+
 			logrus.WithFields(logrus.Fields{
-				"error": err,
-			}).Warning("Unable to read message from Kafka")
-			continue
-		}
+				"value": string(m.Value),
+				"key":   string(m.Key),
+			}).Debug("New message received from Kafka")
 
-		logrus.WithFields(logrus.Fields{
-			"value": string(m.Value),
-			"key":   string(m.Key),
-		}).Debug("New message received from Kafka")
+			err = json.Unmarshal(m.Value, &newKafkaMessage)
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"topic":     m.Topic,
+					"key":       m.Key,
+					"offset":    m.Offset,
+					"value":     m.Value,
+					"partition": m.Partition,
+					"error":     err,
+				}).Warning("Unable to unmarshal message from Kafka")
+				wg.Done()
+				return
+			}
 
-		err = json.Unmarshal(m.Value, &newKafkaMessage)
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"topic":     m.Topic,
-				"key":       m.Key,
-				"offset":    m.Offset,
-				"value":     m.Value,
-				"partition": m.Partition,
-				"error":     err,
-			}).Warning("Unable to unmarshal message from Kafka")
-			continue
-		}
+			URL, err := url.Parse(newKafkaMessage.URL)
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"kafka_msg_url": newKafkaMessage.URL,
+					"error":         err,
+				}).Warning("Unable to parse URL from Kafka message")
+				wg.Done()
+				return
+			}
 
-		URL, err := url.Parse(newKafkaMessage.URL)
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"kafka_msg_url": newKafkaMessage.URL,
-				"error":         err,
-			}).Warning("Unable to parse URL from Kafka message")
-			continue
-		}
+			newItem := frontier.NewItem(URL, nil, 0)
 
-		newItem := frontier.NewItem(URL, nil, 0)
+			crawl.Frontier.PushChan <- newItem
 
-		crawl.Frontier.PushChan <- newItem
+			wg.Done()
+		}(&kafkaWorkerPool)
 	}
 }
