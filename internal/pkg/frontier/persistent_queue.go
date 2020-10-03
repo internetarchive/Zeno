@@ -2,10 +2,9 @@ package frontier
 
 import (
 	"net/url"
-	"path/filepath"
+	"path"
 
 	"github.com/beeker1121/goque"
-	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/zeebo/xxh3"
 )
@@ -32,16 +31,9 @@ func NewItem(URL *url.URL, parentItem *Item, hop uint8) *Item {
 	return item
 }
 
-func newPersistentQueue() (queue *goque.PrefixQueue, err error) {
-	// All on-disk queues are in the "./jobs" directory
-	queueUUID, err := uuid.NewUUID()
-	if err != nil {
-		return nil, err
-	}
-	queuePath := filepath.Join(".", "jobs", queueUUID.String())
-
+func newPersistentQueue(jobPath string) (queue *goque.PrefixQueue, err error) {
 	// Initialize a prefix queue
-	queue, err = goque.OpenPrefixQueue(queuePath)
+	queue, err = goque.OpenPrefixQueue(path.Join(jobPath, "queue"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,

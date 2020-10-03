@@ -10,6 +10,12 @@ import (
 )
 
 var GlobalFlags = []cli.Flag{
+	&cli.StringFlag{
+		Name:        "job",
+		Value:       "",
+		Usage:       "Job name to use, will determine the path for the persistent queue, seencheck database, and WARC files",
+		Destination: &config.App.Flags.Job,
+	},
 	&cli.IntFlag{
 		Name:        "workers",
 		Aliases:     []string{"w"},

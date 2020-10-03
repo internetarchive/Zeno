@@ -1,6 +1,8 @@
 package frontier
 
 import (
+	"strconv"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -9,10 +11,11 @@ func (f *Frontier) writeItemsToQueue() {
 		// If --seencheck is enabled, then we check if the URI is in the
 		// seencheck DB before doing anything. If it is in it, we skip the item
 		if f.UseSeencheck {
-			if f.Seencheck[item.Hash] {
+			hash := strconv.FormatUint(item.Hash, 10)
+			if f.Seencheck.IsSeen(hash) {
 				continue
 			} else {
-				f.Seencheck[item.Hash] = true
+				f.Seencheck.Seen(hash)
 			}
 		}
 
@@ -34,6 +37,7 @@ func (f *Frontier) writeItemsToQueue() {
 				"item":  item,
 			}).Error("Unable to enqueue item")
 		}
+		f.QueueCount.Incr(1)
 
 		log.WithFields(log.Fields{
 			"url": item.URL,
@@ -60,6 +64,7 @@ func (f *Frontier) readItemsFromQueue() {
 				}).Debug("Unable to dequeue item")
 				continue
 			}
+			f.QueueCount.Incr(-1)
 
 			// Turn the item from the queue into an Item
 			var item *Item
@@ -77,9 +82,7 @@ func (f *Frontier) readItemsFromQueue() {
 				"url": item.URL,
 			}).Debug("Item sent to workers pool")
 
-			f.HostPool.Mutex.Lock()
 			f.HostPool.Hosts[key].Count.Incr(-1)
-			f.HostPool.Mutex.Unlock()
 		}
 	}
 }

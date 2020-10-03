@@ -1,9 +1,12 @@
 package frontier
 
 import (
+	"path"
 	"sync"
 
 	"github.com/beeker1121/goque"
+	"github.com/paulbellamy/ratecounter"
+	"github.com/philippgille/gokv/leveldb"
 )
 
 type Frontier struct {
@@ -15,7 +18,8 @@ type Frontier struct {
 
 	// Queue is a local queue storing all the URLs to crawl
 	// it's a prefixed queue, basically one sub-queue per host
-	Queue *goque.PrefixQueue
+	QueueCount *ratecounter.Counter
+	Queue      *goque.PrefixQueue
 
 	// HostPool is an array that contains all the different hosts
 	// that Zeno crawled, with a counter for each, going through
@@ -23,11 +27,11 @@ type Frontier struct {
 	HostPool *HostPool
 
 	UseSeencheck bool
-	Seencheck    map[uint64]bool
+	Seencheck    *Seencheck
 }
 
 // Init ininitialize the components of a frontier
-func (f *Frontier) Init() (err error) {
+func (f *Frontier) Init(jobPath string, useSeencheck bool) (err error) {
 	// Initialize host pool
 	f.HostPool = new(HostPool)
 	f.HostPool.Mutex = new(sync.Mutex)
@@ -38,13 +42,22 @@ func (f *Frontier) Init() (err error) {
 	f.PushChan = make(chan *Item)
 
 	// Initialize the queue
-	f.Queue, err = newPersistentQueue()
+	f.QueueCount = new(ratecounter.Counter)
+	f.Queue, err = newPersistentQueue(jobPath)
 	if err != nil {
 		return err
 	}
 
 	// Initialize the seencheck
-	f.Seencheck = make(map[uint64]bool)
+	f.UseSeencheck = useSeencheck
+	if f.UseSeencheck {
+		f.Seencheck = new(Seencheck)
+		f.Seencheck.SeenCount = new(ratecounter.Counter)
+		f.Seencheck.SeenDB, err = leveldb.NewStore(leveldb.Options{Path: path.Join(jobPath, "seencheck")})
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

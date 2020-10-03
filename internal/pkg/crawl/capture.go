@@ -108,6 +108,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 	}
 
 	log.WithFields(log.Fields{
+		"queued":         c.Frontier.QueueCount.Value(),
 		"crawled":        c.Crawled.Value(),
 		"host":           item.Host,
 		"rate":           c.URLsPerSecond.Rate(),

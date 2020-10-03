@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"os"
 	"sync"
 	"time"
 
@@ -30,6 +31,7 @@ type Crawl struct {
 	WorkerPool sizedwaitgroup.SizedWaitGroup
 	Client     *httpclient.Client
 	Log        *log.Entry
+	JobPath    string
 	MaxHops    uint8
 	Headless   bool
 	Seencheck  bool
@@ -55,16 +57,20 @@ func Create() (crawl *Crawl, err error) {
 	return crawl, nil
 }
 
+// Finish handle the closing of the different crawl components
+func (c *Crawl) Finish() {
+	c.Frontier.Seencheck.SeenDB.Close()
+
+	os.Exit(0)
+}
+
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
 	regexOutlinks = xurls.Relaxed()
 	var wg = sizedwaitgroup.New(c.Workers)
 
 	// Initialize the frontier
-	c.Frontier.Init()
-	if c.Seencheck {
-		c.Frontier.UseSeencheck = true
-	}
+	c.Frontier.Init(c.JobPath, c.Seencheck)
 	c.Frontier.Start()
 
 	// Push the seed list to the queue

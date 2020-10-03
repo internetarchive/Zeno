@@ -1,6 +1,7 @@
 package config
 
 type Flags struct {
+	Job       string
 	Workers   int
 	MaxHops   uint
 	WARC      bool

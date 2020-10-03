@@ -1,9 +1,12 @@
 package get
 
 import (
+	"path"
+
 	"github.com/CorentinB/Zeno/config"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl"
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -32,9 +35,20 @@ func CmdGetList(c *cli.Context) error {
 		return err
 	}
 
+	// If the job name isn't specified, we generate a random name
+	if len(config.App.Flags.Job) == 0 {
+		UUID, err := uuid.NewUUID()
+		if err != nil {
+			return err
+		}
+		config.App.Flags.Job = UUID.String()
+	}
+
+	crawl.JobPath = path.Join("jobs", config.App.Flags.Job)
 	crawl.Headless = config.App.Flags.Headless
 	crawl.WARC = config.App.Flags.WARC
 	crawl.Workers = config.App.Flags.Workers
+	crawl.Seencheck = config.App.Flags.Seencheck
 	crawl.MaxHops = uint8(config.App.Flags.MaxHops)
 	crawl.Log = log.WithFields(log.Fields{
 		"crawl": crawl,

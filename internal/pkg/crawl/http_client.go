@@ -3,6 +3,7 @@ package crawl
 import (
 	"crypto/tls"
 	"net/http"
+	"path"
 	"time"
 
 	"github.com/CorentinB/warc"
@@ -53,7 +54,7 @@ func (crawl *Crawl) InitHTTPClient() (err error) {
 	// Initialize WARC writer if --warc is specified
 	if crawl.WARC {
 		var rotatorSettings = warc.NewRotatorSettings()
-		rotatorSettings.OutputDirectory = "./warcs"
+		rotatorSettings.OutputDirectory = path.Join(crawl.JobPath, "warcs")
 		rotatorSettings.Compression = "GZIP"
 		rotatorSettings.Prefix = "ZENO"
 		WARCWriter, WARCWriterFinish, err = rotatorSettings.NewWARCRotator()
