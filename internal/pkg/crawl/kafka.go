@@ -26,6 +26,10 @@ func (crawl *Crawl) KafkaConnector() {
 	})
 
 	for {
+		if crawl.ActiveWorkers.Value() > int64(crawl.Workers-crawl.Workers/10) {
+			continue
+		}
+
 		var newKafkaMessage = new(kafkaMessage)
 
 		m, err := r.ReadMessage(context.Background())
