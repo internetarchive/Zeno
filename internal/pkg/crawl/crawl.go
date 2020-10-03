@@ -42,6 +42,12 @@ type Crawl struct {
 	// WARC settings
 	WARCWriter       chan *warc.RecordBatch
 	WARCWriterFinish chan bool
+
+	// Kafka settings
+	UseKafka           bool
+	KafkaBrokers       []string
+	KafkaConsumerGroup string
+	KafkaFeedTopic     string
 }
 
 // Create initialize a Crawl structure and return it
@@ -88,10 +94,16 @@ func (c *Crawl) Start() (err error) {
 	c.Frontier.Init(c.JobPath, c.Seencheck)
 	c.Frontier.Start()
 
-	// Push the seed list to the queue
-	for _, item := range c.SeedList {
-		item := item
-		c.Frontier.PushChan <- &item
+	// If Kafka parameters are specified, then we start the background
+	// process responsible for pulling seeds from Kafka
+	if c.UseKafka {
+		go c.KafkaConnector()
+	} else {
+		// Push the seed list to the queue
+		for _, item := range c.SeedList {
+			item := item
+			c.Frontier.PushChan <- &item
+		}
 	}
 
 	// Start archiving the URLs!

@@ -29,6 +29,7 @@ func init() {
 			Subcommands: []*cli.Command{
 				NewGetURLCmd(),
 				NewGetListCmd(),
+				NewGetKafkaCmd(),
 			},
 		})
 }

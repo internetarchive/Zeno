@@ -1,5 +1,7 @@
 package config
 
+import "github.com/urfave/cli/v2"
+
 type Flags struct {
 	Job       string
 	Workers   int
@@ -9,6 +11,11 @@ type Flags struct {
 	Seencheck bool
 	JSON      bool
 	Debug     bool
+
+	Kafka              bool
+	KafkaFeedTopic     string
+	KafkaConsumerGroup string
+	KafkaBrokers       cli.StringSlice
 }
 
 type Application struct {

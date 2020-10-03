@@ -22,6 +22,7 @@ require (
 	github.com/philippgille/gokv/leveldb v0.6.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remeh/sizedwaitgroup v1.0.0
+	github.com/segmentio/kafka-go v0.4.5
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/urfave/cli/v2 v2.2.0

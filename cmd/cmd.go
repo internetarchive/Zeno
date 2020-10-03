@@ -53,6 +53,28 @@ var GlobalFlags = []cli.Flag{
 		Name:        "debug",
 		Destination: &config.App.Flags.Debug,
 	},
+
+	// Kafka flags
+	&cli.BoolFlag{
+		Name:        "kafka",
+		Usage:       "Use Kafka to pull URLs to process",
+		Destination: &config.App.Flags.Kafka,
+	},
+	&cli.StringSliceFlag{
+		Name:        "kafka-brokers",
+		Usage:       "Kafka brokers to connect to",
+		Destination: &config.App.Flags.KafkaBrokers,
+	},
+	&cli.StringFlag{
+		Name:        "kafka-feed-topic",
+		Usage:       "Kafka topic to pull seeds from",
+		Destination: &config.App.Flags.KafkaFeedTopic,
+	},
+	&cli.StringFlag{
+		Name:        "kafka-consumer-group",
+		Usage:       "Kafka consumer group to use for feeding Zeno",
+		Destination: &config.App.Flags.KafkaConsumerGroup,
+	},
 }
 
 var Commands []*cli.Command
