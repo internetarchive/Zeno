@@ -23,9 +23,10 @@ type Frontier struct {
 	QueueCount *ratecounter.Counter
 	Queue      *goque.PrefixQueue
 
-	// HostPool is an array that contains all the different hosts
-	// that Zeno crawled, with a counter for each, going through
-	// that pull gives us the prefix to query from the queue
+	// HostPool is an struct that contains a map and a Mutex.
+	// the map contains all the different hosts that Zeno crawled,
+	// with a counter for each, going through that map gives us
+	// the prefix to query from the queue
 	HostPool *HostPool
 
 	UseSeencheck bool
@@ -39,7 +40,7 @@ func (f *Frontier) Init(jobPath string, useSeencheck bool) (err error) {
 	// Initialize host pool
 	f.HostPool = new(HostPool)
 	f.HostPool.Mutex = new(sync.Mutex)
-	f.HostPool.Hosts = make([]Host, 0)
+	f.HostPool.Hosts = make(map[string]*ratecounter.Counter, 0)
 
 	// Initialize the frontier channels
 	f.PullChan = make(chan *Item)

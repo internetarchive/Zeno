@@ -6,12 +6,13 @@ import (
 	"path"
 	"time"
 
+	"github.com/paulbellamy/ratecounter"
 	"github.com/sirupsen/logrus"
 )
 
 type frontierStats struct {
-	Hosts []Host
-	Count int64
+	Hosts       map[string]*ratecounter.Counter
+	QueuedCount int64
 }
 
 // Load take the path to the frontier's hosts pool and status dump
@@ -32,15 +33,15 @@ func (f *Frontier) Load() {
 
 	// We create the structure to load the file's content
 	var dump = new(frontierStats)
-	dump.Count = f.QueueCount.Value()
-	dump.Hosts = make([]Host, 0)
+	dump.QueuedCount = f.QueueCount.Value()
+	dump.Hosts = make(map[string]*ratecounter.Counter, 0)
 
 	// Decode the content of the file in the structure
 	decoder.Decode(&dump)
 
 	// Copy the loaded data to our actual frontier
 	f.HostPool.Hosts = dump.Hosts
-	f.QueueCount.Incr(dump.Count)
+	f.QueueCount.Incr(dump.QueuedCount)
 
 	logrus.WithFields(logrus.Fields{
 		"queued": f.QueueCount.Value(),
@@ -62,17 +63,18 @@ func (f *Frontier) Save() {
 	// it's a copy of the hosts pool and the count
 	// of the queued items
 	var dump = new(frontierStats)
-	dump.Count = f.QueueCount.Value()
-	dump.Hosts = make([]Host, 0)
+	dump.QueuedCount = f.QueueCount.Value()
+	dump.Hosts = make(map[string]*ratecounter.Counter, 0)
 
-	// Recreate a clean host pool by removing the hosts
+	// Recreate a clean host pool by not copying the hosts
 	// that do not have any entry in queue
 	f.HostPool.Mutex.Lock()
 	var hosts = f.HostPool.Hosts
 	f.HostPool.Mutex.Unlock()
-	for _, host := range hosts {
-		if host.Count.Value() != 0 {
-			dump.Hosts = append(dump.Hosts, host)
+
+	for host, hostCounter := range hosts {
+		if hostCounter.Value() != 0 {
+			dump.Hosts[host] = hostCounter
 		}
 	}
 

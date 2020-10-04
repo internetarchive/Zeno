@@ -19,15 +19,9 @@ func (f *Frontier) writeItemsToQueue() {
 			}
 		}
 
-		// Check if host is in the pool, if it is not, we add it
-		// if it is, we increment its counter
-		f.HostPool.Mutex.Lock()
-		if f.HostPool.IsHostInPool(item.Host) == false {
-			f.HostPool.Add(item.Host)
-		} else {
-			f.HostPool.Incr(item.Host)
-		}
-		f.HostPool.Mutex.Unlock()
+		// Increment the counter of the host in the hosts pool,
+		// if the hosts doesn't exist in the pool, it will be created
+		f.HostPool.Incr(item.Host)
 
 		// Add the item to the host's queue
 		_, err := f.Queue.EnqueueObject([]byte(item.Host), item)
@@ -47,17 +41,26 @@ func (f *Frontier) writeItemsToQueue() {
 
 func (f *Frontier) readItemsFromQueue() {
 	for {
-		f.HostPool.Mutex.Lock()
+		// We cleanup the hosts pool by removing
+		// all the hosts with a count of 0, then
+		// we make a snapshot of the hosts
+		// pool that we will iterate on
+		f.HostPool.DeleteEmptyHosts()
+		f.HostPool.Lock()
 		currentPool := f.HostPool.Hosts
-		f.HostPool.Mutex.Unlock()
+		f.HostPool.Unlock()
 
-		for key, host := range currentPool {
-			if host.Count.Value() == 0 {
+		// We iterate over the pool, and dequeue
+		// new URLs to crawl based on that hosts pool
+		// that allow us to crawl a wide variety of domains
+		// at the same time, maximizing our speed
+		for host := range currentPool {
+			if f.HostPool.Hosts[host].Value() == 0 {
 				continue
 			}
 
 			// Dequeue an item from the local queue
-			queueItem, err := f.Queue.DequeueString(host.Host)
+			queueItem, err := f.Queue.DequeueString(host)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"error": err,
@@ -82,7 +85,7 @@ func (f *Frontier) readItemsFromQueue() {
 				"url": item.URL,
 			}).Debug("Item sent to workers pool")
 
-			f.HostPool.Hosts[key].Count.Incr(-1)
+			f.HostPool.Hosts[host].Incr(-1)
 		}
 	}
 }

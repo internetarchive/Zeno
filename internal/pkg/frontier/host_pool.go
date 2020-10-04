@@ -6,45 +6,41 @@ import (
 	"github.com/paulbellamy/ratecounter"
 )
 
-// Host is an item in Crawl.ActiveHosts,
-// it represents an Host and it's occurence in the queue
-type Host struct {
-	Host  string
-	Count *ratecounter.Counter
-}
-
 // HostPool holds all the active hosts in the pool
 type HostPool struct {
-	Mutex *sync.Mutex
-	Hosts []Host
+	*sync.Mutex
+	Hosts map[string]*ratecounter.Counter
 }
 
 // IsHostInPool return true if the Host is in the pool
-func (pool *HostPool) IsHostInPool(target string) bool {
-	for _, host := range pool.Hosts {
-		if host.Host == target {
-			return true
-		}
+func (pool *HostPool) IsHostInPool(host string) bool {
+	pool.Lock()
+	if _, ok := pool.Hosts[host]; ok {
+		pool.Unlock()
+		return true
 	}
+	pool.Unlock()
 	return false
 }
 
-// Add add a new host to the pool
-func (pool *HostPool) Add(host string) {
-	newHost := new(Host)
-
-	newHost.Host = host
-	newHost.Count = new(ratecounter.Counter)
-	newHost.Count.Incr(1)
-
-	pool.Hosts = append(pool.Hosts, *newHost)
+// DeleteEmptyHosts remove all the hosts that have a count
+// of zero from the hosts pool
+func (pool *HostPool) DeleteEmptyHosts() {
+	pool.Lock()
+	for host, hostCount := range pool.Hosts {
+		if hostCount.Value() <= 0 {
+			delete(pool.Hosts, host)
+		}
+	}
+	pool.Unlock()
 }
 
 // Incr increment by 1 the counter of an host in the pool
-func (pool *HostPool) Incr(target string) {
-	for _, host := range pool.Hosts {
-		if host.Host == target {
-			host.Count.Incr(1)
-		}
+func (pool *HostPool) Incr(host string) {
+	pool.Lock()
+	if _, ok := pool.Hosts[host]; !ok {
+		pool.Hosts[host] = new(ratecounter.Counter)
 	}
+	pool.Hosts[host].Incr(1)
+	pool.Unlock()
 }
