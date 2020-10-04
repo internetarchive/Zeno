@@ -5,9 +5,30 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/url"
+	"sync/atomic"
 
 	"github.com/asaskevich/govalidator"
 )
+
+// TAtomBool define an atomic boolean
+type TAtomBool struct{ flag int32 }
+
+// Set set the value of an atomic boolean
+func (b *TAtomBool) Set(value bool) {
+	var i int32 = 0
+	if value {
+		i = 1
+	}
+	atomic.StoreInt32(&(b.flag), int32(i))
+}
+
+// Get return the value of an atomic boolean
+func (b *TAtomBool) Get() bool {
+	if atomic.LoadInt32(&(b.flag)) != 0 {
+		return true
+	}
+	return false
+}
 
 // GetSHA1 take a string and return the SHA1 hash of the string, as a string
 func GetSHA1(str string) string {

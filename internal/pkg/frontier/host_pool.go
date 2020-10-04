@@ -44,3 +44,34 @@ func (pool *HostPool) Incr(host string) {
 	pool.Hosts[host].Incr(1)
 	pool.Unlock()
 }
+
+// Decr decrement by 1 the counter of an host in the pool
+func (pool *HostPool) Decr(host string) {
+	pool.Lock()
+	if _, ok := pool.Hosts[host]; !ok {
+		pool.Unlock()
+		return
+	}
+
+	if pool.Hosts[host].Value()-1 <= 0 {
+		delete(pool.Hosts, host)
+		pool.Unlock()
+		return
+	}
+
+	pool.Hosts[host].Incr(-1)
+	pool.Unlock()
+}
+
+// GetCount return the counter of the key
+func (pool *HostPool) GetCount(host string) (value int64) {
+	pool.Lock()
+	if _, ok := pool.Hosts[host]; !ok {
+		pool.Unlock()
+		return 0
+	}
+	value = pool.Hosts[host].Value()
+	pool.Unlock()
+
+	return value
+}

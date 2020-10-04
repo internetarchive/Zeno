@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
 	"github.com/gojektech/heimdall/v6/httpclient"
 	"github.com/paulbellamy/ratecounter"
@@ -17,8 +18,9 @@ import (
 
 // Crawl define the parameters of a crawl process
 type Crawl struct {
+	*sync.Mutex
 	SeedList []frontier.Item
-	Mutex    *sync.Mutex
+	Finished *utils.TAtomBool
 
 	// Frontier
 	Frontier *frontier.Frontier
@@ -34,7 +36,6 @@ type Crawl struct {
 	Headless   bool
 	Seencheck  bool
 	Workers    int
-	Finished   bool
 
 	// Real time statistics
 	URLsPerSecond *ratecounter.RateCounter
@@ -70,7 +71,7 @@ func Create() (crawl *Crawl, err error) {
 
 // Finish handle the closing of the different crawl components
 func (c *Crawl) Finish() {
-	c.Finished = true
+	c.Finished.Set(true)
 	c.WorkerPool.Wait()
 
 	if c.WARC {
@@ -95,6 +96,7 @@ func (c *Crawl) Finish() {
 
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
+	c.Finished = new(utils.TAtomBool)
 	regexOutlinks = xurls.Relaxed()
 
 	// Start the background process that will handle os signals
@@ -120,7 +122,7 @@ func (c *Crawl) Start() (err error) {
 
 	// Start archiving the URLs!
 	for item := range c.Frontier.PullChan {
-		if c.Finished {
+		if c.Finished.Get() {
 			for {
 				time.Sleep(1 * time.Minute)
 			}
@@ -137,7 +139,7 @@ func (c *Crawl) Start() (err error) {
 		}(&c.WorkerPool)
 	}
 
-	if c.Finished == false {
+	if c.Finished.Get() == false {
 		c.Finish()
 	}
 

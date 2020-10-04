@@ -66,23 +66,14 @@ func (f *Frontier) Save() {
 	dump.QueuedCount = f.QueueCount.Value()
 	dump.Hosts = make(map[string]*ratecounter.Counter, 0)
 
-	// Recreate a clean host pool by not copying the hosts
-	// that do not have any entry in queue
-	f.HostPool.Mutex.Lock()
-	var hosts = f.HostPool.Hosts
-	f.HostPool.Mutex.Unlock()
-
-	for host, hostCounter := range hosts {
-		if hostCounter.Value() != 0 {
-			dump.Hosts[host] = hostCounter
-		}
-	}
-
+	f.HostPool.Lock()
+	dump.Hosts = f.HostPool.Hosts
 	// Write to the file
 	var encoder = gob.NewEncoder(encodeFile)
 	if err := encoder.Encode(dump); err != nil {
 		logrus.Warning(err)
 	}
+	f.HostPool.Unlock()
 }
 
 func (f *Frontier) writeFrontierToDisk() {

@@ -110,7 +110,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 			// If the crawl is finishing, we do not want to keep
 			// retrying the requests, instead we just want to finish
 			// all workers execution.
-			if c.Finished {
+			if c.Finished.Get() {
 				outlinks = append(outlinks, *req.URL)
 				return outlinks, err
 			}

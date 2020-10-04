@@ -35,7 +35,7 @@ func (crawl *Crawl) KafkaConnector() {
 
 	var kafkaWorkerPool = sizedwaitgroup.New(crawl.Workers / 2)
 	for {
-		if crawl.Finished {
+		if crawl.Finished.Get() {
 			kafkaWorkerPool.Wait()
 			break
 		}

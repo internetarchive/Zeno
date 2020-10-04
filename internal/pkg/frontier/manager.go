@@ -55,7 +55,7 @@ func (f *Frontier) readItemsFromQueue() {
 		// that allow us to crawl a wide variety of domains
 		// at the same time, maximizing our speed
 		for host := range currentPool {
-			if f.HostPool.Hosts[host].Value() == 0 {
+			if f.HostPool.GetCount(host) == 0 {
 				continue
 			}
 
@@ -85,7 +85,7 @@ func (f *Frontier) readItemsFromQueue() {
 				"url": item.URL,
 			}).Debug("Item sent to workers pool")
 
-			f.HostPool.Hosts[host].Incr(-1)
+			f.HostPool.Decr(host)
 		}
 	}
 }
