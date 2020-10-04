@@ -72,7 +72,9 @@ func Create() (crawl *Crawl, err error) {
 // Finish handle the closing of the different crawl components
 func (c *Crawl) Finish() {
 	c.Finished.Set(true)
+
 	c.WorkerPool.Wait()
+	logrus.Warning("All workers finished")
 
 	if c.WARC {
 		close(c.WARCWriter)
