@@ -103,19 +103,12 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		// Write response and request
 		records, err := warc.RecordsFromHTTPResponse(resp)
 		if err != nil {
-			if err.Error() == "unexpected EOF" {
-				log.WithFields(log.Fields{
-					"url":   req.URL.String(),
-					"error": err,
-				}).Error("error when turning HTTP resp into WARC records, retrying.. ", retryCount, "/", retryMax)
-				resp.Body.Close()
-				continue
-			} else {
-				log.WithFields(log.Fields{
-					"url":   req.URL.String(),
-					"error": err,
-				}).Error("error when turning HTTP resp into WARC records. Not retrying.")
-			}
+			log.WithFields(log.Fields{
+				"url":   req.URL.String(),
+				"error": err,
+			}).Error("error when turning HTTP resp into WARC records, retrying.. ", retryCount, "/", retryMax)
+			resp.Body.Close()
+			continue
 		} else {
 			c.WARCWriter <- records
 		}
