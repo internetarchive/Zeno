@@ -57,7 +57,7 @@ func (f *Frontier) readItemsFromQueue() {
 			}
 
 			// Dequeue an item from the local queue
-			queueItem, err := f.Queue.Dequeue([]byte(host.Host))
+			queueItem, err := f.Queue.DequeueString(host.Host)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"error": err,

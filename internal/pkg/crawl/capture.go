@@ -126,6 +126,8 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		if err != nil {
 			return outlinks, err
 		}
+
+		return outlinks, nil
 	}
 	return outlinks, nil
 }
