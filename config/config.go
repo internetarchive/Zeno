@@ -8,11 +8,14 @@ type Flags struct {
 	Job       string
 	Workers   int
 	MaxHops   uint
-	WARC      bool
 	Headless  bool
 	Seencheck bool
 	JSON      bool
 	Debug     bool
+
+	WARC         bool
+	WARCPrefix   string
+	WARCOperator string
 
 	Kafka              bool
 	KafkaFeedTopic     string

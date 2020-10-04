@@ -3,11 +3,11 @@ package crawl
 import (
 	"context"
 	"net/http"
-	"net/http/httptrace"
 	"net/url"
 	"strings"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/CorentinB/warc"
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
@@ -73,63 +73,71 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 }
 
 func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
-	// Prepare GET request
-	req, err := http.NewRequest("GET", item.URL.String(), nil)
-	if err != nil {
-		return outlinks, err
-	}
+	var retryMax = 3
 
-	req.Header.Set("User-Agent", c.UserAgent)
-	if item.Hop > 0 {
-		req.Header.Set("Referer", item.ParentItem.URL.String())
-	} else {
-		req.Header.Set("Referer", item.URL.String())
-	}
+	// This retry loop is used for when the WARC writing fail,
+	// it can happen when the response have an issue, such as
+	// an unexpected EOF. That happens often when using proxies.
+	for retryCount := 1; retryCount <= retryMax; retryCount++ {
+		// Prepare GET request
+		req, err := http.NewRequest("GET", item.URL.String(), nil)
+		if err != nil {
+			return outlinks, err
+		}
 
-	trace := &httptrace.ClientTrace{
-		DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
-			c.URLsPerSecond.Incr(1)
-			if dnsInfo.Err == nil {
+		req.Header.Set("User-Agent", c.UserAgent)
+		req.Header.Set("Accept-Encoding", "*")
+		if item.Hop > 0 {
+			req.Header.Set("Referer", item.ParentItem.URL.String())
+		} else {
+			req.Header.Set("Referer", item.URL.String())
+		}
+
+		// Execute GET request
+		resp, err := c.Client.Do(req)
+		if err != nil {
+			return outlinks, err
+		}
+		defer resp.Body.Close()
+
+		// Write response and request
+		records, err := warc.RecordsFromHTTPResponse(resp)
+		if err != nil {
+			if err.Error() == "unexpected EOF" && retryCount <= retryMax {
 				log.WithFields(log.Fields{
-					"crawled":        c.Crawled.Value(),
-					"host":           item.Host,
-					"rate":           c.URLsPerSecond.Rate(),
-					"source_url":     item.URL.String(),
-					"active_workers": c.ActiveWorkers.Value(),
-					"hop":            item.Hop,
-				}).Debug("dns:" + item.Host)
+					"url":   req.URL.String(),
+					"error": err,
+				}).Error("error when turning HTTP resp into WARC records, retrying.. ", retryCount, "/", retryMax)
+				resp.Body.Close()
+				continue
+			} else {
+				log.WithFields(log.Fields{
+					"url":   req.URL.String(),
+					"error": err,
+				}).Error("error when turning HTTP resp into WARC records. Not retrying.")
 			}
-		},
+		} else {
+			c.WARCWriter <- records
+		}
+
+		log.WithFields(log.Fields{
+			"queued":         c.Frontier.QueueCount.Value(),
+			"crawled":        c.Crawled.Value(),
+			"host":           item.Host,
+			"rate":           c.URLsPerSecond.Rate(),
+			"status_code":    resp.StatusCode,
+			"active_workers": c.ActiveWorkers.Value(),
+			"hop":            item.Hop,
+		}).Info(item.URL.String())
+
+		// Extract outlinks
+		outlinks, err = extractOutlinksGoquery(resp)
+		if err != nil {
+			return outlinks, err
+		}
+
+		break
 	}
-
-	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
-	if _, err := http.DefaultTransport.RoundTrip(req); err != nil {
-		return outlinks, err
-	}
-
-	// Execute GET request
-	resp, err := c.Client.Do(req)
-	if err != nil {
-		return outlinks, err
-	}
-
-	log.WithFields(log.Fields{
-		"queued":         c.Frontier.QueueCount.Value(),
-		"crawled":        c.Crawled.Value(),
-		"host":           item.Host,
-		"rate":           c.URLsPerSecond.Rate(),
-		"status_code":    resp.StatusCode,
-		"active_workers": c.ActiveWorkers.Value(),
-		"hop":            item.Hop,
-	}).Info(item.URL.String())
-
-	// Extract outlinks
-	outlinks, err = extractOutlinksGoquery(resp)
-	if err != nil {
-		return outlinks, err
-	}
-
-	resp.Body.Close()
 	return outlinks, nil
 }
 

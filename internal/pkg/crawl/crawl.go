@@ -34,7 +34,6 @@ type Crawl struct {
 	Seencheck  bool
 	Workers    int
 	Finished   bool
-	WARC       bool
 
 	// Real time statistics
 	URLsPerSecond *ratecounter.RateCounter
@@ -42,6 +41,9 @@ type Crawl struct {
 	Crawled       *ratecounter.Counter
 
 	// WARC settings
+	WARC             bool
+	WARCPrefix       string
+	WARCOperator     string
 	WARCWriter       chan *warc.RecordBatch
 	WARCWriterFinish chan bool
 

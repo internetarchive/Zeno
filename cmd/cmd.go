@@ -11,9 +11,9 @@ import (
 
 var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
-		Name:        "socks5-proxy",
+		Name:        "proxy",
 		Value:       "",
-		Usage:       "Socks5 proxy to use when requesting pages",
+		Usage:       "Proxy to use when requesting pages",
 		Destination: &config.App.Flags.Proxy,
 	},
 	&cli.StringFlag{
@@ -52,11 +52,6 @@ var GlobalFlags = []cli.Flag{
 		Destination: &config.App.Flags.Seencheck,
 	},
 	&cli.BoolFlag{
-		Name:        "warc",
-		Usage:       "Write all traffic in WARC files",
-		Destination: &config.App.Flags.WARC,
-	},
-	&cli.BoolFlag{
 		Name:        "json",
 		Usage:       "Output logs in JSON",
 		Destination: &config.App.Flags.JSON,
@@ -64,6 +59,25 @@ var GlobalFlags = []cli.Flag{
 	&cli.BoolFlag{
 		Name:        "debug",
 		Destination: &config.App.Flags.Debug,
+	},
+
+	// WARC flags
+	&cli.BoolFlag{
+		Name:        "warc",
+		Usage:       "Write all traffic in WARC files",
+		Destination: &config.App.Flags.WARC,
+	},
+	&cli.StringFlag{
+		Name:        "warc-prefix",
+		Value:       "ZENO",
+		Usage:       "Prefix to use when naming the WARC files",
+		Destination: &config.App.Flags.WARCPrefix,
+	},
+	&cli.StringFlag{
+		Name:        "warc-operator",
+		Value:       "",
+		Usage:       "Contact informations of the crawl operator to write in the Warc-Info record in each WARC file",
+		Destination: &config.App.Flags.WARCOperator,
 	},
 
 	// Kafka flags

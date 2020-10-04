@@ -47,10 +47,12 @@ func CmdGetURL(c *cli.Context) error {
 		config.App.Flags.Job = UUID.String()
 	}
 
+	crawl.WARC = config.App.Flags.WARC
+	crawl.WARCPrefix = config.App.Flags.WARCPrefix
+	crawl.WARCOperator = config.App.Flags.WARCOperator
 	crawl.JobPath = path.Join("jobs", config.App.Flags.Job)
 	crawl.UserAgent = config.App.Flags.UserAgent
 	crawl.Headless = config.App.Flags.Headless
-	crawl.WARC = config.App.Flags.WARC
 	crawl.Workers = config.App.Flags.Workers
 	crawl.WorkerPool = sizedwaitgroup.New(crawl.Workers)
 	crawl.Seencheck = config.App.Flags.Seencheck
