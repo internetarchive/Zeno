@@ -145,8 +145,14 @@ func (c *Crawl) capture(item *frontier.Item) (outlinks []url.URL, err error) {
 	}
 
 	// Check with HTTP HEAD request if the URL need a full headless browser or a simple GET request
-	if needBrowser(item) && c.Headless == true {
-		outlinks, err = c.captureWithBrowser(ctx, item)
+	if c.Headless {
+		if needBrowser(item) {
+			c.URLsPerSecond.Incr(1)
+			outlinks, err = c.captureWithGET(ctx, item)
+			c.Crawled.Incr(1)
+		} else {
+			outlinks, err = c.captureWithBrowser(ctx, item)
+		}
 	} else {
 		c.URLsPerSecond.Incr(1)
 		outlinks, err = c.captureWithGET(ctx, item)

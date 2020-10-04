@@ -10,6 +10,8 @@ import (
 )
 
 type Frontier struct {
+	JobPath string
+
 	// PullChan and PushChan are respectively the channels used for workers
 	// to get new URLs to archive, and the channel to push the discovered URLs
 	// to the frontier
@@ -32,6 +34,8 @@ type Frontier struct {
 
 // Init ininitialize the components of a frontier
 func (f *Frontier) Init(jobPath string, useSeencheck bool) (err error) {
+	f.JobPath = jobPath
+
 	// Initialize host pool
 	f.HostPool = new(HostPool)
 	f.HostPool.Mutex = new(sync.Mutex)
@@ -64,6 +68,12 @@ func (f *Frontier) Init(jobPath string, useSeencheck bool) (err error) {
 
 // Start fire up the background processes that handle the frontier
 func (f *Frontier) Start() {
+	// Function responsible for writing to disk the frontier's hosts pool
+	// and other stats needed to resume the crawl. The process happen every minute.
+	// The actual queue used during the crawl and seencheck aren't included in this,
+	// because they are written to disk in real-time.
+	go f.writeFrontierToDisk()
+
 	// Function responsible for writing the items push on PushChan to the
 	// local queue, items received on this channels are typically initial seeds
 	// or outlinks discovered on web pages

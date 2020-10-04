@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"path"
 	"sync"
 	"time"
 
@@ -79,13 +80,17 @@ func (c *Crawl) Finish() {
 	}
 
 	c.Frontier.Queue.Close()
+	logrus.Warning("Frontier queue closed")
 
 	if c.Seencheck {
 		c.Frontier.Seencheck.SeenDB.Close()
 		logrus.Warning("Seencheck database closed")
 	}
 
-	logrus.Warning("Frontier queue closed")
+	logrus.Warning("Dumping hosts pool and frontier stats to " + path.Join(c.Frontier.JobPath, "frontier.gob"))
+	c.Frontier.Save()
+
+	logrus.Warning("Finished")
 }
 
 // Start fire up the crawling process
@@ -98,6 +103,7 @@ func (c *Crawl) Start() (err error) {
 
 	// Initialize the frontier
 	c.Frontier.Init(c.JobPath, c.Seencheck)
+	c.Frontier.Load()
 	c.Frontier.Start()
 
 	// If Kafka parameters are specified, then we start the background
