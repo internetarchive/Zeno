@@ -106,6 +106,15 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 				"error": err,
 			}).Error("error when turning HTTP resp into WARC records, retrying.. ", retryCount, "/", c.WARCRetry)
 			resp.Body.Close()
+
+			// If the crawl is finishing, we do not want to keep
+			// retrying the requests, instead we just want to finish
+			// all workers execution.
+			if c.Finished {
+				outlinks = append(outlinks, *req.URL)
+				return outlinks, err
+			}
+
 			continue
 		} else {
 			c.WARCWriter <- records
