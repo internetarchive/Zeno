@@ -103,7 +103,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		// Write response and request
 		records, err := warc.RecordsFromHTTPResponse(resp)
 		if err != nil {
-			if err.Error() == "unexpected EOF" && retryCount <= retryMax {
+			if err.Error() == "unexpected EOF" {
 				log.WithFields(log.Fields{
 					"url":   req.URL.String(),
 					"error": err,
