@@ -46,6 +46,7 @@ func CmdGetList(c *cli.Context) error {
 	}
 
 	crawl.WARC = config.App.Flags.WARC
+	crawl.WARCRetry = config.App.Flags.WARCRetry
 	crawl.WARCPrefix = config.App.Flags.WARCPrefix
 	crawl.WARCOperator = config.App.Flags.WARCOperator
 	crawl.JobPath = path.Join("jobs", config.App.Flags.Job)

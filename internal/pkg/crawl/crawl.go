@@ -42,6 +42,7 @@ type Crawl struct {
 
 	// WARC settings
 	WARC             bool
+	WARCRetry        int
 	WARCPrefix       string
 	WARCOperator     string
 	WARCWriter       chan *warc.RecordBatch

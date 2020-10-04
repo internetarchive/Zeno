@@ -14,6 +14,7 @@ type Flags struct {
 	Debug     bool
 
 	WARC         bool
+	WARCRetry    int
 	WARCPrefix   string
 	WARCOperator string
 

@@ -73,12 +73,10 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 }
 
 func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
-	var retryMax = 3
-
 	// This retry loop is used for when the WARC writing fail,
 	// it can happen when the response have an issue, such as
 	// an unexpected EOF. That happens often when using proxies.
-	for retryCount := 1; retryCount <= retryMax; retryCount++ {
+	for retryCount := 1; retryCount <= c.WARCRetry; retryCount++ {
 		// Prepare GET request
 		req, err := http.NewRequest("GET", item.URL.String(), nil)
 		if err != nil {
@@ -86,7 +84,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		}
 
 		req.Header.Set("User-Agent", c.UserAgent)
-		req.Header.Set("Accept-Encoding", "*")
+		req.Header.Set("Accept-Encoding", "*/*")
 		if item.Hop > 0 {
 			req.Header.Set("Referer", item.ParentItem.URL.String())
 		} else {
@@ -106,7 +104,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 			log.WithFields(log.Fields{
 				"url":   req.URL.String(),
 				"error": err,
-			}).Error("error when turning HTTP resp into WARC records, retrying.. ", retryCount, "/", retryMax)
+			}).Error("error when turning HTTP resp into WARC records, retrying.. ", retryCount, "/", c.WARCRetry)
 			resp.Body.Close()
 			continue
 		} else {
@@ -123,13 +121,11 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 			"hop":            item.Hop,
 		}).Info(item.URL.String())
 
-		// Extract outlinks
-		outlinks, err = extractOutlinksGoquery(resp)
+		// Extract assets and outlinks
+		outlinks, err := extractOutlinksGoquery(resp)
 		if err != nil {
 			return outlinks, err
 		}
-
-		break
 	}
 	return outlinks, nil
 }
