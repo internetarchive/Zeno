@@ -1,6 +1,16 @@
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/CorentinB/warc v0.4.2 h1:4v526BRqDt2bMb5vKAVmKkZZH+uwCtqLc+tTQt75QFU=
 github.com/CorentinB/warc v0.4.2/go.mod h1:rDyJf6zZpMJhfixURpDJrW4PxRacnDydcMXS6wjgQj0=
+github.com/CorentinB/warc v0.4.3 h1:O7pvL6JP79czCsZZC6Hl6zHwsL8cWmIXKQm1xbthc6c=
+github.com/CorentinB/warc v0.4.3/go.mod h1:rDyJf6zZpMJhfixURpDJrW4PxRacnDydcMXS6wjgQj0=
+github.com/CorentinB/warc v0.4.4 h1:IqIAbv50r7hUzO3O7Ttj2bvPklQgQwm19xACODb0Dvs=
+github.com/CorentinB/warc v0.4.4/go.mod h1:rDyJf6zZpMJhfixURpDJrW4PxRacnDydcMXS6wjgQj0=
+github.com/CorentinB/warc v0.4.5 h1:L2EX/TO4BL51ExBxzA1LdVRvASxzIP1wMZPp3deR6Ho=
+github.com/CorentinB/warc v0.4.5/go.mod h1:rDyJf6zZpMJhfixURpDJrW4PxRacnDydcMXS6wjgQj0=
+github.com/CorentinB/warc v0.4.6 h1:4jCCYxbWM0Br/3zSiyWQ+Tf1HYytrOtmbMyt4PJ9alA=
+github.com/CorentinB/warc v0.4.6/go.mod h1:rDyJf6zZpMJhfixURpDJrW4PxRacnDydcMXS6wjgQj0=
+github.com/CorentinB/warc v0.4.7 h1:oUf3wbsubthPjhSm35eSNuyS3pm5Yg7ouhIWyB8nH+E=
+github.com/CorentinB/warc v0.4.7/go.mod h1:rDyJf6zZpMJhfixURpDJrW4PxRacnDydcMXS6wjgQj0=
 github.com/DataDog/datadog-go v3.7.1+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/PuerkitoBio/goquery v1.5.1 h1:PSPBGne8NIUWw+/7vFBV+kG2J/5MOjbzc7154OaKCSE=
 github.com/PuerkitoBio/goquery v1.5.1/go.mod h1:GsLWisAFVj4WgDibEWF4pvYnkVQBpKBKeU+7zCJoLcc=

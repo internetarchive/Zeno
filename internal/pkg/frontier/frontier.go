@@ -7,6 +7,7 @@ import (
 	"github.com/beeker1121/goque"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/philippgille/gokv/leveldb"
+	"github.com/sirupsen/logrus"
 )
 
 type Frontier struct {
@@ -52,6 +53,7 @@ func (f *Frontier) Init(jobPath string, useSeencheck bool) (err error) {
 	if err != nil {
 		return err
 	}
+	logrus.Info("Persistent queue initialized")
 
 	// Initialize the seencheck
 	f.UseSeencheck = useSeencheck
@@ -62,6 +64,7 @@ func (f *Frontier) Init(jobPath string, useSeencheck bool) (err error) {
 		if err != nil {
 			return err
 		}
+		logrus.Info("Seencheck initialized")
 	}
 
 	return nil

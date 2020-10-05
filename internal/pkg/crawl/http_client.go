@@ -4,12 +4,11 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/url"
-	"path"
 	"time"
 
-	"github.com/CorentinB/warc"
 	"github.com/gojektech/heimdall/v6"
 	"github.com/gojektech/heimdall/v6/httpclient"
+	"github.com/sirupsen/logrus"
 )
 
 // InitHTTPClient intialize HTTP client
@@ -33,19 +32,9 @@ func (crawl *Crawl) InitHTTPClient() (err error) {
 	if crawl.WARC || len(crawl.Proxy) > 0 {
 		// Initialize WARC writer if --warc is specified
 		if crawl.WARC {
-			var rotatorSettings = warc.NewRotatorSettings()
-			rotatorSettings.OutputDirectory = path.Join(crawl.JobPath, "warcs")
-			rotatorSettings.Compression = "GZIP"
-			rotatorSettings.Prefix = crawl.WARCPrefix
-			if len(crawl.WARCOperator) > 0 {
-				rotatorSettings.WarcinfoContent.Set("operator", crawl.WARCOperator)
-				rotatorSettings.WarcinfoContent.Set("software", "Zeno")
-			}
-
-			crawl.WARCWriter, crawl.WARCWriterFinish, err = rotatorSettings.NewWARCRotator()
-			if err != nil {
-				return err
-			}
+			logrus.Info("Initializing WARC writer pool..")
+			crawl.initWARCWriterPool()
+			logrus.Info("WARC writer pool initialized")
 
 			// Disable HTTP/2: Empty TLSNextProto map
 			customTransport.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)

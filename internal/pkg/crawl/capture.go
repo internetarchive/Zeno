@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/warc"
@@ -99,25 +100,29 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		defer resp.Body.Close()
 
 		// Write response and request
-		records, err := warc.RecordsFromHTTPResponse(resp)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"url":   req.URL.String(),
-				"error": err,
-			}).Error("error when turning HTTP resp into WARC records, retrying.. ", retryCount, "/", c.WARCRetry)
-			resp.Body.Close()
+		if c.WARC {
+			records, err := warc.RecordsFromHTTPResponse(resp)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"url":   req.URL.String(),
+					"error": err,
+				}).Error("error when turning HTTP resp into WARC records, retrying.. ", retryCount, "/", c.WARCRetry)
+				resp.Body.Close()
 
-			// If the crawl is finishing, we do not want to keep
-			// retrying the requests, instead we just want to finish
-			// all workers execution.
-			if c.Finished.Get() {
-				outlinks = append(outlinks, *req.URL)
-				return outlinks, err
+				// If the crawl is finishing, we do not want to keep
+				// retrying the requests, instead we just want to finish
+				// all workers execution.
+				if c.Finished.Get() {
+					outlinks = append(outlinks, *req.URL)
+					return outlinks, err
+				}
+
+				continue
+			} else {
+				startPush := time.Now()
+				c.WARCWriter <- records
+				log.Warning(time.Since(startPush))
 			}
-
-			continue
-		} else {
-			c.WARCWriter <- records
 		}
 
 		log.WithFields(log.Fields{
