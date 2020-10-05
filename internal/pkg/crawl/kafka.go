@@ -13,11 +13,18 @@ import (
 )
 
 type kafkaMessage struct {
-	URL string `json:"u"`
+	URL       string `json:"u"`
+	HopsCount string `json:"p"`
+	ParentURL string `json:"v"`
 }
 
-// KafkaConnector read seeds from Kafka and ingest them into the crawl
-func (crawl *Crawl) KafkaConnector() {
+// KafkaProducer receive seeds from the crawl and send them to Kafka
+func (crawl *Crawl) KafkaProducer() {
+
+}
+
+// KafkaConsumer read seeds from Kafka and ingest them into the crawl
+func (crawl *Crawl) KafkaConsumer() {
 	var kafkaWorkerPool = sizedwaitgroup.New(crawl.Workers)
 
 	// make a new reader that consumes from topic-A
@@ -49,6 +56,7 @@ func (crawl *Crawl) KafkaConnector() {
 		kafkaWorkerPool.Add()
 		go func(wg *sizedwaitgroup.SizedWaitGroup) {
 			var newKafkaMessage = new(kafkaMessage)
+			var newItem = new(frontier.Item)
 
 			m, err := r.ReadMessage(context.Background())
 			if err != nil {
@@ -78,7 +86,8 @@ func (crawl *Crawl) KafkaConnector() {
 				return
 			}
 
-			URL, err := url.Parse(newKafkaMessage.URL)
+			// Parse new URL
+			newURL, err := url.Parse(newKafkaMessage.URL)
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
 					"kafka_msg_url": newKafkaMessage.URL,
@@ -88,7 +97,21 @@ func (crawl *Crawl) KafkaConnector() {
 				return
 			}
 
-			newItem := frontier.NewItem(URL, nil, 0)
+			// If the message specify a parent URL, let's construct a parent item
+			if len(newKafkaMessage.ParentURL) > 0 {
+				newParentURL, err := url.Parse(newKafkaMessage.ParentURL)
+				if err != nil {
+					logrus.WithFields(logrus.Fields{
+						"kafka_msg_url": newKafkaMessage.URL,
+						"error":         err,
+					}).Warning("Unable to parse parent URL from Kafka message")
+				} else {
+					newParentItem := frontier.NewItem(newParentURL, nil, 0)
+					newItem = frontier.NewItem(newURL, newParentItem, 1)
+				}
+			} else {
+				newItem = frontier.NewItem(newURL, nil, 0)
+			}
 
 			crawl.Frontier.PushChan <- newItem
 

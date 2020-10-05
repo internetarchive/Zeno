@@ -53,6 +53,7 @@ type Crawl struct {
 	KafkaBrokers       []string
 	KafkaConsumerGroup string
 	KafkaFeedTopic     string
+	KafkaOutlinksTopic string
 }
 
 // Create initialize a Crawl structure and return it
@@ -82,9 +83,10 @@ func (c *Crawl) Start() (err error) {
 	c.Frontier.Start()
 
 	// If Kafka parameters are specified, then we start the background
-	// process responsible for pulling seeds from Kafka
+	// processes responsible for pulling and pushing seeds from and to Kafka
 	if c.UseKafka {
-		go c.KafkaConnector()
+		go c.KafkaConsumer()
+		go c.KafkaProducer()
 	} else {
 		// Push the seed list to the queue
 		for _, item := range c.SeedList {

@@ -102,6 +102,11 @@ var GlobalFlags = []cli.Flag{
 		Destination: &config.App.Flags.KafkaFeedTopic,
 	},
 	&cli.StringFlag{
+		Name:        "kafka-outlinks-topic",
+		Usage:       "Kafka topic to push discovered seeds to",
+		Destination: &config.App.Flags.KafkaOutlinksTopic,
+	},
+	&cli.StringFlag{
 		Name:        "kafka-consumer-group",
 		Usage:       "Kafka consumer group to use for feeding Zeno",
 		Destination: &config.App.Flags.KafkaConsumerGroup,

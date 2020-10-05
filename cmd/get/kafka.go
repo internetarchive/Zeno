@@ -64,6 +64,7 @@ func CmdGetKafka(c *cli.Context) error {
 	crawl.UseKafka = true
 	crawl.KafkaConsumerGroup = config.App.Flags.KafkaConsumerGroup
 	crawl.KafkaFeedTopic = config.App.Flags.KafkaFeedTopic
+	crawl.KafkaOutlinksTopic = config.App.Flags.KafkaOutlinksTopic
 	crawl.KafkaBrokers = config.App.Flags.KafkaBrokers.Value()
 
 	// Initialize client

@@ -20,6 +20,7 @@ type Flags struct {
 
 	Kafka              bool
 	KafkaFeedTopic     string
+	KafkaOutlinksTopic string
 	KafkaConsumerGroup string
 	KafkaBrokers       cli.StringSlice
 }
