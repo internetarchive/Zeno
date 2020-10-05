@@ -74,24 +74,24 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 }
 
 func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
+	// Prepare GET request
+	req, err := http.NewRequest("GET", item.URL.String(), nil)
+	if err != nil {
+		return outlinks, err
+	}
+
+	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("Accept-Encoding", "*/*")
+	if item.Hop > 0 {
+		req.Header.Set("Referer", item.ParentItem.URL.String())
+	} else {
+		req.Header.Set("Referer", item.URL.String())
+	}
+
 	// This retry loop is used for when the WARC writing fail,
 	// it can happen when the response have an issue, such as
 	// an unexpected EOF. That happens often when using proxies.
 	for retryCount := 1; retryCount <= c.WARCRetry; retryCount++ {
-		// Prepare GET request
-		req, err := http.NewRequest("GET", item.URL.String(), nil)
-		if err != nil {
-			return outlinks, err
-		}
-
-		req.Header.Set("User-Agent", c.UserAgent)
-		req.Header.Set("Accept-Encoding", "*/*")
-		if item.Hop > 0 {
-			req.Header.Set("Referer", item.ParentItem.URL.String())
-		} else {
-			req.Header.Set("Referer", item.URL.String())
-		}
-
 		// Execute GET request
 		resp, err := c.Client.Do(req)
 		if err != nil {
@@ -100,6 +100,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		defer resp.Body.Close()
 
 		// Write response and request
+		var warcWritingTime time.Duration
 		if c.WARC {
 			records, err := warc.RecordsFromHTTPResponse(resp)
 			if err != nil {
@@ -121,24 +122,26 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 			} else {
 				startPush := time.Now()
 				c.WARCWriter <- records
-				log.Warning(time.Since(startPush))
+				warcWritingTime = time.Since(startPush)
 			}
 		}
 
 		log.WithFields(log.Fields{
-			"queued":         c.Frontier.QueueCount.Value(),
-			"crawled":        c.Crawled.Value(),
-			"host":           item.Host,
-			"rate":           c.URLsPerSecond.Rate(),
-			"status_code":    resp.StatusCode,
-			"active_workers": c.ActiveWorkers.Value(),
-			"hop":            item.Hop,
+			"queued":            c.Frontier.QueueCount.Value(),
+			"crawled":           c.Crawled.Value(),
+			"rate":              c.URLsPerSecond.Rate(),
+			"status_code":       resp.StatusCode,
+			"active_workers":    c.ActiveWorkers.Value(),
+			"hop":               item.Hop,
+			"warc_writing_time": warcWritingTime,
 		}).Info(item.URL.String())
 
 		// Extract assets and outlinks
-		outlinks, err := extractOutlinksGoquery(resp)
-		if err != nil {
-			return outlinks, err
+		if item.Hop < c.MaxHops {
+			outlinks, err := extractOutlinksGoquery(resp)
+			if err != nil {
+				return outlinks, err
+			}
 		}
 
 		return outlinks, nil

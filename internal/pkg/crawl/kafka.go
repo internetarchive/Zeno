@@ -18,6 +18,8 @@ type kafkaMessage struct {
 
 // KafkaConnector read seeds from Kafka and ingest them into the crawl
 func (crawl *Crawl) KafkaConnector() {
+	var kafkaWorkerPool = sizedwaitgroup.New(crawl.Workers)
+
 	// make a new reader that consumes from topic-A
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  crawl.KafkaBrokers,
@@ -33,14 +35,13 @@ func (crawl *Crawl) KafkaConnector() {
 		"topic":   crawl.KafkaFeedTopic,
 	}).Info("Starting Kafka consuming, it may take some time to actually start pulling messages..")
 
-	var kafkaWorkerPool = sizedwaitgroup.New(crawl.Workers / 2)
 	for {
 		if crawl.Finished.Get() {
 			kafkaWorkerPool.Wait()
 			break
 		}
 
-		if crawl.Frontier.QueueCount.Value() > int64(crawl.Workers*crawl.Workers) {
+		if crawl.Frontier.QueueCount.Value() > int64(crawl.Workers*2) {
 			time.Sleep(time.Second * 1)
 			continue
 		}

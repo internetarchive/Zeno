@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"path"
 	"sync"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/gojektech/heimdall/v6/httpclient"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"mvdan.cc/xurls/v2"
 )
@@ -69,40 +67,13 @@ func Create() (crawl *Crawl, err error) {
 	return crawl, nil
 }
 
-// Finish handle the closing of the different crawl components
-func (c *Crawl) Finish() {
-	c.Finished.Set(true)
-
-	c.WorkerPool.Wait()
-	logrus.Warning("All workers finished")
-
-	if c.WARC {
-		close(c.WARCWriter)
-		<-c.WARCWriterFinish
-		logrus.Warning("WARC writer closed")
-	}
-
-	c.Frontier.Queue.Close()
-	logrus.Warning("Frontier queue closed")
-
-	if c.Seencheck {
-		c.Frontier.Seencheck.SeenDB.Close()
-		logrus.Warning("Seencheck database closed")
-	}
-
-	logrus.Warning("Dumping hosts pool and frontier stats to " + path.Join(c.Frontier.JobPath, "frontier.gob"))
-	c.Frontier.Save()
-
-	logrus.Warning("Finished")
-}
-
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
 	c.Finished = new(utils.TAtomBool)
 	regexOutlinks = xurls.Relaxed()
 
 	// Start the background process that will handle os signals
-	// to exit Zeno, like CTRL+c
+	// to exit Zeno, like CTRL+C
 	c.setupCloseHandler()
 
 	// Initialize the frontier
@@ -121,6 +92,10 @@ func (c *Crawl) Start() (err error) {
 			c.Frontier.PushChan <- &item
 		}
 	}
+
+	// Start the background process that will catch when there
+	// is nothing more to crawl
+	c.catchFinish()
 
 	// Start archiving the URLs!
 	for item := range c.Frontier.PullChan {

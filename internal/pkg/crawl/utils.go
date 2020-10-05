@@ -91,6 +91,12 @@ func extractOutlinksGoquery(resp *http.Response) (outlinks []url.URL, err error)
 			rawOutlinks = append(rawOutlinks, link)
 		}
 	})
+	doc.Find("audio").Each(func(index int, item *goquery.Selection) {
+		link, exists := item.Attr("src")
+		if exists {
+			rawOutlinks = append(rawOutlinks, link)
+		}
+	})
 
 	// Dedupe outlinks discovered and turn them into url.URL
 	outlinks = stringSliceToURLSlice(rawOutlinks)
