@@ -3,6 +3,7 @@ package crawl
 import (
 	"os"
 	"path"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -12,6 +13,10 @@ import (
 func (c *Crawl) catchFinish() {
 	if len(c.KafkaFeedTopic) > 0 {
 		return
+	}
+
+	for c.Crawled.Value() <= 0 {
+		time.Sleep(1)
 	}
 
 	go func() {
