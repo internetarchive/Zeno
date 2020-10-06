@@ -16,7 +16,7 @@ func (c *Crawl) catchFinish() {
 	}
 
 	for c.Crawled.Value() <= 0 {
-		time.Sleep(1)
+		time.Sleep(1 * time.Second)
 	}
 
 	go func() {
