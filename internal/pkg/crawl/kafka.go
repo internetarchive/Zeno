@@ -18,9 +18,58 @@ type kafkaMessage struct {
 	ParentURL string `json:"v"`
 }
 
+func zenoHopsToHeritrixHops(hops uint8) string {
+	var newHops string
+	var i uint8
+
+	for i = 0; i < hops; i++ {
+		newHops = newHops + "E"
+	}
+
+	return newHops
+}
+
 // KafkaProducer receive seeds from the crawl and send them to Kafka
 func (crawl *Crawl) KafkaProducer() {
+	for item := range crawl.KafkaProducerChannel {
+		var newKafkaMessage = new(kafkaMessage)
 
+		w := kafka.NewWriter(kafka.WriterConfig{
+			Brokers:  crawl.KafkaBrokers,
+			Topic:    crawl.KafkaOutlinksTopic,
+			Balancer: &kafka.LeastBytes{},
+		})
+
+		newKafkaMessage.URL = item.URL.String()
+		newKafkaMessage.HopsCount = zenoHopsToHeritrixHops(item.Hop)
+		if item.ParentItem != nil {
+			newKafkaMessage.ParentURL = item.ParentItem.URL.String()
+		}
+
+		newKafkaMessageBytes, err := json.Marshal(newKafkaMessage)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"error": err,
+			}).Warning("Unable to marshal message before sending to KAfka")
+		}
+
+		err = w.WriteMessages(context.Background(),
+			kafka.Message{
+				Key:   nil,
+				Value: newKafkaMessageBytes,
+			},
+		)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"error": err,
+			}).Warning("Failed to produce message to Kafka, pushing the seed to the local queue instead")
+			crawl.Frontier.PushChan <- item
+		}
+
+		logrus.WithFields(logrus.Fields{
+			"msg": string(newKafkaMessageBytes),
+		}).Warning("Message sent to kafka")
+	}
 }
 
 // KafkaConsumer read seeds from Kafka and ingest them into the crawl
@@ -107,7 +156,7 @@ func (crawl *Crawl) KafkaConsumer() {
 					}).Warning("Unable to parse parent URL from Kafka message")
 				} else {
 					newParentItem := frontier.NewItem(newParentURL, nil, 0)
-					newItem = frontier.NewItem(newURL, newParentItem, 1)
+					newItem = frontier.NewItem(newURL, newParentItem, 0)
 				}
 			} else {
 				newItem = frontier.NewItem(newURL, nil, 0)

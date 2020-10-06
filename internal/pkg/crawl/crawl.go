@@ -49,11 +49,12 @@ type Crawl struct {
 	WARCWriterFinish chan bool
 
 	// Kafka settings
-	UseKafka           bool
-	KafkaBrokers       []string
-	KafkaConsumerGroup string
-	KafkaFeedTopic     string
-	KafkaOutlinksTopic string
+	UseKafka             bool
+	KafkaBrokers         []string
+	KafkaConsumerGroup   string
+	KafkaFeedTopic       string
+	KafkaOutlinksTopic   string
+	KafkaProducerChannel chan *frontier.Item
 }
 
 // Create initialize a Crawl structure and return it
@@ -85,6 +86,7 @@ func (c *Crawl) Start() (err error) {
 	// If Kafka parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to Kafka
 	if c.UseKafka {
+		c.KafkaProducerChannel = make(chan *frontier.Item, 0)
 		go c.KafkaConsumer()
 		go c.KafkaProducer()
 	} else {
