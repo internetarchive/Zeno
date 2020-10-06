@@ -13,6 +13,8 @@ type Flags struct {
 	JSON      bool
 	Debug     bool
 
+	DomainsCrawl bool
+
 	WARC         bool
 	WARCRetry    int
 	WARCPrefix   string

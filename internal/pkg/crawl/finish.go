@@ -15,12 +15,13 @@ func (c *Crawl) catchFinish() {
 		return
 	}
 
-	for c.Crawled.Value() <= 0 {
-		time.Sleep(1 * time.Second)
-	}
-
 	go func() {
+		for c.Crawled.Value() <= 0 {
+			time.Sleep(1 * time.Second)
+		}
+
 		for {
+			time.Sleep(time.Second * 5)
 			if c.ActiveWorkers.Value() == 0 && c.Frontier.QueueCount.Value() == 0 && c.Finished.Get() == false && c.Crawled.Value() > 0 {
 				logrus.Warning("No additional URL to archive, finishing")
 				c.Finish()

@@ -60,6 +60,11 @@ var GlobalFlags = []cli.Flag{
 		Name:        "debug",
 		Destination: &config.App.Flags.Debug,
 	},
+	&cli.BoolFlag{
+		Name:        "domains-crawl",
+		Usage:       "If this is turned on, seeds will be treated as domains to crawl, therefore same-domain outlinks will be added to the queue as hop=0",
+		Destination: &config.App.Flags.DomainsCrawl,
+	},
 
 	// WARC flags
 	&cli.BoolFlag{

@@ -25,16 +25,17 @@ type Crawl struct {
 	Frontier *frontier.Frontier
 
 	// Crawl settings
-	WorkerPool sizedwaitgroup.SizedWaitGroup
-	Client     *httpclient.Client
-	Log        *log.Entry
-	Proxy      string
-	UserAgent  string
-	JobPath    string
-	MaxHops    uint8
-	Headless   bool
-	Seencheck  bool
-	Workers    int
+	WorkerPool   sizedwaitgroup.SizedWaitGroup
+	Client       *httpclient.Client
+	Log          *log.Entry
+	Proxy        string
+	UserAgent    string
+	JobPath      string
+	MaxHops      uint8
+	DomainsCrawl bool
+	Headless     bool
+	Seencheck    bool
+	Workers      int
 
 	// Real time statistics
 	URLsPerSecond *ratecounter.RateCounter

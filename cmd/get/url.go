@@ -51,6 +51,7 @@ func CmdGetURL(c *cli.Context) error {
 	crawl.WARCRetry = config.App.Flags.WARCRetry
 	crawl.WARCPrefix = config.App.Flags.WARCPrefix
 	crawl.WARCOperator = config.App.Flags.WARCOperator
+	crawl.DomainsCrawl = config.App.Flags.DomainsCrawl
 	crawl.JobPath = path.Join("jobs", config.App.Flags.Job)
 	crawl.UserAgent = config.App.Flags.UserAgent
 	crawl.Headless = config.App.Flags.Headless

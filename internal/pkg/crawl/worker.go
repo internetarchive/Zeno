@@ -1,6 +1,8 @@
 package crawl
 
 import (
+	"strings"
+
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 
 	log "github.com/sirupsen/logrus"
@@ -21,8 +23,13 @@ func (c *Crawl) Worker(item *frontier.Item) {
 	if item.Hop < c.MaxHops {
 		for _, outlink := range outlinks {
 			outlink := outlink
-			newItem := frontier.NewItem(&outlink, item, item.Hop+1)
-			c.Frontier.PushChan <- newItem
+			if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
+				newItem := frontier.NewItem(&outlink, item, 0)
+				c.Frontier.PushChan <- newItem
+			} else {
+				newItem := frontier.NewItem(&outlink, item, item.Hop+1)
+				c.Frontier.PushChan <- newItem
+			}
 		}
 	}
 }
