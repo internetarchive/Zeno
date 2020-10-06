@@ -10,6 +10,7 @@ import (
 	"github.com/gojektech/heimdall/v6/httpclient"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"mvdan.cc/xurls/v2"
 )
@@ -94,13 +95,14 @@ func (c *Crawl) Start() (err error) {
 		go c.KafkaConsumer()
 		go c.KafkaProducer()
 	} else {
-		go func() {
-			// Push the seed list to the queue
-			for _, item := range c.SeedList {
-				item := item
-				c.Frontier.PushChan <- &item
-			}
-		}()
+		// Push the seed list to the queue
+		logrus.Info("Pushing seeds in the local queue..")
+		for _, item := range c.SeedList {
+			item := item
+			c.Frontier.PushChan <- &item
+		}
+		c.SeedList = nil
+		logrus.Info("All seeds are now in queue, crawling will start")
 	}
 
 	// Start archiving the URLs!
