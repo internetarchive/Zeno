@@ -83,6 +83,10 @@ func (c *Crawl) Start() (err error) {
 	c.Frontier.Load()
 	c.Frontier.Start()
 
+	// Start the background process that will catch when there
+	// is nothing more to crawl
+	c.catchFinish()
+
 	// If Kafka parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to Kafka
 	if c.UseKafka {
@@ -90,16 +94,14 @@ func (c *Crawl) Start() (err error) {
 		go c.KafkaConsumer()
 		go c.KafkaProducer()
 	} else {
-		// Push the seed list to the queue
-		for _, item := range c.SeedList {
-			item := item
-			c.Frontier.PushChan <- &item
-		}
+		go func() {
+			// Push the seed list to the queue
+			for _, item := range c.SeedList {
+				item := item
+				c.Frontier.PushChan <- &item
+			}
+		}()
 	}
-
-	// Start the background process that will catch when there
-	// is nothing more to crawl
-	c.catchFinish()
 
 	// Start archiving the URLs!
 	for item := range c.Frontier.PullChan {
