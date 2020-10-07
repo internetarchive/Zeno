@@ -20,12 +20,11 @@ var regexOutlinks *regexp.Regexp
 func (crawl *Crawl) setupCloseHandler() {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		logrus.Warning("CTRL+C catched.. cleaning up and exiting.")
-		crawl.Finish()
-		os.Exit(0)
-	}()
+	<-c
+	logrus.Warning("CTRL+C catched.. cleaning up and exiting.")
+	close(c)
+	crawl.Finish()
+	os.Exit(0)
 }
 
 func needBrowser(item *frontier.Item) bool {

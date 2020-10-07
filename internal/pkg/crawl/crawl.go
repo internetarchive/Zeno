@@ -78,7 +78,7 @@ func (c *Crawl) Start() (err error) {
 
 	// Start the background process that will handle os signals
 	// to exit Zeno, like CTRL+C
-	c.setupCloseHandler()
+	go c.setupCloseHandler()
 
 	// Initialize the frontier
 	c.Frontier.Init(c.JobPath, c.Seencheck)
@@ -87,7 +87,9 @@ func (c *Crawl) Start() (err error) {
 
 	// Start the background process that will catch when there
 	// is nothing more to crawl
-	c.catchFinish()
+	if !c.UseKafka {
+		go c.catchFinish()
+	}
 
 	// If Kafka parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to Kafka
