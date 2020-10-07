@@ -37,6 +37,9 @@ type Crawl struct {
 	Seencheck    bool
 	Workers      int
 
+	// API settings
+	API bool
+
 	// Real time statistics
 	URLsPerSecond *ratecounter.RateCounter
 	ActiveWorkers *ratecounter.Counter
@@ -95,6 +98,10 @@ func (c *Crawl) Start() (err error) {
 	// is nothing more to crawl
 	if !c.UseKafka {
 		go c.catchFinish()
+	}
+
+	if c.API {
+		go c.StartAPI()
 	}
 
 	// If Kafka parameters are specified, then we start the background

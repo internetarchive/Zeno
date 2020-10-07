@@ -15,6 +15,8 @@ type Flags struct {
 
 	DomainsCrawl bool
 
+	API bool
+
 	WARC         bool
 	WARCRetry    int
 	WARCPrefix   string

@@ -210,7 +210,10 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 			return outlinks, err
 		}
 
+		c.Frontier.QueueCount.Incr(int64(len(assets)))
 		for _, asset := range assets {
+			c.Frontier.QueueCount.Incr(-1)
+
 			// Just making sure we do not over archive
 			if item.URL.String() == asset.String() {
 				continue
