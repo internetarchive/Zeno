@@ -2,7 +2,6 @@ package crawl
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -78,7 +77,6 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 
 func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
 	var executionStart = time.Now()
-	fmt.Println("lol")
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", URL.String(), nil)
