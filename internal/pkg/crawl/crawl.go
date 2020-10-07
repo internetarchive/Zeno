@@ -18,8 +18,9 @@ import (
 // Crawl define the parameters of a crawl process
 type Crawl struct {
 	*sync.Mutex
-	SeedList []frontier.Item
-	Finished *utils.TAtomBool
+	StartTime time.Time
+	SeedList  []frontier.Item
+	Finished  *utils.TAtomBool
 
 	// Frontier
 	Frontier *frontier.Frontier
@@ -76,6 +77,7 @@ func Create() (crawl *Crawl, err error) {
 
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
+	c.StartTime = time.Now()
 	c.Finished = new(utils.TAtomBool)
 	regexOutlinks = xurls.Relaxed()
 
