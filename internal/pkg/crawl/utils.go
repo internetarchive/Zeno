@@ -3,11 +3,8 @@ package crawl
 import (
 	"net/http"
 	"net/url"
-	"os"
-	"os/signal"
 	"regexp"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
@@ -23,16 +20,6 @@ func (crawl *Crawl) writeFrontierToDisk() {
 		crawl.Frontier.Save()
 		time.Sleep(time.Minute * 1)
 	}
-}
-
-func (crawl *Crawl) setupCloseHandler() {
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
-	logrus.Warning("CTRL+C catched.. cleaning up and exiting.")
-	close(c)
-	crawl.Finish()
-	os.Exit(0)
 }
 
 func needBrowser(item *frontier.Item) bool {

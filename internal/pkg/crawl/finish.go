@@ -2,7 +2,9 @@ package crawl
 
 import (
 	"os"
+	"os/signal"
 	"path"
+	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -54,4 +56,15 @@ func (c *Crawl) Finish() {
 	c.Frontier.Save()
 
 	logrus.Warning("Finished")
+}
+
+func (crawl *Crawl) setupCloseHandler() {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+	logrus.Warning("CTRL+C catched.. cleaning up and exiting.")
+	signal.Stop(c)
+	close(c)
+	crawl.Finish()
+	os.Exit(0)
 }
