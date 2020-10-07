@@ -210,6 +210,11 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		}
 
 		for _, asset := range assets {
+			// Just making sure we do not over archive
+			if item.URL.String() == asset.String() {
+				continue
+			}
+
 			// If --seencheck is enabled, then we check if the URI is in the
 			// seencheck DB before doing anything. If it is in it, we skip the item
 			if c.Frontier.UseSeencheck {
