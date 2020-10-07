@@ -94,7 +94,9 @@ func (c *Crawl) Start() (err error) {
 	if c.UseKafka {
 		c.KafkaProducerChannel = make(chan *frontier.Item, 0)
 		go c.KafkaConsumer()
-		go c.KafkaProducer()
+		if len(c.KafkaOutlinksTopic) > 0 {
+			go c.KafkaProducer()
+		}
 	} else {
 		// Push the seed list to the queue
 		logrus.Info("Pushing seeds in the local queue..")
