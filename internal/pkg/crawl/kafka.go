@@ -74,7 +74,7 @@ func (crawl *Crawl) KafkaProducer() {
 
 // KafkaConsumer read seeds from Kafka and ingest them into the crawl
 func (crawl *Crawl) KafkaConsumer() {
-	var kafkaWorkerPool = sizedwaitgroup.New(crawl.Workers)
+	var kafkaWorkerPool = sizedwaitgroup.New(16)
 
 	// make a new reader that consumes from topic-A
 	r := kafka.NewReader(kafka.ReaderConfig{
