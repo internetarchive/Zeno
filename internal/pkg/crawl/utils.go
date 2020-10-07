@@ -90,13 +90,13 @@ func extractAssets(resp *http.Response) (assets []url.URL, err error) {
 		}
 	})
 
-	// Dedupe assets discovered and turn them into url.URL
+	// Turn strings into url.URL
 	assets = stringSliceToURLSlice(rawAssets)
 
 	// Go over all assets and outlinks and make sure they are absolute links
 	assets = makeAbsolute(base, assets)
 
-	return assets, nil
+	return utils.DedupeURLs(assets), nil
 }
 
 func extractOutlinks(resp *http.Response) (outlinks []url.URL, err error) {
@@ -122,7 +122,7 @@ func extractOutlinks(resp *http.Response) (outlinks []url.URL, err error) {
 		}
 	})
 
-	// Dedupe outlinks discovered and turn them into url.URL
+	// Turn strings into url.URL
 	outlinks = stringSliceToURLSlice(rawOutlinks)
 
 	// Extract all text on the page and extract the outlinks from it
@@ -134,12 +134,10 @@ func extractOutlinks(resp *http.Response) (outlinks []url.URL, err error) {
 	// Go over all outlinks and make sure they are absolute links
 	outlinks = makeAbsolute(base, outlinks)
 
-	return outlinks, nil
+	return utils.DedupeURLs(outlinks), nil
 }
 
 func stringSliceToURLSlice(rawURLs []string) (URLs []url.URL) {
-	rawURLs = utils.DedupeStringSlice(rawURLs)
-
 	for _, URL := range rawURLs {
 		decodedURL, err := url.QueryUnescape(URL)
 		if err != nil {
@@ -173,7 +171,7 @@ func makeAbsolute(base *url.URL, URLs []url.URL) []url.URL {
 
 func extractOutlinksRegex(source string) (outlinks []url.URL) {
 	// Extract outlinks and dedupe them
-	rawOutlinks := utils.DedupeStringSlice(regexOutlinks.FindAllString(source, -1))
+	rawOutlinks := utils.DedupeStrings(regexOutlinks.FindAllString(source, -1))
 
 	// Validate outlinks
 	for _, outlink := range rawOutlinks {

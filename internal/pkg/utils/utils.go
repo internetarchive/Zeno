@@ -47,13 +47,26 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
-// DedupeStringSlice take a slice of string and dedupe it
-func DedupeStringSlice(stringSlice []string) []string {
+// DedupeStrings take a slice of string and dedupe it
+func DedupeStrings(input []string) []string {
 	keys := make(map[string]bool)
 	list := []string{}
-	for _, entry := range stringSlice {
+	for _, entry := range input {
 		if _, value := keys[entry]; !value {
 			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
+// DedupeURLs take a slice of *url.URL and dedupe it
+func DedupeURLs(URLs []url.URL) []url.URL {
+	keys := make(map[string]bool)
+	list := []url.URL{}
+	for _, entry := range URLs {
+		if _, value := keys[entry.String()]; !value {
+			keys[entry.String()] = true
 			list = append(list, entry)
 		}
 	}

@@ -2,6 +2,7 @@ package crawl
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -77,6 +78,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 
 func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
 	var executionStart = time.Now()
+	fmt.Println("lol")
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", URL.String(), nil)
@@ -135,8 +137,9 @@ func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
 			"type":           "asset",
 			"execution_time": time.Since(executionStart),
 		}).Info(URL)
-	}
 
+		return nil
+	}
 	return nil
 }
 
@@ -236,7 +239,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 					"parent_hop":     item.Hop,
 					"parent_url":     item.URL.String(),
 					"type":           "asset",
-				}).Warning(item.URL.String())
+				}).Warning(asset.String())
 				continue
 			}
 		}
