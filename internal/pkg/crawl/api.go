@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,7 @@ func (crawl *Crawl) StartAPI() {
 			"rate":         crawl.URLsPerSecond.Rate(),
 			"crawled":      crawl.Crawled.Value(),
 			"queued":       crawl.Frontier.QueueCount.Value(),
-			"running_time": time.Since(crawl.StartTime),
+			"running_time": fmt.Sprintf("%s", time.Since(crawl.StartTime)),
 		})
 	})
 

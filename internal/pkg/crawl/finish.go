@@ -49,11 +49,11 @@ func (c *Crawl) Finish() {
 		logrus.Warning("Seencheck database closed")
 	}
 
-	close(c.Frontier.PullChan)
-	close(c.Frontier.PushChan)
-
 	logrus.Warning("Dumping hosts pool and frontier stats to " + path.Join(c.Frontier.JobPath, "frontier.gob"))
 	c.Frontier.Save()
+
+	close(c.Frontier.PullChan)
+	close(c.Frontier.PushChan)
 
 	logrus.Warning("Finished")
 }
