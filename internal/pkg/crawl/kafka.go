@@ -14,8 +14,8 @@ import (
 
 type kafkaMessage struct {
 	URL       string `json:"u"`
-	HopsCount string `json:"p"`
-	ParentURL string `json:"v"`
+	HopsCount uint8  `json:"hop"`
+	ParentURL string `json:"parent_url"`
 }
 
 func zenoHopsToHeritrixHops(hops uint8) string {
@@ -41,7 +41,7 @@ func (crawl *Crawl) KafkaProducer() {
 		})
 
 		newKafkaMessage.URL = item.URL.String()
-		newKafkaMessage.HopsCount = zenoHopsToHeritrixHops(item.Hop)
+		newKafkaMessage.HopsCount = item.Hop
 		if item.ParentItem != nil {
 			newKafkaMessage.ParentURL = item.ParentItem.URL.String()
 		}
@@ -106,6 +106,7 @@ func (crawl *Crawl) KafkaConsumer() {
 		go func(wg *sizedwaitgroup.SizedWaitGroup) {
 			var newKafkaMessage = new(kafkaMessage)
 			var newItem = new(frontier.Item)
+			var newParentItemHops uint8
 
 			m, err := r.ReadMessage(context.Background())
 			if err != nil {
@@ -155,11 +156,14 @@ func (crawl *Crawl) KafkaConsumer() {
 						"error":         err,
 					}).Warning("Unable to parse parent URL from Kafka message")
 				} else {
-					newParentItem := frontier.NewItem(newParentURL, nil, 0)
-					newItem = frontier.NewItem(newURL, newParentItem, 0)
+					if newKafkaMessage.HopsCount > 0 {
+						newParentItemHops = newKafkaMessage.HopsCount - 1
+					}
+					newParentItem := frontier.NewItem(newParentURL, nil, newParentItemHops)
+					newItem = frontier.NewItem(newURL, newParentItem, newKafkaMessage.HopsCount)
 				}
 			} else {
-				newItem = frontier.NewItem(newURL, nil, 0)
+				newItem = frontier.NewItem(newURL, nil, newKafkaMessage.HopsCount)
 			}
 
 			crawl.Frontier.PushChan <- newItem

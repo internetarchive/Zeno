@@ -32,9 +32,6 @@ func (c *Crawl) Finish() {
 	c.WorkerPool.Wait()
 	logrus.Warning("All workers finished")
 
-	close(c.Frontier.PullChan)
-	close(c.Frontier.PushChan)
-
 	if c.WARC {
 		close(c.WARCWriter)
 		<-c.WARCWriterFinish
@@ -49,6 +46,9 @@ func (c *Crawl) Finish() {
 		c.Frontier.Seencheck.SeenDB.Close()
 		logrus.Warning("Seencheck database closed")
 	}
+
+	close(c.Frontier.PullChan)
+	close(c.Frontier.PushChan)
 
 	logrus.Warning("Dumping hosts pool and frontier stats to " + path.Join(c.Frontier.JobPath, "frontier.gob"))
 	c.Frontier.Save()

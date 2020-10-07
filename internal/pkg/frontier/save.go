@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"os"
 	"path"
-	"time"
 
 	"github.com/paulbellamy/ratecounter"
 	"github.com/sirupsen/logrus"
@@ -74,11 +73,4 @@ func (f *Frontier) Save() {
 		logrus.Warning(err)
 	}
 	f.HostPool.Unlock()
-}
-
-func (f *Frontier) writeFrontierToDisk() {
-	for {
-		f.Save()
-		time.Sleep(time.Minute * 1)
-	}
 }

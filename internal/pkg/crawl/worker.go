@@ -25,10 +25,18 @@ func (c *Crawl) Worker(item *frontier.Item) {
 			outlink := outlink
 			if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
 				newItem := frontier.NewItem(&outlink, item, 0)
-				c.Frontier.PushChan <- newItem
+				if c.UseKafka && len(c.KafkaOutlinksTopic) > 0 {
+					c.KafkaProducerChannel <- newItem
+				} else {
+					c.Frontier.PushChan <- newItem
+				}
 			} else {
 				newItem := frontier.NewItem(&outlink, item, item.Hop+1)
-				c.Frontier.PushChan <- newItem
+				if c.UseKafka && len(c.KafkaOutlinksTopic) > 0 {
+					c.KafkaProducerChannel <- newItem
+				} else {
+					c.Frontier.PushChan <- newItem
+				}
 			}
 		}
 	}

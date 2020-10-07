@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 	log "github.com/sirupsen/logrus"
+	"github.com/zeebo/xxh3"
 )
 
 func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
@@ -73,7 +75,84 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 	return outlinks, nil
 }
 
+func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
+	// If --seencheck is enabled, then we check if the URI is in the
+	// seencheck DB before doing anything. If it is in it, we skip the item
+	if c.Frontier.UseSeencheck {
+		hash := strconv.FormatUint(xxh3.HashString(URL.String()), 10)
+		if c.Frontier.Seencheck.IsSeen(hash) {
+			return nil
+		}
+		c.Frontier.Seencheck.Seen(hash)
+	}
+
+	var executionStart = time.Now()
+
+	// Prepare GET request
+	req, err := http.NewRequest("GET", URL.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("Accept-Encoding", "*/*")
+	req.Header.Set("Referer", parent.URL.String())
+
+	// This retry loop is used for when the WARC writing fail,
+	// it can happen when the response have an issue, such as
+	// an unexpected EOF. That happens often when using proxies.
+	for retryCount := 1; retryCount <= c.WARCRetry; retryCount++ {
+		// Execute GET request
+		c.URLsPerSecond.Incr(1)
+		resp, err := c.Client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		// Write response and reques
+		if c.WARC {
+			records, err := warc.RecordsFromHTTPResponse(resp)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"url":   req.URL.String(),
+					"type":  "asset",
+					"error": err,
+				}).Error("error when turning HTTP resp into WARC records, retrying.. ", retryCount, "/", c.WARCRetry)
+				resp.Body.Close()
+
+				// If the crawl is finishing, we do not want to keep
+				// retrying the requests, instead we just want to finish
+				// all workers execution.
+				if c.Finished.Get() {
+					return nil
+				}
+
+				continue
+			} else {
+				c.WARCWriter <- records
+			}
+		}
+
+		c.Crawled.Incr(1)
+		log.WithFields(log.Fields{
+			"queued":         c.Frontier.QueueCount.Value(),
+			"crawled":        c.Crawled.Value(),
+			"rate":           c.URLsPerSecond.Rate(),
+			"status_code":    resp.StatusCode,
+			"active_workers": c.ActiveWorkers.Value(),
+			"hop":            parent.Hop,
+			"type":           "asset",
+			"execution_time": time.Since(executionStart),
+		}).Info(URL)
+	}
+
+	return nil
+}
+
 func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
+	var executionStart = time.Now()
+
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
 	if err != nil {
@@ -100,7 +179,6 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		defer resp.Body.Close()
 
 		// Write response and request
-		var warcWritingTime time.Duration
 		if c.WARC {
 			records, err := warc.RecordsFromHTTPResponse(resp)
 			if err != nil {
@@ -120,25 +198,47 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 
 				continue
 			} else {
-				startPush := time.Now()
 				c.WARCWriter <- records
-				warcWritingTime = time.Since(startPush)
 			}
 		}
 
 		log.WithFields(log.Fields{
-			"queued":            c.Frontier.QueueCount.Value(),
-			"crawled":           c.Crawled.Value(),
-			"rate":              c.URLsPerSecond.Rate(),
-			"status_code":       resp.StatusCode,
-			"active_workers":    c.ActiveWorkers.Value(),
-			"hop":               item.Hop,
-			"warc_writing_time": warcWritingTime,
+			"queued":         c.Frontier.QueueCount.Value(),
+			"crawled":        c.Crawled.Value(),
+			"rate":           c.URLsPerSecond.Rate(),
+			"status_code":    resp.StatusCode,
+			"active_workers": c.ActiveWorkers.Value(),
+			"hop":            item.Hop,
+			"type":           "seed",
+			"execution_time": time.Since(executionStart),
 		}).Info(item.URL.String())
 
-		// Extract assets and outlinks
+		// Extract and capture assets
+		assets, err := extractAssets(resp)
+		if err != nil {
+			return outlinks, err
+		}
+
+		for _, asset := range assets {
+			err = c.captureAsset(&asset, item)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error":          err,
+					"queued":         c.Frontier.QueueCount.Value(),
+					"crawled":        c.Crawled.Value(),
+					"rate":           c.URLsPerSecond.Rate(),
+					"active_workers": c.ActiveWorkers.Value(),
+					"parent_hop":     item.Hop,
+					"parent_url":     item.URL.String(),
+					"type":           "asset",
+				}).Warning(item.URL.String())
+				continue
+			}
+		}
+
+		// Extract outlinks
 		if item.Hop < c.MaxHops {
-			outlinks, err := extractOutlinksGoquery(resp)
+			outlinks, err := extractOutlinks(resp)
 			if err != nil {
 				return outlinks, err
 			}

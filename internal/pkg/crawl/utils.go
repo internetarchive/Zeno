@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
@@ -16,6 +17,13 @@ import (
 )
 
 var regexOutlinks *regexp.Regexp
+
+func (crawl *Crawl) writeFrontierToDisk() {
+	for !crawl.Finished.Get() {
+		crawl.Frontier.Save()
+		time.Sleep(time.Minute * 1)
+	}
+}
 
 func (crawl *Crawl) setupCloseHandler() {
 	c := make(chan os.Signal)
@@ -42,7 +50,69 @@ func needBrowser(item *frontier.Item) bool {
 	return false
 }
 
-func extractOutlinksGoquery(resp *http.Response) (outlinks []url.URL, err error) {
+func extractAssets(resp *http.Response) (assets []url.URL, err error) {
+	var rawAssets []string
+
+	// Store the base URL to turn relative URLs into absolute URLs
+	base, err := url.Parse(resp.Request.URL.String())
+	if err != nil {
+		return assets, err
+	}
+
+	// Turn the response into a doc that we will scrape
+	doc, err := goquery.NewDocumentFromResponse(resp)
+	if err != nil {
+		return assets, err
+	}
+
+	// Extract assets on the page (images, scripts, videos..)
+	doc.Find("img").Each(func(index int, item *goquery.Selection) {
+		link, exists := item.Attr("src")
+		if exists {
+			rawAssets = append(rawAssets, link)
+		}
+	})
+	doc.Find("video").Each(func(index int, item *goquery.Selection) {
+		link, exists := item.Attr("src")
+		if exists {
+			rawAssets = append(rawAssets, link)
+		}
+	})
+	doc.Find("script").Each(func(index int, item *goquery.Selection) {
+		link, exists := item.Attr("src")
+		if exists {
+			rawAssets = append(rawAssets, link)
+		}
+	})
+	doc.Find("link").Each(func(index int, item *goquery.Selection) {
+		link, exists := item.Attr("href")
+		if exists {
+			rawAssets = append(rawAssets, link)
+		}
+	})
+	doc.Find("audio").Each(func(index int, item *goquery.Selection) {
+		link, exists := item.Attr("src")
+		if exists {
+			rawAssets = append(rawAssets, link)
+		}
+	})
+	doc.Find("iframe").Each(func(index int, item *goquery.Selection) {
+		link, exists := item.Attr("src")
+		if exists {
+			rawAssets = append(rawAssets, link)
+		}
+	})
+
+	// Dedupe assets discovered and turn them into url.URL
+	assets = stringSliceToURLSlice(rawAssets)
+
+	// Go over all assets and outlinks and make sure they are absolute links
+	assets = makeAbsolute(base, assets)
+
+	return assets, nil
+}
+
+func extractOutlinks(resp *http.Response) (outlinks []url.URL, err error) {
 	var rawOutlinks []string
 
 	// Store the base URL to turn relative links into absolute links later
@@ -65,38 +135,6 @@ func extractOutlinksGoquery(resp *http.Response) (outlinks []url.URL, err error)
 		}
 	})
 
-	// Extract assets on the page (images, scripts, videos..)
-	doc.Find("img").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("src")
-		if exists {
-			rawOutlinks = append(rawOutlinks, link)
-		}
-	})
-	doc.Find("video").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("src")
-		if exists {
-			rawOutlinks = append(rawOutlinks, link)
-		}
-	})
-	doc.Find("script").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("src")
-		if exists {
-			rawOutlinks = append(rawOutlinks, link)
-		}
-	})
-	doc.Find("link").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("href")
-		if exists {
-			rawOutlinks = append(rawOutlinks, link)
-		}
-	})
-	doc.Find("audio").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("src")
-		if exists {
-			rawOutlinks = append(rawOutlinks, link)
-		}
-	})
-
 	// Dedupe outlinks discovered and turn them into url.URL
 	outlinks = stringSliceToURLSlice(rawOutlinks)
 
@@ -106,7 +144,7 @@ func extractOutlinksGoquery(resp *http.Response) (outlinks []url.URL, err error)
 		outlinks = append(outlinks, link)
 	}
 
-	// Go over all assets and outlinks and make sure they are absolute links
+	// Go over all outlinks and make sure they are absolute links
 	outlinks = makeAbsolute(base, outlinks)
 
 	return outlinks, nil
