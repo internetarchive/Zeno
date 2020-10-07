@@ -76,16 +76,6 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 }
 
 func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
-	// If --seencheck is enabled, then we check if the URI is in the
-	// seencheck DB before doing anything. If it is in it, we skip the item
-	if c.Frontier.UseSeencheck {
-		hash := strconv.FormatUint(xxh3.HashString(URL.String()), 10)
-		if c.Frontier.Seencheck.IsSeen(hash) {
-			return nil
-		}
-		c.Frontier.Seencheck.Seen(hash)
-	}
-
 	var executionStart = time.Now()
 
 	// Prepare GET request
@@ -220,6 +210,16 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		}
 
 		for _, asset := range assets {
+			// If --seencheck is enabled, then we check if the URI is in the
+			// seencheck DB before doing anything. If it is in it, we skip the item
+			if c.Frontier.UseSeencheck {
+				hash := strconv.FormatUint(xxh3.HashString(asset.String()), 10)
+				if c.Frontier.Seencheck.IsSeen(hash) {
+					continue
+				}
+				c.Frontier.Seencheck.Seen(hash)
+			}
+
 			err = c.captureAsset(&asset, item)
 			if err != nil {
 				log.WithFields(log.Fields{
