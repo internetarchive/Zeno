@@ -97,7 +97,7 @@ func (crawl *Crawl) KafkaConsumer() {
 			break
 		}
 
-		if crawl.Frontier.QueueCount.Value() > int64(crawl.Workers*2) {
+		if crawl.ActiveWorkers.Value() >= int64(crawl.Workers-(crawl.Workers/10)) {
 			time.Sleep(time.Second * 1)
 			continue
 		}
