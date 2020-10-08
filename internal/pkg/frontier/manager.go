@@ -3,6 +3,7 @@ package frontier
 import (
 	"strconv"
 
+	"github.com/paulbellamy/ratecounter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,21 +41,26 @@ func (f *Frontier) writeItemsToQueue() {
 }
 
 func (f *Frontier) readItemsFromQueue() {
+	var mapCopy map[string]*ratecounter.Counter
+
 	for {
 		// We cleanup the hosts pool by removing
 		// all the hosts with a count of 0, then
 		// we make a snapshot of the hosts
 		// pool that we will iterate on
 		f.HostPool.DeleteEmptyHosts()
+		mapCopy = make(map[string]*ratecounter.Counter, 0)
 		f.HostPool.Lock()
-		currentPool := f.HostPool.Hosts
+		for key, val := range f.HostPool.Hosts {
+			mapCopy[key] = val
+		}
 		f.HostPool.Unlock()
 
-		// We iterate over the pool, and dequeue
+		// We iterate over the copied pool, and dequeue
 		// new URLs to crawl based on that hosts pool
 		// that allow us to crawl a wide variety of domains
 		// at the same time, maximizing our speed
-		for host := range currentPool {
+		for host := range mapCopy {
 			if f.HostPool.GetCount(host) == 0 {
 				continue
 			}
