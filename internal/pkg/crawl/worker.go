@@ -4,8 +4,7 @@ import (
 	"strings"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Worker archive the items!
@@ -13,9 +12,9 @@ func (c *Crawl) Worker(item *frontier.Item) {
 	// Capture the page
 	outlinks, err := c.capture(item)
 	if err != nil {
-		log.WithFields(log.Fields{
+		log.WithFields(logrus.Fields{
 			"error": err,
-		}).Debug(item.URL.String())
+		}).Warning(item.URL.String())
 		return
 	}
 

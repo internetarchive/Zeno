@@ -13,7 +13,7 @@ import (
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/zeebo/xxh3"
 )
 
@@ -23,7 +23,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 		switch ev := ev.(type) {
 		case *network.EventResponseReceived:
 			if strings.Compare(ev.Response.URL, item.URL.String()) == 0 {
-				log.WithFields(log.Fields{
+				log.WithFields(logrus.Fields{
 					"status_code":    ev.Response.Status,
 					"active_workers": c.ActiveWorkers.Value(),
 					"hop":            item.Hop,
@@ -31,7 +31,7 @@ func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (ou
 				c.URLsPerSecond.Incr(1)
 				c.Crawled.Incr(1)
 			} else {
-				log.WithFields(log.Fields{
+				log.WithFields(logrus.Fields{
 					"type":           "asset",
 					"status_code":    ev.Response.Status,
 					"active_workers": c.ActiveWorkers.Value(),
@@ -104,7 +104,7 @@ func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
 		if c.WARC {
 			records, err := warc.RecordsFromHTTPResponse(resp)
 			if err != nil {
-				log.WithFields(log.Fields{
+				log.WithFields(logrus.Fields{
 					"url":   req.URL.String(),
 					"type":  "asset",
 					"error": err,
@@ -125,7 +125,7 @@ func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
 		}
 
 		c.Crawled.Incr(1)
-		log.WithFields(log.Fields{
+		log.WithFields(logrus.Fields{
 			"queued":         c.Frontier.QueueCount.Value(),
 			"crawled":        c.Crawled.Value(),
 			"rate":           c.URLsPerSecond.Rate(),
@@ -173,7 +173,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		if c.WARC {
 			records, err := warc.RecordsFromHTTPResponse(resp)
 			if err != nil {
-				log.WithFields(log.Fields{
+				log.WithFields(logrus.Fields{
 					"url":   req.URL.String(),
 					"error": err,
 				}).Error("error when turning HTTP resp into WARC records, retrying.. ", retryCount, "/", c.WARCRetry)
@@ -193,7 +193,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 			}
 		}
 
-		log.WithFields(log.Fields{
+		log.WithFields(logrus.Fields{
 			"queued":         c.Frontier.QueueCount.Value(),
 			"crawled":        c.Crawled.Value(),
 			"rate":           c.URLsPerSecond.Rate(),
@@ -231,7 +231,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 
 			err = c.captureAsset(&asset, item)
 			if err != nil {
-				log.WithFields(log.Fields{
+				log.WithFields(logrus.Fields{
 					"error":          err,
 					"queued":         c.Frontier.QueueCount.Value(),
 					"crawled":        c.Crawled.Value(),

@@ -18,6 +18,8 @@ package main
 import (
 	"os"
 
+	_ "net/http/pprof"
+
 	"github.com/CorentinB/Zeno/cmd"
 	_ "github.com/CorentinB/Zeno/cmd/all"
 	"github.com/sirupsen/logrus"

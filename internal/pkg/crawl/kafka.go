@@ -48,7 +48,7 @@ func (crawl *Crawl) KafkaProducer() {
 
 		newKafkaMessageBytes, err := json.Marshal(newKafkaMessage)
 		if err != nil {
-			logrus.WithFields(logrus.Fields{
+			log.WithFields(logrus.Fields{
 				"error": err,
 			}).Warning("Unable to marshal message before sending to KAfka")
 		}
@@ -60,15 +60,11 @@ func (crawl *Crawl) KafkaProducer() {
 			},
 		)
 		if err != nil {
-			logrus.WithFields(logrus.Fields{
+			log.WithFields(logrus.Fields{
 				"error": err,
 			}).Warning("Failed to produce message to Kafka, pushing the seed to the local queue instead")
 			crawl.Frontier.PushChan <- item
 		}
-
-		logrus.WithFields(logrus.Fields{
-			"msg": string(newKafkaMessageBytes),
-		}).Warning("Message sent to kafka")
 	}
 }
 
@@ -110,21 +106,21 @@ func (crawl *Crawl) KafkaConsumer() {
 
 			m, err := r.ReadMessage(context.Background())
 			if err != nil {
-				logrus.WithFields(logrus.Fields{
+				log.WithFields(logrus.Fields{
 					"error": err,
 				}).Warning("Unable to read message from Kafka")
 				wg.Done()
 				return
 			}
 
-			logrus.WithFields(logrus.Fields{
+			log.WithFields(logrus.Fields{
 				"value": string(m.Value),
 				"key":   string(m.Key),
 			}).Debug("New message received from Kafka")
 
 			err = json.Unmarshal(m.Value, &newKafkaMessage)
 			if err != nil {
-				logrus.WithFields(logrus.Fields{
+				log.WithFields(logrus.Fields{
 					"topic":     m.Topic,
 					"key":       m.Key,
 					"offset":    m.Offset,
@@ -139,7 +135,7 @@ func (crawl *Crawl) KafkaConsumer() {
 			// Parse new URL
 			newURL, err := url.Parse(newKafkaMessage.URL)
 			if err != nil {
-				logrus.WithFields(logrus.Fields{
+				log.WithFields(logrus.Fields{
 					"kafka_msg_url": newKafkaMessage.URL,
 					"error":         err,
 				}).Warning("Unable to parse URL from Kafka message")
@@ -151,7 +147,7 @@ func (crawl *Crawl) KafkaConsumer() {
 			if len(newKafkaMessage.ParentURL) > 0 {
 				newParentURL, err := url.Parse(newKafkaMessage.ParentURL)
 				if err != nil {
-					logrus.WithFields(logrus.Fields{
+					log.WithFields(logrus.Fields{
 						"kafka_msg_url": newKafkaMessage.URL,
 						"error":         err,
 					}).Warning("Unable to parse parent URL from Kafka message")

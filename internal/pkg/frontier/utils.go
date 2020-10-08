@@ -9,7 +9,7 @@ import (
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/gosuri/uilive"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // IsSeedList validates if the path is a seed list, and return an array of
@@ -34,12 +34,14 @@ func IsSeedList(path string) (seeds []Item, err error) {
 
 	// Initialize scanner
 	scanner := bufio.NewScanner(file)
-	log.WithFields(log.Fields{"path": path}).Info("Start reading input list")
+	logrus.WithFields(logrus.Fields{
+		"path": path,
+	}).Info("Start reading input list")
 	for scanner.Scan() {
 		totalCount++
 		URL, err := url.Parse(scanner.Text())
 		if err != nil {
-			log.WithFields(log.Fields{
+			logrus.WithFields(logrus.Fields{
 				"url":   scanner.Text(),
 				"error": err.Error(),
 			}).Debug("This is not a valid URL")
@@ -48,7 +50,7 @@ func IsSeedList(path string) (seeds []Item, err error) {
 
 		err = utils.ValidateURL(URL)
 		if err != nil {
-			log.WithFields(log.Fields{
+			logrus.WithFields(logrus.Fields{
 				"url":   scanner.Text(),
 				"error": err.Error(),
 			}).Debug("This is not a valid URL")

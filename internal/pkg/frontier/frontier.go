@@ -10,6 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var log *logrus.Logger
+
 type Frontier struct {
 	JobPath string
 
@@ -35,8 +37,10 @@ type Frontier struct {
 }
 
 // Init ininitialize the components of a frontier
-func (f *Frontier) Init(jobPath string, useSeencheck bool) (err error) {
+func (f *Frontier) Init(jobPath string, logger *logrus.Logger, useSeencheck bool) (err error) {
 	f.JobPath = jobPath
+
+	log = logger
 
 	// Initialize host pool
 	f.HostPool = new(HostPool)

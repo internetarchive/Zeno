@@ -141,7 +141,7 @@ func stringSliceToURLSlice(rawURLs []string) (URLs []url.URL) {
 	for _, URL := range rawURLs {
 		decodedURL, err := url.QueryUnescape(URL)
 		if err != nil {
-			logrus.WithFields(logrus.Fields{
+			log.WithFields(logrus.Fields{
 				"error":    err,
 				"outlinks": URL,
 			}).Debug("Unable to parse outlink")

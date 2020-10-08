@@ -3,7 +3,7 @@ package frontier
 import (
 	"strconv"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func (f *Frontier) writeItemsToQueue() {
@@ -26,14 +26,14 @@ func (f *Frontier) writeItemsToQueue() {
 		// Add the item to the host's queue
 		_, err := f.Queue.EnqueueObject([]byte(item.Host), item)
 		if err != nil {
-			log.WithFields(log.Fields{
+			log.WithFields(logrus.Fields{
 				"error": err,
 				"item":  item,
 			}).Error("Unable to enqueue item")
 		}
 		f.QueueCount.Incr(1)
 
-		log.WithFields(log.Fields{
+		log.WithFields(logrus.Fields{
 			"url": item.URL,
 		}).Debug("Item enqueued")
 	}
@@ -62,7 +62,7 @@ func (f *Frontier) readItemsFromQueue() {
 			// Dequeue an item from the local queue
 			queueItem, err := f.Queue.DequeueString(host)
 			if err != nil {
-				log.WithFields(log.Fields{
+				log.WithFields(logrus.Fields{
 					"error": err,
 				}).Debug("Unable to dequeue item")
 				continue
@@ -73,7 +73,7 @@ func (f *Frontier) readItemsFromQueue() {
 			var item *Item
 			err = queueItem.ToObject(&item)
 			if err != nil {
-				log.WithFields(log.Fields{
+				log.WithFields(logrus.Fields{
 					"error": err,
 				}).Error("Unable to parse queue's item")
 				continue
@@ -81,7 +81,7 @@ func (f *Frontier) readItemsFromQueue() {
 
 			// Sending the item to the workers via PullChan
 			f.PullChan <- item
-			log.WithFields(log.Fields{
+			log.WithFields(logrus.Fields{
 				"url": item.URL,
 			}).Debug("Item sent to workers pool")
 

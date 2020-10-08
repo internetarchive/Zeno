@@ -11,9 +11,10 @@ import (
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	"mvdan.cc/xurls/v2"
 )
+
+var log *logrus.Logger
 
 // Crawl define the parameters of a crawl process
 type Crawl struct {
@@ -28,7 +29,7 @@ type Crawl struct {
 	// Crawl settings
 	WorkerPool   sizedwaitgroup.SizedWaitGroup
 	Client       *httpclient.Client
-	Log          *log.Entry
+	Logger       logrus.Logger
 	Proxy        string
 	UserAgent    string
 	JobPath      string
@@ -81,12 +82,15 @@ func (c *Crawl) Start() (err error) {
 	c.Finished = new(utils.TAtomBool)
 	regexOutlinks = xurls.Relaxed()
 
+	// Setup logging
+	log = utils.SetupLogging(c.JobPath)
+
 	// Start the background process that will handle os signals
 	// to exit Zeno, like CTRL+C
 	go c.setupCloseHandler()
 
 	// Initialize the frontier
-	c.Frontier.Init(c.JobPath, c.Seencheck)
+	c.Frontier.Init(c.JobPath, log, c.Seencheck)
 	c.Frontier.Load()
 	c.Frontier.Start()
 

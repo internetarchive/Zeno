@@ -8,6 +8,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/google/uuid"
 	"github.com/remeh/sizedwaitgroup"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -59,9 +60,6 @@ func CmdGetList(c *cli.Context) error {
 	crawl.Seencheck = config.App.Flags.Seencheck
 	crawl.Proxy = config.App.Flags.Proxy
 	crawl.MaxHops = uint8(config.App.Flags.MaxHops)
-	crawl.Log = log.WithFields(log.Fields{
-		"crawl": crawl,
-	})
 
 	// Initialize client
 	crawl.InitHTTPClient()
@@ -69,14 +67,14 @@ func CmdGetList(c *cli.Context) error {
 	// Initialize initial seed list
 	crawl.SeedList, err = frontier.IsSeedList(c.Args().Get(0))
 	if err != nil || len(crawl.SeedList) <= 0 {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"input": c.Args().Get(0),
 			"error": err.Error(),
 		}).Error("This is not a valid input")
 		return err
 	}
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"input":      c.Args().Get(0),
 		"seedsCount": len(crawl.SeedList),
 	}).Print("Seed list loaded")
@@ -84,7 +82,7 @@ func CmdGetList(c *cli.Context) error {
 	// Start crawl
 	err = crawl.Start()
 	if err != nil {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"crawl": crawl,
 			"error": err,
 		}).Error("Crawl exited due to error")

@@ -10,7 +10,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/remeh/sizedwaitgroup"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
@@ -27,14 +27,14 @@ func NewGetURLCmd() *cli.Command {
 func CmdGetURL(c *cli.Context) error {
 	err := initLogging(c)
 	if err != nil {
-		log.Error("Unable to parse arguments")
+		logrus.Error("Unable to parse arguments")
 		return err
 	}
 
 	// Initialize Crawl
 	crawl, err := crawl.Create()
 	if err != nil {
-		log.Error("Unable to initialize crawl job")
+		logrus.Error("Unable to initialize crawl job")
 		return err
 	}
 
@@ -61,9 +61,6 @@ func CmdGetURL(c *cli.Context) error {
 	crawl.Seencheck = config.App.Flags.Seencheck
 	crawl.Proxy = config.App.Flags.Proxy
 	crawl.MaxHops = uint8(config.App.Flags.MaxHops)
-	crawl.Log = log.WithFields(log.Fields{
-		"crawl": crawl,
-	})
 
 	// Initialize client
 	crawl.InitHTTPClient()
@@ -72,7 +69,7 @@ func CmdGetURL(c *cli.Context) error {
 	input, err := url.Parse(c.Args().Get(0))
 	err = utils.ValidateURL(input)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"input": c.Args().Get(0),
 			"error": err.Error(),
 		}).Error("This is not a valid input")
@@ -83,13 +80,13 @@ func CmdGetURL(c *cli.Context) error {
 	// Start crawl
 	err = crawl.Start()
 	if err != nil {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"crawl": crawl,
 			"error": err,
 		}).Error("Crawl exited due to error")
 		return err
 	}
 
-	crawl.Log.Info("Crawl finished")
+	logrus.Info("Crawl finished")
 	return err
 }

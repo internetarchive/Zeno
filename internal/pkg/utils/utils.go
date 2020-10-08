@@ -4,10 +4,16 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/url"
+	"os"
+	"path"
 	"sync/atomic"
+	"time"
 
 	"github.com/asaskevich/govalidator"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
+	"github.com/sirupsen/logrus"
 )
 
 // TAtomBool define an atomic boolean
@@ -86,4 +92,24 @@ func ValidateURL(u *url.URL) error {
 	}
 
 	return nil
+}
+
+func SetupLogging(jobPath string) *logrus.Logger {
+	var logsDirectory = path.Join(jobPath, "logs")
+	var log = logrus.New()
+
+	// Create logs directory for the job
+	os.MkdirAll(logsDirectory, os.ModePerm)
+
+	path := path.Join(logsDirectory, "zeno")
+	writer, err := rotatelogs.New(
+		fmt.Sprintf("%s_%s.log", path, "%Y%m%d%H%M%S"),
+		rotatelogs.WithRotationTime(time.Hour*6),
+	)
+	if err != nil {
+		logrus.Fatalf("Failed to Initialize Log File %s", err)
+	}
+	log.SetOutput(writer)
+
+	return log
 }

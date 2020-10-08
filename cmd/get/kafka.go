@@ -7,6 +7,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/crawl"
 	"github.com/google/uuid"
 	"github.com/remeh/sizedwaitgroup"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -58,9 +59,6 @@ func CmdGetKafka(c *cli.Context) error {
 	crawl.Seencheck = config.App.Flags.Seencheck
 	crawl.Proxy = config.App.Flags.Proxy
 	crawl.MaxHops = uint8(config.App.Flags.MaxHops)
-	crawl.Log = log.WithFields(log.Fields{
-		"crawl": crawl,
-	})
 
 	// Kafka-specific settings
 	crawl.UseKafka = true
@@ -75,7 +73,7 @@ func CmdGetKafka(c *cli.Context) error {
 	// Start crawl
 	err = crawl.Start()
 	if err != nil {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"crawl": crawl,
 			"error": err,
 		}).Error("Crawl exited due to error")
