@@ -205,7 +205,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 		}).Info(item.URL.String())
 
 		// Extract and capture assets
-		assets, err := extractAssets(resp)
+		assets, doc, err := extractAssets(resp)
 		if err != nil {
 			return outlinks, err
 		}
@@ -247,7 +247,7 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 
 		// Extract outlinks
 		if item.Hop < c.MaxHops {
-			outlinks, err := extractOutlinks(resp)
+			outlinks, err := extractOutlinks(resp, doc)
 			if err != nil {
 				return outlinks, err
 			}

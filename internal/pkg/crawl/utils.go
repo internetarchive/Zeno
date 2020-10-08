@@ -37,19 +37,19 @@ func needBrowser(item *frontier.Item) bool {
 	return false
 }
 
-func extractAssets(resp *http.Response) (assets []url.URL, err error) {
+func extractAssets(resp *http.Response) (assets []url.URL, doc *goquery.Document, err error) {
 	var rawAssets []string
 
 	// Store the base URL to turn relative URLs into absolute URLs
 	base, err := url.Parse(resp.Request.URL.String())
 	if err != nil {
-		return assets, err
+		return assets, doc, err
 	}
 
 	// Turn the response into a doc that we will scrape
-	doc, err := goquery.NewDocumentFromResponse(resp)
+	doc, err = goquery.NewDocumentFromResponse(resp)
 	if err != nil {
-		return assets, err
+		return assets, doc, err
 	}
 
 	// Extract assets on the page (images, scripts, videos..)
@@ -96,20 +96,14 @@ func extractAssets(resp *http.Response) (assets []url.URL, err error) {
 	// Go over all assets and outlinks and make sure they are absolute links
 	assets = makeAbsolute(base, assets)
 
-	return utils.DedupeURLs(assets), nil
+	return utils.DedupeURLs(assets), doc, nil
 }
 
-func extractOutlinks(resp *http.Response) (outlinks []url.URL, err error) {
+func extractOutlinks(resp *http.Response, doc *goquery.Document) (outlinks []url.URL, err error) {
 	var rawOutlinks []string
 
 	// Store the base URL to turn relative links into absolute links later
 	base, err := url.Parse(resp.Request.URL.String())
-	if err != nil {
-		return outlinks, err
-	}
-
-	// Turn the response into a doc that we will scrape
-	doc, err := goquery.NewDocumentFromResponse(resp)
 	if err != nil {
 		return outlinks, err
 	}

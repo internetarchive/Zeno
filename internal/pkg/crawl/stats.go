@@ -49,6 +49,7 @@ func (c *Crawl) printLiveStats() {
 		stats.AddRow("  - Crawled:", c.Crawled.Value())
 		stats.AddRow("  - Queued:", c.Frontier.QueueCount.Value())
 		stats.AddRow("", "")
+		stats.AddRow("  - Elapsed time:", fmt.Sprintf("%s", time.Since(c.StartTime)))
 		stats.AddRow("  - Allocated (heap):", bToMb(m.Alloc))
 		stats.AddRow("  - Goroutines:", runtime.NumGoroutine())
 		stats.AddRow("", "")
