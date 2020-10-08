@@ -32,6 +32,7 @@ type Crawl struct {
 	Logger       logrus.Logger
 	Proxy        string
 	UserAgent    string
+	Job          string
 	JobPath      string
 	MaxHops      uint8
 	DomainsCrawl bool
@@ -128,6 +129,9 @@ func (c *Crawl) Start() (err error) {
 		c.SeedList = nil
 		logrus.Info("All seeds are now in queue, crawling will start")
 	}
+
+	// Start the process responsible for printing live stats on the standard output
+	go c.printLiveStats()
 
 	// Start archiving the URLs!
 	for item := range c.Frontier.PullChan {

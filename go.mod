@@ -11,6 +11,7 @@ require (
 	github.com/chromedp/chromedp v0.5.3
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
+	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-gonic/gin v1.6.3
@@ -20,11 +21,14 @@ require (
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/gosuri/uilive v0.0.4
+	github.com/gosuri/uitable v0.0.4
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/lestrrat-go/strftime v1.0.3 // indirect
+	github.com/mackerelio/go-osstat v0.1.0
 	github.com/mailru/easyjson v0.7.6 // indirect
+	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/paulbellamy/ratecounter v0.2.0
