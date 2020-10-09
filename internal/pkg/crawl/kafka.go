@@ -29,8 +29,7 @@ func zenoHopsToHeritrixHops(hops uint8) string {
 	return newHops
 }
 
-// KafkaProducer receive seeds from the crawl and send them to Kafka
-func (crawl *Crawl) KafkaProducer() {
+func (crawl *Crawl) kafkaProducer() {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": strings.Join(crawl.KafkaBrokers[:], ",")})
 	if err != nil {
 		panic(err)
@@ -94,8 +93,7 @@ func (crawl *Crawl) KafkaProducer() {
 	p.Flush(15 * 1000)
 }
 
-// KafkaConsumer read seeds from Kafka and ingest them into the crawl
-func (crawl *Crawl) KafkaConsumer() {
+func (crawl *Crawl) kafkaConsumer() {
 	var kafkaWorkerPool = sizedwaitgroup.New(16)
 
 	kafkaClient, err := kafka.NewConsumer(&kafka.ConfigMap{

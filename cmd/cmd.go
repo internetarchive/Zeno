@@ -64,6 +64,13 @@ var GlobalFlags = []cli.Flag{
 		Name:        "api",
 		Destination: &config.App.Flags.API,
 	},
+
+	&cli.IntFlag{
+		Name:        "max-redirect",
+		Value:       20,
+		Usage:       "Specifies the maximum number of redirections to follow for a resource.",
+		Destination: &config.App.Flags.MaxRedirects,
+	},
 	&cli.BoolFlag{
 		Name:        "domains-crawl",
 		Usage:       "If this is turned on, seeds will be treated as domains to crawl, therefore same-domain outlinks will be added to the queue as hop=0",
@@ -98,6 +105,7 @@ var GlobalFlags = []cli.Flag{
 	// Kafka flags
 	&cli.BoolFlag{
 		Name:        "kafka",
+		Value:       false,
 		Usage:       "Use Kafka to pull URLs to process",
 		Destination: &config.App.Flags.Kafka,
 	},

@@ -8,8 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// StartAPI define the different routes for Zeno's API and start the server
-func (crawl *Crawl) StartAPI() {
+func (crawl *Crawl) startAPI() {
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = log.Out
 

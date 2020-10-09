@@ -27,9 +27,9 @@ func init() {
 			Name:  "get",
 			Usage: "All commands that get URLs",
 			Subcommands: []*cli.Command{
-				NewGetURLCmd(),
-				NewGetListCmd(),
-				NewGetKafkaCmd(),
+				newGetURLCmd(),
+				newGetListCmd(),
+				newGetKafkaCmd(),
 			},
 		})
 }

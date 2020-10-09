@@ -11,8 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// InitHTTPClient intialize HTTP client
-func (crawl *Crawl) InitHTTPClient() (err error) {
+func (crawl *Crawl) initHTTPClient() (err error) {
 	var customClient = new(http.Client)
 	var customTransport = new(http.Transport)
 

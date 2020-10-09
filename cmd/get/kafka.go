@@ -1,75 +1,32 @@
 package get
 
 import (
-	"path"
-
+	"github.com/CorentinB/Zeno/cmd"
 	"github.com/CorentinB/Zeno/config"
-	"github.com/CorentinB/Zeno/internal/pkg/crawl"
-	"github.com/google/uuid"
-	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
-func NewGetKafkaCmd() *cli.Command {
+func newGetKafkaCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "kafka",
 		Usage:     "Start crawling with the Kafka connector",
-		Action:    CmdGetKafka,
+		Action:    cmdGetKafka,
 		Flags:     []cli.Flag{},
 		UsageText: "<FILE> [ARGUMENTS]",
 	}
 }
 
-func CmdGetKafka(c *cli.Context) error {
+func cmdGetKafka(c *cli.Context) error {
 	err := initLogging(c)
 	if err != nil {
 		log.Error("Unable to parse arguments")
 		return err
 	}
 
-	// Initialize Crawl
-	crawl, err := crawl.Create()
-	if err != nil {
-		log.Error("Unable to initialize crawl job")
-		return err
-	}
-
-	// If the job name isn't specified, we generate a random name
-	if len(config.App.Flags.Job) == 0 {
-		UUID, err := uuid.NewUUID()
-		if err != nil {
-			return err
-		}
-		config.App.Flags.Job = UUID.String()
-	}
-
-	crawl.WARC = config.App.Flags.WARC
-	crawl.WARCRetry = config.App.Flags.WARCRetry
-	crawl.WARCPrefix = config.App.Flags.WARCPrefix
-	crawl.WARCOperator = config.App.Flags.WARCOperator
-	crawl.DomainsCrawl = config.App.Flags.DomainsCrawl
-	crawl.API = config.App.Flags.API
-	crawl.Job = config.App.Flags.Job
-	crawl.JobPath = path.Join("jobs", config.App.Flags.Job)
-	crawl.UserAgent = config.App.Flags.UserAgent
-	crawl.Headless = config.App.Flags.Headless
-	crawl.Workers = config.App.Flags.Workers
-	crawl.WorkerPool = sizedwaitgroup.New(crawl.Workers)
-	crawl.Seencheck = config.App.Flags.Seencheck
-	crawl.Proxy = config.App.Flags.Proxy
-	crawl.MaxHops = uint8(config.App.Flags.MaxHops)
-
-	// Kafka-specific settings
-	crawl.UseKafka = true
-	crawl.KafkaConsumerGroup = config.App.Flags.KafkaConsumerGroup
-	crawl.KafkaFeedTopic = config.App.Flags.KafkaFeedTopic
-	crawl.KafkaOutlinksTopic = config.App.Flags.KafkaOutlinksTopic
-	crawl.KafkaBrokers = config.App.Flags.KafkaBrokers.Value()
-
-	// Initialize client
-	crawl.InitHTTPClient()
+	// Init crawl using the flags provided
+	crawl := cmd.InitCrawlWithCMD(config.App.Flags)
 
 	// Start crawl
 	err = crawl.Start()

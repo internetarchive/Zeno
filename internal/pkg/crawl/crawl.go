@@ -65,18 +65,6 @@ type Crawl struct {
 	KafkaProducerChannel chan *frontier.Item
 }
 
-// Create initialize a Crawl structure and return it
-func Create() (crawl *Crawl, err error) {
-	crawl = new(Crawl)
-
-	crawl.Crawled = new(ratecounter.Counter)
-	crawl.ActiveWorkers = new(ratecounter.Counter)
-	crawl.Frontier = new(frontier.Frontier)
-	crawl.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
-
-	return crawl, nil
-}
-
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
 	c.StartTime = time.Now()
@@ -85,6 +73,9 @@ func (c *Crawl) Start() (err error) {
 
 	// Setup logging
 	log = utils.SetupLogging(c.JobPath)
+
+	// Initialize HTTP client
+	c.initHTTPClient()
 
 	// Start the background process that will handle os signals
 	// to exit Zeno, like CTRL+C
@@ -108,16 +99,16 @@ func (c *Crawl) Start() (err error) {
 	}
 
 	if c.API {
-		go c.StartAPI()
+		go c.startAPI()
 	}
 
 	// If Kafka parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to Kafka
 	if c.UseKafka {
 		c.KafkaProducerChannel = make(chan *frontier.Item, c.Workers)
-		go c.KafkaConsumer()
+		go c.kafkaConsumer()
 		if len(c.KafkaOutlinksTopic) > 0 {
-			go c.KafkaProducer()
+			go c.kafkaProducer()
 		}
 	} else {
 		// Push the seed list to the queue
@@ -152,7 +143,7 @@ func (c *Crawl) Start() (err error) {
 	}
 
 	if c.Finished.Get() == false {
-		c.Finish()
+		c.finish()
 	}
 
 	return nil

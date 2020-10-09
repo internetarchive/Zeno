@@ -1,0 +1,69 @@
+package cmd
+
+import (
+	"path"
+	"time"
+
+	"github.com/CorentinB/Zeno/config"
+	"github.com/CorentinB/Zeno/internal/pkg/crawl"
+	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/google/uuid"
+	"github.com/paulbellamy/ratecounter"
+	"github.com/remeh/sizedwaitgroup"
+	"github.com/sirupsen/logrus"
+)
+
+// InitCrawlWithCMD takes a config.Flags struct and return a
+// *crawl.Crawl initialized with it
+func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
+	var c = new(crawl.Crawl)
+
+	// Statistics counters
+	c.Crawled = new(ratecounter.Counter)
+	c.ActiveWorkers = new(ratecounter.Counter)
+	c.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
+
+	// Frontier
+	c.Frontier = new(frontier.Frontier)
+
+	// If the job name isn't specified, we generate a random name
+	if len(flags.Job) == 0 {
+		UUID, err := uuid.NewUUID()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		c.Job = UUID.String()
+	} else {
+		c.Job = flags.Job
+	}
+	c.JobPath = path.Join("jobs", flags.Job)
+
+	c.Workers = flags.Workers
+	c.WorkerPool = sizedwaitgroup.New(c.Workers)
+
+	c.MaxHops = uint8(flags.MaxHops)
+	c.DomainsCrawl = flags.DomainsCrawl
+
+	// WARC settings
+	c.WARC = flags.WARC
+	c.WARCRetry = flags.WARCRetry
+	c.WARCPrefix = flags.WARCPrefix
+	c.WARCOperator = flags.WARCOperator
+
+	c.API = flags.API
+	c.UserAgent = flags.UserAgent
+	c.Headless = flags.Headless
+	c.Proxy = flags.Proxy
+
+	// Kafka settings
+	c.UseKafka = flags.Kafka
+	c.KafkaConsumerGroup = flags.KafkaConsumerGroup
+	c.KafkaFeedTopic = flags.KafkaFeedTopic
+	c.KafkaOutlinksTopic = flags.KafkaOutlinksTopic
+	c.KafkaBrokers = flags.KafkaBrokers.Value()
+	if c.UseKafka && (len(c.KafkaFeedTopic) == 0 || len(c.KafkaBrokers) == 0) {
+		logrus.Fatal("Kafka used but no broker or feed topic specified")
+	}
+
+	return c
+}

@@ -21,14 +21,13 @@ func (c *Crawl) catchFinish() {
 		time.Sleep(time.Second * 5)
 		if c.ActiveWorkers.Value() == 0 && c.Frontier.QueueCount.Value() == 0 && c.Finished.Get() == false && c.Crawled.Value() > 0 {
 			logrus.Warning("No additional URL to archive, finishing")
-			c.Finish()
+			c.finish()
 			os.Exit(0)
 		}
 	}
 }
 
-// Finish handle the closing of the different crawl components
-func (c *Crawl) Finish() {
+func (c *Crawl) finish() {
 	c.Finished.Set(true)
 
 	c.WorkerPool.Wait()
@@ -65,6 +64,6 @@ func (crawl *Crawl) setupCloseHandler() {
 	logrus.Warning("CTRL+C catched.. cleaning up and exiting.")
 	signal.Stop(c)
 	close(c)
-	crawl.Finish()
+	crawl.finish()
 	os.Exit(0)
 }
