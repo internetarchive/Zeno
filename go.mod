@@ -9,6 +9,7 @@ require (
 	github.com/beeker1121/goque v2.1.0+incompatible
 	github.com/chromedp/cdproto v0.0.0-20200709115526-d1f6fc58448b
 	github.com/chromedp/chromedp v0.5.3
+	github.com/confluentinc/confluent-kafka-go v1.4.2
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/fatih/color v1.9.0 // indirect
@@ -35,7 +36,6 @@ require (
 	github.com/philippgille/gokv/leveldb v0.6.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remeh/sizedwaitgroup v1.0.0
-	github.com/segmentio/kafka-go v0.4.5
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/tebeka/strftime v0.1.5 // indirect
