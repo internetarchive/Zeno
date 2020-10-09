@@ -10,7 +10,7 @@ import (
 // Worker archive the items!
 func (c *Crawl) Worker(item *frontier.Item) {
 	// Capture the page
-	outlinks, err := c.capture(item)
+	outlinks, err := c.Capture(item)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"error": err,
@@ -23,14 +23,14 @@ func (c *Crawl) Worker(item *frontier.Item) {
 		for _, outlink := range outlinks {
 			outlink := outlink
 			if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
-				newItem := frontier.NewItem(&outlink, item, 0)
+				newItem := frontier.NewItem(&outlink, item, "seed", 0)
 				if c.UseKafka && len(c.KafkaOutlinksTopic) > 0 {
 					c.KafkaProducerChannel <- newItem
 				} else {
 					c.Frontier.PushChan <- newItem
 				}
 			} else {
-				newItem := frontier.NewItem(&outlink, item, item.Hop+1)
+				newItem := frontier.NewItem(&outlink, item, "seed", item.Hop+1)
 				if c.UseKafka && len(c.KafkaOutlinksTopic) > 0 {
 					c.KafkaProducerChannel <- newItem
 				} else {

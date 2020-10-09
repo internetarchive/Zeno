@@ -182,11 +182,11 @@ func (crawl *Crawl) KafkaConsumer() {
 					if newKafkaMessage.HopsCount > 0 {
 						newParentItemHops = newKafkaMessage.HopsCount - 1
 					}
-					newParentItem := frontier.NewItem(newParentURL, nil, newParentItemHops)
-					newItem = frontier.NewItem(newURL, newParentItem, newKafkaMessage.HopsCount)
+					newParentItem := frontier.NewItem(newParentURL, nil, "seed", newParentItemHops)
+					newItem = frontier.NewItem(newURL, newParentItem, "seed", newKafkaMessage.HopsCount)
 				}
 			} else {
-				newItem = frontier.NewItem(newURL, nil, newKafkaMessage.HopsCount)
+				newItem = frontier.NewItem(newURL, nil, "seed", newKafkaMessage.HopsCount)
 			}
 
 			crawl.Frontier.PushChan <- newItem

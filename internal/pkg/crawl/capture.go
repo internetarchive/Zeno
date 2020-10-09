@@ -12,18 +12,31 @@ import (
 	"github.com/zeebo/xxh3"
 )
 
-func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
+func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *frontier.Item) {
+	log.WithFields(logrus.Fields{
+		"queued":         c.Frontier.QueueCount.Value(),
+		"crawled":        c.Crawled.Value(),
+		"rate":           c.URLsPerSecond.Rate(),
+		"status_code":    statusCode,
+		"active_workers": c.ActiveWorkers.Value(),
+		"hop":            item.Hop,
+		"type":           item.Type,
+		"execution_time": time.Since(executionStart),
+	}).Info(item.URL.String())
+}
+
+func (c *Crawl) captureAsset(item *frontier.Item) error {
 	var executionStart = time.Now()
 
 	// Prepare GET request
-	req, err := http.NewRequest("GET", URL.String(), nil)
+	req, err := http.NewRequest("GET", item.URL.String(), nil)
 	if err != nil {
 		return err
 	}
 
 	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("Accept-Encoding", "*/*")
-	req.Header.Set("Referer", parent.URL.String())
+	req.Header.Set("Referer", item.ParentItem.URL.String())
 
 	// This retry loop is used for when the WARC writing fail,
 	// it can happen when the response have an issue, such as
@@ -36,6 +49,7 @@ func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
 			return err
 		}
 		defer resp.Body.Close()
+		c.Crawled.Incr(1)
 
 		// Write response and reques
 		if c.WARC {
@@ -58,20 +72,35 @@ func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
 				continue
 			} else {
 				c.WARCWriter <- records
+
+				// If a redirection is catched, then we execute the redirection
+				if resp.StatusCode == 300 || resp.StatusCode == 301 ||
+					resp.StatusCode == 302 || resp.StatusCode == 307 ||
+					resp.StatusCode == 308 {
+
+					c.logCrawlSuccess(executionStart, resp.StatusCode, item)
+
+					if resp.Header.Get("location") == item.URL.String() {
+						break
+					}
+
+					newURL, err := url.Parse(resp.Header.Get("location"))
+					if err != nil {
+						return err
+					}
+
+					newAsset := frontier.NewItem(newURL, item, "asset", item.Hop)
+					err = c.captureAsset(newAsset)
+					if err != nil {
+						return err
+					}
+
+					return nil
+				}
 			}
 		}
 
-		c.Crawled.Incr(1)
-		log.WithFields(logrus.Fields{
-			"queued":         c.Frontier.QueueCount.Value(),
-			"crawled":        c.Crawled.Value(),
-			"rate":           c.URLsPerSecond.Rate(),
-			"status_code":    resp.StatusCode,
-			"active_workers": c.ActiveWorkers.Value(),
-			"hop":            parent.Hop,
-			"type":           "asset",
-			"execution_time": time.Since(executionStart),
-		}).Info(URL)
+		c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
 		return nil
 	}
@@ -89,7 +118,7 @@ func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err err
 
 	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("Accept-Encoding", "*/*")
-	if item.Hop > 0 {
+	if item.Hop > 0 && len(item.ParentItem.URL.String()) > 0 {
 		req.Header.Set("Referer", item.ParentItem.URL.String())
 	} else {
 		req.Header.Set("Referer", item.URL.String())
@@ -100,11 +129,13 @@ func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err err
 	// an unexpected EOF. That happens often when using proxies.
 	for retryCount := 1; retryCount <= c.WARCRetry; retryCount++ {
 		// Execute GET request
+		c.URLsPerSecond.Incr(1)
 		resp, err := c.Client.Do(req)
 		if err != nil {
 			return outlinks, err
 		}
 		defer resp.Body.Close()
+		c.Crawled.Incr(1)
 
 		// Write response and request
 		if c.WARC {
@@ -127,19 +158,40 @@ func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err err
 				continue
 			} else {
 				c.WARCWriter <- records
+
+				// If a redirection is catched, then we execute the redirection
+				// 1. Log the URL we just crawled
+				// 2. Set the parent item to the item to the item we just crawled
+				// 3. Parse the "location" header for the next URL to crawl
+				// 4. Capture the URL
+				// 5. Log the URL we just crawled
+				if resp.StatusCode == 300 || resp.StatusCode == 301 ||
+					resp.StatusCode == 302 || resp.StatusCode == 307 ||
+					resp.StatusCode == 308 {
+
+					c.logCrawlSuccess(executionStart, resp.StatusCode, item)
+
+					if resp.Header.Get("location") == item.URL.String() {
+						break
+					}
+
+					URL, err := url.Parse(resp.Header.Get("location"))
+					if err != nil {
+						return outlinks, err
+					}
+
+					newItem := frontier.NewItem(URL, item, item.Type, item.Hop)
+					outlinks, err := c.captureWithGET(newItem)
+					if err != nil {
+						return outlinks, err
+					}
+
+					return outlinks, err
+				}
 			}
 		}
 
-		log.WithFields(logrus.Fields{
-			"queued":         c.Frontier.QueueCount.Value(),
-			"crawled":        c.Crawled.Value(),
-			"rate":           c.URLsPerSecond.Rate(),
-			"status_code":    resp.StatusCode,
-			"active_workers": c.ActiveWorkers.Value(),
-			"hop":            item.Hop,
-			"type":           "seed",
-			"execution_time": time.Since(executionStart),
-		}).Info(item.URL.String())
+		c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
 		// Extract and capture assets
 		assets, doc, err := extractAssets(resp)
@@ -166,7 +218,8 @@ func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err err
 				c.Frontier.Seencheck.Seen(hash)
 			}
 
-			err = c.captureAsset(&asset, item)
+			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop)
+			err = c.captureAsset(newAsset)
 			if err != nil {
 				log.WithFields(logrus.Fields{
 					"error":          err,
@@ -196,11 +249,9 @@ func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err err
 }
 
 // Capture capture a page and queue the outlinks
-func (c *Crawl) capture(item *frontier.Item) (outlinks []url.URL, err error) {
+func (c *Crawl) Capture(item *frontier.Item) (outlinks []url.URL, err error) {
 	// Check with HTTP HEAD request if the URL need a full headless browser or a simple GET request
-	c.URLsPerSecond.Incr(1)
 	outlinks, err = c.captureWithGET(item)
-	c.Crawled.Incr(1)
 	if err != nil {
 		return nil, err
 	}

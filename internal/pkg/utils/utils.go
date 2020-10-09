@@ -73,7 +73,10 @@ func DedupeURLs(URLs []url.URL) []url.URL {
 	for _, entry := range URLs {
 		if _, value := keys[entry.String()]; !value {
 			keys[entry.String()] = true
-			list = append(list, entry)
+
+			if entry.Scheme == "http" || entry.Scheme == "https" {
+				list = append(list, entry)
+			}
 		}
 	}
 	return list

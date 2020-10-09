@@ -76,7 +76,7 @@ func CmdGetURL(c *cli.Context) error {
 		}).Error("This is not a valid input")
 		return err
 	}
-	crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, 0))
+	crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, "seed", 0))
 
 	// Start crawl
 	err = crawl.Start()
