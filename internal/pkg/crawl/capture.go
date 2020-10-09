@@ -100,7 +100,6 @@ func (c *Crawl) captureAsset(item *frontier.Item) error {
 
 					newAsset := frontier.NewItem(newURL, item, "asset", item.Hop)
 					newAsset.Redirect = item.Redirect + 1
-					log.Println("Redirect: ", newAsset.Redirect)
 					err = c.captureAsset(newAsset)
 					if err != nil {
 						return err
@@ -118,7 +117,8 @@ func (c *Crawl) captureAsset(item *frontier.Item) error {
 	return nil
 }
 
-func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err error) {
+// Capture capture the URL and return the outlinks
+func (c *Crawl) Capture(item *frontier.Item) (outlinks []url.URL, err error) {
 	var executionStart = time.Now()
 
 	// If --seencheck is enabled, then we check if the URI is in the
@@ -202,7 +202,8 @@ func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err err
 					}
 
 					newItem := frontier.NewItem(URL, item, item.Type, item.Hop)
-					outlinks, err := c.captureWithGET(newItem)
+					newItem.Redirect = item.Redirect + 1
+					outlinks, err := c.Capture(newItem)
 					if err != nil {
 						return outlinks, err
 					}
@@ -256,16 +257,5 @@ func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err err
 		}
 		return outlinks, nil
 	}
-	return outlinks, nil
-}
-
-// Capture capture a page and queue the outlinks
-func (c *Crawl) Capture(item *frontier.Item) (outlinks []url.URL, err error) {
-	// Check with HTTP HEAD request if the URL need a full headless browser or a simple GET request
-	outlinks, err = c.captureWithGET(item)
-	if err != nil {
-		return nil, err
-	}
-
 	return outlinks, nil
 }

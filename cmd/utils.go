@@ -41,6 +41,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.Workers = flags.Workers
 	c.WorkerPool = sizedwaitgroup.New(c.Workers)
 
+	c.Seencheck = flags.Seencheck
 	c.MaxRedirect = flags.MaxRedirect
 	c.MaxHops = uint8(flags.MaxHops)
 	c.DomainsCrawl = flags.DomainsCrawl

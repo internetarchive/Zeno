@@ -21,7 +21,6 @@ func (c *Crawl) Worker(item *frontier.Item) {
 	// Send the outlinks to the pool of workers
 	if item.Hop < c.MaxHops {
 		for _, outlink := range outlinks {
-			outlink := outlink
 			if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
 				newItem := frontier.NewItem(&outlink, item, "seed", 0)
 				if c.UseKafka && len(c.KafkaOutlinksTopic) > 0 {
