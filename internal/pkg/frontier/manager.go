@@ -1,12 +1,30 @@
 package frontier
 
 import (
+	"strconv"
+
 	"github.com/paulbellamy/ratecounter"
 	"github.com/sirupsen/logrus"
 )
 
 func (f *Frontier) writeItemsToQueue() {
 	for item := range f.PushChan {
+		item := item
+
+		// If --seencheck is enabled, then we check if the URI is in the
+		// seencheck DB before doing anything. If it is in it, we skip the item
+		if f.UseSeencheck {
+			hash := strconv.FormatUint(item.Hash, 10)
+			found, value := f.Seencheck.IsSeen(hash)
+
+			if found {
+				if value == "seed" {
+					continue
+				}
+			}
+			f.Seencheck.SeenDB.Set(hash, item.Type)
+		}
+
 		// Increment the counter of the host in the hosts pool,
 		// if the hosts doesn't exist in the pool, it will be created
 		f.HostPool.Incr(item.Host)

@@ -137,7 +137,7 @@ func (c *Crawl) Start() (err error) {
 		c.WorkerPool.Add()
 		go func(wg *sizedwaitgroup.SizedWaitGroup) {
 			c.ActiveWorkers.Incr(1)
-			c.Worker(item)
+			c.Capture(item)
 			wg.Done()
 			c.ActiveWorkers.Incr(-1)
 		}(&c.WorkerPool)
