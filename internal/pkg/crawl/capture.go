@@ -89,7 +89,7 @@ func (c *Crawl) captureAsset(item *frontier.Item) error {
 
 					c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
-					if resp.Header.Get("location") == item.URL.String() {
+					if resp.Header.Get("location") == item.URL.String() || item.Redirect >= c.MaxRedirect {
 						break
 					}
 
@@ -192,7 +192,7 @@ func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err err
 
 					c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
-					if resp.Header.Get("location") == item.URL.String() {
+					if resp.Header.Get("location") == item.URL.String() || item.Redirect >= c.MaxRedirect {
 						break
 					}
 
