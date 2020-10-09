@@ -35,6 +35,7 @@ type Crawl struct {
 	Job          string
 	JobPath      string
 	MaxHops      uint8
+	MaxRedirect  int
 	DomainsCrawl bool
 	Headless     bool
 	Seencheck    bool

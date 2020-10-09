@@ -48,6 +48,7 @@ var GlobalFlags = []cli.Flag{
 	},
 	&cli.BoolFlag{
 		Name:        "seencheck",
+		Value:       false,
 		Usage:       "Simple seen check to avoid re-crawling of URIs",
 		Destination: &config.App.Flags.Seencheck,
 	},
@@ -69,7 +70,7 @@ var GlobalFlags = []cli.Flag{
 		Name:        "max-redirect",
 		Value:       20,
 		Usage:       "Specifies the maximum number of redirections to follow for a resource.",
-		Destination: &config.App.Flags.MaxRedirects,
+		Destination: &config.App.Flags.MaxRedirect,
 	},
 	&cli.BoolFlag{
 		Name:        "domains-crawl",

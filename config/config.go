@@ -14,7 +14,7 @@ type Flags struct {
 	Debug     bool
 
 	DomainsCrawl bool
-	MaxRedirects int
+	MaxRedirect  int
 
 	API bool
 

@@ -9,7 +9,6 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/warc"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/xxh3"
 )
 
 func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *frontier.Item) {
@@ -27,6 +26,16 @@ func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *
 
 func (c *Crawl) captureAsset(item *frontier.Item) error {
 	var executionStart = time.Now()
+
+	// If --seencheck is enabled, then we check if the URI is in the
+	// seencheck DB before doing anything. If it is in it, we skip the item
+	if c.Frontier.UseSeencheck {
+		hash := strconv.FormatUint(item.Hash, 10)
+		if c.Frontier.Seencheck.IsSeen(hash) {
+			return nil
+		}
+		c.Frontier.Seencheck.Seen(hash)
+	}
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
@@ -75,8 +84,8 @@ func (c *Crawl) captureAsset(item *frontier.Item) error {
 
 				// If a redirection is catched, then we execute the redirection
 				if resp.StatusCode == 300 || resp.StatusCode == 301 ||
-					resp.StatusCode == 302 || resp.StatusCode == 307 ||
-					resp.StatusCode == 308 {
+					resp.StatusCode == 302 || resp.StatusCode == 303 ||
+					resp.StatusCode == 307 || resp.StatusCode == 308 {
 
 					c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
@@ -90,6 +99,8 @@ func (c *Crawl) captureAsset(item *frontier.Item) error {
 					}
 
 					newAsset := frontier.NewItem(newURL, item, "asset", item.Hop)
+					newAsset.Redirect = item.Redirect + 1
+					log.Println("Redirect: ", newAsset.Redirect)
 					err = c.captureAsset(newAsset)
 					if err != nil {
 						return err
@@ -109,6 +120,16 @@ func (c *Crawl) captureAsset(item *frontier.Item) error {
 
 func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err error) {
 	var executionStart = time.Now()
+
+	// If --seencheck is enabled, then we check if the URI is in the
+	// seencheck DB before doing anything. If it is in it, we skip the item
+	if c.Frontier.UseSeencheck {
+		hash := strconv.FormatUint(item.Hash, 10)
+		if c.Frontier.Seencheck.IsSeen(hash) {
+			return outlinks, nil
+		}
+		c.Frontier.Seencheck.Seen(hash)
+	}
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
@@ -206,16 +227,6 @@ func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err err
 			// Just making sure we do not over archive
 			if item.URL.String() == asset.String() {
 				continue
-			}
-
-			// If --seencheck is enabled, then we check if the URI is in the
-			// seencheck DB before doing anything. If it is in it, we skip the item
-			if c.Frontier.UseSeencheck {
-				hash := strconv.FormatUint(xxh3.HashString(asset.String()), 10)
-				if c.Frontier.Seencheck.IsSeen(hash) {
-					continue
-				}
-				c.Frontier.Seencheck.Seen(hash)
 			}
 
 			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop)

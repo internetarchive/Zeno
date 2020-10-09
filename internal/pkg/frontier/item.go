@@ -12,6 +12,7 @@ type Item struct {
 	Hop        uint8
 	Host       string
 	Type       string
+	Redirect   int
 	URL        *url.URL
 	ParentItem *Item
 }
