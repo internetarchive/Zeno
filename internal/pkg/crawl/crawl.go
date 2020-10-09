@@ -91,7 +91,7 @@ func (c *Crawl) Start() (err error) {
 	go c.setupCloseHandler()
 
 	// Initialize the frontier
-	c.Frontier.Init(c.JobPath, log, c.Seencheck)
+	c.Frontier.Init(c.JobPath, log, c.Workers, c.Seencheck)
 	c.Frontier.Load()
 	c.Frontier.Start()
 
@@ -114,7 +114,7 @@ func (c *Crawl) Start() (err error) {
 	// If Kafka parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to Kafka
 	if c.UseKafka {
-		c.KafkaProducerChannel = make(chan *frontier.Item, 0)
+		c.KafkaProducerChannel = make(chan *frontier.Item, c.Workers)
 		go c.KafkaConsumer()
 		if len(c.KafkaOutlinksTopic) > 0 {
 			go c.KafkaProducer()

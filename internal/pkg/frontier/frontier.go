@@ -37,7 +37,7 @@ type Frontier struct {
 }
 
 // Init ininitialize the components of a frontier
-func (f *Frontier) Init(jobPath string, logger *logrus.Logger, useSeencheck bool) (err error) {
+func (f *Frontier) Init(jobPath string, logger *logrus.Logger, workers int, useSeencheck bool) (err error) {
 	f.JobPath = jobPath
 
 	log = logger
@@ -48,8 +48,8 @@ func (f *Frontier) Init(jobPath string, logger *logrus.Logger, useSeencheck bool
 	f.HostPool.Hosts = make(map[string]*ratecounter.Counter, 0)
 
 	// Initialize the frontier channels
-	f.PullChan = make(chan *Item)
-	f.PushChan = make(chan *Item)
+	f.PullChan = make(chan *Item, workers)
+	f.PushChan = make(chan *Item, workers)
 
 	// Initialize the queue
 	f.QueueCount = new(ratecounter.Counter)
