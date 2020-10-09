@@ -115,6 +115,7 @@ func (c *Crawl) Start() (err error) {
 		// Push the seed list to the queue
 		logrus.Info("Pushing seeds in the local queue..")
 		for _, item := range c.SeedList {
+			item := item
 			c.Frontier.PushChan <- &item
 		}
 		c.SeedList = nil

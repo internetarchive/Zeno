@@ -16,13 +16,11 @@ func (f *Frontier) writeItemsToQueue() {
 		if f.UseSeencheck {
 			hash := strconv.FormatUint(item.Hash, 10)
 			found, value := f.Seencheck.IsSeen(hash)
-
-			if found {
-				if value == "seed" {
-					continue
-				}
+			if !found || (value == "asset" && item.Type == "seed") {
+				f.Seencheck.Seen(hash, item.Type)
+			} else {
+				continue
 			}
-			f.Seencheck.SeenDB.Set(hash, item.Type)
 		}
 
 		// Increment the counter of the host in the hosts pool,

@@ -26,6 +26,11 @@ func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *
 }
 
 func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *http.Response, err error) {
+	var records *warc.RecordBatch
+	var newItem *frontier.Item
+	var newReq *http.Request
+	var URL *url.URL
+
 	// This retry loop is used for when the WARC writing fail,
 	// it can happen when the response have an issue, such as
 	// an unexpected EOF. That happens often when using proxies.
@@ -40,7 +45,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 
 		// Write response and request
 		if c.WARC {
-			records, err := warc.RecordsFromHTTPResponse(resp)
+			records, err = warc.RecordsFromHTTPResponse(resp)
 			if err != nil {
 				continue
 			}
@@ -56,16 +61,16 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 				break
 			}
 
-			URL, err := url.Parse(resp.Header.Get("location"))
+			URL, err = url.Parse(resp.Header.Get("location"))
 			if err != nil {
 				continue
 			}
 
-			newItem := frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop)
+			newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop)
 			newItem.Redirect = parentItem.Redirect + 1
 
 			// Prepare GET request
-			newReq, err := http.NewRequest("GET", URL.String(), nil)
+			newReq, err = http.NewRequest("GET", URL.String(), nil)
 			if err != nil {
 				continue
 			}
@@ -74,13 +79,12 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 			req.Header.Set("Accept-Encoding", "*/*")
 			req.Header.Set("Referer", newItem.ParentItem.URL.String())
 
-			resp.Body.Close()
 			resp, err = c.executeGET(newItem, newReq)
 			if err != nil {
 				continue
 			}
 		}
-		break
+		return resp, nil
 	}
 	return resp, err
 }
@@ -112,15 +116,14 @@ func (c *Crawl) captureAsset(item *frontier.Item) error {
 
 	resp, err = c.executeGET(item, req)
 	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Warning(item.URL.String())
 		return err
 	}
+	defer resp.Body.Close()
 
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
-
-	_, err = resp.Body.Read(nil)
-	if err == nil {
-		resp.Body.Close()
-	}
 
 	return nil
 }
@@ -149,7 +152,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	resp, err = c.executeGET(item, req)
 	if err != nil {
-		resp.Body.Close()
 		log.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
@@ -158,6 +160,15 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	defer resp.Body.Close()
 
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
+
+	// Store the base URL to turn relative links into absolute links later
+	base, err := url.Parse(resp.Request.URL.String())
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Warning(item.URL.String())
+		return
+	}
 
 	// Turn the response into a doc that we will scrape
 	doc, err := goquery.NewDocumentFromResponse(resp)
@@ -170,7 +181,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	// Extract outlinks
 	if item.Hop < c.MaxHops {
-		outlinks, err := extractOutlinks(resp, doc)
+		outlinks, err := extractOutlinks(base, doc)
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"error": err,
@@ -181,7 +192,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Extract and capture assets
-	assets, err := extractAssets(resp, doc)
+	assets, err := extractAssets(base, doc)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"error": err,

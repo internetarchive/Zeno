@@ -37,14 +37,8 @@ func needBrowser(item *frontier.Item) bool {
 	return false
 }
 
-func extractAssets(resp *http.Response, doc *goquery.Document) (assets []url.URL, err error) {
+func extractAssets(base *url.URL, doc *goquery.Document) (assets []url.URL, err error) {
 	var rawAssets []string
-
-	// Store the base URL to turn relative URLs into absolute URLs
-	base, err := url.Parse(resp.Request.URL.String())
-	if err != nil {
-		return assets, err
-	}
 
 	// Extract assets on the page (images, scripts, videos..)
 	doc.Find("img").Each(func(index int, item *goquery.Selection) {
@@ -93,14 +87,8 @@ func extractAssets(resp *http.Response, doc *goquery.Document) (assets []url.URL
 	return utils.DedupeURLs(assets), nil
 }
 
-func extractOutlinks(resp *http.Response, doc *goquery.Document) (outlinks []url.URL, err error) {
+func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, err error) {
 	var rawOutlinks []string
-
-	// Store the base URL to turn relative links into absolute links later
-	base, err := url.Parse(resp.Request.URL.String())
-	if err != nil {
-		return outlinks, err
-	}
 
 	// Extract outlinks
 	doc.Find("a").Each(func(index int, item *goquery.Selection) {
