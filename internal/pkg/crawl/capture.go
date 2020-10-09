@@ -1,79 +1,16 @@
 package crawl
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/warc"
-	"github.com/chromedp/cdproto/dom"
-	"github.com/chromedp/cdproto/network"
-	"github.com/chromedp/chromedp"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/xxh3"
 )
-
-func (c *Crawl) captureWithBrowser(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
-	// Log requests
-	chromedp.ListenTarget(ctx, func(ev interface{}) {
-		switch ev := ev.(type) {
-		case *network.EventResponseReceived:
-			if strings.Compare(ev.Response.URL, item.URL.String()) == 0 {
-				log.WithFields(logrus.Fields{
-					"status_code":    ev.Response.Status,
-					"active_workers": c.ActiveWorkers.Value(),
-					"hop":            item.Hop,
-				}).Info(ev.Response.URL)
-				c.URLsPerSecond.Incr(1)
-				c.Crawled.Incr(1)
-			} else {
-				log.WithFields(logrus.Fields{
-					"type":           "asset",
-					"status_code":    ev.Response.Status,
-					"active_workers": c.ActiveWorkers.Value(),
-					"hop":            item.Hop,
-				}).Debug(ev.Response.URL)
-				c.URLsPerSecond.Incr(1)
-				c.Crawled.Incr(1)
-			}
-		}
-	})
-
-	// Run task
-	err = chromedp.Run(ctx,
-		network.Enable(),
-		chromedp.Navigate(item.URL.String()),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			if c.MaxHops > 0 {
-				// Extract outer HTML
-				node, err := dom.GetDocument().Do(ctx)
-				if err != nil {
-					return err
-				}
-				str, err := dom.GetOuterHTML().WithNodeID(node.NodeID).Do(ctx)
-				if err != nil {
-					return err
-				}
-
-				// Extract outlinks
-				outlinks = extractOutlinksRegex(str)
-
-				return err
-			}
-
-			return err
-		}),
-	)
-	if err != nil {
-		return outlinks, err
-	}
-
-	return outlinks, nil
-}
 
 func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
 	var executionStart = time.Now()
@@ -141,7 +78,7 @@ func (c *Crawl) captureAsset(URL *url.URL, parent *frontier.Item) error {
 	return nil
 }
 
-func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlinks []url.URL, err error) {
+func (c *Crawl) captureWithGET(item *frontier.Item) (outlinks []url.URL, err error) {
 	var executionStart = time.Now()
 
 	// Prepare GET request
@@ -260,31 +197,10 @@ func (c *Crawl) captureWithGET(ctx context.Context, item *frontier.Item) (outlin
 
 // Capture capture a page and queue the outlinks
 func (c *Crawl) capture(item *frontier.Item) (outlinks []url.URL, err error) {
-	var ctx context.Context
-
-	// Create context for headless requests
-	if c.Headless {
-		ctx, cancel := chromedp.NewContext(context.Background())
-		// Useless but avoir warning
-		_ = ctx
-		defer cancel()
-	}
-
 	// Check with HTTP HEAD request if the URL need a full headless browser or a simple GET request
-	if c.Headless {
-		if needBrowser(item) {
-			c.URLsPerSecond.Incr(1)
-			outlinks, err = c.captureWithGET(ctx, item)
-			c.Crawled.Incr(1)
-		} else {
-			outlinks, err = c.captureWithBrowser(ctx, item)
-		}
-	} else {
-		c.URLsPerSecond.Incr(1)
-		outlinks, err = c.captureWithGET(ctx, item)
-		c.Crawled.Incr(1)
-	}
-
+	c.URLsPerSecond.Incr(1)
+	outlinks, err = c.captureWithGET(item)
+	c.Crawled.Incr(1)
 	if err != nil {
 		return nil, err
 	}

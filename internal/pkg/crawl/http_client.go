@@ -38,6 +38,9 @@ func (crawl *Crawl) InitHTTPClient() (err error) {
 
 			// Disable HTTP/2: Empty TLSNextProto map
 			customTransport.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+			customClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
 		}
 
 		// Set Socks5 proxy if one is specified
