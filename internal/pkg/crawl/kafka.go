@@ -3,6 +3,7 @@ package crawl
 import (
 	"encoding/json"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
@@ -30,7 +31,7 @@ func zenoHopsToHeritrixHops(hops uint8) string {
 
 // KafkaProducer receive seeds from the crawl and send them to Kafka
 func (crawl *Crawl) KafkaProducer() {
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": crawl.KafkaBrokers})
+	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": strings.Join(crawl.KafkaBrokers[:], ",")})
 	if err != nil {
 		panic(err)
 	}
@@ -98,7 +99,7 @@ func (crawl *Crawl) KafkaConsumer() {
 	var kafkaWorkerPool = sizedwaitgroup.New(16)
 
 	kafkaClient, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": crawl.KafkaBrokers,
+		"bootstrap.servers": strings.Join(crawl.KafkaBrokers[:], ","),
 		"group.id":          crawl.KafkaConsumerGroup,
 	})
 	if err != nil {
