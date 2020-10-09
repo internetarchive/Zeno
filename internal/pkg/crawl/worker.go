@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
@@ -21,6 +22,16 @@ func (c *Crawl) Worker(item *frontier.Item) {
 	// Send the outlinks to the pool of workers
 	if item.Hop < c.MaxHops {
 		for _, outlink := range outlinks {
+			// If --seencheck is enabled, then we check if the URI is in the
+			// seencheck DB before doing anything. If it is in it, we skip the item
+			if c.Frontier.UseSeencheck {
+				hash := strconv.FormatUint(item.Hash, 10)
+				if c.Frontier.Seencheck.IsSeen(hash) {
+					continue
+				}
+				c.Frontier.Seencheck.Seen(hash)
+			}
+
 			if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
 				newItem := frontier.NewItem(&outlink, item, "seed", 0)
 				if c.UseKafka && len(c.KafkaOutlinksTopic) > 0 {
