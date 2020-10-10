@@ -42,13 +42,13 @@ func (crawl *Crawl) kafkaProducer() {
 			switch ev := e.(type) {
 			case *kafka.Message:
 				if ev.TopicPartition.Error != nil {
-					log.WithFields(logrus.Fields{
+					logWarning.WithFields(logrus.Fields{
 						"error":     ev.TopicPartition.Error,
 						"partition": ev.TopicPartition,
 						"msg":       ev.String(),
 					}).Warning("Kafka message delivery failed")
 				} else {
-					log.WithFields(logrus.Fields{
+					logInfo.WithFields(logrus.Fields{
 						"partition": ev.TopicPartition,
 						"msg":       ev.String(),
 					}).Debug("Kafka message delivered")
@@ -72,7 +72,7 @@ func (crawl *Crawl) kafkaProducer() {
 
 		newKafkaMessageBytes, err := json.Marshal(newKafkaMessage)
 		if err != nil {
-			log.WithFields(logrus.Fields{
+			logWarning.WithFields(logrus.Fields{
 				"error": err,
 			}).Warning("Unable to marshal message before sending to KAfka")
 		}
@@ -82,7 +82,7 @@ func (crawl *Crawl) kafkaProducer() {
 			Value:          newKafkaMessageBytes,
 		}, nil)
 		if err != nil {
-			log.WithFields(logrus.Fields{
+			logWarning.WithFields(logrus.Fields{
 				"error": err,
 			}).Warning("Failed to produce message to Kafka, pushing the seed to the local queue instead")
 			crawl.Frontier.PushChan <- item
@@ -132,21 +132,21 @@ func (crawl *Crawl) kafkaConsumer() {
 
 			msg, err := kafkaClient.ReadMessage(15)
 			if err != nil {
-				log.WithFields(logrus.Fields{
+				logWarning.WithFields(logrus.Fields{
 					"error": err,
 				}).Warning("Unable to read message from Kafka")
 				wg.Done()
 				return
 			}
 
-			log.WithFields(logrus.Fields{
+			logInfo.WithFields(logrus.Fields{
 				"value": string(msg.Value),
 				"key":   string(msg.Key),
 			}).Debug("New message received from Kafka")
 
 			err = json.Unmarshal(msg.Value, &newKafkaMessage)
 			if err != nil {
-				log.WithFields(logrus.Fields{
+				logWarning.WithFields(logrus.Fields{
 					"topic":     crawl.KafkaFeedTopic,
 					"key":       msg.Key,
 					"value":     msg.Value,
@@ -160,7 +160,7 @@ func (crawl *Crawl) kafkaConsumer() {
 			// Parse new URL
 			newURL, err := url.Parse(newKafkaMessage.URL)
 			if err != nil {
-				log.WithFields(logrus.Fields{
+				logWarning.WithFields(logrus.Fields{
 					"kafka_msg_url": newKafkaMessage.URL,
 					"error":         err,
 				}).Warning("Unable to parse URL from Kafka message")
@@ -172,7 +172,7 @@ func (crawl *Crawl) kafkaConsumer() {
 			if len(newKafkaMessage.ParentURL) > 0 {
 				newParentURL, err := url.Parse(newKafkaMessage.ParentURL)
 				if err != nil {
-					log.WithFields(logrus.Fields{
+					logWarning.WithFields(logrus.Fields{
 						"kafka_msg_url": newKafkaMessage.URL,
 						"error":         err,
 					}).Warning("Unable to parse parent URL from Kafka message")

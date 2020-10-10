@@ -13,7 +13,7 @@ import (
 )
 
 func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *frontier.Item) {
-	log.WithFields(logrus.Fields{
+	logInfo.WithFields(logrus.Fields{
 		"queued":         c.Frontier.QueueCount.Value(),
 		"crawled":        c.Crawled.Value(),
 		"rate":           c.URLsPerSecond.Rate(),
@@ -31,62 +31,57 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 	var newReq *http.Request
 	var URL *url.URL
 
-	// This retry loop is used for when the WARC writing fail,
-	// it can happen when the response have an issue, such as
-	// an unexpected EOF. That happens often when using proxies.
-	for retryCount := 1; retryCount <= c.MaxRetry; retryCount++ {
-		// Execute GET request
-		c.URLsPerSecond.Incr(1)
-		resp, err = c.Client.Do(req)
-		if err != nil {
-			continue
-		}
-		c.Crawled.Incr(1)
-
-		// Write response and request
-		if c.WARC {
-			records, err = warc.RecordsFromHTTPResponse(resp)
-			if err != nil {
-				continue
-			}
-			c.WARCWriter <- records
-		}
-
-		// If a redirection is catched, then we execute the redirection
-		if resp.StatusCode == 300 || resp.StatusCode == 301 ||
-			resp.StatusCode == 302 || resp.StatusCode == 307 ||
-			resp.StatusCode == 308 {
-
-			if resp.Header.Get("location") == req.URL.String() || parentItem.Redirect >= c.MaxRedirect {
-				break
-			}
-
-			URL, err = url.Parse(resp.Header.Get("location"))
-			if err != nil {
-				continue
-			}
-
-			newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop)
-			newItem.Redirect = parentItem.Redirect + 1
-
-			// Prepare GET request
-			newReq, err = http.NewRequest("GET", URL.String(), nil)
-			if err != nil {
-				continue
-			}
-
-			req.Header.Set("User-Agent", c.UserAgent)
-			req.Header.Set("Accept-Encoding", "*/*")
-			req.Header.Set("Referer", newItem.ParentItem.URL.String())
-
-			resp, err = c.executeGET(newItem, newReq)
-			if err != nil {
-				continue
-			}
-		}
-		return resp, nil
+	// Execute GET request
+	c.URLsPerSecond.Incr(1)
+	resp, err = c.Client.Do(req)
+	if err != nil {
+		return resp, err
 	}
-	return resp, err
+	c.Crawled.Incr(1)
+
+	// Write response and request
+	if c.WARC {
+		records, err = warc.RecordsFromHTTPResponse(resp)
+		if err != nil {
+			return resp, err
+		}
+		c.WARCWriter <- records
+	}
+
+	// If a redirection is catched, then we execute the redirection
+	if resp.StatusCode == 300 || resp.StatusCode == 301 ||
+		resp.StatusCode == 302 || resp.StatusCode == 307 ||
+		resp.StatusCode == 308 {
+
+		if resp.Header.Get("location") == req.URL.String() || parentItem.Redirect >= c.MaxRedirect {
+			return resp, nil
+		}
+
+		URL, err = url.Parse(resp.Header.Get("location"))
+		if err != nil {
+			return resp, err
+		}
+
+		newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop)
+		newItem.Redirect = parentItem.Redirect + 1
+
+		// Prepare GET request
+		newReq, err = http.NewRequest("GET", URL.String(), nil)
+		if err != nil {
+			return resp, err
+		}
+
+		req.Header.Set("User-Agent", c.UserAgent)
+		req.Header.Set("Accept-Encoding", "*/*")
+		req.Header.Set("Referer", newItem.ParentItem.URL.String())
+
+		resp, err = c.executeGET(newItem, newReq)
+		if err != nil {
+			return resp, err
+		}
+	}
+	return resp, nil
+
 }
 
 func (c *Crawl) captureAsset(item *frontier.Item) error {
@@ -116,7 +111,7 @@ func (c *Crawl) captureAsset(item *frontier.Item) error {
 
 	resp, err = c.executeGET(item, req)
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
 		return err
@@ -136,7 +131,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
 		return
@@ -152,7 +147,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	resp, err = c.executeGET(item, req)
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
 		return
@@ -164,7 +159,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Store the base URL to turn relative links into absolute links later
 	base, err := url.Parse(resp.Request.URL.String())
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
 		return
@@ -173,7 +168,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Turn the response into a doc that we will scrape
 	doc, err := goquery.NewDocumentFromResponse(resp)
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
 		return
@@ -183,7 +178,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	if item.Hop < c.MaxHops {
 		outlinks, err := extractOutlinks(base, doc)
 		if err != nil {
-			log.WithFields(logrus.Fields{
+			logWarning.WithFields(logrus.Fields{
 				"error": err,
 			}).Warning(item.URL.String())
 			return
@@ -194,7 +189,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Extract and capture assets
 	assets, err := extractAssets(base, doc)
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
 		return
@@ -212,7 +207,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		newAsset := frontier.NewItem(&asset, item, "asset", item.Hop)
 		err = c.captureAsset(newAsset)
 		if err != nil {
-			log.WithFields(logrus.Fields{
+			logWarning.WithFields(logrus.Fields{
 				"error":          err,
 				"queued":         c.Frontier.QueueCount.Value(),
 				"crawled":        c.Crawled.Value(),

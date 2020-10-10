@@ -19,7 +19,7 @@ func bToMb(b uint64) uint64 {
 func getMemory() string {
 	memory, err := memory.Get()
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning("Unable to get memory usage")
 		return "error/error"

@@ -14,7 +14,8 @@ import (
 	"mvdan.cc/xurls/v2"
 )
 
-var log *logrus.Logger
+var logInfo *logrus.Logger
+var logWarning *logrus.Logger
 
 // Crawl define the parameters of a crawl process
 type Crawl struct {
@@ -73,7 +74,7 @@ func (c *Crawl) Start() (err error) {
 	regexOutlinks = xurls.Relaxed()
 
 	// Setup logging
-	log = utils.SetupLogging(c.JobPath)
+	logInfo, logWarning = utils.SetupLogging(c.JobPath)
 
 	// Initialize HTTP client
 	c.initHTTPClient()
@@ -83,7 +84,7 @@ func (c *Crawl) Start() (err error) {
 	go c.setupCloseHandler()
 
 	// Initialize the frontier
-	c.Frontier.Init(c.JobPath, log, c.Workers, c.Seencheck)
+	c.Frontier.Init(c.JobPath, logInfo, logWarning, c.Workers, c.Seencheck)
 	c.Frontier.Load()
 	c.Frontier.Start()
 

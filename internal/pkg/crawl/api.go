@@ -10,13 +10,13 @@ import (
 
 func (crawl *Crawl) startAPI() {
 	gin.SetMode(gin.ReleaseMode)
-	gin.DefaultWriter = log.Out
+	gin.DefaultWriter = logInfo.Out
 
 	r := gin.Default()
 
 	pprof.Register(r)
 
-	log.Info("API server started")
+	logInfo.Info("API server started")
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"rate":         crawl.URLsPerSecond.Rate(),
