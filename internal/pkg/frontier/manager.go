@@ -76,10 +76,11 @@ func (f *Frontier) readItemsFromQueue() {
 				}).Debug("Unable to dequeue item")
 				if err.Error() == "goque: Stack or queue is empty" ||
 					err.Error() == "goque: ID used is outside range of stack or queue" {
-					f.QueueCount.Incr(-1)
+					f.HostPool.Decr(host)
 				}
 				continue
 			}
+			f.QueueCount.Incr(-1)
 
 			// Turn the item from the queue into an Item
 			var item *Item
