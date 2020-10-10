@@ -75,7 +75,9 @@ func (f *Frontier) readItemsFromQueue() {
 					"error": err,
 				}).Error("Unable to dequeue item")
 				if err.Error() == "goque: Stack or queue is empty" {
+					f.HostPool.Mutex.Lock()
 					f.HostPool.Hosts[host].Reset()
+					f.HostPool.Mutex.Lock()
 				}
 				continue
 			}
