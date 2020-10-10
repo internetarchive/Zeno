@@ -5,15 +5,12 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/sirupsen/logrus"
 )
 
 func (crawl *Crawl) initHTTPClient() (err error) {
 	var customTransport = new(http.Transport)
-	var retryClient = retryablehttp.NewClient()
-	retryClient.Logger = nil
-	retryClient.RetryMax = crawl.MaxRetry
+	var customClient = new(http.Client)
 
 	if crawl.WARC || len(crawl.Proxy) > 0 {
 		// Initialize WARC writer if --warc is specified
@@ -24,7 +21,7 @@ func (crawl *Crawl) initHTTPClient() (err error) {
 
 			// Disable HTTP/2: Empty TLSNextProto map
 			customTransport.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
-			retryClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			customClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			}
 		}
@@ -38,10 +35,10 @@ func (crawl *Crawl) initHTTPClient() (err error) {
 			customTransport.Proxy = http.ProxyURL(proxyURL)
 		}
 	}
-	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
-	retryClient.HTTPClient.Transport = customTransport
-	crawl.Client = retryClient.StandardClient()
+	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	customClient.Transport = customTransport
+	crawl.Client = customClient
 
 	return nil
 }
