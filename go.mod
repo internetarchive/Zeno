@@ -7,8 +7,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
-	github.com/chromedp/cdproto v0.0.0-20200709115526-d1f6fc58448b
-	github.com/chromedp/chromedp v0.5.3
 	github.com/confluentinc/confluent-kafka-go v1.4.2
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
@@ -16,19 +14,16 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-gonic/gin v1.6.3
-	github.com/gobwas/pool v0.2.1 // indirect
-	github.com/gobwas/ws v1.0.4 // indirect
-	github.com/gojektech/heimdall/v6 v6.1.0
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/gosuri/uilive v0.0.4
 	github.com/gosuri/uitable v0.0.4
+	github.com/hashicorp/go-retryablehttp v0.6.7
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/lestrrat-go/strftime v1.0.3 // indirect
 	github.com/mackerelio/go-osstat v0.1.0
-	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect

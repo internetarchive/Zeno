@@ -34,7 +34,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 	// This retry loop is used for when the WARC writing fail,
 	// it can happen when the response have an issue, such as
 	// an unexpected EOF. That happens often when using proxies.
-	for retryCount := 1; retryCount <= c.WARCRetry; retryCount++ {
+	for retryCount := 1; retryCount <= c.MaxRetry; retryCount++ {
 		// Execute GET request
 		c.URLsPerSecond.Incr(1)
 		resp, err = c.Client.Do(req)

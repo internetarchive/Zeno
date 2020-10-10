@@ -71,6 +71,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Specifies the maximum number of redirections to follow for a resource.",
 		Destination: &config.App.Flags.MaxRedirect,
 	},
+	&cli.IntFlag{
+		Name:        "max-retry",
+		Value:       20,
+		Usage:       "Number of retry if error happen when executing HTTP request",
+		Destination: &config.App.Flags.MaxRetry,
+	},
 	&cli.BoolFlag{
 		Name:        "domains-crawl",
 		Usage:       "If this is turned on, seeds will be treated as domains to crawl, therefore same-domain outlinks will be added to the queue as hop=0",
@@ -83,11 +89,6 @@ var GlobalFlags = []cli.Flag{
 		Value:       true,
 		Usage:       "Write all traffic in WARC files",
 		Destination: &config.App.Flags.WARC,
-	},
-	&cli.IntFlag{
-		Name:        "warc-retry",
-		Usage:       "Number of retry if error happen when generating a WARC record",
-		Destination: &config.App.Flags.WARCRetry,
 	},
 	&cli.StringFlag{
 		Name:        "warc-prefix",

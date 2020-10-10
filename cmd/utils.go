@@ -42,13 +42,13 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.WorkerPool = sizedwaitgroup.New(c.Workers)
 
 	c.Seencheck = flags.Seencheck
+	c.MaxRetry = flags.MaxRetry
 	c.MaxRedirect = flags.MaxRedirect
 	c.MaxHops = uint8(flags.MaxHops)
 	c.DomainsCrawl = flags.DomainsCrawl
 
 	// WARC settings
 	c.WARC = flags.WARC
-	c.WARCRetry = flags.WARCRetry
 	c.WARCPrefix = flags.WARCPrefix
 	c.WARCOperator = flags.WARCOperator
 

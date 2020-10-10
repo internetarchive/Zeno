@@ -1,13 +1,13 @@
 package crawl
 
 import (
+	"net/http"
 	"sync"
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
-	"github.com/gojektech/heimdall/v6/httpclient"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
@@ -28,13 +28,14 @@ type Crawl struct {
 
 	// Crawl settings
 	WorkerPool   sizedwaitgroup.SizedWaitGroup
-	Client       *httpclient.Client
+	Client       *http.Client
 	Logger       logrus.Logger
 	Proxy        string
 	UserAgent    string
 	Job          string
 	JobPath      string
 	MaxHops      uint8
+	MaxRetry     int
 	MaxRedirect  int
 	DomainsCrawl bool
 	Headless     bool
@@ -51,7 +52,6 @@ type Crawl struct {
 
 	// WARC settings
 	WARC             bool
-	WARCRetry        int
 	WARCPrefix       string
 	WARCOperator     string
 	WARCWriter       chan *warc.RecordBatch

@@ -15,11 +15,11 @@ type Flags struct {
 
 	DomainsCrawl bool
 	MaxRedirect  int
+	MaxRetry     int
 
 	API bool
 
 	WARC         bool
-	WARCRetry    int
 	WARCPrefix   string
 	WARCOperator string
 
