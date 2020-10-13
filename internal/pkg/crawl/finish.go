@@ -12,47 +12,47 @@ import (
 
 // catchFinish is running in the background and detect when the crawl need to be terminated
 // because it won't crawl anything more. This doesn't apply for Kafka-powered crawls.
-func (c *Crawl) catchFinish() {
-	for c.Crawled.Value() <= 0 {
+func (crawl *Crawl) catchFinish() {
+	for crawl.Crawled.Value() <= 0 {
 		time.Sleep(1 * time.Second)
 	}
 
 	for {
 		time.Sleep(time.Second * 5)
-		if c.ActiveWorkers.Value() == 0 && c.Frontier.QueueCount.Value() == 0 && c.Finished.Get() == false && c.Crawled.Value() > 0 {
+		if crawl.ActiveWorkers.Value() == 0 && crawl.Frontier.QueueCount.Value() == 0 && crawl.Finished.Get() == false && crawl.Crawled.Value() > 0 {
 			logrus.Warning("No additional URL to archive, finishing")
-			c.finish()
+			crawl.finish()
 			os.Exit(0)
 		}
 	}
 }
 
-func (c *Crawl) finish() {
-	c.Finished.Set(true)
+func (crawl *Crawl) finish() {
+	crawl.Finished.Set(true)
 
-	c.WorkerPool.Wait()
+	crawl.WorkerPool.Wait()
 	logrus.Warning("All workers finished")
 
-	if c.WARC {
-		close(c.WARCWriter)
-		<-c.WARCWriterFinish
-		close(c.WARCWriterFinish)
+	if crawl.WARC {
+		close(crawl.WARCWriter)
+		<-crawl.WARCWriterFinish
+		close(crawl.WARCWriterFinish)
 		logrus.Warning("WARC writer closed")
 	}
 
-	c.Frontier.Queue.Close()
+	crawl.Frontier.Queue.Close()
 	logrus.Warning("Frontier queue closed")
 
-	if c.Seencheck {
-		c.Frontier.Seencheck.SeenDB.Close()
+	if crawl.Seencheck {
+		crawl.Frontier.Seencheck.SeenDB.Close()
 		logrus.Warning("Seencheck database closed")
 	}
 
-	logrus.Warning("Dumping hosts pool and frontier stats to " + path.Join(c.Frontier.JobPath, "frontier.gob"))
-	c.Frontier.Save()
+	logrus.Warning("Dumping hosts pool and frontier stats to " + path.Join(crawl.Frontier.JobPath, "frontier.gob"))
+	crawl.Frontier.Save()
 
-	close(c.Frontier.PullChan)
-	close(c.Frontier.PushChan)
+	close(crawl.Frontier.PullChan)
+	close(crawl.Frontier.PushChan)
 
 	logrus.Warning("Finished")
 }

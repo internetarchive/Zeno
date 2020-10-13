@@ -18,7 +18,6 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/gosuri/uilive v0.0.4
 	github.com/gosuri/uitable v0.0.4
-	github.com/hashicorp/go-retryablehttp v0.6.7
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible

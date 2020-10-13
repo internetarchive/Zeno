@@ -21,7 +21,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	// Statistics counters
 	c.Crawled = new(ratecounter.Counter)
 	c.ActiveWorkers = new(ratecounter.Counter)
-	c.URLsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
+	c.URIsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
 	// Frontier
 	c.Frontier = new(frontier.Frontier)
@@ -55,7 +55,10 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.API = flags.API
 	c.UserAgent = flags.UserAgent
 	c.Headless = flags.Headless
+
+	// Proxy settings
 	c.Proxy = flags.Proxy
+	c.BypassProxy = flags.BypassProxy.Value()
 
 	// Kafka settings
 	c.UseKafka = flags.Kafka

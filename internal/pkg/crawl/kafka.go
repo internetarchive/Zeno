@@ -18,17 +18,6 @@ type kafkaMessage struct {
 	ParentURL string `json:"parent_url"`
 }
 
-func zenoHopsToHeritrixHops(hops uint8) string {
-	var newHops string
-	var i uint8
-
-	for i = 0; i < hops; i++ {
-		newHops = newHops + "E"
-	}
-
-	return newHops
-}
-
 func (crawl *Crawl) kafkaProducer() {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": strings.Join(crawl.KafkaBrokers[:], ",")})
 	if err != nil {

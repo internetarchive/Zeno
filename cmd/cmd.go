@@ -11,12 +11,6 @@ import (
 
 var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
-		Name:        "proxy",
-		Value:       "",
-		Usage:       "Proxy to use when requesting pages",
-		Destination: &config.App.Flags.Proxy,
-	},
-	&cli.StringFlag{
 		Name:        "user-agent",
 		Value:       "Zeno",
 		Usage:       "User agent to use when requesting URLs",
@@ -81,6 +75,19 @@ var GlobalFlags = []cli.Flag{
 		Name:        "domains-crawl",
 		Usage:       "If this is turned on, seeds will be treated as domains to crawl, therefore same-domain outlinks will be added to the queue as hop=0",
 		Destination: &config.App.Flags.DomainsCrawl,
+	},
+
+	// Proxy flags
+	&cli.StringFlag{
+		Name:        "proxy",
+		Value:       "",
+		Usage:       "Proxy to use when requesting pages",
+		Destination: &config.App.Flags.Proxy,
+	},
+	&cli.StringSliceFlag{
+		Name:        "bypass-proxy",
+		Usage:       "Domains that should not be proxied",
+		Destination: &config.App.Flags.BypassProxy,
 	},
 
 	// WARC flags

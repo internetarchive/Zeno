@@ -28,26 +28,30 @@ type Crawl struct {
 	Frontier *frontier.Frontier
 
 	// Crawl settings
-	WorkerPool   sizedwaitgroup.SizedWaitGroup
-	Client       *http.Client
-	Logger       logrus.Logger
-	Proxy        string
-	UserAgent    string
-	Job          string
-	JobPath      string
-	MaxHops      uint8
-	MaxRetry     int
-	MaxRedirect  int
-	DomainsCrawl bool
-	Headless     bool
-	Seencheck    bool
-	Workers      int
+	WorkerPool    sizedwaitgroup.SizedWaitGroup
+	Client        *http.Client
+	ClientProxied *http.Client
+	Logger        logrus.Logger
+	UserAgent     string
+	Job           string
+	JobPath       string
+	MaxHops       uint8
+	MaxRetry      int
+	MaxRedirect   int
+	DomainsCrawl  bool
+	Headless      bool
+	Seencheck     bool
+	Workers       int
+
+	// Proxy settings
+	Proxy       string
+	BypassProxy []string
 
 	// API settings
 	API bool
 
 	// Real time statistics
-	URLsPerSecond *ratecounter.RateCounter
+	URIsPerSecond *ratecounter.RateCounter
 	ActiveWorkers *ratecounter.Counter
 	Crawled       *ratecounter.Counter
 
@@ -93,6 +97,13 @@ func (c *Crawl) Start() (err error) {
 	// The actual queue used during the crawl and seencheck aren't included in this,
 	// because they are written to disk in real-time.
 	go c.writeFrontierToDisk()
+
+	// Initialize WARC writer
+	if c.WARC {
+		logrus.Info("Initializing WARC writer pool..")
+		c.initWARCWriter()
+		logrus.Info("WARC writer pool initialized")
+	}
 
 	// Start the background process that will catch when there
 	// is nothing more to crawl

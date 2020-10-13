@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Crawl) initWARCWriterPool() {
+func (c *Crawl) initWARCWriter() {
 	var rotatorSettings = warc.NewRotatorSettings()
 	var err error
 

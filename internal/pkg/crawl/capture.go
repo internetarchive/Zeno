@@ -2,9 +2,12 @@ package crawl
 
 import (
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/warc"
@@ -12,30 +15,32 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *frontier.Item) {
-	logInfo.WithFields(logrus.Fields{
-		"queued":         c.Frontier.QueueCount.Value(),
-		"crawled":        c.Crawled.Value(),
-		"rate":           c.URLsPerSecond.Rate(),
-		"status_code":    statusCode,
-		"active_workers": c.ActiveWorkers.Value(),
-		"hop":            item.Hop,
-		"type":           item.Type,
-		"execution_time": time.Since(executionStart),
-	}).Info(item.URL.String())
-}
-
 func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *http.Response, err error) {
 	var records *warc.RecordBatch
 	var newItem *frontier.Item
 	var newReq *http.Request
 	var URL *url.URL
 
+	// Use httptrace to increment the URI/s counter on DNS requests
+	trace := &httptrace.ClientTrace{
+		DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
+			c.URIsPerSecond.Incr(1)
+		},
+	}
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+
 	// Execute GET request
-	c.URLsPerSecond.Incr(1)
-	resp, err = c.Client.Do(req)
-	if err != nil {
-		return resp, err
+	c.URIsPerSecond.Incr(1)
+	if c.ClientProxied == nil || utils.StringContainsSliceElements(req.URL.Host, c.BypassProxy) {
+		resp, err = c.Client.Do(req)
+		if err != nil {
+			return resp, err
+		}
+	} else {
+		resp, err = c.ClientProxied.Do(req)
+		if err != nil {
+			return resp, err
+		}
 	}
 	c.Crawled.Incr(1)
 
@@ -211,7 +216,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				"error":          err,
 				"queued":         c.Frontier.QueueCount.Value(),
 				"crawled":        c.Crawled.Value(),
-				"rate":           c.URLsPerSecond.Rate(),
+				"rate":           c.URIsPerSecond.Rate(),
 				"active_workers": c.ActiveWorkers.Value(),
 				"parent_hop":     item.Hop,
 				"parent_url":     item.URL.String(),

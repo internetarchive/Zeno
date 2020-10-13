@@ -45,7 +45,7 @@ func (c *Crawl) printLiveStats() {
 		stats.AddRow("", "")
 		stats.AddRow("  - Job:", c.Job)
 		stats.AddRow("  - Active workers:", c.ActiveWorkers.Value())
-		stats.AddRow("  - URL/s:", c.URLsPerSecond.Rate())
+		stats.AddRow("  - URI/s:", c.URIsPerSecond.Rate())
 		stats.AddRow("  - Crawled:", c.Crawled.Value())
 		stats.AddRow("  - Queued:", c.Frontier.QueueCount.Value())
 		stats.AddRow("", "")

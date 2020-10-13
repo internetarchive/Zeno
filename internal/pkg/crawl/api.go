@@ -19,7 +19,7 @@ func (crawl *Crawl) startAPI() {
 	logInfo.Info("API server started")
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"rate":         crawl.URLsPerSecond.Rate(),
+			"rate":         crawl.URIsPerSecond.Rate(),
 			"crawled":      crawl.Crawled.Value(),
 			"queued":       crawl.Frontier.QueueCount.Value(),
 			"running_time": fmt.Sprintf("%s", time.Since(crawl.StartTime)),

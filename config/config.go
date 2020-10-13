@@ -3,7 +3,6 @@ package config
 import "github.com/urfave/cli/v2"
 
 type Flags struct {
-	Proxy     string
 	UserAgent string
 	Job       string
 	Workers   int
@@ -16,6 +15,9 @@ type Flags struct {
 	DomainsCrawl bool
 	MaxRedirect  int
 	MaxRetry     int
+
+	Proxy       string
+	BypassProxy cli.StringSlice
 
 	API bool
 
