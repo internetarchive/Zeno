@@ -86,7 +86,6 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		}
 	}
 	return resp, nil
-
 }
 
 func (c *Crawl) captureAsset(item *frontier.Item) error {
