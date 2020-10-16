@@ -70,6 +70,11 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 			t.c.Crawled.Incr(1)
 		}
 
+		// If the crawl is finishing, we do not want to sleep and retry anymore
+		if t.c.Finished.Get() {
+			break
+		}
+
 		// Check for status code. When we encounter an error or some rate limiting,
 		// we exponentially backoff between retries.
 		if string(strconv.Itoa(resp.StatusCode)[0]) != "2" && isRedirection(resp.StatusCode) == false {
