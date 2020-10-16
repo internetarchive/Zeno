@@ -2,6 +2,7 @@ package crawl
 
 import (
 	"crypto/tls"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/http/httptrace"
@@ -30,7 +31,7 @@ func isRedirection(statusCode int) bool {
 func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	var records *warc.RecordBatch
 
-	// Use httptrace to increment the URI/s counter on DNS requests
+	// Use httptrace to increment the URI/s counter on DNS requests.
 	trace := &httptrace.ClientTrace{
 		DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
 			t.c.URIsPerSecond.Incr(1)
@@ -41,7 +42,7 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 	req.Header.Set("User-Agent", t.c.UserAgent)
 	req.Header.Set("Accept-Encoding", "*/*")
 
-	// Retry on request error, 5xx  and rate limiting
+	// Retry on request errors and rate limiting.
 	var sleepTime = time.Millisecond * 250
 	var exponentFactor = 2
 	for i := 0; i <= t.c.MaxRetry; i++ {
@@ -55,7 +56,7 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 			continue
 		}
 
-		// Write response and request
+		// Write response and request to WARC.
 		if t.c.WARC {
 			records, err = warc.RecordsFromHTTPResponse(resp)
 			if err != nil {
@@ -70,26 +71,43 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 			t.c.Crawled.Incr(1)
 		}
 
-		// If the crawl is finishing, we do not want to sleep and retry anymore
+		// If the crawl is finishing, we do not want to sleep and retry anymore.
 		if t.c.Finished.Get() {
-			break
+			return resp, err
 		}
 
 		// Check for status code. When we encounter an error or some rate limiting,
 		// we exponentially backoff between retries.
 		if string(strconv.Itoa(resp.StatusCode)[0]) != "2" && isRedirection(resp.StatusCode) == false {
+			// If we get a 404, we do not waste any time retrying
+			if resp.StatusCode == 404 {
+				return resp, err
+			}
+
+			// If we get a 429, then we are being rate limited, in this case we
+			// sleep then retry.
+			// TODO: If the response include the "Retry-After" header, we use it to sleep for the appropriate time before retrying.
+			if resp.StatusCode == 429 {
+				resp.Body.Close()
+				sleepTime = sleepTime * time.Duration(exponentFactor)
+				logInfo.WithFields(logrus.Fields{
+					"url":         req.URL.String(),
+					"duration":    sleepTime.String(),
+					"retry_count": i,
+					"status_code": resp.StatusCode,
+				}).Info("We are being rate limited, sleeping then retrying..")
+				time.Sleep(sleepTime)
+				continue
+			}
+
+			// If we get any other error, we simply wait for a random time between
+			// 0 and 1s, then retry.
 			resp.Body.Close()
-			sleepTime = sleepTime * time.Duration(exponentFactor)
-			logInfo.WithFields(logrus.Fields{
-				"url":         req.URL.String(),
-				"duration":    sleepTime.String(),
-				"retry_count": i,
-				"status_code": resp.StatusCode,
-			}).Info("Error or rate limiting, sleeping then retrying..")
-			time.Sleep(sleepTime)
+			rand.Seed(time.Now().UnixNano())
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
 			continue
 		}
-		break
+		return resp, err
 	}
 	return resp, err
 }
