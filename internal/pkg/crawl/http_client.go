@@ -78,9 +78,15 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 		// Check for status code. When we encounter an error or some rate limiting,
 		// we exponentially backoff between retries.
 		if string(strconv.Itoa(resp.StatusCode)[0]) != "2" && isRedirection(resp.StatusCode) == false {
-			sleepTime = sleepTime * time.Duration(exponentFactor)
-			time.Sleep(sleepTime)
 			resp.Body.Close()
+			sleepTime = sleepTime * time.Duration(exponentFactor)
+			logInfo.WithFields(logrus.Fields{
+				"url":         req.URL.String(),
+				"duration":    sleepTime.String(),
+				"retry_count": i,
+				"status_code": resp.StatusCode,
+			}).Info("Error or rate limiting, sleeping then retrying..")
+			time.Sleep(sleepTime)
 			continue
 		}
 		break
