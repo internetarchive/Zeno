@@ -80,6 +80,7 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 		if string(strconv.Itoa(resp.StatusCode)[0]) != "2" && isRedirection(resp.StatusCode) == false {
 			sleepTime = sleepTime * time.Duration(exponentFactor)
 			time.Sleep(sleepTime)
+			resp.Body.Close()
 			continue
 		}
 		break
