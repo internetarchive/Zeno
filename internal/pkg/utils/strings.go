@@ -10,12 +10,7 @@ import (
 // StringSliceToURLSlice takes a slice of string and return a slice of url.URL
 func StringSliceToURLSlice(rawURLs []string) (URLs []url.URL) {
 	for _, URL := range rawURLs {
-		decodedURL, err := url.QueryUnescape(URL)
-		if err != nil {
-			continue
-		}
-
-		URL, err := url.Parse(decodedURL)
+		URL, err := url.Parse(URL)
 		if err != nil {
 			continue
 		}
