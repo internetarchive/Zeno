@@ -2,7 +2,6 @@ package crawl
 
 import (
 	"net/http"
-	"net/http/httptrace"
 	"net/url"
 	"strconv"
 	"time"
@@ -10,27 +9,16 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/CorentinB/warc"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
 )
 
 func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *http.Response, err error) {
-	var records *warc.RecordBatch
 	var newItem *frontier.Item
 	var newReq *http.Request
 	var URL *url.URL
 
-	// Use httptrace to increment the URI/s counter on DNS requests
-	trace := &httptrace.ClientTrace{
-		DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
-			c.URIsPerSecond.Incr(1)
-		},
-	}
-	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
-
 	// Execute GET request
-	c.URIsPerSecond.Incr(1)
 	if c.ClientProxied == nil || utils.StringContainsSliceElements(req.URL.Host, c.BypassProxy) {
 		resp, err = c.Client.Do(req)
 		if err != nil {
@@ -42,22 +30,9 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 			return resp, err
 		}
 	}
-	c.Crawled.Incr(1)
-
-	// Write response and request
-	if c.WARC {
-		records, err = warc.RecordsFromHTTPResponse(resp)
-		if err != nil {
-			return resp, err
-		}
-		c.WARCWriter <- records
-	}
 
 	// If a redirection is catched, then we execute the redirection
-	if resp.StatusCode == 300 || resp.StatusCode == 301 ||
-		resp.StatusCode == 302 || resp.StatusCode == 307 ||
-		resp.StatusCode == 308 {
-
+	if isRedirection(resp.StatusCode) {
 		if resp.Header.Get("location") == req.URL.String() || parentItem.Redirect >= c.MaxRedirect {
 			return resp, nil
 		}
@@ -109,8 +84,6 @@ func (c *Crawl) captureAsset(item *frontier.Item) error {
 		return err
 	}
 
-	req.Header.Set("User-Agent", c.UserAgent)
-	req.Header.Set("Accept-Encoding", "*/*")
 	req.Header.Set("Referer", item.ParentItem.URL.String())
 
 	resp, err = c.executeGET(item, req)
@@ -141,8 +114,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
-	req.Header.Set("User-Agent", c.UserAgent)
-	req.Header.Set("Accept-Encoding", "*/*")
 	if item.Hop > 0 && len(item.ParentItem.URL.String()) > 0 {
 		req.Header.Set("Referer", item.ParentItem.URL.String())
 	} else {
