@@ -47,7 +47,7 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 	var exponentFactor = 2
 	for i := 0; i <= t.c.MaxRetry; i++ {
 		t.c.URIsPerSecond.Incr(1)
-		resp, err = http.DefaultTransport.RoundTrip(req)
+		resp, err = t.Transport.RoundTrip(req)
 		if err != nil {
 			logWarning.WithFields(logrus.Fields{
 				"url":   req.URL.String(),
