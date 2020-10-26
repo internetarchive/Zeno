@@ -19,12 +19,11 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 			rawOutlinks = append(rawOutlinks, link)
 		}
 	})
-
 	// Turn strings into url.URL
 	outlinks = utils.StringSliceToURLSlice(rawOutlinks)
 
 	// Extract all text on the page and extract the outlinks from it
-	textOutlinks := extractOutlinksRegex(doc.Find("body").Text())
+	textOutlinks := extractOutlinksRegex(doc.Find("body").RemoveFiltered("script").Text())
 	for _, link := range textOutlinks {
 		outlinks = append(outlinks, link)
 	}

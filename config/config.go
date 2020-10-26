@@ -12,9 +12,11 @@ type Flags struct {
 	JSON      bool
 	Debug     bool
 
-	DomainsCrawl bool
-	MaxRedirect  int
-	MaxRetry     int
+	DisabledHTMLTags      cli.StringSlice
+	DomainsCrawl          bool
+	CaptureAlternatePages bool
+	MaxRedirect           int
+	MaxRetry              int
 
 	Proxy       string
 	BypassProxy cli.StringSlice

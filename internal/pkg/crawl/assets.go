@@ -7,46 +7,56 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-func extractAssets(base *url.URL, doc *goquery.Document) (assets []url.URL, err error) {
+func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []url.URL, err error) {
 	var rawAssets []string
 
 	// Extract assets on the page (images, scripts, videos..)
-	doc.Find("img").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("src")
-		if exists {
-			rawAssets = append(rawAssets, link)
-		}
-	})
-	doc.Find("video").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("src")
-		if exists {
-			rawAssets = append(rawAssets, link)
-		}
-	})
-	doc.Find("script").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("src")
-		if exists {
-			rawAssets = append(rawAssets, link)
-		}
-	})
-	doc.Find("link").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("href")
-		if exists {
-			rawAssets = append(rawAssets, link)
-		}
-	})
-	doc.Find("audio").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("src")
-		if exists {
-			rawAssets = append(rawAssets, link)
-		}
-	})
-	doc.Find("iframe").Each(func(index int, item *goquery.Selection) {
-		link, exists := item.Attr("src")
-		if exists {
-			rawAssets = append(rawAssets, link)
-		}
-	})
+	if !utils.StringInSlice("img", c.DisabledHTMLTags) {
+		doc.Find("img").Each(func(index int, item *goquery.Selection) {
+			link, exists := item.Attr("src")
+			if exists {
+				rawAssets = append(rawAssets, link)
+			}
+		})
+	}
+	if !utils.StringInSlice("video", c.DisabledHTMLTags) {
+		doc.Find("video").Each(func(index int, item *goquery.Selection) {
+			link, exists := item.Attr("src")
+			if exists {
+				rawAssets = append(rawAssets, link)
+			}
+		})
+	}
+	if !utils.StringInSlice("script", c.DisabledHTMLTags) {
+		doc.Find("script").Each(func(index int, item *goquery.Selection) {
+			link, exists := item.Attr("src")
+			if exists {
+				rawAssets = append(rawAssets, link)
+			}
+		})
+	}
+	if !utils.StringInSlice("link", c.DisabledHTMLTags) {
+		doc.Find("link").Each(func(index int, item *goquery.Selection) {
+			if !c.CaptureAlternatePages {
+				relation, exists := item.Attr("rel")
+				if exists && relation == "alternate" {
+					return
+				}
+			}
+			link, exists := item.Attr("href")
+			if exists {
+				rawAssets = append(rawAssets, link)
+			}
+		})
+	}
+	if !utils.StringInSlice("audio", c.DisabledHTMLTags) {
+		doc.Find("audio").Each(func(index int, item *goquery.Selection) {
+			link, exists := item.Attr("src")
+			if exists {
+				rawAssets = append(rawAssets, link)
+			}
+		})
+	}
 
 	// Turn strings into url.URL
 	assets = utils.StringSliceToURLSlice(rawAssets)

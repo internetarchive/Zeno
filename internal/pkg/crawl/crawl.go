@@ -28,20 +28,22 @@ type Crawl struct {
 	Frontier *frontier.Frontier
 
 	// Crawl settings
-	WorkerPool    sizedwaitgroup.SizedWaitGroup
-	Client        *http.Client
-	ClientProxied *http.Client
-	Logger        logrus.Logger
-	UserAgent     string
-	Job           string
-	JobPath       string
-	MaxHops       uint8
-	MaxRetry      int
-	MaxRedirect   int
-	DomainsCrawl  bool
-	Headless      bool
-	Seencheck     bool
-	Workers       int
+	WorkerPool            sizedwaitgroup.SizedWaitGroup
+	Client                *http.Client
+	ClientProxied         *http.Client
+	Logger                logrus.Logger
+	DisabledHTMLTags      []string
+	UserAgent             string
+	Job                   string
+	JobPath               string
+	MaxHops               uint8
+	MaxRetry              int
+	MaxRedirect           int
+	CaptureAlternatePages bool
+	DomainsCrawl          bool
+	Headless              bool
+	Seencheck             bool
+	Workers               int
 
 	// Proxy settings
 	Proxy       string

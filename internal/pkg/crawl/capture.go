@@ -162,7 +162,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Extract and capture assets
-	assets, err := extractAssets(base, doc)
+	assets, err := c.extractAssets(base, doc)
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,

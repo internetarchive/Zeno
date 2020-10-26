@@ -62,7 +62,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.IntFlag{
 		Name:        "max-redirect",
 		Value:       20,
-		Usage:       "Specifies the maximum number of redirections to follow for a resource.",
+		Usage:       "Specifies the maximum number of redirections to follow for a resource",
 		Destination: &config.App.Flags.MaxRedirect,
 	},
 	&cli.IntFlag{
@@ -75,6 +75,17 @@ var GlobalFlags = []cli.Flag{
 		Name:        "domains-crawl",
 		Usage:       "If this is turned on, seeds will be treated as domains to crawl, therefore same-domain outlinks will be added to the queue as hop=0",
 		Destination: &config.App.Flags.DomainsCrawl,
+	},
+	&cli.StringSliceFlag{
+		Name:        "disable-html-tag",
+		Usage:       "Specify HTML tag to not extract assets from",
+		Destination: &config.App.Flags.DisabledHTMLTags,
+	},
+	&cli.BoolFlag{
+		Name:        "capture-alternate-pages",
+		Value:       false,
+		Usage:       "If turned on, <link> HTML tags with \"alternate\" values for their \"rel\" attribute will be archived",
+		Destination: &config.App.Flags.CaptureAlternatePages,
 	},
 
 	// Proxy flags
