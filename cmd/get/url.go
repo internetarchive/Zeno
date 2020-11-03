@@ -31,16 +31,6 @@ func cmdGetURL(c *cli.Context) error {
 	// Init crawl using the flags provided
 	crawl := cmd.InitCrawlWithCMD(config.App.Flags)
 
-	// Start crawl
-	err = crawl.Start()
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"crawl": crawl,
-			"error": err,
-		}).Error("Crawl exited due to error")
-		return err
-	}
-
 	// Initialize initial seed list
 	input, err := url.Parse(c.Args().Get(0))
 	err = utils.ValidateURL(input)

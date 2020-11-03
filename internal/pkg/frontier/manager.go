@@ -2,6 +2,7 @@ package frontier
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/paulbellamy/ratecounter"
 	"github.com/sirupsen/logrus"
@@ -40,11 +41,20 @@ func (f *Frontier) writeItemsToQueue() {
 		logInfo.WithFields(logrus.Fields{
 			"url": item.URL,
 		}).Debug("Item enqueued")
+
+		if f.FinishingQueueWriter.Get() == true {
+			f.IsQueueWriterActive.Set(false)
+			return
+		}
 	}
 }
 
 func (f *Frontier) readItemsFromQueue() {
 	var mapCopy map[string]*ratecounter.Counter
+
+	if f.QueueCount.Value() == 0 {
+		time.Sleep(time.Second)
+	}
 
 	for {
 		// We cleanup the hosts pool by removing
@@ -99,6 +109,11 @@ func (f *Frontier) readItemsFromQueue() {
 			}).Debug("Item sent to workers pool")
 
 			f.HostPool.Decr(host)
+
+			if f.FinishingQueueReader.Get() == true {
+				f.IsQueueReaderActive.Set(false)
+				return
+			}
 		}
 	}
 }

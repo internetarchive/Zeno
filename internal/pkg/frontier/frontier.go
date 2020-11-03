@@ -4,6 +4,7 @@ import (
 	"path"
 	"sync"
 
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/beeker1121/goque"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/philippgille/gokv/leveldb"
@@ -14,7 +15,11 @@ var logInfo *logrus.Logger
 var logWarning *logrus.Logger
 
 type Frontier struct {
-	JobPath string
+	FinishingQueueWriter *utils.TAtomBool
+	FinishingQueueReader *utils.TAtomBool
+	IsQueueWriterActive  *utils.TAtomBool
+	IsQueueReaderActive  *utils.TAtomBool
+	JobPath              string
 
 	// PullChan and PushChan are respectively the channels used for workers
 	// to get new URLs to archive, and the channel to push the discovered URLs
@@ -24,8 +29,9 @@ type Frontier struct {
 
 	// Queue is a local queue storing all the URLs to crawl
 	// it's a prefixed queue, basically one sub-queue per host
+	Queue *goque.PrefixQueue
+	// QueueCount store the number of URLs currently queued
 	QueueCount *ratecounter.Counter
-	Queue      *goque.PrefixQueue
 
 	// HostPool is an struct that contains a map and a Mutex.
 	// the map contains all the different hosts that Zeno crawled,
@@ -72,6 +78,11 @@ func (f *Frontier) Init(jobPath string, logInf, logWarn *logrus.Logger, workers 
 		}
 		logrus.Info("Seencheck initialized")
 	}
+
+	f.FinishingQueueReader = new(utils.TAtomBool)
+	f.FinishingQueueWriter = new(utils.TAtomBool)
+	f.IsQueueReaderActive = new(utils.TAtomBool)
+	f.IsQueueWriterActive = new(utils.TAtomBool)
 
 	return nil
 }

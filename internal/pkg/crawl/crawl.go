@@ -117,6 +117,12 @@ func (c *Crawl) Start() (err error) {
 		go c.startAPI()
 	}
 
+	// Fire up the desired amount of workers
+	for i := 0; i < c.Workers; i++ {
+		c.WorkerPool.Add()
+		go c.Worker(&c.WorkerPool)
+	}
+
 	// If Kafka parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to Kafka
 	if c.UseKafka {
@@ -137,30 +143,7 @@ func (c *Crawl) Start() (err error) {
 	}
 
 	// Start the process responsible for printing live stats on the standard output
-	go c.printLiveStats()
-
-	// Start archiving the URLs!
-	for item := range c.Frontier.PullChan {
-		if c.Finished.Get() {
-			for {
-				time.Sleep(1 * time.Minute)
-			}
-		}
-
-		item := item
-
-		c.WorkerPool.Add()
-		go func(wg *sizedwaitgroup.SizedWaitGroup) {
-			c.ActiveWorkers.Incr(1)
-			c.Capture(item)
-			wg.Done()
-			c.ActiveWorkers.Incr(-1)
-		}(&c.WorkerPool)
-	}
-
-	if c.Finished.Get() == false {
-		c.finish()
-	}
+	c.printLiveStats()
 
 	return nil
 }

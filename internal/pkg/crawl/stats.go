@@ -35,7 +35,7 @@ func (c *Crawl) printLiveStats() {
 	writer := uilive.New()
 	writer.Start()
 
-	for !c.Finished.Get() {
+	for {
 		runtime.ReadMemStats(&m)
 
 		stats = uitable.New()
@@ -44,7 +44,7 @@ func (c *Crawl) printLiveStats() {
 
 		stats.AddRow("", "")
 		stats.AddRow("  - Job:", c.Job)
-		stats.AddRow("  - Active workers:", c.ActiveWorkers.Value())
+		stats.AddRow("  - Active workers:", strconv.Itoa(int(c.ActiveWorkers.Value()))+"/"+strconv.Itoa(c.Workers))
 		stats.AddRow("  - URI/s:", c.URIsPerSecond.Rate())
 		stats.AddRow("  - Crawled:", c.Crawled.Value())
 		stats.AddRow("  - Queued:", c.Frontier.QueueCount.Value())
@@ -58,6 +58,4 @@ func (c *Crawl) printLiveStats() {
 		writer.Flush()
 		time.Sleep(time.Second * 1)
 	}
-
-	writer.Stop()
 }
