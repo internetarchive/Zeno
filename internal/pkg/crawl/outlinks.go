@@ -23,7 +23,7 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 	outlinks = utils.StringSliceToURLSlice(rawOutlinks)
 
 	// Extract all text on the page and extract the outlinks from it
-	textOutlinks := extractOutlinksRegex(doc.Find("body").RemoveFiltered("script").Text())
+	textOutlinks := extractLinksFromText(doc.Find("body").RemoveFiltered("script").Text())
 	for _, link := range textOutlinks {
 		outlinks = append(outlinks, link)
 	}
@@ -32,26 +32,6 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 	outlinks = utils.MakeAbsolute(base, outlinks)
 
 	return utils.DedupeURLs(outlinks), nil
-}
-
-func extractOutlinksRegex(source string) (outlinks []url.URL) {
-	// Extract outlinks and dedupe them
-	rawOutlinks := utils.DedupeStrings(regexOutlinks.FindAllString(source, -1))
-
-	// Validate outlinks
-	for _, outlink := range rawOutlinks {
-		URL, err := url.Parse(outlink)
-		if err != nil {
-			continue
-		}
-		err = utils.ValidateURL(URL)
-		if err != nil {
-			continue
-		}
-		outlinks = append(outlinks, *URL)
-	}
-
-	return outlinks
 }
 
 func (c *Crawl) queueOutlinks(outlinks []url.URL, item *frontier.Item) {

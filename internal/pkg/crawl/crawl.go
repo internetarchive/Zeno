@@ -107,12 +107,6 @@ func (c *Crawl) Start() (err error) {
 		logrus.Info("WARC writer pool initialized")
 	}
 
-	// Start the background process that will catch when there
-	// is nothing more to crawl
-	if !c.UseKafka {
-		go c.catchFinish()
-	}
-
 	if c.API {
 		go c.startAPI()
 	}
@@ -122,6 +116,9 @@ func (c *Crawl) Start() (err error) {
 		c.WorkerPool.Add()
 		go c.Worker(&c.WorkerPool)
 	}
+
+	// Start the process responsible for printing live stats on the standard output
+	go c.printLiveStats()
 
 	// If Kafka parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to Kafka
@@ -142,8 +139,15 @@ func (c *Crawl) Start() (err error) {
 		logrus.Info("All seeds are now in queue, crawling will start")
 	}
 
-	// Start the process responsible for printing live stats on the standard output
-	c.printLiveStats()
+	// Start the background process that will catch when there
+	// is nothing more to crawl
+	if !c.UseKafka {
+		c.catchFinish()
+	} else {
+		for {
+			time.Sleep(time.Second)
+		}
+	}
 
-	return nil
+	return
 }

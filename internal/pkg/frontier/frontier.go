@@ -14,6 +14,7 @@ import (
 var logInfo *logrus.Logger
 var logWarning *logrus.Logger
 
+// Frontier holds all the data for a frontier
 type Frontier struct {
 	FinishingQueueWriter *utils.TAtomBool
 	FinishingQueueReader *utils.TAtomBool
