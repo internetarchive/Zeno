@@ -37,10 +37,6 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 	if c.WARC {
 		respPath, err = c.writeWARC(resp)
 		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"url":   req.URL.String(),
-				"error": err,
-			}).Warning("Error turning http.Resp into WARC records")
 			resp.Body.Close()
 			return resp, respPath, err
 		}
@@ -109,9 +105,6 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 
 	resp, respPath, err := c.executeGET(item, req)
 	if err != nil {
-		logWarning.WithFields(logrus.Fields{
-			"error": err,
-		}).Warning(item.URL.String())
 		return err
 	}
 	defer resp.Body.Close()
@@ -178,12 +171,12 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		for utils.FileExists(respPath) == false {
 			time.Sleep(time.Millisecond * 500)
 		}
-		defer os.Remove(respPath)
 	}
 
 	// If the response isn't a text/*, we do not scrape it, and we delete the
 	// temporary file if it exists
 	if strings.Contains(resp.Header.Get("Content-Type"), "text/") == false {
+		deleteTempFile(respPath)
 		return
 	}
 
@@ -193,6 +186,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
+		deleteTempFile(respPath)
 		return
 	}
 
@@ -206,9 +200,9 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				"url":   item.URL.String(),
 				"path":  respPath,
 			}).Warning("Error opening temporary file for outlinks/assets extraction")
+			deleteTempFile(respPath)
 			return
 		}
-		defer file.Close()
 
 		doc, err = goquery.NewDocumentFromReader(file)
 		if err != nil {
@@ -217,9 +211,12 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				"url":   item.URL.String(),
 				"path":  respPath,
 			}).Warning("Error opening temporary file for outlinks/assets extraction")
+			deleteTempFile(respPath)
 			return
 		}
 		_ = doc
+		file.Close()
+		deleteTempFile(respPath)
 	} else {
 		doc, err = goquery.NewDocumentFromResponse(resp)
 		if err != nil {
@@ -276,5 +273,15 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			}).Warning(asset.String())
 			continue
 		}
+	}
+}
+
+func deleteTempFile(path string) {
+	err := os.Remove(path)
+	if err != nil {
+		logWarning.WithFields(logrus.Fields{
+			"error": err,
+			"path":  path,
+		}).Warning("Error deleting temporary file")
 	}
 }

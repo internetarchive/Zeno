@@ -44,17 +44,23 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 	var exponentFactor = 2
 	for i := 0; i <= t.c.MaxRetry; i++ {
 		t.c.URIsPerSecond.Incr(1)
+
+		if i != 0 {
+			resp.Body.Close()
+		}
+
 		resp, err = t.Transport.RoundTrip(req)
 		if err != nil {
 			logWarning.WithFields(logrus.Fields{
 				"url":   req.URL.String(),
 				"error": err,
 			}).Warning("HTTP error")
-			continue
+			return resp, err
 		}
 
 		// If the crawl is finishing, we do not want to sleep and retry anymore.
 		if t.c.Finished.Get() {
+			resp.Body.Close()
 			return resp, err
 		}
 
@@ -63,14 +69,13 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 		if string(strconv.Itoa(resp.StatusCode)[0]) != "2" && isRedirection(resp.StatusCode) == false {
 			// If we get a 404, we do not waste any time retrying
 			if resp.StatusCode == 404 {
-				return resp, err
+				return resp, nil
 			}
 
 			// If we get a 429, then we are being rate limited, in this case we
 			// sleep then retry.
 			// TODO: If the response include the "Retry-After" header, we use it to sleep for the appropriate time before retrying.
 			if resp.StatusCode == 429 {
-				resp.Body.Close()
 				sleepTime = sleepTime * time.Duration(exponentFactor)
 				logInfo.WithFields(logrus.Fields{
 					"url":         req.URL.String(),
@@ -84,14 +89,13 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 
 			// If we get any other error, we simply wait for a random time between
 			// 0 and 1s, then retry.
-			resp.Body.Close()
 			rand.Seed(time.Now().UnixNano())
 			time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
 			continue
 		}
-		return resp, err
+		return resp, nil
 	}
-	return resp, err
+	return resp, nil
 }
 
 func (crawl *Crawl) initHTTPClient() (err error) {
