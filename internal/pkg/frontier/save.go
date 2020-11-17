@@ -41,9 +41,8 @@ func (f *Frontier) Load() {
 	f.HostPool.Hosts = dump.Hosts
 
 	logrus.WithFields(logrus.Fields{
-		"queued": f.QueueCount.Value(),
-		"hosts":  len(f.HostPool.Hosts),
-	}).Info("Successfully loaded previous frontier's hosts pool and queued URLs count")
+		"hosts": len(f.HostPool.Hosts),
+	}).Info("Successfully loaded previous frontier's hosts pool")
 }
 
 // Save write the in-memory hosts pool to resume properly the next time the job is loaded
