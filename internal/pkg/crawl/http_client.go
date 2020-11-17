@@ -60,7 +60,6 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 
 		// If the crawl is finishing, we do not want to sleep and retry anymore.
 		if t.c.Finished.Get() {
-			resp.Body.Close()
 			return resp, err
 		}
 
