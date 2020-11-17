@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/CorentinB/warc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,8 +28,6 @@ func isRedirection(statusCode int) bool {
 }
 
 func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	var records *warc.RecordBatch
-
 	// Use httptrace to increment the URI/s counter on DNS requests.
 	trace := &httptrace.ClientTrace{
 		DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
@@ -54,21 +51,6 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 				"error": err,
 			}).Warning("HTTP error")
 			continue
-		}
-
-		// Write response and request to WARC.
-		if t.c.WARC {
-			records, err = warc.RecordsFromHTTPResponse(resp)
-			if err != nil {
-				logWarning.WithFields(logrus.Fields{
-					"url":   req.URL.String(),
-					"error": err,
-				}).Warning("Error turning http.Resp into WARC records")
-				resp.Body.Close()
-				continue
-			}
-			t.c.WARCWriter <- records
-			t.c.Crawled.Incr(1)
 		}
 
 		// If the crawl is finishing, we do not want to sleep and retry anymore.

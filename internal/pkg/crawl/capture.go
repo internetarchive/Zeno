@@ -3,6 +3,7 @@ package crawl
 import (
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -14,7 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *http.Response, err error) {
+func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *http.Response, respPath string, err error) {
 	var newItem *frontier.Item
 	var newReq *http.Request
 	var URL *url.URL
@@ -23,24 +24,38 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 	if c.ClientProxied == nil || utils.StringContainsSliceElements(req.URL.Host, c.BypassProxy) {
 		resp, err = c.Client.Do(req)
 		if err != nil {
-			return resp, err
+			return resp, respPath, err
 		}
 	} else {
 		resp, err = c.ClientProxied.Do(req)
 		if err != nil {
-			return resp, err
+			return resp, respPath, err
 		}
+	}
+
+	// Write response and request to WARC.
+	if c.WARC {
+		respPath, err = c.writeWARC(resp)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"url":   req.URL.String(),
+				"error": err,
+			}).Warning("Error turning http.Resp into WARC records")
+			resp.Body.Close()
+			return resp, respPath, err
+		}
+		c.Crawled.Incr(1)
 	}
 
 	// If a redirection is catched, then we execute the redirection
 	if isRedirection(resp.StatusCode) {
 		if resp.Header.Get("location") == req.URL.String() || parentItem.Redirect >= c.MaxRedirect {
-			return resp, nil
+			return resp, respPath, nil
 		}
 
 		URL, err = url.Parse(resp.Header.Get("location"))
 		if err != nil {
-			return resp, err
+			return resp, respPath, err
 		}
 
 		newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop)
@@ -49,19 +64,19 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		// Prepare GET request
 		newReq, err = http.NewRequest("GET", URL.String(), nil)
 		if err != nil {
-			return resp, err
+			return resp, respPath, err
 		}
 
 		req.Header.Set("User-Agent", c.UserAgent)
 		req.Header.Set("Accept-Encoding", "*/*")
 		req.Header.Set("Referer", newItem.ParentItem.URL.String())
 
-		resp, err = c.executeGET(newItem, newReq)
+		resp, respPath, err = c.executeGET(newItem, newReq)
 		if err != nil {
-			return resp, err
+			return resp, respPath, err
 		}
 	}
-	return resp, nil
+	return resp, respPath, nil
 }
 
 func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error {
@@ -92,7 +107,7 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 		req.AddCookie(cookies[i])
 	}
 
-	resp, err = c.executeGET(item, req)
+	resp, respPath, err := c.executeGET(item, req)
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
@@ -100,6 +115,23 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 		return err
 	}
 	defer resp.Body.Close()
+
+	// This is an asset, we won't do any extraction on the response so we delete
+	// the temporary file if it exists
+	if respPath != "" {
+		respPath = respPath + ".done"
+		for utils.FileExists(respPath) == false {
+			time.Sleep(time.Millisecond * 500)
+		}
+		err := os.Remove(respPath)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"path":  respPath,
+				"url":   item.URL.String(),
+				"error": err,
+			}).Warning("Error deleting temporary file")
+		}
+	}
 
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
@@ -126,7 +158,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		req.Header.Set("Referer", item.URL.Host)
 	}
 
-	resp, err = c.executeGET(item, req)
+	resp, respPath, err := c.executeGET(item, req)
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
@@ -137,7 +169,20 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
-	// If the response isn't a text/*, we do not scrape it
+	// If the response is stored in a file, we wait for the WARC writer
+	// to mark it as recorded with a .done at the end, before doing any
+	// processing. This also allow Zeno to safely delete the file knowing
+	// that all the WARC writing is done
+	if respPath != "" {
+		respPath = respPath + ".done"
+		for utils.FileExists(respPath) == false {
+			time.Sleep(time.Millisecond * 500)
+		}
+		defer os.Remove(respPath)
+	}
+
+	// If the response isn't a text/*, we do not scrape it, and we delete the
+	// temporary file if it exists
 	if strings.Contains(resp.Header.Get("Content-Type"), "text/") == false {
 		return
 	}
@@ -152,12 +197,38 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Turn the response into a doc that we will scrape
-	doc, err := goquery.NewDocumentFromResponse(resp)
-	if err != nil {
-		logWarning.WithFields(logrus.Fields{
-			"error": err,
-		}).Warning(item.URL.String())
-		return
+	var doc *goquery.Document
+	if respPath != "" {
+		file, err := os.Open(respPath)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"error": err,
+				"url":   item.URL.String(),
+				"path":  respPath,
+			}).Warning("Error opening temporary file for outlinks/assets extraction")
+			return
+		}
+		defer file.Close()
+
+		doc, err = goquery.NewDocumentFromReader(file)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"error": err,
+				"url":   item.URL.String(),
+				"path":  respPath,
+			}).Warning("Error opening temporary file for outlinks/assets extraction")
+			return
+		}
+		_ = doc
+	} else {
+		doc, err = goquery.NewDocumentFromResponse(resp)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"error": err,
+			}).Warning(item.URL.String())
+			return
+		}
+		_ = doc
 	}
 
 	// Extract outlinks
