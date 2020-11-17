@@ -64,7 +64,6 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		}
 
 		req.Header.Set("User-Agent", c.UserAgent)
-		req.Header.Set("Accept-Encoding", "*/*")
 		req.Header.Set("Referer", newItem.ParentItem.URL.String())
 
 		resp, respPath, err = c.executeGET(newItem, newReq)
@@ -147,8 +146,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	if item.Hop > 0 && len(item.ParentItem.URL.String()) > 0 {
 		req.Header.Set("Referer", item.ParentItem.URL.String())
-	} else {
-		req.Header.Set("Referer", item.URL.Host)
 	}
 
 	resp, respPath, err := c.executeGET(item, req)

@@ -37,7 +37,7 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 
 	req.Header.Set("User-Agent", t.c.UserAgent)
-	req.Header.Set("Accept-Encoding", "*/*")
+	req.Header.Set("Accept", "*/*")
 
 	// Retry on request errors and rate limiting.
 	var sleepTime = time.Millisecond * 250
