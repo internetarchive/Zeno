@@ -66,6 +66,14 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		req.Header.Set("User-Agent", c.UserAgent)
 		req.Header.Set("Referer", newItem.ParentItem.URL.String())
 
+		if respPath != "" {
+			respPath = respPath + ".done"
+			for utils.FileExists(respPath) == false {
+				time.Sleep(time.Millisecond * 500)
+			}
+			deleteTempFile(respPath)
+		}
+
 		resp, respPath, err = c.executeGET(newItem, newReq)
 		if err != nil {
 			return resp, respPath, err
@@ -153,6 +161,13 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
+		if respPath != "" {
+			respPath = respPath + ".done"
+			for utils.FileExists(respPath) == false {
+				time.Sleep(time.Millisecond * 500)
+			}
+			deleteTempFile(respPath)
+		}
 		return
 	}
 	defer resp.Body.Close()
