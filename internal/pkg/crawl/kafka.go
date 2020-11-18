@@ -117,7 +117,7 @@ func (crawl *Crawl) kafkaConsumer() {
 		if err != nil {
 			logWarning.WithFields(logrus.Fields{
 				"error": err,
-			}).Debug("Unable to read message from Kafka")
+			}).Warning("Unable to read message from Kafka")
 			time.Sleep(time.Second * 3)
 			return
 		}
