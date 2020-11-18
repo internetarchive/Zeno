@@ -66,6 +66,10 @@ func (c *Crawl) initWARCWriter() {
 
 func (c *Crawl) writeWARC(resp *http.Response) (string, error) {
 	var batch = warc.NewRecordBatch()
+	var requestDump []byte
+	var responseDump []byte
+	var responsePath string
+	var err error
 
 	// Initialize the response record
 	var responseRecord = warc.NewRecord()
@@ -77,17 +81,24 @@ func (c *Crawl) writeWARC(resp *http.Response) (string, error) {
 	// we process the response directly on disk to not risk maxing-out the RAM.
 	// Else, we use the httputil.DumpResponse function to dump the response.
 	if resp.ContentLength == -1 || resp.ContentLength > 2048 {
-		responsePath, err := c.dumpResponseToFile(resp)
+		responsePath, err = c.dumpResponseToFile(resp)
 		if err != nil {
-			return "", err
+			err := os.Remove(responsePath)
+			if err != nil {
+				logWarning.WithFields(logrus.Fields{
+					"path":  responsePath,
+					"error": err,
+				}).Warning("Error deleting temporary file")
+			}
+			return responsePath, err
 		}
 
 		responseRecord.Header.Set("WARC-Payload-Digest", "sha1:"+utils.GetSHA1FromFile(responsePath))
 		responseRecord.PayloadPath = responsePath
 	} else {
-		responseDump, err := httputil.DumpResponse(resp, true)
+		responseDump, err = httputil.DumpResponse(resp, true)
 		if err != nil {
-			return "", err
+			return responsePath, err
 		}
 
 		responseRecord.Header.Set("WARC-Payload-Digest", "sha1:"+warc.GetSHA1(responseDump))
@@ -95,9 +106,18 @@ func (c *Crawl) writeWARC(resp *http.Response) (string, error) {
 	}
 
 	// Dump request
-	requestDump, err := httputil.DumpRequestOut(resp.Request, true)
+	requestDump, err = httputil.DumpRequestOut(resp.Request, true)
 	if err != nil {
-		return "", err
+		if responsePath != "" {
+			err := os.Remove(responsePath)
+			if err != nil {
+				logWarning.WithFields(logrus.Fields{
+					"path":  responsePath,
+					"error": err,
+				}).Warning("Error deleting temporary file")
+			}
+		}
+		return responsePath, err
 	}
 
 	// Initialize the request record
@@ -115,5 +135,5 @@ func (c *Crawl) writeWARC(resp *http.Response) (string, error) {
 
 	c.WARCWriter <- batch
 
-	return responseRecord.PayloadPath, nil
+	return responsePath, nil
 }
