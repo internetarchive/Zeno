@@ -66,9 +66,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		req.Header.Set("User-Agent", c.UserAgent)
 		req.Header.Set("Referer", newItem.ParentItem.URL.String())
 
-		if respPath != "" {
-			deleteTempFile(respPath)
-		}
+		deleteTempFile(respPath)
 
 		resp, respPath, err = c.executeGET(newItem, newReq)
 		if err != nil {
@@ -108,15 +106,14 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 
 	resp, respPath, err := c.executeGET(item, req)
 	if err != nil {
+		deleteTempFile(respPath)
 		return err
 	}
 	defer resp.Body.Close()
 
 	// This is an asset, we won't do any extraction on the response so we delete
 	// the temporary file if it exists
-	if respPath != "" {
-		deleteTempFile(respPath)
-	}
+	deleteTempFile(respPath)
 
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
@@ -146,9 +143,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
-		if respPath != "" {
-			deleteTempFile(respPath)
-		}
+		deleteTempFile(respPath)
 		return
 	}
 	defer resp.Body.Close()
@@ -158,9 +153,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// If the response isn't a text/*, we do not scrape it, and we delete the
 	// temporary file if it exists
 	if strings.Contains(resp.Header.Get("Content-Type"), "text/") == false {
-		if respPath != "" {
-			deleteTempFile(respPath)
-		}
+		deleteTempFile(respPath)
 		return
 	}
 
@@ -170,9 +163,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
-		if respPath != "" {
-			deleteTempFile(respPath)
-		}
+		deleteTempFile(respPath)
 		return
 	}
 
@@ -263,11 +254,13 @@ func (c *Crawl) Capture(item *frontier.Item) {
 }
 
 func deleteTempFile(path string) {
-	err := os.Remove(path)
-	if err != nil {
-		logWarning.WithFields(logrus.Fields{
-			"error": err,
-			"path":  path,
-		}).Warning("Error deleting temporary file")
+	if path != "" {
+		err := os.Remove(path)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"error": err,
+				"path":  path,
+			}).Warning("Error deleting temporary file")
+		}
 	}
 }
