@@ -49,6 +49,8 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 			return resp, respPath, nil
 		}
 
+		deleteTempFile(respPath)
+
 		URL, err = url.Parse(resp.Header.Get("location"))
 		if err != nil {
 			return resp, respPath, err
@@ -65,8 +67,6 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 
 		req.Header.Set("User-Agent", c.UserAgent)
 		req.Header.Set("Referer", newItem.ParentItem.URL.String())
-
-		deleteTempFile(respPath)
 
 		resp, respPath, err = c.executeGET(newItem, newReq)
 		if err != nil {
@@ -187,7 +187,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				"error": err,
 				"url":   item.URL.String(),
 				"path":  respPath,
-			}).Warning("Error opening temporary file for outlinks/assets extraction")
+			}).Warning("Error making goquery document from temporary file")
 			deleteTempFile(respPath)
 			return
 		}
