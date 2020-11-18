@@ -83,13 +83,6 @@ func (c *Crawl) writeWARC(resp *http.Response) (string, error) {
 	if resp.ContentLength == -1 || resp.ContentLength > 2048 {
 		responsePath, err = c.dumpResponseToFile(resp)
 		if err != nil {
-			err := os.Remove(responsePath)
-			if err != nil {
-				logWarning.WithFields(logrus.Fields{
-					"path":  responsePath,
-					"error": err,
-				}).Warning("Error deleting temporary file")
-			}
 			return responsePath, err
 		}
 
@@ -108,15 +101,6 @@ func (c *Crawl) writeWARC(resp *http.Response) (string, error) {
 	// Dump request
 	requestDump, err = httputil.DumpRequestOut(resp.Request, true)
 	if err != nil {
-		if responsePath != "" {
-			err := os.Remove(responsePath)
-			if err != nil {
-				logWarning.WithFields(logrus.Fields{
-					"path":  responsePath,
-					"error": err,
-				}).Warning("Error deleting temporary file")
-			}
-		}
 		return responsePath, err
 	}
 
