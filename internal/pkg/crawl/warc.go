@@ -31,6 +31,7 @@ func (c *Crawl) dumpResponseToFile(resp *http.Response) (string, error) {
 	// Write the response to the file directly
 	err = resp.Write(file)
 	if err != nil {
+		os.Remove(filePath)
 		return "", err
 	}
 
@@ -42,6 +43,7 @@ func (c *Crawl) initWARCWriter() {
 	var err error
 
 	os.MkdirAll(path.Join(c.JobPath, "temp"), os.ModePerm)
+	go c.tempFilesCleaner()
 
 	rotatorSettings.OutputDirectory = path.Join(c.JobPath, "warcs")
 	rotatorSettings.Compression = "GZIP"
@@ -96,6 +98,7 @@ func (c *Crawl) writeWARC(resp *http.Response) (string, error) {
 	// Dump request
 	requestDump, err = httputil.DumpRequestOut(resp.Request, true)
 	if err != nil {
+		os.Remove(responsePath)
 		return responsePath, err
 	}
 

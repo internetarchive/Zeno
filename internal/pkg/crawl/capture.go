@@ -49,7 +49,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 			return resp, respPath, nil
 		}
 
-		deleteTempFile(respPath)
+		defer markTempFileDone(respPath)
 
 		URL, err = url.Parse(resp.Header.Get("location"))
 		if err != nil {
@@ -106,14 +106,11 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 
 	resp, respPath, err := c.executeGET(item, req)
 	if err != nil {
-		deleteTempFile(respPath)
+		markTempFileDone(respPath)
 		return err
 	}
 	defer resp.Body.Close()
-
-	// This is an asset, we won't do any extraction on the response so we delete
-	// the temporary file if it exists
-	deleteTempFile(respPath)
+	defer markTempFileDone(respPath)
 
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
@@ -143,17 +140,17 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
-		deleteTempFile(respPath)
+		markTempFileDone(respPath)
 		return
 	}
 	defer resp.Body.Close()
+	defer markTempFileDone(respPath)
 
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
 	// If the response isn't a text/*, we do not scrape it, and we delete the
 	// temporary file if it exists
 	if strings.Contains(resp.Header.Get("Content-Type"), "text/") == false {
-		deleteTempFile(respPath)
 		return
 	}
 
@@ -163,7 +160,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
-		deleteTempFile(respPath)
 		return
 	}
 
@@ -177,7 +173,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				"url":   item.URL.String(),
 				"path":  respPath,
 			}).Warning("Error opening temporary file for outlinks/assets extraction")
-			deleteTempFile(respPath)
 			return
 		}
 
@@ -188,12 +183,11 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				"url":   item.URL.String(),
 				"path":  respPath,
 			}).Warning("Error making goquery document from temporary file")
-			deleteTempFile(respPath)
 			return
 		}
 		_ = doc
 		file.Close()
-		deleteTempFile(respPath)
+		markTempFileDone(respPath)
 	} else {
 		doc, err = goquery.NewDocumentFromResponse(resp)
 		if err != nil {
@@ -253,14 +247,8 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 }
 
-func deleteTempFile(path string) {
+func markTempFileDone(path string) {
 	if path != "" {
-		err := os.Remove(path)
-		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-				"path":  path,
-			}).Warning("Error deleting temporary file")
-		}
+		os.Rename(path, path+".done")
 	}
 }
