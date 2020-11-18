@@ -100,11 +100,9 @@ func (crawl *Crawl) kafkaConsumer() {
 		"topic":   crawl.KafkaFeedTopic,
 	}).Info("Kafka consumer started, it may take some time to actually start pulling messages..")
 
-	run := true
-
-	for run == true {
+	for {
 		if crawl.Finished.Get() {
-			run = false
+			kafkaClient.Close()
 			break
 		}
 
