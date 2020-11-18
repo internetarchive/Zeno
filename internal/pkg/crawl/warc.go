@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -14,10 +13,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 )
-
-// errNoBody is a sentinel error value used by failureToReadBody so we
-// can detect that the lack of body was intentional.
-var errNoBody = errors.New("sentinel error value")
 
 // dumpResponseToFile is like httputil.DumpResponse but dumps the response directly
 // to a file and return its path
@@ -77,10 +72,10 @@ func (c *Crawl) writeWARC(resp *http.Response) (string, error) {
 	responseRecord.Header.Set("WARC-Target-URI", resp.Request.URL.String())
 	responseRecord.Header.Set("Content-Type", "application/http; msgtype=response")
 
-	// If the Content-Length is unknown or if it is higher than 2048 bytes, then
+	// If the Content-Length is unknown or if it is higher than 2MB, then
 	// we process the response directly on disk to not risk maxing-out the RAM.
 	// Else, we use the httputil.DumpResponse function to dump the response.
-	if resp.ContentLength == -1 || resp.ContentLength > 2048 {
+	if resp.ContentLength == -1 || resp.ContentLength > 2097152 {
 		responsePath, err = c.dumpResponseToFile(resp)
 		if err != nil {
 			return responsePath, err
