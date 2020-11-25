@@ -85,7 +85,8 @@ func (crawl *Crawl) kafkaConsumer() {
 	kafkaClient, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":        strings.Join(crawl.KafkaBrokers[:], ","),
 		"group.id":                 crawl.KafkaConsumerGroup,
-		"session.timeout.ms":       6000,
+		"session.timeout.ms":       60000,
+		"max.poll.interval.ms":     60000,
 		"go.events.channel.enable": true,
 	})
 	if err != nil {
@@ -107,7 +108,7 @@ func (crawl *Crawl) kafkaConsumer() {
 		}
 
 		if crawl.ActiveWorkers.Value() >= int64(crawl.Workers-(crawl.Workers/10)) {
-			time.Sleep(time.Second * 1)
+			time.Sleep(time.Millisecond * 100)
 			continue
 		}
 
