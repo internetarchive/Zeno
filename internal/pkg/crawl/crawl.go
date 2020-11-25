@@ -33,6 +33,7 @@ type Crawl struct {
 	ClientProxied         *http.Client
 	Logger                logrus.Logger
 	DisabledHTMLTags      []string
+	ExcludedHosts         []string
 	UserAgent             string
 	Job                   string
 	JobPath               string

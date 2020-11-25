@@ -13,6 +13,7 @@ type Flags struct {
 	Debug     bool
 
 	DisabledHTMLTags      cli.StringSlice
+	ExcludedHosts         cli.StringSlice
 	DomainsCrawl          bool
 	CaptureAlternatePages bool
 	MaxRedirect           int

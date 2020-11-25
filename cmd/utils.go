@@ -47,6 +47,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.MaxHops = uint8(flags.MaxHops)
 	c.DomainsCrawl = flags.DomainsCrawl
 	c.DisabledHTMLTags = flags.DisabledHTMLTags.Value()
+	c.ExcludedHosts = flags.ExcludedHosts.Value()
 	c.CaptureAlternatePages = flags.CaptureAlternatePages
 
 	// WARC settings

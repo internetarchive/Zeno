@@ -87,6 +87,11 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "If turned on, <link> HTML tags with \"alternate\" values for their \"rel\" attribute will be archived",
 		Destination: &config.App.Flags.CaptureAlternatePages,
 	},
+	&cli.StringSliceFlag{
+		Name:        "exclude-host",
+		Usage:       "Exclude a specific host from the crawl, note that it will not exclude the domain if it is encountered as an asset for another web page",
+		Destination: &config.App.Flags.ExcludedHosts,
+	},
 
 	// Proxy flags
 	&cli.StringFlag{
