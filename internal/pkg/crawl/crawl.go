@@ -9,6 +9,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
 	"github.com/paulbellamy/ratecounter"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
 	"mvdan.cc/xurls/v2"
@@ -16,6 +17,12 @@ import (
 
 var logInfo *logrus.Logger
 var logWarning *logrus.Logger
+
+// PrometheusMetrics define all the metrics exposed by the Prometheus exporter
+type PrometheusMetrics struct {
+	JobName       string
+	DownloadedURI prometheus.Counter
+}
 
 // Crawl define the parameters of a crawl process
 type Crawl struct {
@@ -51,7 +58,9 @@ type Crawl struct {
 	BypassProxy []string
 
 	// API settings
-	API bool
+	API               bool
+	Prometheus        bool
+	PrometheusMetrics *PrometheusMetrics
 
 	// Real time statistics
 	URIsPerSecond *ratecounter.RateCounter

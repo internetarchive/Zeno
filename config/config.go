@@ -22,7 +22,9 @@ type Flags struct {
 	Proxy       string
 	BypassProxy cli.StringSlice
 
-	API bool
+	API           bool
+	Prometheus    bool
+	PrometheusJob string
 
 	WARC         bool
 	WARCPrefix   string

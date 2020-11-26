@@ -6,6 +6,9 @@ import (
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func (crawl *Crawl) startAPI() {
@@ -16,7 +19,7 @@ func (crawl *Crawl) startAPI() {
 
 	pprof.Register(r)
 
-	logInfo.Info("API server started")
+	logInfo.Info("Starting API")
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"rate":         crawl.URIsPerSecond.Rate(),
@@ -25,6 +28,18 @@ func (crawl *Crawl) startAPI() {
 			"running_time": fmt.Sprintf("%s", time.Since(crawl.StartTime)),
 		})
 	})
+
+	// Handle Prometheus export
+	if crawl.Prometheus {
+		logInfo.Info("Starting Prometheus export")
+
+		crawl.PrometheusMetrics.DownloadedURI = promauto.NewCounter(prometheus.CounterOpts{
+			Name: crawl.PrometheusMetrics.JobName + "_downloaded_uri_count_total",
+			Help: "The total number of crawled URI",
+		})
+
+		r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	}
 
 	r.Run(":9443")
 }

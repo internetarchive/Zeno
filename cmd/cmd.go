@@ -54,9 +54,21 @@ var GlobalFlags = []cli.Flag{
 		Name:        "debug",
 		Destination: &config.App.Flags.Debug,
 	},
+
 	&cli.BoolFlag{
 		Name:        "api",
 		Destination: &config.App.Flags.API,
+	},
+	&cli.BoolFlag{
+		Name:        "prometheus",
+		Destination: &config.App.Flags.Prometheus,
+		Usage:       "Export metrics in Prometheus format, using this setting imply --api",
+	},
+	&cli.StringFlag{
+		Name:        "prometheus-job",
+		Destination: &config.App.Flags.PrometheusJob,
+		Usage:       "Prometheus job name, used as a prefix for the exported metrics",
+		Value:       "zeno",
 	},
 
 	&cli.IntFlag{
