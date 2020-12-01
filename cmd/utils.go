@@ -56,6 +56,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.WARCOperator = flags.WARCOperator
 
 	c.API = flags.API
+	c.APIPort = flags.APIPort
 
 	// If Prometheus is specified, then we make sure
 	// c.API is true
@@ -63,7 +64,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	if c.Prometheus == true {
 		c.API = true
 		c.PrometheusMetrics = new(crawl.PrometheusMetrics)
-		c.PrometheusMetrics.JobName = flags.PrometheusJob
+		c.PrometheusMetrics.Prefix = flags.PrometheusPrefix
 	}
 
 	c.UserAgent = flags.UserAgent

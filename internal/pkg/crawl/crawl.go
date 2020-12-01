@@ -20,7 +20,7 @@ var logWarning *logrus.Logger
 
 // PrometheusMetrics define all the metrics exposed by the Prometheus exporter
 type PrometheusMetrics struct {
-	JobName       string
+	Prefix        string
 	DownloadedURI prometheus.Counter
 }
 
@@ -59,6 +59,7 @@ type Crawl struct {
 
 	// API settings
 	API               bool
+	APIPort           string
 	Prometheus        bool
 	PrometheusMetrics *PrometheusMetrics
 

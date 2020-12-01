@@ -2,6 +2,7 @@ package crawl
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/pprof"
@@ -31,15 +32,25 @@ func (crawl *Crawl) startAPI() {
 
 	// Handle Prometheus export
 	if crawl.Prometheus {
-		logInfo.Info("Starting Prometheus export")
+		labels := make(map[string]string)
+
+		labels["crawljob"] = crawl.Job
+		hostname, err := os.Hostname()
+		if err != nil {
+			logWarning.Warn("Unable to retrieve hostname of machine")
+			hostname = "unknown"
+		}
+		labels["host"] = hostname + ":" + crawl.APIPort
 
 		crawl.PrometheusMetrics.DownloadedURI = promauto.NewCounter(prometheus.CounterOpts{
-			Name: crawl.PrometheusMetrics.JobName + "_downloaded_uri_count_total",
-			Help: "The total number of crawled URI",
+			Name:        crawl.PrometheusMetrics.Prefix + "downloaded_uri_count_total",
+			ConstLabels: labels,
+			Help:        "The total number of crawled URI",
 		})
 
+		logInfo.Info("Starting Prometheus export")
 		r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	}
 
-	r.Run(":9443")
+	r.Run(":" + crawl.APIPort)
 }
