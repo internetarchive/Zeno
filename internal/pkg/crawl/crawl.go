@@ -29,6 +29,7 @@ type Crawl struct {
 	*sync.Mutex
 	StartTime time.Time
 	SeedList  []frontier.Item
+	Paused    *utils.TAtomBool
 	Finished  *utils.TAtomBool
 
 	// Frontier
@@ -87,6 +88,7 @@ type Crawl struct {
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
 	c.StartTime = time.Now()
+	c.Paused = new(utils.TAtomBool)
 	c.Finished = new(utils.TAtomBool)
 	regexOutlinks = xurls.Relaxed()
 
