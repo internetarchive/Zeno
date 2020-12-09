@@ -107,6 +107,10 @@ func (c *Crawl) Start() (err error) {
 	c.Frontier.Load()
 	c.Frontier.Start()
 
+	// Start the background process that will periodically check if the disk
+	// have enough free space, and potentially pause the crawl if it doesn't
+	go c.handleCrawlPause()
+
 	// Function responsible for writing to disk the frontier's hosts pool
 	// and other stats needed to resume the crawl. The process happen every minute.
 	// The actual queue used during the crawl and seencheck aren't included in this,
