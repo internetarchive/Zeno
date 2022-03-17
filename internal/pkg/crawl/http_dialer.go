@@ -5,12 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"net"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -34,21 +30,21 @@ func (cc *customConnection) Write(b []byte) (int, error) {
 	return cc.Writer.Write(b)
 }
 
-func (crawl *Crawl) wrapConnection(c net.Conn, output io.Writer) net.Conn {
-	respTempFile, err := ioutil.TempFile(filepath.Join(crawl.JobPath, "temp"), "*.temp")
+func (crawl *Crawl) wrapConnection(c net.Conn, URLString string) net.Conn {
+	respReader, respWriter := io.Pipe()
+	reqReader, reqWriter := io.Pipe()
+
+	URL, err := url.Parse(URLString)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
-	reqTempFile, err := ioutil.TempFile(filepath.Join(crawl.JobPath, "temp"), "*.temp")
-	if err != nil {
-		log.Fatal(err)
-	}
+	go crawl.writeWARCFromConnection(respReader, reqReader, URL)
 
 	return &customConnection{
 		Conn:   c,
-		Reader: io.TeeReader(c, respTempFile),
-		Writer: io.MultiWriter(reqTempFile, c),
+		Reader: io.TeeReader(c, respWriter),
+		Writer: io.MultiWriter(c, reqWriter),
 	}
 }
 
@@ -58,12 +54,7 @@ func (dialer *customDialer) CustomDial(network, address string) (net.Conn, error
 		return nil, err
 	}
 
-	file, err := os.Create("testeuh.txt")
-	if err != nil {
-		panic(err)
-	}
-
-	return dialer.c.wrapConnection(conn, file), nil
+	return dialer.c.wrapConnection(conn, "http://"+address), nil
 }
 
 func (dialer *customDialer) CustomDialTLS(network, address string) (net.Conn, error) {
@@ -88,6 +79,7 @@ func (dialer *customDialer) CustomDialTLS(network, address string) (net.Conn, er
 	timer := time.AfterFunc(time.Second, func() {
 		errc <- errors.New("TLS handshake timeout")
 	})
+
 	go func() {
 		err := tlsConn.Handshake()
 		timer.Stop()
@@ -97,6 +89,7 @@ func (dialer *customDialer) CustomDialTLS(network, address string) (net.Conn, er
 		plainConn.Close()
 		return nil, err
 	}
+
 	if !cfg.InsecureSkipVerify {
 		if err := tlsConn.VerifyHostname(cfg.ServerName); err != nil {
 			plainConn.Close()
@@ -104,10 +97,5 @@ func (dialer *customDialer) CustomDialTLS(network, address string) (net.Conn, er
 		}
 	}
 
-	file, err := os.Create("testeuh.txt")
-	if err != nil {
-		panic(err)
-	}
-
-	return dialer.c.wrapConnection(tlsConn, file), nil // return a wrapped net.Conn
+	return dialer.c.wrapConnection(tlsConn, "https://"+address), nil // return a wrapped net.Conn
 }
