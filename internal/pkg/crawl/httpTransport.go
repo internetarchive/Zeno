@@ -8,11 +8,14 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/http2"
 )
 
 type customTransport struct {
 	http.Transport
-	c *Crawl
+	c   *Crawl
+	d   *customDialer
+	h2t *http2.Transport
 }
 
 func isRedirection(statusCode int) bool {
@@ -45,6 +48,17 @@ func (t *customTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 		if i != 0 {
 			resp.Body.Close()
 		}
+
+		// conn, err := t.d.DialRequest(req)
+		// if err != nil {
+		// 	return nil, err
+		// }
+
+		// h2c, err := t.h2t.NewClientConn(conn)
+		// if err != nil {
+		// 	panic(err)
+		// 	return nil, err
+		// }
 
 		resp, err = t.Transport.RoundTrip(req)
 		if err != nil {

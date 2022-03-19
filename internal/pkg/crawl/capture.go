@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -161,6 +162,8 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// If the response isn't a text/*, we do not scrape it, and we delete the
 	// temporary file if it exists
 	if strings.Contains(resp.Header.Get("Content-Type"), "text/") == false {
+		// enforce reading all data from the response
+		io.Copy(io.Discard, resp.Body)
 		return
 	}
 

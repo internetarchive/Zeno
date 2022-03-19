@@ -2,7 +2,6 @@ package crawl
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -13,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/CorentinB/warc"
+	"github.com/remeh/sizedwaitgroup"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -64,48 +64,64 @@ func (c *Crawl) initWARCWriter() {
 	}
 }
 
-func (c *Crawl) writeWARCFromConnection(respReader, reqReader *io.PipeReader, URL *url.URL) (err error) {
+func (c *Crawl) writeWARCFromConnection(req, resp *io.PipeReader, URL *url.URL) (err error) {
+	defer c.WaitGroup.Done()
+
 	var (
-		batch = warc.NewRecordBatch()
+		batch      = warc.NewRecordBatch()
+		recordChan = make(chan *warc.Record)
 	)
 
-	var data []byte
-	read, err := reqReader.Read(data)
-	if err != nil {
-		panic(err)
+	swg := sizedwaitgroup.New(2)
+
+	go func() {
+		defer swg.Done()
+
+		// initialize the request record
+		var requestRecord = warc.NewRecord()
+		requestRecord.Header.Set("WARC-Type", "request")
+		requestRecord.Header.Set("WARC-Target-URI", URL.String())
+		requestRecord.Header.Set("Host", URL.Host)
+		requestRecord.Header.Set("Content-Type", "application/http; msgtype=request")
+
+		var buf bytes.Buffer
+		_, err := io.Copy(&buf, req)
+		if err != nil {
+			panic(err)
+		}
+
+		requestRecord.Content = &buf
+
+		recordChan <- requestRecord
+	}()
+
+	go func() {
+		defer swg.Done()
+
+		// initialize the response record
+		var responseRecord = warc.NewRecord()
+		responseRecord.Header.Set("WARC-Type", "response")
+		responseRecord.Header.Set("WARC-Target-URI", URL.String())
+		responseRecord.Header.Set("Host", URL.Host)
+		responseRecord.Header.Set("Content-Type", "application/http; msgtype=response")
+
+		var buf bytes.Buffer
+		_, err := io.Copy(&buf, resp)
+		if err != nil {
+			panic(err)
+		}
+
+		responseRecord.Content = &buf
+
+		recordChan <- responseRecord
+	}()
+
+	swg.Wait()
+
+	for i := 0; i < 2; i++ {
+		record := <-recordChan
+		batch.Records = append(batch.Records, record)
 	}
-
-	fmt.Println(read)
-	fmt.Println(data)
-
-	// initialize the request record
-	var requestRecord = warc.NewRecord()
-	requestRecord.Header.Set("WARC-Type", "request")
-	requestRecord.Header.Set("WARC-Target-URI", URL.String())
-	requestRecord.Header.Set("Host", URL.Host)
-	requestRecord.Header.Set("Content-Type", "application/http; msgtype=request")
-
-	requestRecord.Content = bytes.NewReader(data)
-
-	read, err = respReader.Read(data)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(read)
-	fmt.Println(data)
-
-	// initialize the response record
-	var responseRecord = warc.NewRecord()
-	responseRecord.Header.Set("WARC-Type", "response")
-	responseRecord.Header.Set("WARC-Target-URI", URL.String())
-	responseRecord.Header.Set("Host", URL.Host)
-	responseRecord.Header.Set("Content-Type", "application/http; msgtype=response")
-
-	responseRecord.Content = bytes.NewReader(data)
-
-	// Append records to the record batch
-	batch.Records = append(batch.Records, requestRecord, responseRecord)
 
 	c.WARCWriter <- batch
 

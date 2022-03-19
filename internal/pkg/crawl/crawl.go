@@ -83,6 +83,8 @@ type Crawl struct {
 	KafkaFeedTopic       string
 	KafkaOutlinksTopic   string
 	KafkaProducerChannel chan *frontier.Item
+
+	*sync.WaitGroup
 }
 
 // Start fire up the crawling process
@@ -90,6 +92,7 @@ func (c *Crawl) Start() (err error) {
 	c.StartTime = time.Now()
 	c.Paused = new(utils.TAtomBool)
 	c.Finished = new(utils.TAtomBool)
+	c.WaitGroup = new(sync.WaitGroup)
 	regexOutlinks = xurls.Relaxed()
 
 	// Setup logging

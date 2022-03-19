@@ -30,6 +30,11 @@ func (crawl *Crawl) catchFinish() {
 func (crawl *Crawl) finish() {
 	crawl.Finished.Set(true)
 
+	crawl.Client.CloseIdleConnections()
+	logrus.Warning("Waiting for writing")
+	crawl.WaitGroup.Wait()
+	logrus.Warning("Done writing")
+
 	// First we wait for the queue reader to finish its current work,
 	// and stop it, when it's stopped it won't dispatch any additional work
 	// so we can safely close the channel it is using, and wait for all the
