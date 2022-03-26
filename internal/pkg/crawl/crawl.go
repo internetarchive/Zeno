@@ -1,7 +1,8 @@
 package crawl
 
 import (
-	"net/http"
+	"os"
+	"path"
 	"sync"
 	"time"
 
@@ -37,8 +38,8 @@ type Crawl struct {
 
 	// Crawl settings
 	WorkerPool            sizedwaitgroup.SizedWaitGroup
-	Client                *http.Client
-	ClientProxied         *http.Client
+	Client                *warc.CustomHTTPClient
+	ClientProxied         *warc.CustomHTTPClient
 	Logger                logrus.Logger
 	DisabledHTMLTags      []string
 	ExcludedHosts         []string
@@ -70,7 +71,6 @@ type Crawl struct {
 	Crawled       *ratecounter.Counter
 
 	// WARC settings
-	WARC             bool
 	WARCPrefix       string
 	WARCOperator     string
 	WARCWriter       chan *warc.RecordBatch
@@ -83,8 +83,6 @@ type Crawl struct {
 	KafkaFeedTopic       string
 	KafkaOutlinksTopic   string
 	KafkaProducerChannel chan *frontier.Item
-
-	*sync.WaitGroup
 }
 
 // Start fire up the crawling process
@@ -92,14 +90,13 @@ func (c *Crawl) Start() (err error) {
 	c.StartTime = time.Now()
 	c.Paused = new(utils.TAtomBool)
 	c.Finished = new(utils.TAtomBool)
-	c.WaitGroup = new(sync.WaitGroup)
 	regexOutlinks = xurls.Relaxed()
 
 	// Setup logging
 	logInfo, logWarning = utils.SetupLogging(c.JobPath)
 
 	// Initialize HTTP client
-	c.initHTTPClient()
+	// c.initHTTPClient()
 
 	// Start the background process that will handle os signals
 	// to exit Zeno, like CTRL+C
@@ -121,11 +118,23 @@ func (c *Crawl) Start() (err error) {
 	go c.writeFrontierToDisk()
 
 	// Initialize WARC writer
-	if c.WARC {
-		logrus.Info("Initializing WARC writer pool..")
-		c.initWARCWriter()
-		logrus.Info("WARC writer pool initialized")
+	logrus.Info("Initializing WARC writer..")
+
+	// init WARC rotator settings
+	rotatorSettings := c.initWARCRotatorSettings()
+
+	// create the directory in which temporary files will be stored
+	// and start the temp files cleaner process
+	os.MkdirAll(path.Join(c.JobPath, "temp"), os.ModePerm)
+	go c.tempFilesCleaner()
+
+	// init the HTTP client responsible for recording HTTP(s) requests / responses
+	c.Client, err = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true)
+	if err != nil {
+		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
 	}
+
+	logrus.Info("WARC writer initialized")
 
 	if c.API {
 		go c.startAPI()

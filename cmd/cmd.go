@@ -125,12 +125,6 @@ var GlobalFlags = []cli.Flag{
 	},
 
 	// WARC flags
-	&cli.BoolFlag{
-		Name:        "warc",
-		Value:       true,
-		Usage:       "Write all traffic in WARC files",
-		Destination: &config.App.Flags.WARC,
-	},
 	&cli.StringFlag{
 		Name:        "warc-prefix",
 		Value:       "ZENO",

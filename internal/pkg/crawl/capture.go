@@ -39,20 +39,12 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		}
 	}
 
-	// Write response and request to WARC.
-	if c.WARC {
-		// respPath, err = c.writeWARC(resp)
-		// if err != nil {
-		// 	resp.Body.Close()
-		// 	return resp, respPath, err
-		// }
-
-		if c.Prometheus {
-			c.PrometheusMetrics.DownloadedURI.Inc()
-		}
-
-		c.Crawled.Incr(1)
+	if c.Prometheus {
+		c.PrometheusMetrics.DownloadedURI.Inc()
 	}
+
+	c.URIsPerSecond.Incr(1)
+	c.Crawled.Incr(1)
 
 	// If a redirection is catched, then we execute the redirection
 	if isRedirection(resp.StatusCode) {

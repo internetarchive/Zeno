@@ -51,7 +51,6 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.CaptureAlternatePages = flags.CaptureAlternatePages
 
 	// WARC settings
-	c.WARC = flags.WARC
 	c.WARCPrefix = flags.WARCPrefix
 	c.WARCOperator = flags.WARCOperator
 

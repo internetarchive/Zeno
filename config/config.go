@@ -27,7 +27,6 @@ type Flags struct {
 	Prometheus       bool
 	PrometheusPrefix string
 
-	WARC         bool
 	WARCPrefix   string
 	WARCOperator string
 

@@ -3,7 +3,7 @@ module github.com/CorentinB/Zeno
 go 1.18
 
 require (
-	github.com/CorentinB/warc v0.5.6
+	github.com/CorentinB/warc v0.7.0
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
@@ -25,7 +25,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeebo/xxh3 v0.8.2
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	mvdan.cc/xurls/v2 v2.2.0
 )
 
@@ -46,7 +45,7 @@ require (
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
-	github.com/klauspost/compress v1.10.0 // indirect
+	github.com/klauspost/compress v1.15.1 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.3 // indirect
@@ -68,6 +67,8 @@ require (
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tebeka/strftime v0.1.5 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
