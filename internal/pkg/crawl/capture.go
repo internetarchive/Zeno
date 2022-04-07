@@ -115,6 +115,9 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	defer resp.Body.Close()
 	defer markTempFileDone(respPath)
 
+	// needed for WARC writing
+	io.Copy(io.Discard, resp.Body)
+
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
 	return nil
