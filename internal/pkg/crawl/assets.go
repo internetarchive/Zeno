@@ -64,9 +64,12 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 					var result map[string]interface{}
 
 					// Unmarshal or Decode the JSON to the interface.
-					json.Unmarshal([]byte(item.Text()), &result)
-					rawAssets = append(rawAssets, parseURLFromJSON(result)...)
-					return
+					err = json.Unmarshal([]byte(item.Text()), &result)
+					if err != nil {
+						logWarning.Warning(err)
+					} else {
+						rawAssets = append(rawAssets, parseURLFromJSON(result)...)
+					}
 				}
 			}
 
@@ -79,6 +82,22 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 				for _, scriptLink := range scriptLinks {
 					if strings.HasPrefix(scriptLink, "http") {
 						rawAssets = append(rawAssets, scriptLink)
+					}
+				}
+			}
+
+			// Some <script> embed variable initialisation, we can strip the variable part and just scrape JSON
+			if strings.HasPrefix(item.Text(), "window[") || strings.HasPrefix(item.Text(), "window.") {
+				jsonContent := strings.SplitAfterN(item.Text(), "=", 2)
+
+				if len(jsonContent) > 1 {
+					var result map[string]interface{}
+
+					err = json.Unmarshal([]byte(jsonContent[1]), &result)
+					if err != nil {
+						logWarning.Warning(err)
+					} else {
+						rawAssets = append(rawAssets, parseURLFromJSON(result)...)
 					}
 				}
 			}
