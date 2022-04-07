@@ -150,12 +150,7 @@ func (c *Crawl) Start() (err error) {
 
 	// parse input cookie file if specified
 	if c.CookieFile != "" {
-		// c.Cookies, err = cookiemonster.ParseFile("cookies.txt")
-		// if err != nil {
-		// 	panic(err)
-		// }
-
-		cookieJar, err := cookiejar.NewFileJar("cookie.txt", nil)
+		cookieJar, err := cookiejar.NewFileJar(c.CookieFile, nil)
 		if err != nil {
 			panic(err)
 		}
