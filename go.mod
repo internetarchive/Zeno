@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	git.archive.org/wb/gocrawlhq v1.1.2
-	github.com/CorentinB/warc v0.7.0
+	github.com/CorentinB/warc v0.8.0
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
@@ -27,6 +27,7 @@ require (
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeebo/xxh3 v0.8.2
 	mvdan.cc/xurls/v2 v2.2.0
+	rogchap.com/v8go v0.7.0
 )
 
 require (
@@ -78,5 +79,3 @@ require (
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
 )
-
-replace github.com/CorentinB/warc v0.7.0 => /home/corentin/Documents/work/ia/warc
