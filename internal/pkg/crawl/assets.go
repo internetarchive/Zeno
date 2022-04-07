@@ -87,13 +87,41 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 			}
 
 			// Some <script> embed variable initialisation, we can strip the variable part and just scrape JSON
+			// TODO: handle multiple variables
 			if strings.HasPrefix(item.Text(), "window[") || strings.HasPrefix(item.Text(), "window.") {
 				jsonContent := strings.SplitAfterN(item.Text(), "=", 2)
 
 				if len(jsonContent) > 1 {
-					var result map[string]interface{}
+					var (
+						openSeagullCount   int
+						closedSeagullCount int
+						payloadEndPosition int
+					)
 
-					err = json.Unmarshal([]byte(jsonContent[1]), &result)
+					// figure out the end of the payload
+					for pos, char := range jsonContent[1] {
+						if char == '{' {
+							openSeagullCount++
+						} else if char == '}' {
+							closedSeagullCount++
+						} else {
+							continue
+						}
+
+						if openSeagullCount > 0 {
+							if openSeagullCount == closedSeagullCount {
+								payloadEndPosition = pos
+								break
+							}
+						}
+					}
+
+					var (
+						payload = jsonContent[1][:payloadEndPosition+1]
+						result  map[string]interface{}
+					)
+
+					err = json.Unmarshal([]byte(payload), &result)
 					if err != nil {
 						logWarning.Warning(err)
 					} else {
