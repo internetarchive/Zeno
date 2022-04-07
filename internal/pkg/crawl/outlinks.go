@@ -46,15 +46,15 @@ func (c *Crawl) queueOutlinks(outlinks []url.URL, item *frontier.Item) {
 
 		if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
 			newItem := frontier.NewItem(&outlink, item, "seed", 0)
-			if c.UseKafka && len(c.KafkaOutlinksTopic) > 0 {
-				c.KafkaProducerChannel <- newItem
+			if c.UseHQ {
+				c.HQProducerChannel <- newItem
 			} else {
 				c.Frontier.PushChan <- newItem
 			}
 		} else {
 			newItem := frontier.NewItem(&outlink, item, "seed", item.Hop+1)
-			if c.UseKafka && len(c.KafkaOutlinksTopic) > 0 {
-				c.KafkaProducerChannel <- newItem
+			if c.UseHQ {
+				c.HQProducerChannel <- newItem
 			} else {
 				c.Frontier.PushChan <- newItem
 			}

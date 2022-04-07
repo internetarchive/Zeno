@@ -65,6 +65,11 @@ func (f *Frontier) readItemsFromQueue() {
 	}
 
 	for {
+		if f.FinishingQueueReader.Get() == true {
+			f.IsQueueReaderActive.Set(false)
+			return
+		}
+
 		if f.Paused.Get() {
 			time.Sleep(time.Second)
 		}

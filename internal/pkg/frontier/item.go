@@ -8,6 +8,7 @@ import (
 
 // Item is crawl-able object
 type Item struct {
+	ID         int
 	Hash       uint64
 	Hop        uint8
 	Host       string

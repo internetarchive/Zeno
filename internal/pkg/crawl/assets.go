@@ -139,5 +139,10 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 	// Go over all assets and outlinks and make sure they are absolute links
 	assets = utils.MakeAbsolute(base, assets)
 
+	// for _, url := range assets {
+	// 	fmt.Println(url.String())
+	// }
+	// os.Exit(1)
+
 	return utils.DedupeURLs(assets), nil
 }

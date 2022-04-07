@@ -69,19 +69,19 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.UserAgent = flags.UserAgent
 	c.Headless = flags.Headless
 
+	c.CookieFile = flags.CookieFile
+	c.KeepCookies = flags.KeepCookies
+
 	// Proxy settings
 	c.Proxy = flags.Proxy
 	c.BypassProxy = flags.BypassProxy.Value()
 
-	// Kafka settings
-	c.UseKafka = flags.Kafka
-	c.KafkaConsumerGroup = flags.KafkaConsumerGroup
-	c.KafkaFeedTopic = flags.KafkaFeedTopic
-	c.KafkaOutlinksTopic = flags.KafkaOutlinksTopic
-	c.KafkaBrokers = flags.KafkaBrokers.Value()
-	if c.UseKafka && (len(c.KafkaFeedTopic) == 0 || len(c.KafkaBrokers) == 0) {
-		logrus.Fatal("Kafka used but no broker or feed topic specified")
-	}
+	// Crawl HQ settings
+	c.UseHQ = flags.UseHQ
+	c.HQProject = flags.HQProject
+	c.HQKey = flags.HQKey
+	c.HQSecret = flags.HQSecret
+	c.HQStrategy = flags.HQStrategy
 
 	return c
 }

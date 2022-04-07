@@ -35,6 +35,16 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Maximum number of hops to execute",
 		Destination: &config.App.Flags.MaxHops,
 	},
+	&cli.StringFlag{
+		Name:        "cookie-file",
+		Usage:       "File containing cookies that will be used for requests",
+		Destination: &config.App.Flags.CookieFile,
+	},
+	&cli.BoolFlag{
+		Name:        "keep-cookies",
+		Usage:       "Keep a global cookie jar",
+		Destination: &config.App.Flags.KeepCookies,
+	},
 	&cli.BoolFlag{
 		Name:        "headless",
 		Usage:       "Use headless browsers instead of standard GET requests",
@@ -138,32 +148,37 @@ var GlobalFlags = []cli.Flag{
 		Destination: &config.App.Flags.WARCOperator,
 	},
 
-	// Kafka flags
+	// Crawl HQ flags
 	&cli.BoolFlag{
-		Name:        "kafka",
+		Name:        "hq",
 		Value:       false,
-		Usage:       "Use Kafka to pull URLs to process",
-		Destination: &config.App.Flags.Kafka,
-	},
-	&cli.StringSliceFlag{
-		Name:        "kafka-brokers",
-		Usage:       "Kafka brokers to connect to",
-		Destination: &config.App.Flags.KafkaBrokers,
+		Usage:       "Use Crawl HQ to pull URLs to process",
+		Destination: &config.App.Flags.UseHQ,
 	},
 	&cli.StringFlag{
-		Name:        "kafka-feed-topic",
-		Usage:       "Kafka topic to pull seeds from",
-		Destination: &config.App.Flags.KafkaFeedTopic,
+		Name:        "hq-address",
+		Usage:       "Crawl HQ address",
+		Destination: &config.App.Flags.HQAddress,
 	},
 	&cli.StringFlag{
-		Name:        "kafka-outlinks-topic",
-		Usage:       "Kafka topic to push discovered seeds to",
-		Destination: &config.App.Flags.KafkaOutlinksTopic,
+		Name:        "hq-key",
+		Usage:       "Crawl HQ key",
+		Destination: &config.App.Flags.HQKey,
 	},
 	&cli.StringFlag{
-		Name:        "kafka-consumer-group",
-		Usage:       "Kafka consumer group to use for feeding Zeno",
-		Destination: &config.App.Flags.KafkaConsumerGroup,
+		Name:        "hq-secret",
+		Usage:       "Crawl HQ secret",
+		Destination: &config.App.Flags.HQSecret,
+	},
+	&cli.StringFlag{
+		Name:        "hq-project",
+		Usage:       "Crawl HQ project",
+		Destination: &config.App.Flags.HQProject,
+	},
+	&cli.StringFlag{
+		Name:        "hq-strategy",
+		Usage:       "Crawl HQ feeding strategy",
+		Destination: &config.App.Flags.HQStrategy,
 	},
 }
 

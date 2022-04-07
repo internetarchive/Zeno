@@ -22,6 +22,9 @@ type Flags struct {
 	Proxy       string
 	BypassProxy cli.StringSlice
 
+	CookieFile  string
+	KeepCookies bool
+
 	API              bool
 	APIPort          string
 	Prometheus       bool
@@ -30,11 +33,12 @@ type Flags struct {
 	WARCPrefix   string
 	WARCOperator string
 
-	Kafka              bool
-	KafkaFeedTopic     string
-	KafkaOutlinksTopic string
-	KafkaConsumerGroup string
-	KafkaBrokers       cli.StringSlice
+	UseHQ      bool
+	HQAddress  string
+	HQProject  string
+	HQKey      string
+	HQSecret   string
+	HQStrategy string
 }
 
 type Application struct {

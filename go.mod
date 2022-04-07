@@ -3,11 +3,11 @@ module github.com/CorentinB/Zeno
 go 1.18
 
 require (
+	git.archive.org/wb/gocrawlhq v1.1.2
 	github.com/CorentinB/warc v0.7.0
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
-	github.com/confluentinc/confluent-kafka-go v1.4.2
 	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-gonic/gin v1.6.3
 	github.com/google/uuid v1.1.2
@@ -22,7 +22,8 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/afero v1.4.1
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
+	github.com/telanflow/cookiejar v0.0.0-20190719062046-114449e86aa5
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeebo/xxh3 v0.8.2
 	mvdan.cc/xurls/v2 v2.2.0
@@ -42,6 +43,7 @@ require (
 	github.com/go-playground/validator/v10 v10.2.0 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/gomodule/redigo v1.8.8 // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
@@ -76,3 +78,5 @@ require (
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
 )
+
+replace github.com/CorentinB/warc v0.7.0 => /home/corentin/Documents/work/ia/warc

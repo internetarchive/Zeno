@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"net/http"
 	"os"
 	"path"
 	"sync"
@@ -13,6 +14,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
+	"github.com/telanflow/cookiejar"
 	"mvdan.cc/xurls/v2"
 )
 
@@ -33,10 +35,10 @@ type Crawl struct {
 	Paused    *utils.TAtomBool
 	Finished  *utils.TAtomBool
 
-	// Frontier
+	// frontier
 	Frontier *frontier.Frontier
 
-	// Crawl settings
+	// crawl settings
 	WorkerPool            sizedwaitgroup.SizedWaitGroup
 	Client                *warc.CustomHTTPClient
 	ClientProxied         *warc.CustomHTTPClient
@@ -55,7 +57,12 @@ type Crawl struct {
 	Seencheck             bool
 	Workers               int
 
-	// Proxy settings
+	// cookie-related settings
+	CookieFile  string
+	KeepCookies bool
+	CookieJar   http.CookieJar
+
+	// proxy settings
 	Proxy       string
 	BypassProxy []string
 
@@ -65,7 +72,7 @@ type Crawl struct {
 	Prometheus        bool
 	PrometheusMetrics *PrometheusMetrics
 
-	// Real time statistics
+	// real time statistics
 	URIsPerSecond *ratecounter.RateCounter
 	ActiveWorkers *ratecounter.Counter
 	Crawled       *ratecounter.Counter
@@ -76,13 +83,14 @@ type Crawl struct {
 	WARCWriter       chan *warc.RecordBatch
 	WARCWriterFinish chan bool
 
-	// Kafka settings
-	UseKafka             bool
-	KafkaBrokers         []string
-	KafkaConsumerGroup   string
-	KafkaFeedTopic       string
-	KafkaOutlinksTopic   string
-	KafkaProducerChannel chan *frontier.Item
+	// crawl HQ settings
+	UseHQ             bool
+	HQAddress         string
+	HQProject         string
+	HQKey             string
+	HQSecret          string
+	HQStrategy        string
+	HQProducerChannel chan *frontier.Item
 }
 
 // Start fire up the crawling process
@@ -129,7 +137,7 @@ func (c *Crawl) Start() (err error) {
 	go c.tempFilesCleaner()
 
 	// init the HTTP client responsible for recording HTTP(s) requests / responses
-	c.Client, err = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true)
+	c.Client, err = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true, warc.DedupeOptions{LocalDedupe: true})
 	if err != nil {
 		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
 	}
@@ -140,23 +148,36 @@ func (c *Crawl) Start() (err error) {
 		go c.startAPI()
 	}
 
+	// parse input cookie file if specified
+	if c.CookieFile != "" {
+		// c.Cookies, err = cookiemonster.ParseFile("cookies.txt")
+		// if err != nil {
+		// 	panic(err)
+		// }
+
+		cookieJar, err := cookiejar.NewFileJar("cookie.txt", nil)
+		if err != nil {
+			panic(err)
+		}
+
+		c.Client.Jar = cookieJar
+	}
+
 	// Fire up the desired amount of workers
 	for i := 0; i < c.Workers; i++ {
 		c.WorkerPool.Add()
-		go c.Worker(&c.WorkerPool)
+		go c.Worker()
 	}
 
 	// Start the process responsible for printing live stats on the standard output
 	go c.printLiveStats()
 
-	// If Kafka parameters are specified, then we start the background
-	// processes responsible for pulling and pushing seeds from and to Kafka
-	if c.UseKafka {
-		c.KafkaProducerChannel = make(chan *frontier.Item, c.Workers)
-		go c.kafkaConsumer()
-		if len(c.KafkaOutlinksTopic) > 0 {
-			go c.kafkaProducer()
-		}
+	// If crawl HQ parameters are specified, then we start the background
+	// processes responsible for pulling and pushing seeds from and to HQ
+	if c.UseHQ {
+		c.HQProducerChannel = make(chan *frontier.Item, c.Workers)
+		go c.hqConsumer()
+		go c.hqProducer()
 	} else {
 		// Push the seed list to the queue
 		logrus.Info("Pushing seeds in the local queue..")
@@ -170,7 +191,7 @@ func (c *Crawl) Start() (err error) {
 
 	// Start the background process that will catch when there
 	// is nothing more to crawl
-	if !c.UseKafka {
+	if !c.UseHQ {
 		c.catchFinish()
 	} else {
 		for {

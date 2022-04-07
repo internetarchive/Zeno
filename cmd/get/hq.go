@@ -8,27 +8,27 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func newGetKafkaCmd() *cli.Command {
+func newGetHQCmd() *cli.Command {
 	return &cli.Command{
-		Name:      "kafka",
-		Usage:     "Start crawling with the Kafka connector",
-		Action:    cmdGetKafka,
+		Name:      "hq",
+		Usage:     "Start crawling with the crawl HQ connector",
+		Action:    cmdGetHQ,
 		Flags:     []cli.Flag{},
 		UsageText: "<FILE> [ARGUMENTS]",
 	}
 }
 
-func cmdGetKafka(c *cli.Context) error {
+func cmdGetHQ(c *cli.Context) error {
 	err := initLogging(c)
 	if err != nil {
 		log.Error("Unable to parse arguments")
 		return err
 	}
 
-	// Init crawl using the flags provided
+	// init crawl using the flags provided
 	crawl := cmd.InitCrawlWithCMD(config.App.Flags)
 
-	// Start crawl
+	// start crawl
 	err = crawl.Start()
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
