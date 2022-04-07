@@ -3,6 +3,7 @@ package crawl
 import (
 	"encoding/json"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
@@ -46,6 +47,21 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 			link, exists := item.Attr("src")
 			if exists {
 				rawAssets = append(rawAssets, link)
+			}
+		})
+	}
+
+	if !utils.StringInSlice("style", c.DisabledHTMLTags) {
+		doc.Find("style").Each(func(index int, item *goquery.Selection) {
+			re := regexp.MustCompile(`(?m)url\((.*?)\)`)
+			matches := re.FindAllStringSubmatch(item.Text(), -1)
+
+			for match := range matches {
+				match_replacement := matches[match][1]
+				match_replacement = strings.Replace(match_replacement, "'", "", -1)
+				match_replacement = strings.Replace(match_replacement, "\"", "", -1)
+				match_replacement = strings.Replace(match_replacement, "//", "http://", -1)
+				rawAssets = append(rawAssets, match_replacement)
 			}
 		})
 	}
