@@ -27,7 +27,7 @@ require (
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeebo/xxh3 v0.8.2
-	mvdan.cc/xurls/v2 v2.2.0
+	mvdan.cc/xurls/v2 v2.4.0
 )
 
 require (
