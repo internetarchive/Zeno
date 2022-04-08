@@ -326,8 +326,14 @@ func getURLsFromJSON(payload gjson.Result) (links []string) {
 		}
 	} else {
 		for _, element := range payload.Map() {
-			if strings.HasPrefix(element.Str, "http") || strings.HasPrefix(element.Str, "/") {
-				links = append(links, element.Str)
+			if element.IsObject() {
+				links = append(links, getURLsFromJSON(element)...)
+			} else if element.IsArray() {
+				links = append(links, getURLsFromJSON(element)...)
+			} else {
+				if strings.HasPrefix(element.Str, "http") || strings.HasPrefix(element.Str, "/") {
+					links = append(links, element.Str)
+				}
 			}
 		}
 	}
