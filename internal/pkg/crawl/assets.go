@@ -1,33 +1,14 @@
 package crawl
 
 import (
-	"encoding/json"
 	"net/url"
 	"regexp"
 	"strings"
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/tidwall/gjson"
 )
-
-func parseURLFromJSON(value interface{}) (URLs []string) {
-	switch JSON := value.(type) {
-	case map[string]interface{}:
-		for _, v := range JSON {
-			switch vChild := v.(type) {
-			case string:
-				if strings.HasPrefix(vChild, "http") {
-					URLs = append(URLs, vChild)
-				}
-			case map[string]interface{}:
-				URLs = append(URLs, parseURLFromJSON(vChild)...)
-			}
-		}
-	default:
-		return
-	}
-	return URLs
-}
 
 func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []url.URL, err error) {
 	var rawAssets []string
@@ -76,16 +57,8 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 			scriptType, exists := item.Attr("type")
 			if exists {
 				if scriptType == "application/json" {
-					// Declared an empty interface
-					var result map[string]interface{}
-
-					// Unmarshal or Decode the JSON to the interface.
-					err = json.Unmarshal([]byte(item.Text()), &result)
-					if err != nil {
-						logWarning.Warning(err)
-					} else {
-						rawAssets = append(rawAssets, parseURLFromJSON(result)...)
-					}
+					payload := gjson.Parse(item.Text())
+					rawAssets = append(rawAssets, getURLsFromJSON(payload)...)
 				}
 			}
 
@@ -132,17 +105,8 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 						}
 					}
 
-					var (
-						payload = jsonContent[1][:payloadEndPosition+1]
-						result  map[string]interface{}
-					)
-
-					err = json.Unmarshal([]byte(payload), &result)
-					if err != nil {
-						logWarning.Warning(err)
-					} else {
-						rawAssets = append(rawAssets, parseURLFromJSON(result)...)
-					}
+					payload := gjson.Parse(jsonContent[1][:payloadEndPosition+1])
+					rawAssets = append(rawAssets, getURLsFromJSON(payload)...)
 				}
 			}
 		})

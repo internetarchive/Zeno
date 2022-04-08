@@ -24,6 +24,7 @@ require (
 	github.com/spf13/afero v1.4.1
 	github.com/stretchr/testify v1.7.0
 	github.com/telanflow/cookiejar v0.0.0-20190719062046-114449e86aa5
+	github.com/tidwall/gjson v1.14.0
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeebo/xxh3 v0.8.2
@@ -69,6 +70,8 @@ require (
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tebeka/strftime v0.1.5 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect

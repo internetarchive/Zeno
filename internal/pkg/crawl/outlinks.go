@@ -37,6 +37,7 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 
 func (c *Crawl) queueOutlinks(outlinks []url.URL, item *frontier.Item, wg *sync.WaitGroup) {
 	defer wg.Done()
+
 	// Send the outlinks to the pool of workers
 	for _, outlink := range outlinks {
 		outlink := outlink

@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
+	"github.com/tidwall/gjson"
 	"github.com/tomnomnom/linkheader"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
@@ -204,26 +204,18 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// If the response is a JSON document, we would like to scrape it for links.
-	if strings.Contains(resp.Header.Get("Content-Type"), "application/json") {
+	if strings.Contains(resp.Header.Get("Content-Type"), "json") {
 		jsonBody, err := io.ReadAll(resp.Body)
 		if err != nil {
 			logWarning.Warning(err)
 			return
 		}
 
-		var jsonData map[string]interface{}
-		var rawOutlinks []string
-		err = json.Unmarshal(jsonBody, &jsonData)
-		if err != nil {
-			logWarning.Warning(err)
-		} else {
-			rawOutlinks = append(rawOutlinks, parseURLFromJSON(jsonData)...)
-			outlinks := utils.StringSliceToURLSlice(rawOutlinks)
-			outlinks = utils.MakeAbsolute(base, outlinks)
+		outlinks := getURLsFromJSON(gjson.ParseBytes(jsonBody))
 
-			waitGroup.Add(1)
-			go c.queueOutlinks(outlinks, item, &waitGroup)
-		}
+		waitGroup.Add(1)
+		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(outlinks)), item, &waitGroup)
+
 		return
 	}
 
@@ -325,4 +317,20 @@ func markTempFileDone(path string) {
 	if path != "" {
 		os.Rename(path, path+".done")
 	}
+}
+
+func getURLsFromJSON(payload gjson.Result) (links []string) {
+	if payload.IsArray() {
+		for _, arrayElement := range payload.Array() {
+			links = append(links, getURLsFromJSON(arrayElement)...)
+		}
+	} else {
+		for _, element := range payload.Map() {
+			if strings.HasPrefix(element.Str, "http") || strings.HasPrefix(element.Str, "/") {
+				links = append(links, element.Str)
+			}
+		}
+	}
+
+	return links
 }
