@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -169,20 +170,42 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
-	// If the response isn't a text/*, we do not scrape it, and we delete the
-	// temporary file if it exists
-	if strings.Contains(resp.Header.Get("Content-Type"), "text/") == false {
-		// enforce reading all data from the response
-		io.Copy(io.Discard, resp.Body)
-		return
-	}
-
 	// Store the base URL to turn relative links into absolute links later
 	base, err := url.Parse(resp.Request.URL.String())
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
+		return
+	}
+
+	// If the response is a JSON document, we would like to scrape it for links.
+	if strings.Contains(resp.Header.Get("Content-Type"), "application/json") {
+		jsonBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logWarning.Warning(err)
+			return
+		}
+
+		var jsonData map[string]interface{}
+		var rawOutlinks []string
+		err = json.Unmarshal(jsonBody, &jsonData)
+		if err != nil {
+			logWarning.Warning(err)
+		} else {
+			rawOutlinks = append(rawOutlinks, parseURLFromJSON(jsonData)...)
+			outlinks := utils.StringSliceToURLSlice(rawOutlinks)
+			outlinks = utils.MakeAbsolute(base, outlinks)
+			go c.queueOutlinks(outlinks, item)
+		}
+		return
+	}
+
+	// If the response isn't a text/*, we do not scrape it, and we delete the
+	// temporary file if it exists
+	if !strings.Contains(resp.Header.Get("Content-Type"), "text/") {
+		// enforce reading all data from the response
+		io.Copy(io.Discard, resp.Body)
 		return
 	}
 
