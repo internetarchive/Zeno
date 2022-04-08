@@ -8,9 +8,11 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
+	"github.com/tomnomnom/linkheader"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/PuerkitoBio/goquery"
@@ -126,8 +128,13 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 
 // Capture capture the URL and return the outlinks
 func (c *Crawl) Capture(item *frontier.Item) {
-	var executionStart = time.Now()
-	var resp *http.Response
+	var (
+		executionStart = time.Now()
+		resp           *http.Response
+		waitGroup      sync.WaitGroup
+	)
+
+	defer waitGroup.Wait()
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
@@ -170,6 +177,31 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
+	// Scrape potential URLs from Link HTTP header
+	if item.Hop < c.MaxHops {
+		var (
+			links      = linkheader.Parse(resp.Header.Get("link"))
+			discovered []string
+		)
+
+		for _, link := range links {
+			if link.Rel == "prev" || link.Rel == "next" {
+				discovered = append(discovered, link.URL)
+			}
+		}
+
+		waitGroup.Add(1)
+		go c.queueOutlinks(utils.StringSliceToURLSlice(discovered), item, &waitGroup)
+	}
+
+	// If the response isn't a text/*, we do not scrape it, and we delete the
+	// temporary file if it exists
+	if strings.Contains(resp.Header.Get("Content-Type"), "text/") == false {
+		// enforce reading all data from the response
+		io.Copy(io.Discard, resp.Body)
+		return
+	}
+
 	// Store the base URL to turn relative links into absolute links later
 	base, err := url.Parse(resp.Request.URL.String())
 	if err != nil {
@@ -196,7 +228,9 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			rawOutlinks = append(rawOutlinks, parseURLFromJSON(jsonData)...)
 			outlinks := utils.StringSliceToURLSlice(rawOutlinks)
 			outlinks = utils.MakeAbsolute(base, outlinks)
-			go c.queueOutlinks(outlinks, item)
+
+			waitGroup.Add(1)
+			go c.queueOutlinks(outlinks, item, &waitGroup)
 		}
 		return
 	}
@@ -254,7 +288,9 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			}).Warning(item.URL.String())
 			return
 		}
-		go c.queueOutlinks(outlinks, item)
+
+		waitGroup.Add(1)
+		go c.queueOutlinks(outlinks, item, &waitGroup)
 	}
 
 	// Extract and capture assets

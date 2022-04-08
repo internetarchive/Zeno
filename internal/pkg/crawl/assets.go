@@ -156,6 +156,7 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 					return
 				}
 			}
+
 			link, exists := item.Attr("href")
 			if exists {
 				rawAssets = append(rawAssets, link)

@@ -24,10 +24,10 @@ require (
 	github.com/spf13/afero v1.4.1
 	github.com/stretchr/testify v1.7.0
 	github.com/telanflow/cookiejar v0.0.0-20190719062046-114449e86aa5
+	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeebo/xxh3 v0.8.2
 	mvdan.cc/xurls/v2 v2.2.0
-	rogchap.com/v8go v0.7.0
 )
 
 require (

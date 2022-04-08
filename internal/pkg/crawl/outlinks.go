@@ -3,6 +3,7 @@ package crawl
 import (
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
@@ -34,7 +35,7 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 	return utils.DedupeURLs(outlinks), nil
 }
 
-func (c *Crawl) queueOutlinks(outlinks []url.URL, item *frontier.Item) {
+func (c *Crawl) queueOutlinks(outlinks []url.URL, item *frontier.Item, wg *sync.WaitGroup) {
 	// Send the outlinks to the pool of workers
 	for _, outlink := range outlinks {
 		outlink := outlink
