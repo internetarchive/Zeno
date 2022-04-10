@@ -10,6 +10,7 @@ type Flags struct {
 	Headless  bool
 	Seencheck bool
 	JSON      bool
+	LiveStats bool
 	Debug     bool
 
 	DisabledHTMLTags      cli.StringSlice

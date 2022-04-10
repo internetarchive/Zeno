@@ -76,8 +76,7 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 			}
 
 			// Some <script> embed variable initialisation, we can strip the variable part and just scrape JSON
-			// TODO: handle multiple variables
-			if strings.HasPrefix(item.Text(), "window[") || strings.HasPrefix(item.Text(), "window.") {
+			if !strings.HasPrefix(item.Text(), "{") {
 				jsonContent := strings.SplitAfterN(item.Text(), "=", 2)
 
 				if len(jsonContent) > 1 {
@@ -166,11 +165,6 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 
 	// Go over all assets and outlinks and make sure they are absolute links
 	assets = utils.MakeAbsolute(base, assets)
-
-	// for _, url := range assets {
-	// 	fmt.Println(url.String())
-	// }
-	// os.Exit(1)
 
 	return utils.DedupeURLs(assets), nil
 }

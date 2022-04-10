@@ -34,6 +34,7 @@ type Crawl struct {
 	SeedList  []frontier.Item
 	Paused    *utils.TAtomBool
 	Finished  *utils.TAtomBool
+	LiveStats bool
 
 	// frontier
 	Frontier *frontier.Frontier
@@ -101,7 +102,7 @@ func (c *Crawl) Start() (err error) {
 	regexOutlinks = xurls.Relaxed()
 
 	// Setup logging
-	logInfo, logWarning = utils.SetupLogging(c.JobPath)
+	logInfo, logWarning = utils.SetupLogging(c.JobPath, c.LiveStats)
 
 	// Initialize HTTP client
 	// c.initHTTPClient()
@@ -165,7 +166,9 @@ func (c *Crawl) Start() (err error) {
 	}
 
 	// Start the process responsible for printing live stats on the standard output
-	go c.printLiveStats()
+	if c.LiveStats {
+		go c.printLiveStats()
+	}
 
 	// If crawl HQ parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to HQ

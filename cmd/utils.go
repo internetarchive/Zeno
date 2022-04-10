@@ -23,6 +23,8 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.ActiveWorkers = new(ratecounter.Counter)
 	c.URIsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
+	c.LiveStats = flags.LiveStats
+
 	// Frontier
 	c.Frontier = new(frontier.Frontier)
 

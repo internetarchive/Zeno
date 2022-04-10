@@ -64,6 +64,10 @@ var GlobalFlags = []cli.Flag{
 		Name:        "debug",
 		Destination: &config.App.Flags.Debug,
 	},
+	&cli.BoolFlag{
+		Name:        "live-stats",
+		Destination: &config.App.Flags.LiveStats,
+	},
 
 	&cli.BoolFlag{
 		Name:        "api",
