@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
+	"github.com/remeh/sizedwaitgroup"
 	"github.com/tidwall/gjson"
 	"github.com/tomnomnom/linkheader"
 
@@ -287,6 +288,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	c.Frontier.QueueCount.Incr(int64(len(assets)))
+	swg := sizedwaitgroup.New(c.Workers)
 	for _, asset := range assets {
 		c.Frontier.QueueCount.Incr(-1)
 
@@ -295,22 +297,30 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			continue
 		}
 
-		newAsset := frontier.NewItem(&asset, item, "asset", item.Hop)
-		err = c.captureAsset(newAsset, resp.Cookies())
-		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error":          err,
-				"queued":         c.Frontier.QueueCount.Value(),
-				"crawled":        c.Crawled.Value(),
-				"rate":           c.URIsPerSecond.Rate(),
-				"active_workers": c.ActiveWorkers.Value(),
-				"parent_hop":     item.Hop,
-				"parent_url":     item.URL.String(),
-				"type":           "asset",
-			}).Warning(asset.String())
-			continue
-		}
+		swg.Add()
+		c.URIsPerSecond.Incr(1)
+		go func(asset url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
+			defer swg.Done()
+
+			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop)
+			err = c.captureAsset(newAsset, resp.Cookies())
+			if err != nil {
+				logWarning.WithFields(logrus.Fields{
+					"error":          err,
+					"queued":         c.Frontier.QueueCount.Value(),
+					"crawled":        c.Crawled.Value(),
+					"rate":           c.URIsPerSecond.Rate(),
+					"active_workers": c.ActiveWorkers.Value(),
+					"parent_hop":     item.Hop,
+					"parent_url":     item.URL.String(),
+					"type":           "asset",
+				}).Warning(asset.String())
+				return
+			}
+		}(asset, &swg)
 	}
+
+	swg.Wait()
 }
 
 func markTempFileDone(path string) {
