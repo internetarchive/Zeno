@@ -49,7 +49,7 @@ func (f *Frontier) writeItemsToQueue() {
 		}).Debug("Item enqueued")
 	}
 
-	if f.FinishingQueueWriter.Get() == true {
+	if f.FinishingQueueWriter.Get() {
 		f.IsQueueWriterActive.Set(false)
 		return
 	}
@@ -65,7 +65,7 @@ func (f *Frontier) readItemsFromQueue() {
 	}
 
 	for {
-		if f.FinishingQueueReader.Get() == true {
+		if f.FinishingQueueReader.Get() {
 			f.IsQueueReaderActive.Set(false)
 			return
 		}
@@ -131,7 +131,7 @@ func (f *Frontier) readItemsFromQueue() {
 
 			f.HostPool.Decr(host)
 
-			if f.FinishingQueueReader.Get() == true {
+			if f.FinishingQueueReader.Get() {
 				f.IsQueueReaderActive.Set(false)
 				return
 			}
