@@ -5,7 +5,7 @@ go 1.18
 require (
 	git.archive.org/wb/gocrawlhq v1.1.2
 	github.com/CorentinB/warc v0.8.0
-	github.com/PuerkitoBio/goquery v1.5.1
+	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
 	github.com/gin-contrib/pprof v1.3.0
@@ -32,7 +32,7 @@ require (
 )
 
 require (
-	github.com/andybalholm/cascadia v1.1.0 // indirect
+	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
