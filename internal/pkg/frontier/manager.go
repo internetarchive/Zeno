@@ -105,8 +105,7 @@ func (f *Frontier) readItemsFromQueue() {
 				logWarning.WithFields(logrus.Fields{
 					"error": err,
 				}).Debug("Unable to dequeue item")
-				if err.Error() == "goque: Stack or queue is empty" ||
-					err.Error() == "goque: ID used is outside range of stack or queue" {
+				if err.Error() == "goque: ID used is outside range of stack or queue" {
 					f.HostPool.Decr(host)
 				}
 				continue
