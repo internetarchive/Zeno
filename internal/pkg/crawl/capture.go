@@ -63,7 +63,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 			return resp, respPath, err
 		}
 
-		newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop)
+		newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop, "")
 		newItem.Redirect = parentItem.Redirect + 1
 
 		// Prepare GET request
@@ -302,7 +302,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		go func(asset url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
 			defer swg.Done()
 
-			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop)
+			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop, "")
 			err = c.captureAsset(newAsset, resp.Cookies())
 			if err != nil {
 				logWarning.WithFields(logrus.Fields{

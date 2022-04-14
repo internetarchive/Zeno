@@ -8,7 +8,7 @@ import (
 
 // Item is crawl-able object
 type Item struct {
-	ID         int
+	ID         string
 	Hash       uint64
 	Hop        uint8
 	Host       string
@@ -19,10 +19,13 @@ type Item struct {
 }
 
 // NewItem initialize an *Item
-func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint8) *Item {
+func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint8, ID string) *Item {
 	item := new(Item)
 
 	item.URL = URL
+	if item.ID != "" {
+		item.ID = ID
+	}
 	item.Host = URL.Host
 	item.Hop = hop
 	item.ParentItem = parentItem

@@ -74,7 +74,7 @@ func (c *Crawl) hqConsumer() {
 		}
 
 		// get batch from crawl HQ
-		batch, err := crawlHQClient.Feed(c.Workers / 2)
+		batch, err := crawlHQClient.Feed(c.Workers)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
@@ -94,7 +94,7 @@ func (c *Crawl) hqConsumer() {
 				}).Errorln("unable to parse URL received from crawl HQ, discarding")
 			}
 
-			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", 0)
+			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", 0, URL.ID)
 		}
 	}
 }
