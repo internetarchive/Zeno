@@ -2,6 +2,8 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 git.archive.org/wb/gocrawlhq v1.1.2 h1:oUjh/8p/uK3GhBycc6ZK6xGAdWz7YcL5nTvBrLydFEU=
 git.archive.org/wb/gocrawlhq v1.1.2/go.mod h1:IR7ynAW8FJH2N/MP99Vk3Fkf/Y1RgqJWAP/kK3VGStY=
+git.archive.org/wb/gocrawlhq v1.1.3 h1:Dwc4vmVAbEKuZ5M64AgWGeyb3ODuBsQ/67OBR5lTH84=
+git.archive.org/wb/gocrawlhq v1.1.3/go.mod h1:IR7ynAW8FJH2N/MP99Vk3Fkf/Y1RgqJWAP/kK3VGStY=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/CorentinB/warc v0.8.0 h1:UA5uI8wV3exvsslf66/pZaMie+H2/ymssGqL5G7NEfA=
 github.com/CorentinB/warc v0.8.0/go.mod h1:DJfrG1cqGkLsrQYK2BwqRd1p1BoOuKY0yQrrdVBqCOU=
