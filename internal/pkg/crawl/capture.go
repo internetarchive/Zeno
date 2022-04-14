@@ -50,6 +50,10 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 	c.URIsPerSecond.Incr(1)
 	c.Crawled.Incr(1)
 
+	if c.UseHQ {
+		c.hqFinished(parentItem)
+	}
+
 	// If a redirection is catched, then we execute the redirection
 	if isRedirection(resp.StatusCode) {
 		if resp.Header.Get("location") == req.URL.String() || parentItem.Redirect >= c.MaxRedirect {

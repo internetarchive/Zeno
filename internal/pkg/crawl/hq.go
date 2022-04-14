@@ -98,3 +98,23 @@ func (c *Crawl) hqConsumer() {
 		}
 	}
 }
+
+func (c *Crawl) hqFinished(FinishURL *frontier.Item) {
+	crawlHQClient, err := gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
+	if err != nil {
+		logrus.Panic(err)
+	}
+	finishedArray := []gocrawlhq.URL{}
+	finishedArray = append(finishedArray, gocrawlhq.URL{ID: FinishURL.ID, Value: FinishURL.URL.String()})
+
+	_, err = crawlHQClient.Finished(finishedArray)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"project": c.HQProject,
+			"address": c.HQAddress,
+			"url":     FinishURL.URL.String(),
+			"HQID":    FinishURL.ID,
+			"err":     err.Error(),
+		}).Errorln("error submitting finished urls to crawl HQ")
+	}
+}
