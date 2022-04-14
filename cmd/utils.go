@@ -81,6 +81,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	// Crawl HQ settings
 	c.UseHQ = flags.UseHQ
 	c.HQProject = flags.HQProject
+	c.HQAddress = flags.HQAddress
 	c.HQKey = flags.HQKey
 	c.HQSecret = flags.HQSecret
 	c.HQStrategy = flags.HQStrategy
