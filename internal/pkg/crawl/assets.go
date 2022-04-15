@@ -5,12 +5,13 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/tidwall/gjson"
 )
 
-func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []url.URL, err error) {
+func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.Document) (assets []url.URL, err error) {
 	var rawAssets []string
 
 	// Extract assets on the page (images, scripts, videos..)
@@ -105,7 +106,7 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 					}
 
 					payload := gjson.Parse(jsonContent[1][:payloadEndPosition+1])
-					rawAssets = append(rawAssets, getURLsFromJSON(payload)...)
+					rawAssets = append(rawAssets, removeGoogleVideoURLs(getURLsFromJSON(payload))...)
 				}
 			}
 		})
@@ -167,4 +168,14 @@ func (c *Crawl) extractAssets(base *url.URL, doc *goquery.Document) (assets []ur
 	assets = utils.MakeAbsolute(base, assets)
 
 	return utils.DedupeURLs(assets), nil
+}
+
+func removeGoogleVideoURLs(input []string) (output []string) {
+	for _, i := range input {
+		if !strings.Contains(i, "googlevideo.com") {
+			output = append(output, i)
+		}
+	}
+
+	return output
 }

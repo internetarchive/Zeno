@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
-	"github.com/remeh/sizedwaitgroup"
 	"github.com/tidwall/gjson"
 	"github.com/tomnomnom/linkheader"
 
@@ -258,7 +257,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		file.Close()
 		markTempFileDone(respPath)
 	} else {
-		doc, err = goquery.NewDocumentFromResponse(resp)
+		doc, err = goquery.NewDocumentFromReader(resp.Body)
 		if err != nil {
 			logWarning.WithFields(logrus.Fields{
 				"error": err,
@@ -283,7 +282,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Extract and capture assets
-	assets, err := c.extractAssets(base, doc)
+	assets, err := c.extractAssets(base, item, doc)
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
@@ -292,7 +291,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	c.Frontier.QueueCount.Incr(int64(len(assets)))
-	swg := sizedwaitgroup.New(c.Workers)
+	var wg sync.WaitGroup
 	for _, asset := range assets {
 		c.Frontier.QueueCount.Incr(-1)
 
@@ -301,10 +300,16 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			continue
 		}
 
-		swg.Add()
+		// We ban googlevideo.com URLs because they are heavily rate limited by default, and
+		// we don't want the crawler to spend an innapropriate amount of time archiving them
+		// if strings.Contains(item.Host, "googlevideo.com") {
+		// 	continue
+		// }
+
+		wg.Add(1)
 		c.URIsPerSecond.Incr(1)
-		go func(asset url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
-			defer swg.Done()
+		go func(asset url.URL, wg *sync.WaitGroup) {
+			defer wg.Done()
 
 			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop, "")
 			err = c.captureAsset(newAsset, resp.Cookies())
@@ -321,10 +326,10 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				}).Warning(asset.String())
 				return
 			}
-		}(asset, &swg)
+		}(asset, &wg)
 	}
 
-	swg.Wait()
+	wg.Wait()
 }
 
 func markTempFileDone(path string) {
