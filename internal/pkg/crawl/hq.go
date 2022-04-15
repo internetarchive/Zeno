@@ -2,18 +2,13 @@ package crawl
 
 import (
 	"net/url"
+	"strings"
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/sirupsen/logrus"
 )
-
-type hqMessage struct {
-	URL       string `json:"u"`
-	HopsCount uint8  `json:"hop"`
-	ParentURL string `json:"parent_url"`
-}
 
 func (c *Crawl) hqProducer() {
 	crawlHQClient, err := gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
@@ -27,20 +22,16 @@ func (c *Crawl) hqProducer() {
 			break
 		}
 
-		// var newHQMsg = new(gocrawlhq.DiscoveredPayload)
+		discoveredURL := gocrawlhq.URL{
+			Value: item.URL.String(),
+			Via:   item.ParentItem.URL.String(),
+		}
 
-		// newHQMsg.URLs = []gocrawlhq.URL{
-		// 	gocrawlhq.URL{
-		// 		ID:    item.ID,
-		// 		Value: item.URL.String(),
-		// 		Path:  "",
-		// 		Via:   item.ParentItem.URL.String(),
-		// 	},
-		// }
+		for i := 0; uint8(i) < item.Hop; i++ {
+			discoveredURL.Path += "L"
+		}
 
-		// newHQMsg.Type = item.Type
-
-		_, err := crawlHQClient.Discovered([]string{item.URL.String()}, item.Type, false)
+		_, err := crawlHQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
@@ -94,7 +85,7 @@ func (c *Crawl) hqConsumer() {
 				}).Errorln("unable to parse URL received from crawl HQ, discarding")
 			}
 
-			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", 0, URL.ID)
+			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID)
 		}
 	}
 }
