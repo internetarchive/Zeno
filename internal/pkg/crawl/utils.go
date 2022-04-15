@@ -62,6 +62,7 @@ func needBrowser(item *frontier.Item) bool {
 func (crawl *Crawl) handleCrawlPause() {
 	for {
 		if float64(utils.GetFreeDiskSpace(crawl.JobPath).Avail)/float64(GB) <= 20 {
+			logrus.Errorln("Not enough disk space. Please free some space and restart the crawler.")
 			crawl.Paused.Set(true)
 			crawl.Frontier.Paused.Set(true)
 		} else {

@@ -150,7 +150,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
-	if item.Hop > 0 && len(item.ParentItem.URL.String()) > 0 {
+	if item.Hop > 0 && item.ParentItem != nil {
 		req.Header.Set("Referer", item.ParentItem.URL.String())
 	}
 
