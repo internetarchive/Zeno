@@ -91,6 +91,7 @@ func (c *Crawl) hqConsumer() {
 }
 
 func (c *Crawl) hqFinished(FinishURL *frontier.Item) {
+finish:
 	crawlHQClient, err := gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
 	if err != nil {
 		logrus.Panic(err)
@@ -106,6 +107,8 @@ func (c *Crawl) hqFinished(FinishURL *frontier.Item) {
 			"url":     FinishURL.URL.String(),
 			"HQID":    FinishURL.ID,
 			"err":     err.Error(),
-		}).Errorln("error submitting finished urls to crawl HQ")
+		}).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
+		time.Sleep(time.Second)
+		goto finish
 	}
 }
