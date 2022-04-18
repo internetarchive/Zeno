@@ -91,6 +91,9 @@ func (c *Crawl) hqConsumer() {
 }
 
 func (c *Crawl) hqFinished(FinishURL *frontier.Item) {
+	if FinishURL.ID == "" {
+		return
+	}
 finish:
 	crawlHQClient, err := gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
 	if err != nil {
