@@ -105,8 +105,10 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 						}
 					}
 
-					payload := gjson.Parse(jsonContent[1][:payloadEndPosition+1])
-					rawAssets = append(rawAssets, removeGoogleVideoURLs(getURLsFromJSON(payload))...)
+					if len(jsonContent[1]) > payloadEndPosition {
+						payload := gjson.Parse(jsonContent[1][:payloadEndPosition+1])
+						rawAssets = append(rawAssets, removeGoogleVideoURLs(getURLsFromJSON(payload))...)
+					}
 				}
 			}
 		})
