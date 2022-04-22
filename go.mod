@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	git.archive.org/wb/gocrawlhq v1.1.4
-	github.com/CorentinB/warc v0.8.0
+	github.com/CorentinB/warc v0.8.2
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
