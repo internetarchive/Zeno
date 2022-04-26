@@ -40,7 +40,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		} else {
 			resp, err = c.ClientProxied.Do(req)
 			if err != nil {
-				if retry+1 > c.MaxRetry {
+				if retry+2 > c.MaxRetry {
 					return resp, respPath, err
 				} else {
 					println("Crucial error, retrying: " + err.Error())
