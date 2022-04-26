@@ -138,9 +138,16 @@ func (c *Crawl) Start() (err error) {
 	go c.tempFilesCleaner()
 
 	// init the HTTP client responsible for recording HTTP(s) requests / responses
-	c.Client, err = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true, warc.DedupeOptions{LocalDedupe: true}, []int{429})
+	c.Client, err = warc.NewWARCWritingHTTPClient(rotatorSettings, "", true, warc.DedupeOptions{LocalDedupe: true}, []int{429})
 	if err != nil {
 		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
+	}
+
+	if c.Proxy != "" {
+		c.ClientProxied, err = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true, warc.DedupeOptions{LocalDedupe: true}, []int{429})
+		if err != nil {
+			logrus.Fatalf("Unable to init WARC writing (proxy) HTTP client: %s", err)
+		}
 	}
 
 	logrus.Info("WARC writer initialized")
