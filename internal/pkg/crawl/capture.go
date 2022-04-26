@@ -29,16 +29,28 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		time.Sleep(time.Second)
 	}
 
-	// Execute GET request
-	if c.ClientProxied == nil || utils.StringContainsSliceElements(req.URL.Host, c.BypassProxy) {
-		resp, err = c.Client.Do(req)
-		if err != nil {
-			return resp, respPath, err
+	// Retry on 429 error
+	for retry := 0; retry < c.MaxRetry; retry++ {
+		// Execute GET request
+		if c.ClientProxied == nil || utils.StringContainsSliceElements(req.URL.Host, c.BypassProxy) {
+			resp, err = c.Client.Do(req)
+			if err != nil {
+				return resp, respPath, err
+			}
+		} else {
+			resp, err = c.ClientProxied.Do(req)
+			if err != nil {
+				return resp, respPath, err
+			}
 		}
-	} else {
-		resp, err = c.ClientProxied.Do(req)
-		if err != nil {
-			return resp, respPath, err
+
+		if resp.StatusCode == 429 {
+			sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
+			println("429 error, retrying in " + sleepTime.String() + " second")
+			time.Sleep(sleepTime)
+			continue
+		} else {
+			break
 		}
 	}
 
