@@ -40,10 +40,10 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		} else {
 			resp, err = c.ClientProxied.Do(req)
 			if err != nil {
-				if retry+1 > c.MaxRetry {
+				if retry+2 > c.MaxRetry {
 					return resp, respPath, err
 				} else {
-					println("Crucial error, retrying: " + err.Error())
+					logInfo.Println("Crucial error, retrying: " + err.Error())
 					continue
 				}
 			}
@@ -51,7 +51,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 
 		if resp.StatusCode == 429 {
 			sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
-			println("429 error, retrying in " + sleepTime.String() + " second")
+			logInfo.Println("429 error, retrying in " + sleepTime.String() + " second")
 			time.Sleep(sleepTime)
 			continue
 		} else {
