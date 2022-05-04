@@ -190,6 +190,7 @@ func (c *Crawl) Start() (err error) {
 
 		c.HQProducerChannel = make(chan *frontier.Item, c.Workers)
 		c.HQFinishedChannel = make(chan *frontier.Item, c.Workers)
+
 		go c.hqConsumer()
 		go c.hqProducer()
 		go c.hqFinisher()

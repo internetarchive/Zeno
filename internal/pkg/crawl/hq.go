@@ -83,6 +83,7 @@ func (c *Crawl) hqConsumer() {
 
 func (c *Crawl) hqFinisher() {
 	finishedArray := []gocrawlhq.URL{}
+
 	for finishedURL := range c.HQFinishedChannel {
 		if finishedURL.ID == "" {
 			logrus.WithFields(logrus.Fields{
@@ -92,7 +93,9 @@ func (c *Crawl) hqFinisher() {
 			}).Infoln("URL has no ID, discarding")
 			continue
 		}
+
 		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedURL.ID, Value: finishedURL.URL.String()})
+
 		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) {
 		finish:
 			_, err := c.HQClient.Finished(finishedArray)
@@ -106,6 +109,7 @@ func (c *Crawl) hqFinisher() {
 				time.Sleep(time.Second)
 				goto finish
 			}
+
 			finishedArray = []gocrawlhq.URL{}
 		}
 
