@@ -93,6 +93,7 @@ type Crawl struct {
 	HQSecret          string
 	HQStrategy        string
 	goCrawlHQClient   *gocrawlhq.Client
+	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item
 }
 
@@ -188,8 +189,10 @@ func (c *Crawl) Start() (err error) {
 		}
 
 		c.HQProducerChannel = make(chan *frontier.Item, c.Workers)
+		c.HQFinishedChannel = make(chan *frontier.Item, c.Workers)
 		go c.hqConsumer()
 		go c.hqProducer()
+		go c.hqFinished()
 	} else {
 		// Push the seed list to the queue
 		logrus.Info("Pushing seeds in the local queue..")

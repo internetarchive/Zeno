@@ -67,7 +67,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 	c.Crawled.Incr(1)
 
 	if c.UseHQ {
-		c.hqFinished(parentItem)
+		c.HQFinishedChannel <- parentItem
 	}
 
 	// If a redirection is catched, then we execute the redirection

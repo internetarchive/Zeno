@@ -80,29 +80,34 @@ func (c *Crawl) hqConsumer() {
 	}
 }
 
-func (c *Crawl) hqFinished(FinishURL *frontier.Item) {
-	if FinishURL.ID == "" {
-		logrus.WithFields(logrus.Fields{
-			"project": c.HQProject,
-			"address": c.HQAddress,
-			"url":     FinishURL.URL.String(),
-		}).Infoln("URL has no ID, discarding")
-		return
-	}
-finish:
+func (c *Crawl) hqFinished() {
 	finishedArray := []gocrawlhq.URL{}
-	finishedArray = append(finishedArray, gocrawlhq.URL{ID: FinishURL.ID, Value: FinishURL.URL.String()})
+	for FinishURL := range c.HQFinishedChannel {
+		if FinishURL.ID == "" {
+			logrus.WithFields(logrus.Fields{
+				"project": c.HQProject,
+				"address": c.HQAddress,
+				"url":     FinishURL.URL.String(),
+			}).Infoln("URL has no ID, discarding")
+			return
+		}
+		finishedArray = append(finishedArray, gocrawlhq.URL{ID: FinishURL.ID, Value: FinishURL.URL.String()})
 
-	_, err := c.goCrawlHQClient.Finished(finishedArray)
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"project": c.HQProject,
-			"address": c.HQAddress,
-			"url":     FinishURL.URL.String(),
-			"HQID":    FinishURL.ID,
-			"err":     err.Error(),
-		}).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
-		time.Sleep(time.Second)
-		goto finish
+		if len(finishedArray) == 50 {
+		finish:
+			_, err := c.goCrawlHQClient.Finished(finishedArray)
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"project":       c.HQProject,
+					"address":       c.HQAddress,
+					"finishedArray": finishedArray,
+					"err":           err.Error(),
+				}).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
+				time.Sleep(time.Second)
+				goto finish
+			}
+			finishedArray = []gocrawlhq.URL{}
+		}
+
 	}
 }
