@@ -90,7 +90,7 @@ func (c *Crawl) hqFinisher() {
 				"address": c.HQAddress,
 				"url":     finishedURL.URL.String(),
 			}).Infoln("URL has no ID, discarding")
-			return
+			continue
 		}
 		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedURL.ID, Value: finishedURL.URL.String()})
 		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) {
