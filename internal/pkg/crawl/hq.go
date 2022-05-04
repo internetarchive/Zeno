@@ -11,11 +11,6 @@ import (
 )
 
 func (c *Crawl) hqProducer() {
-	crawlHQClient, err := gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
-	if err != nil {
-		logrus.Panic(err)
-	}
-
 	for item := range c.HQProducerChannel {
 	send:
 		if c.Finished.Get() {
@@ -31,7 +26,7 @@ func (c *Crawl) hqProducer() {
 			discoveredURL.Path += "L"
 		}
 
-		_, err := crawlHQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false)
+		_, err := c.goCrawlHQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
@@ -45,11 +40,6 @@ func (c *Crawl) hqProducer() {
 }
 
 func (c *Crawl) hqConsumer() {
-	crawlHQClient, err := gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
-	if err != nil {
-		logrus.Panic(err)
-	}
-
 	for {
 		if c.Finished.Get() {
 			break
@@ -65,7 +55,7 @@ func (c *Crawl) hqConsumer() {
 		}
 
 		// get batch from crawl HQ
-		batch, err := crawlHQClient.Feed(c.Workers)
+		batch, err := c.goCrawlHQClient.Feed(c.Workers)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
@@ -100,14 +90,10 @@ func (c *Crawl) hqFinished(FinishURL *frontier.Item) {
 		return
 	}
 finish:
-	crawlHQClient, err := gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
-	if err != nil {
-		logrus.Panic(err)
-	}
 	finishedArray := []gocrawlhq.URL{}
 	finishedArray = append(finishedArray, gocrawlhq.URL{ID: FinishURL.ID, Value: FinishURL.URL.String()})
 
-	_, err = crawlHQClient.Finished(finishedArray)
+	_, err := c.goCrawlHQClient.Finished(finishedArray)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"project": c.HQProject,
