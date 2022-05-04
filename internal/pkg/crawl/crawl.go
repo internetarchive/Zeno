@@ -92,7 +92,7 @@ type Crawl struct {
 	HQKey             string
 	HQSecret          string
 	HQStrategy        string
-	goCrawlHQClient   *gocrawlhq.Client
+	HQClient          *gocrawlhq.Client
 	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item
 }
@@ -183,7 +183,7 @@ func (c *Crawl) Start() (err error) {
 	// If crawl HQ parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to HQ
 	if c.UseHQ {
-		c.goCrawlHQClient, err = gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
+		c.HQClient, err = gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
 		if err != nil {
 			logrus.Panic(err)
 		}

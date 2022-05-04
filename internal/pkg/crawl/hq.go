@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"math"
 	"net/url"
 	"strings"
 	"time"
@@ -26,7 +27,7 @@ func (c *Crawl) hqProducer() {
 			discoveredURL.Path += "L"
 		}
 
-		_, err := c.goCrawlHQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false)
+		_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
@@ -55,7 +56,7 @@ func (c *Crawl) hqConsumer() {
 		}
 
 		// get batch from crawl HQ
-		batch, err := c.goCrawlHQClient.Feed(c.Workers)
+		batch, err := c.HQClient.Feed(int(math.Ceil(float64(c.Workers) / 2)))
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
@@ -82,20 +83,19 @@ func (c *Crawl) hqConsumer() {
 
 func (c *Crawl) hqFinisher() {
 	finishedArray := []gocrawlhq.URL{}
-	for FinishURL := range c.HQFinishedChannel {
-		if FinishURL.ID == "" {
+	for finishedURL := range c.HQFinishedChannel {
+		if finishedURL.ID == "" {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
 				"address": c.HQAddress,
-				"url":     FinishURL.URL.String(),
+				"url":     finishedURL.URL.String(),
 			}).Infoln("URL has no ID, discarding")
 			return
 		}
-		finishedArray = append(finishedArray, gocrawlhq.URL{ID: FinishURL.ID, Value: FinishURL.URL.String()})
-
-		if len(finishedArray) == 50 {
+		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedURL.ID, Value: finishedURL.URL.String()})
+		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) {
 		finish:
-			_, err := c.goCrawlHQClient.Finished(finishedArray)
+			_, err := c.HQClient.Finished(finishedArray)
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
 					"project":       c.HQProject,
