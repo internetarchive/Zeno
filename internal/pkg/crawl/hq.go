@@ -92,6 +92,11 @@ func (c *Crawl) hqConsumer() {
 
 func (c *Crawl) hqFinished(FinishURL *frontier.Item) {
 	if FinishURL.ID == "" {
+		logrus.WithFields(logrus.Fields{
+			"project": c.HQProject,
+			"address": c.HQAddress,
+			"url":     FinishURL.URL.String(),
+		}).Infoln("URL has no ID, discarding")
 		return
 	}
 finish:
