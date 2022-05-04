@@ -80,7 +80,7 @@ func (c *Crawl) hqConsumer() {
 	}
 }
 
-func (c *Crawl) hqFinished() {
+func (c *Crawl) hqFinisher() {
 	finishedArray := []gocrawlhq.URL{}
 	for FinishURL := range c.HQFinishedChannel {
 		if FinishURL.ID == "" {

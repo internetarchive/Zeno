@@ -192,7 +192,7 @@ func (c *Crawl) Start() (err error) {
 		c.HQFinishedChannel = make(chan *frontier.Item, c.Workers)
 		go c.hqConsumer()
 		go c.hqProducer()
-		go c.hqFinished()
+		go c.hqFinisher()
 	} else {
 		// Push the seed list to the queue
 		logrus.Info("Pushing seeds in the local queue..")
