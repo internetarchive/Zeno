@@ -66,7 +66,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 	c.URIsPerSecond.Incr(1)
 	c.Crawled.Incr(1)
 
-	if c.UseHQ {
+	if c.UseHQ && parentItem.ID != "" {
 		c.HQFinishedChannel <- parentItem
 	}
 
