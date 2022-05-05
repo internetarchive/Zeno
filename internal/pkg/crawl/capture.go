@@ -31,7 +31,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 
 		c.URIsPerSecond.Incr(1)
 		c.Crawled.Incr(1)
-		
+
 		if c.UseHQ && parentItem.ID != "" {
 			c.HQFinishedChannel <- parentItem
 		}
@@ -290,7 +290,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Extract outlinks
-	if item.Hop < c.MaxHops {
+	if item.Hop < c.MaxHops || (c.DomainsCrawl && item.Type == "seed") {
 		outlinks, err := extractOutlinks(base, doc)
 		if err != nil {
 			logWarning.WithFields(logrus.Fields{
