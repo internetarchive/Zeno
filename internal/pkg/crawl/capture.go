@@ -186,6 +186,8 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		req.Header.Set("Accept-Language", "en-US,en;q=0.9,fr;q=0.8")
 	}
 
+	req.Header.Set("User-Agent", c.UserAgent)
+
 	// execute request
 	resp, respPath, err := c.executeGET(item, req)
 	if err != nil {
