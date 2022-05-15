@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"math"
 	"net/url"
 	"strings"
 	"time"
@@ -11,11 +12,6 @@ import (
 )
 
 func (c *Crawl) hqProducer() {
-	crawlHQClient, err := gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
-	if err != nil {
-		logrus.Panic(err)
-	}
-
 	for item := range c.HQProducerChannel {
 	send:
 		if c.Finished.Get() {
@@ -31,7 +27,7 @@ func (c *Crawl) hqProducer() {
 			discoveredURL.Path += "L"
 		}
 
-		_, err := crawlHQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false)
+		_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
@@ -45,11 +41,6 @@ func (c *Crawl) hqProducer() {
 }
 
 func (c *Crawl) hqConsumer() {
-	crawlHQClient, err := gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
-	if err != nil {
-		logrus.Panic(err)
-	}
-
 	for {
 		if c.Finished.Get() {
 			break
@@ -65,7 +56,7 @@ func (c *Crawl) hqConsumer() {
 		}
 
 		// get batch from crawl HQ
-		batch, err := crawlHQClient.Feed(c.Workers)
+		batch, err := c.HQClient.Feed(int(math.Ceil(float64(c.Workers) / 2)))
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
@@ -90,28 +81,37 @@ func (c *Crawl) hqConsumer() {
 	}
 }
 
-func (c *Crawl) hqFinished(FinishURL *frontier.Item) {
-	if FinishURL.ID == "" {
-		return
-	}
-finish:
-	crawlHQClient, err := gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
-	if err != nil {
-		logrus.Panic(err)
-	}
+func (c *Crawl) hqFinisher() {
 	finishedArray := []gocrawlhq.URL{}
-	finishedArray = append(finishedArray, gocrawlhq.URL{ID: FinishURL.ID, Value: FinishURL.URL.String()})
 
-	_, err = crawlHQClient.Finished(finishedArray)
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"project": c.HQProject,
-			"address": c.HQAddress,
-			"url":     FinishURL.URL.String(),
-			"HQID":    FinishURL.ID,
-			"err":     err.Error(),
-		}).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
-		time.Sleep(time.Second)
-		goto finish
+	for finishedURL := range c.HQFinishedChannel {
+		if finishedURL.ID == "" {
+			logrus.WithFields(logrus.Fields{
+				"project": c.HQProject,
+				"address": c.HQAddress,
+				"url":     finishedURL.URL.String(),
+			}).Infoln("URL has no ID, discarding")
+			continue
+		}
+
+		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedURL.ID, Value: finishedURL.URL.String()})
+
+		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) {
+		finish:
+			_, err := c.HQClient.Finished(finishedArray)
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"project":       c.HQProject,
+					"address":       c.HQAddress,
+					"finishedArray": finishedArray,
+					"err":           err.Error(),
+				}).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
+				time.Sleep(time.Second)
+				goto finish
+			}
+
+			finishedArray = []gocrawlhq.URL{}
+		}
+
 	}
 }

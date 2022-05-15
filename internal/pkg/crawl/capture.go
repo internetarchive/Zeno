@@ -24,6 +24,19 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 	var newReq *http.Request
 	var URL *url.URL
 
+	defer func() {
+		if c.Prometheus {
+			c.PrometheusMetrics.DownloadedURI.Inc()
+		}
+
+		c.URIsPerSecond.Incr(1)
+		c.Crawled.Incr(1)
+
+		if c.UseHQ && parentItem.ID != "" {
+			c.HQFinishedChannel <- parentItem
+		}
+	}()
+
 	// Check if the crawl is paused
 	for c.Paused.Get() {
 		time.Sleep(time.Second)
@@ -59,17 +72,6 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		}
 	}
 
-	if c.Prometheus {
-		c.PrometheusMetrics.DownloadedURI.Inc()
-	}
-
-	c.URIsPerSecond.Incr(1)
-	c.Crawled.Incr(1)
-
-	if c.UseHQ {
-		c.hqFinished(parentItem)
-	}
-
 	// If a redirection is catched, then we execute the redirection
 	if isRedirection(resp.StatusCode) {
 		if resp.Header.Get("location") == req.URL.String() || parentItem.Redirect >= c.MaxRedirect {
@@ -100,6 +102,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 			return resp, respPath, err
 		}
 	}
+
 	return resp, respPath, nil
 }
 
@@ -289,7 +292,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Extract outlinks
-	if item.Hop < c.MaxHops {
+	if item.Hop < c.MaxHops || (c.DomainsCrawl && item.Type == "seed") {
 		outlinks, err := extractOutlinks(base, doc)
 		if err != nil {
 			logWarning.WithFields(logrus.Fields{

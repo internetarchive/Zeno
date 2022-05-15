@@ -23,7 +23,7 @@ func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint8, ID stri
 	item := new(Item)
 
 	item.URL = URL
-	if item.ID != "" {
+	if ID != "" {
 		item.ID = ID
 	}
 	item.Host = URL.Host

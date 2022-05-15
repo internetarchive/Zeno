@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
@@ -91,6 +92,8 @@ type Crawl struct {
 	HQKey             string
 	HQSecret          string
 	HQStrategy        string
+	HQClient          *gocrawlhq.Client
+	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item
 }
 
@@ -180,9 +183,17 @@ func (c *Crawl) Start() (err error) {
 	// If crawl HQ parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to HQ
 	if c.UseHQ {
+		c.HQClient, err = gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
+		if err != nil {
+			logrus.Panic(err)
+		}
+
 		c.HQProducerChannel = make(chan *frontier.Item, c.Workers)
+		c.HQFinishedChannel = make(chan *frontier.Item, c.Workers)
+
 		go c.hqConsumer()
 		go c.hqProducer()
+		go c.hqFinisher()
 	} else {
 		// Push the seed list to the queue
 		logrus.Info("Pushing seeds in the local queue..")
