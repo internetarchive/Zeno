@@ -219,7 +219,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		}
 
 		waitGroup.Add(1)
-		go c.queueOutlinks(utils.StringSliceToURLSlice(discovered), item, &waitGroup)
+		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
 	}
 
 	// Store the base URL to turn relative links into absolute links later
