@@ -91,6 +91,13 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 			return resp, respPath, err
 		}
 
+		// Make URL absolute if they aren't.
+		// Some redirects don't return full URLs, but rather, relative URLs. We would still like to follow these redirects.
+		if !URL.IsAbs() {
+			URL = req.URL.ResolveReference(URL)
+			println(URL.String())
+		}
+
 		newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop, parentItem.ID)
 		newItem.Redirect = parentItem.Redirect + 1
 
