@@ -64,7 +64,12 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 
 		if resp.StatusCode == 429 {
 			sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
-			logInfo.Println("429 error, retrying in " + sleepTime.String() + " second")
+			logInfo.WithFields(logrus.Fields{
+				"url":         req.URL.String(),
+				"duration":    sleepTime.String(),
+				"retry_count": retry,
+				"status_code": resp.StatusCode,
+			}).Info("We are being rate limited, sleeping then retrying..")
 			time.Sleep(sleepTime)
 			continue
 		} else {
@@ -95,7 +100,6 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		// Some redirects don't return full URLs, but rather, relative URLs. We would still like to follow these redirects.
 		if !URL.IsAbs() {
 			URL = req.URL.ResolveReference(URL)
-			println(URL.String())
 		}
 
 		newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop, parentItem.ID)
