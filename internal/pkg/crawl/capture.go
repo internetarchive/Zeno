@@ -85,7 +85,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 			return resp, respPath, err
 		}
 
-		newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop, "")
+		newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop, parentItem.ID)
 		newItem.Redirect = parentItem.Redirect + 1
 
 		// Prepare GET request
