@@ -70,6 +70,11 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 				"retry_count": retry,
 				"status_code": resp.StatusCode,
 			}).Info("We are being rate limited, sleeping then retrying..")
+
+			// This ensures we aren't leaving the warc dialer hanging. Do note, 429s are filtered out by WARC writer regardless.
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+
 			time.Sleep(sleepTime)
 			continue
 		} else {
