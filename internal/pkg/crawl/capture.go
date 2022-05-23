@@ -79,6 +79,12 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		}
 
 		defer markTempFileDone(respPath)
+		defer resp.Body.Close()
+
+		// needed for WARC writing
+		// IMPORTANT! This will write redirects to WARC!
+
+		io.Copy(io.Discard, resp.Body)
 
 		URL, err = url.Parse(resp.Header.Get("location"))
 		if err != nil {
