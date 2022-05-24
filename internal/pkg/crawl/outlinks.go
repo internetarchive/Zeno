@@ -21,6 +21,14 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 		}
 	})
 
+	// Extract iframes as 'outlinks' as they usually can be treated as entirely seperate pages with entirely seperate assets.
+    doc.Find("iframe").Each(func(index int, item *goquery.Selection) {
+        link, exists := item.Attr("src")
+        if exists {
+            rawOutlinks = append(rawOutlinks, link)
+        }
+    })
+
 	// Turn strings into url.URL
 	outlinks = utils.StringSliceToURLSlice(rawOutlinks)
 
