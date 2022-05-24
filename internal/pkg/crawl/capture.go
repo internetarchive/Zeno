@@ -320,18 +320,20 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Websites can use a <base> tag to specify a base for relative URLs in every other tags.
 	// This checks for the "base" tag and resets the "base" URL variable with the new base URL specified
 	// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-	doc.Find("base").Each(func(index int, goitem *goquery.Selection) {
-		link, exists := goitem.Attr("href")
-		if exists {
-			base, err = url.Parse(link)
-			if err != nil {
-				logWarning.WithFields(logrus.Fields{
-					"error": err,
-				}).Warning(item.URL.String())
-				return
+	if !utils.StringInSlice("base", c.DisabledHTMLTags) {
+		doc.Find("base").Each(func(index int, goitem *goquery.Selection) {
+			link, exists := goitem.Attr("href")
+			if exists {
+				base, err = url.Parse(link)
+				if err != nil {
+					logWarning.WithFields(logrus.Fields{
+						"error": err,
+					}).Warning(item.URL.String())
+					return
+				}
 			}
-		}
-	})
+		})
+	}
 
 	// Extract outlinks
 	outlinks, err := extractOutlinks(base, doc)
