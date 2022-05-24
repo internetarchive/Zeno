@@ -2,7 +2,6 @@ package crawl
 
 import (
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 
@@ -13,9 +12,6 @@ import (
 
 func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, err error) {
 	var rawOutlinks []string
-
-	html, _ := doc.Html()
-	_ = os.WriteFile("tmp.html", []byte(html), 0644)
 
 	// Extract outlinks
 	doc.Find("a").Each(func(index int, item *goquery.Selection) {
