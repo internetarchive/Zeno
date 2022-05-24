@@ -182,6 +182,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:        "hq-strategy",
 		Usage:       "Crawl HQ feeding strategy",
+		Value:       "lifo",
 		Destination: &config.App.Flags.HQStrategy,
 	},
 }

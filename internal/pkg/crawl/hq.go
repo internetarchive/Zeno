@@ -56,7 +56,7 @@ func (c *Crawl) hqConsumer() {
 		}
 
 		// get batch from crawl HQ
-		batch, err := c.HQClient.Feed(int(math.Ceil(float64(c.Workers) / 2)))
+		batch, err := c.HQClient.Feed(int(math.Ceil(float64(c.Workers) / 2)), c.HQStrategy)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
