@@ -20,9 +20,11 @@ import (
 )
 
 func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *http.Response, respPath string, err error) {
-	var newItem *frontier.Item
-	var newReq *http.Request
-	var URL *url.URL
+	var (
+		newItem *frontier.Item
+		newReq  *http.Request
+		URL     *url.URL
+	)
 
 	defer func() {
 		if c.Prometheus {
@@ -30,7 +32,12 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 		}
 
 		c.URIsPerSecond.Incr(1)
-		c.Crawled.Incr(1)
+
+		if parentItem.Type == "seed" {
+			c.CrawledSeeds.Incr(1)
+		} else if parentItem.Type == "asset" {
+			c.CrawledAssets.Incr(1)
+		}
 
 		if c.UseHQ && parentItem.ID != "" {
 			c.HQFinishedChannel <- parentItem
@@ -228,21 +235,19 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
 	// Scrape potential URLs from Link HTTP header
-	if item.Hop < c.MaxHops {
-		var (
-			links      = linkheader.Parse(resp.Header.Get("link"))
-			discovered []string
-		)
+	var (
+		links      = linkheader.Parse(resp.Header.Get("link"))
+		discovered []string
+	)
 
-		for _, link := range links {
-			if link.Rel == "prev" || link.Rel == "next" {
-				discovered = append(discovered, link.URL)
-			}
+	for _, link := range links {
+		if link.Rel == "prev" || link.Rel == "next" {
+			discovered = append(discovered, link.URL)
 		}
-
-		waitGroup.Add(1)
-		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
 	}
+
+	waitGroup.Add(1)
+	go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
 
 	// Store the base URL to turn relative links into absolute links later
 	base, err := url.Parse(resp.Request.URL.String())
@@ -269,8 +274,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
-	// If the response isn't a text/*, we do not scrape it, and we delete the
-	// temporary file if it exists
+	// If the response isn't a text/*, we do not scrape it
 	if !strings.Contains(resp.Header.Get("Content-Type"), "text/") {
 		// enforce reading all data from the response
 		io.Copy(io.Discard, resp.Body)
@@ -313,7 +317,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		_ = doc
 	}
 
-	// Websites can use a <base> tag to specify a base for relative URLs in every other tags. 
+	// Websites can use a <base> tag to specify a base for relative URLs in every other tags.
 	// This checks for the "base" tag and resets the "base" URL variable with the new base URL specified
 	// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
 	doc.Find("base").Each(func(index int, goitem *goquery.Selection) {
@@ -330,18 +334,16 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	})
 
 	// Extract outlinks
-	if item.Hop < c.MaxHops || (c.DomainsCrawl && item.Type == "seed") {
-		outlinks, err := extractOutlinks(base, doc)
-		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-			}).Warning(item.URL.String())
-			return
-		}
-
-		waitGroup.Add(1)
-		go c.queueOutlinks(outlinks, item, &waitGroup)
+	outlinks, err := extractOutlinks(base, doc)
+	if err != nil {
+		logWarning.WithFields(logrus.Fields{
+			"error": err,
+		}).Warning(item.URL.String())
+		return
 	}
+
+	waitGroup.Add(1)
+	go c.queueOutlinks(outlinks, item, &waitGroup)
 
 	// Extract and capture assets
 	assets, err := c.extractAssets(base, item, doc)
@@ -379,7 +381,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				logWarning.WithFields(logrus.Fields{
 					"error":          err,
 					"queued":         c.Frontier.QueueCount.Value(),
-					"crawled":        c.Crawled.Value(),
+					"crawled":        c.CrawledSeeds.Value() + c.CrawledAssets.Value(),
 					"rate":           c.URIsPerSecond.Rate(),
 					"active_workers": c.ActiveWorkers.Value(),
 					"parent_hop":     item.Hop,

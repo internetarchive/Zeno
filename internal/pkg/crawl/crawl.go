@@ -77,7 +77,8 @@ type Crawl struct {
 	// real time statistics
 	URIsPerSecond *ratecounter.RateCounter
 	ActiveWorkers *ratecounter.Counter
-	Crawled       *ratecounter.Counter
+	CrawledSeeds  *ratecounter.Counter
+	CrawledAssets *ratecounter.Counter
 
 	// WARC settings
 	WARCPrefix       string

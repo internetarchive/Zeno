@@ -2,6 +2,7 @@ package crawl
 
 import (
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 
@@ -13,6 +14,9 @@ import (
 func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, err error) {
 	var rawOutlinks []string
 
+	html, _ := doc.Html()
+	_ = os.WriteFile("tmp.html", []byte(html), 0644)
+
 	// Extract outlinks
 	doc.Find("a").Each(func(index int, item *goquery.Selection) {
 		link, exists := item.Attr("href")
@@ -20,14 +24,13 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 			rawOutlinks = append(rawOutlinks, link)
 		}
 	})
+
 	// Turn strings into url.URL
 	outlinks = utils.StringSliceToURLSlice(rawOutlinks)
 
 	// Extract all text on the page and extract the outlinks from it
 	textOutlinks := extractLinksFromText(doc.Find("body").RemoveFiltered("script").Text())
-	for _, link := range textOutlinks {
-		outlinks = append(outlinks, link)
-	}
+	outlinks = append(outlinks, textOutlinks...)
 
 	// Go over all outlinks and make sure they are absolute links
 	outlinks = utils.MakeAbsolute(base, outlinks)
@@ -54,7 +57,7 @@ func (c *Crawl) queueOutlinks(outlinks []url.URL, item *frontier.Item, wg *sync.
 			} else {
 				c.Frontier.PushChan <- newItem
 			}
-		} else {
+		} else if c.MaxHops >= item.Hop+1 {
 			newItem := frontier.NewItem(&outlink, item, "seed", item.Hop+1, "")
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem

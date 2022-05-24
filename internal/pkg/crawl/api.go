@@ -22,11 +22,16 @@ func (crawl *Crawl) startAPI() {
 
 	logInfo.Info("Starting API")
 	r.GET("/", func(c *gin.Context) {
+		crawledSeeds := crawl.CrawledSeeds.Value()
+		crawledAssets := crawl.CrawledAssets.Value()
+
 		c.JSON(200, gin.H{
-			"rate":         crawl.URIsPerSecond.Rate(),
-			"crawled":      crawl.Crawled.Value(),
-			"queued":       crawl.Frontier.QueueCount.Value(),
-			"running_time": fmt.Sprintf("%s", time.Since(crawl.StartTime)),
+			"rate":          crawl.URIsPerSecond.Rate(),
+			"crawled":       crawledSeeds + crawledAssets,
+			"crawledSeeds":  crawledSeeds,
+			"crawledAssets": crawledAssets,
+			"queued":        crawl.Frontier.QueueCount.Value(),
+			"uptime":        fmt.Sprintf("%s", time.Since(crawl.StartTime)),
 		})
 	})
 

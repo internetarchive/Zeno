@@ -42,12 +42,17 @@ func (c *Crawl) printLiveStats() {
 		stats.MaxColWidth = 80
 		stats.Wrap = true
 
+		crawledSeeds := c.CrawledSeeds.Value()
+		crawledAssets := c.CrawledAssets.Value()
+
 		stats.AddRow("", "")
 		stats.AddRow("  - Job:", c.Job)
 		stats.AddRow("  - State:", c.getCrawlState())
 		stats.AddRow("  - Active workers:", strconv.Itoa(int(c.ActiveWorkers.Value()))+"/"+strconv.Itoa(c.Workers))
 		stats.AddRow("  - URI/s:", c.URIsPerSecond.Rate())
-		stats.AddRow("  - Crawled:", c.Crawled.Value())
+		stats.AddRow("  - Crawled total:", crawledSeeds+crawledAssets)
+		stats.AddRow("  - Crawled seeds:", crawledSeeds)
+		stats.AddRow("  - Crawled assets:", crawledAssets)
 		stats.AddRow("  - Queued:", c.Frontier.QueueCount.Value())
 		stats.AddRow("", "")
 		stats.AddRow("  - Elapsed time:", fmt.Sprintf("%s", time.Since(c.StartTime)))

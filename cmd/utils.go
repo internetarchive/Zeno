@@ -19,7 +19,8 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	var c = new(crawl.Crawl)
 
 	// Statistics counters
-	c.Crawled = new(ratecounter.Counter)
+	c.CrawledSeeds = new(ratecounter.Counter)
+	c.CrawledAssets = new(ratecounter.Counter)
 	c.ActiveWorkers = new(ratecounter.Counter)
 	c.URIsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
