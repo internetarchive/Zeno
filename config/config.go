@@ -40,6 +40,8 @@ type Flags struct {
 	HQKey      string
 	HQSecret   string
 	HQStrategy string
+
+	CDXDedupeServer string
 }
 
 type Application struct {

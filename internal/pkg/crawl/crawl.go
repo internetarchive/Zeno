@@ -85,6 +85,7 @@ type Crawl struct {
 	WARCOperator     string
 	WARCWriter       chan *warc.RecordBatch
 	WARCWriterFinish chan bool
+	CDXDedupeServer  string
 
 	// crawl HQ settings
 	UseHQ             bool
@@ -140,15 +141,20 @@ func (c *Crawl) Start() (err error) {
 	// and start the temp files cleaner process
 	os.MkdirAll(path.Join(c.JobPath, "temp"), os.ModePerm)
 	go c.tempFilesCleaner()
+	dedupeOptions := warc.DedupeOptions{LocalDedupe: true}
+
+	if c.CDXDedupeServer != "" {
+		dedupeOptions = warc.DedupeOptions{LocalDedupe: true, CDXDedupe: true, CDXURL: c.CDXDedupeServer}
+	}
 
 	// init the HTTP client responsible for recording HTTP(s) requests / responses
-	c.Client, err = warc.NewWARCWritingHTTPClient(rotatorSettings, "", true, warc.DedupeOptions{LocalDedupe: true}, []int{429})
+	c.Client, err = warc.NewWARCWritingHTTPClient(rotatorSettings, "", true, dedupeOptions, []int{429})
 	if err != nil {
 		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
 	}
 
 	if c.Proxy != "" {
-		c.ClientProxied, err = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true, warc.DedupeOptions{LocalDedupe: true}, []int{429})
+		c.ClientProxied, err = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true, dedupeOptions, []int{429})
 		if err != nil {
 			logrus.Fatalf("Unable to init WARC writing (proxy) HTTP client: %s", err)
 		}

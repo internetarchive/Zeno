@@ -151,6 +151,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Contact informations of the crawl operator to write in the Warc-Info record in each WARC file",
 		Destination: &config.App.Flags.WARCOperator,
 	},
+	&cli.StringFlag{
+		Name:        "warc-cdx-dedupe-server",
+		Value:       "",
+		Usage:       "Identify the server to use CDX deduplication. This turns CDX deduplication on.",
+		Destination: &config.App.Flags.CDXDedupeServer,
+	},
 
 	// Crawl HQ flags
 	&cli.BoolFlag{

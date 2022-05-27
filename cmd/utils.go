@@ -56,6 +56,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	// WARC settings
 	c.WARCPrefix = flags.WARCPrefix
 	c.WARCOperator = flags.WARCOperator
+	c.CDXDedupeServer = flags.CDXDedupeServer
 
 	c.API = flags.API
 	c.APIPort = flags.APIPort
