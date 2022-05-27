@@ -368,9 +368,9 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 		// We ban googlevideo.com URLs because they are heavily rate limited by default, and
 		// we don't want the crawler to spend an innapropriate amount of time archiving them
-		// if strings.Contains(item.Host, "googlevideo.com") {
-		// 	continue
-		// }
+		if strings.Contains(item.Host, "googlevideo.com") {
+			continue
+		}
 
 		wg.Add(1)
 		c.URIsPerSecond.Incr(1)
