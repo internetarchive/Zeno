@@ -385,6 +385,14 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				c.Frontier.Seencheck.Seen(hash, newAsset.Type)
 			}
 
+			if c.UseHQ {
+				found, _ := c.HQSeencheck(item.URL)
+				if found {
+					// Since the asset is already seenchecked in HQ, we don't need to crawl it, as well as having been added to the local seencheck above.
+					return
+				}
+			}
+
 			// Capture the asset
 			err = c.captureAsset(newAsset, resp.Cookies())
 			if err != nil {
