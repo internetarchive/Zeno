@@ -27,7 +27,7 @@ func (c *Crawl) hqProducer() {
 			discoveredURL.Path += "L"
 		}
 
-		_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false)
+		_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false, false)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
@@ -56,7 +56,7 @@ func (c *Crawl) hqConsumer() {
 		}
 
 		// get batch from crawl HQ
-		batch, err := c.HQClient.Feed(int(math.Ceil(float64(c.Workers) / 2)), c.HQStrategy)
+		batch, err := c.HQClient.Feed(int(math.Ceil(float64(c.Workers)/2)), c.HQStrategy)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
@@ -114,4 +114,32 @@ func (c *Crawl) hqFinisher() {
 		}
 
 	}
+}
+
+func (c *Crawl) hqSeencheck(URL *url.URL) (bool, error) {
+	discoveredURL := gocrawlhq.URL{
+		Value: URL.String(),
+	}
+
+	discoveredResponse, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "asset", false, true)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"project": c.HQProject,
+			"address": c.HQAddress,
+			"url":     URL.String(),
+			"err":     err.Error(),
+		}).Errorln("error sending seencheck payload to crawl HQ")
+		return false, err
+	}
+
+	if discoveredResponse.URLs != nil {
+		for _, URL := range discoveredResponse.URLs {
+			if URL.Value == discoveredURL.Value {
+				return false, nil
+			}
+		}
+	}
+
+	// didn't find the URL in the HQ, so it's new and has been added to HQ's seencheck database
+	return true, nil
 }

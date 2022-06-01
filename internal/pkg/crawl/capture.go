@@ -150,6 +150,18 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 		c.Frontier.Seencheck.Seen(hash, item.Type)
 	}
 
+	if c.UseHQ {
+		found, err := c.hqSeencheck(item.URL)
+		if err != nil {
+			// potentially allow failure here, since this is only seencheck and HQ could have high load or another issue
+			return err
+		}
+		if found {
+			// Since the asset is already seenchecked in HQ, we don't need to crawl it, as well as having been added to the local seencheck above, line 150.
+			return nil
+		}
+	}
+
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
 	if err != nil {
