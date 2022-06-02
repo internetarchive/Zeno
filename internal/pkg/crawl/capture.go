@@ -358,7 +358,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Keep the number of discovered assets to report them as crawled to HQ, for statistics purpose
-	item.ChildURIsCrawled = len(assets)
+	item.LocallyCrawled = len(assets)
 
 	c.Frontier.QueueCount.Incr(int64(len(assets)))
 	var wg sync.WaitGroup

@@ -8,15 +8,15 @@ import (
 
 // Item is crawl-able object
 type Item struct {
-	ID               string
-	Hash             uint64
-	Hop              uint8
-	Host             string
-	Type             string
-	Redirect         int
-	URL              *url.URL
-	ParentItem       *Item
-	ChildURIsCrawled int
+	ID             string
+	Hash           uint64
+	Hop            uint8
+	Host           string
+	Type           string
+	Redirect       int
+	URL            *url.URL
+	ParentItem     *Item
+	LocallyCrawled int
 }
 
 // NewItem initialize an *Item
