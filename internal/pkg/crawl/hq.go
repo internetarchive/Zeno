@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Crawl) hqProducer() {
+func (c *Crawl) HQProducer() {
 	for item := range c.HQProducerChannel {
 	send:
 		if c.Finished.Get() {
@@ -40,7 +40,7 @@ func (c *Crawl) hqProducer() {
 	}
 }
 
-func (c *Crawl) hqConsumer() {
+func (c *Crawl) HQConsumer() {
 	for {
 		if c.Finished.Get() {
 			break
@@ -56,13 +56,13 @@ func (c *Crawl) hqConsumer() {
 		}
 
 		// get batch from crawl HQ
-		batch, err := c.HQClient.Feed(int(math.Ceil(float64(c.Workers) / 2)), c.HQStrategy)
+		batch, err := c.HQClient.Feed(int(math.Ceil(float64(c.Workers)/2)), c.HQStrategy)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
 				"address": c.HQAddress,
 				"err":     err.Error(),
-			}).Errorln("error getting new URLs from crawl HQ")
+			}).Debugln("error getting new URLs from crawl HQ")
 		}
 
 		// send all URLs received in the batch to the frontier
@@ -81,24 +81,28 @@ func (c *Crawl) hqConsumer() {
 	}
 }
 
-func (c *Crawl) hqFinisher() {
-	finishedArray := []gocrawlhq.URL{}
+func (c *Crawl) HQFinisher() {
+	var (
+		finishedArray    = []gocrawlhq.URL{}
+		childCrawlsTotal int
+	)
 
-	for finishedURL := range c.HQFinishedChannel {
-		if finishedURL.ID == "" {
+	for finishedItem := range c.HQFinishedChannel {
+		if finishedItem.ID == "" {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
 				"address": c.HQAddress,
-				"url":     finishedURL.URL.String(),
+				"url":     finishedItem.URL.String(),
 			}).Infoln("URL has no ID, discarding")
 			continue
 		}
 
-		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedURL.ID, Value: finishedURL.URL.String()})
+		childCrawlsTotal += finishedItem.ChildURIsCrawled
+		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedItem.ID, Value: finishedItem.URL.String()})
 
 		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) {
 		finish:
-			_, err := c.HQClient.Finished(finishedArray)
+			_, err := c.HQClient.Finished(finishedArray, childCrawlsTotal)
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
 					"project":       c.HQProject,
@@ -111,6 +115,7 @@ func (c *Crawl) hqFinisher() {
 			}
 
 			finishedArray = []gocrawlhq.URL{}
+			childCrawlsTotal = 0
 		}
 
 	}

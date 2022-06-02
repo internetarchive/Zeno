@@ -19,7 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *http.Response, respPath string, err error) {
+func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.Response, respPath string, err error) {
 	var (
 		newItem *frontier.Item
 		newReq  *http.Request
@@ -33,14 +33,10 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 
 		c.URIsPerSecond.Incr(1)
 
-		if parentItem.Type == "seed" {
+		if item.Type == "seed" {
 			c.CrawledSeeds.Incr(1)
-		} else if parentItem.Type == "asset" {
+		} else if item.Type == "asset" {
 			c.CrawledAssets.Incr(1)
-		}
-
-		if c.UseHQ && parentItem.ID != "" {
-			c.HQFinishedChannel <- parentItem
 		}
 	}()
 
@@ -91,7 +87,7 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 
 	// If a redirection is catched, then we execute the redirection
 	if isRedirection(resp.StatusCode) {
-		if resp.Header.Get("location") == req.URL.String() || parentItem.Redirect >= c.MaxRedirect {
+		if resp.Header.Get("location") == req.URL.String() || item.Redirect >= c.MaxRedirect {
 			return resp, respPath, nil
 		}
 
@@ -100,7 +96,6 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 
 		// needed for WARC writing
 		// IMPORTANT! This will write redirects to WARC!
-
 		io.Copy(io.Discard, resp.Body)
 
 		URL, err = url.Parse(resp.Header.Get("location"))
@@ -114,8 +109,8 @@ func (c *Crawl) executeGET(parentItem *frontier.Item, req *http.Request) (resp *
 			URL = req.URL.ResolveReference(URL)
 		}
 
-		newItem = frontier.NewItem(URL, parentItem, parentItem.Type, parentItem.Hop, parentItem.ID)
-		newItem.Redirect = parentItem.Redirect + 1
+		newItem = frontier.NewItem(URL, item, item.Type, item.Hop, item.ID)
+		newItem.Redirect = item.Redirect + 1
 
 		// Prepare GET request
 		newReq, err = http.NewRequest("GET", URL.String(), nil)
@@ -187,7 +182,13 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		waitGroup      sync.WaitGroup
 	)
 
-	defer waitGroup.Wait()
+	defer func() {
+		waitGroup.Wait()
+
+		if c.UseHQ && item.ID != "" {
+			c.HQFinishedChannel <- item
+		}
+	}()
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
@@ -355,6 +356,9 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		}).Warning(item.URL.String())
 		return
 	}
+
+	// Keep the number of discovered assets to report them as crawled to HQ, for statistics purpose
+	item.ChildURIsCrawled = len(assets)
 
 	c.Frontier.QueueCount.Incr(int64(len(assets)))
 	var wg sync.WaitGroup
