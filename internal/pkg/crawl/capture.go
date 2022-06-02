@@ -137,6 +137,7 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 		resp           *http.Response
 	)
 
+
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
 	if err != nil {
