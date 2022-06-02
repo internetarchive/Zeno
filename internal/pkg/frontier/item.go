@@ -16,7 +16,7 @@ type Item struct {
 	Redirect       int
 	URL            *url.URL
 	ParentItem     *Item
-	LocallyCrawled int
+	LocallyCrawled uint64
 }
 
 // NewItem initialize an *Item

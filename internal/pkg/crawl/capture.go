@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
@@ -131,19 +132,10 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 }
 
 func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error {
-	var executionStart = time.Now()
-	var resp *http.Response
-
-	// If --seencheck is enabled, then we check if the URI is in the
-	// seencheck DB before doing anything. If it is in it, we skip the item
-	if c.Seencheck {
-		hash := strconv.FormatUint(item.Hash, 10)
-		found, _ := c.Frontier.Seencheck.IsSeen(hash)
-		if found {
-			return nil
-		}
-		c.Frontier.Seencheck.Seen(hash, item.Type)
-	}
+	var (
+		executionStart = time.Now()
+		resp           *http.Response
+	)
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
@@ -357,9 +349,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
-	// Keep the number of discovered assets to report them as crawled to HQ, for statistics purpose
-	item.LocallyCrawled = len(assets)
-
 	c.Frontier.QueueCount.Incr(int64(len(assets)))
 	var wg sync.WaitGroup
 	for _, asset := range assets {
@@ -381,7 +370,22 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		go func(asset url.URL, wg *sync.WaitGroup) {
 			defer wg.Done()
 
+			// Create the asset's item
 			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop, "")
+
+			// If --seencheck is enabled, then we check if the URI is in the
+			// seencheck DB before doing anything. If it is in it, we skip the item
+			if c.Seencheck {
+				hash := strconv.FormatUint(newAsset.Hash, 10)
+				found, _ := c.Frontier.Seencheck.IsSeen(hash)
+				if found {
+					return
+				}
+
+				c.Frontier.Seencheck.Seen(hash, newAsset.Type)
+			}
+
+			// Capture the asset
 			err = c.captureAsset(newAsset, resp.Cookies())
 			if err != nil {
 				logWarning.WithFields(logrus.Fields{
@@ -396,6 +400,10 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				}).Warning(asset.String())
 				return
 			}
+
+			// If we made it to this point, it means that the asset have been crawled successfully,
+			// then we can increment the locallyCrawled variable
+			atomic.AddUint64(&item.LocallyCrawled, 1)
 		}(asset, &wg)
 	}
 
