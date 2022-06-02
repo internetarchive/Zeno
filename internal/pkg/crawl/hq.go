@@ -27,7 +27,7 @@ func (c *Crawl) HQProducer() {
 			discoveredURL.Path += "L"
 		}
 
-		_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false)
+		_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false, false)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
