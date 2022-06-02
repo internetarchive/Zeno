@@ -120,3 +120,31 @@ func (c *Crawl) HQFinisher() {
 
 	}
 }
+
+func (c *Crawl) HQSeencheck(URL *url.URL) (bool, error) {
+	discoveredURL := gocrawlhq.URL{
+		Value: URL.String(),
+	}
+
+	discoveredResponse, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "asset", false, true)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"project": c.HQProject,
+			"address": c.HQAddress,
+			"url":     URL.String(),
+			"err":     err.Error(),
+		}).Errorln("error sending seencheck payload to crawl HQ")
+		return false, err
+	}
+
+	if discoveredResponse.URLs != nil {
+		for _, URL := range discoveredResponse.URLs {
+			if URL.Value == discoveredURL.Value {
+				return false, nil
+			}
+		}
+	}
+
+	// didn't find the URL in the HQ, so it's new and has been added to HQ's seencheck database
+	return true, nil
+}
