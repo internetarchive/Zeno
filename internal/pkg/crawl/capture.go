@@ -390,7 +390,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			// Create the asset's item
 			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop, "")
 
-			// If --seencheck is enabled, then we check if the URI is in the
+			// If --local-seencheck is enabled, then we check if the URI is in the
 			// seencheck DB before doing anything. If it is in it, we skip the item
 			if c.Seencheck {
 				hash := strconv.FormatUint(newAsset.Hash, 10)
