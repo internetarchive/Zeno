@@ -349,11 +349,20 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
+	// If we didn't find any assets, let's stop here
+	if len(assets) == 0 {
+		return
+	}
+
 	// If we use HQ, we seencheck the assets
 	if c.UseHQ {
 		seencheckedURLs, err := c.HQSeencheckURLs(assets)
 		if err == nil {
 			assets = seencheckedURLs
+		}
+
+		if len(assets) == 0 {
+			return
 		}
 	}
 
