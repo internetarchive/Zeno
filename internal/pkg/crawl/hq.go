@@ -121,7 +121,50 @@ func (c *Crawl) HQFinisher() {
 	}
 }
 
-func (c *Crawl) HQSeencheck(URL *url.URL) (bool, error) {
+func (c *Crawl) HQSeencheckURLs(URLs []url.URL) (seencheckedBatch []url.URL, err error) {
+	var (
+		discoveredURLs []gocrawlhq.URL
+	)
+
+	for _, URL := range URLs {
+		discoveredURLs = append(discoveredURLs, gocrawlhq.URL{
+			Value: URL.String(),
+		})
+	}
+
+	discoveredResponse, err := c.HQClient.Discovered(discoveredURLs, "asset", false, true)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"project":  c.HQProject,
+			"address":  c.HQAddress,
+			"batchLen": len(URLs),
+			"err":      err.Error(),
+		}).Errorln("error sending seencheck payload to crawl HQ")
+		return seencheckedBatch, err
+	}
+
+	if discoveredResponse.URLs != nil {
+		for _, URL := range discoveredResponse.URLs {
+			// the returned payload only contain new URLs to be crawled by Zeno
+			newURL, err := url.Parse(URL.Value)
+			if err != nil {
+				logWarning.WithFields(logrus.Fields{
+					"project":  c.HQProject,
+					"address":  c.HQAddress,
+					"batchLen": len(URLs),
+					"err":      err.Error(),
+				}).Warningln("error parsing URL from HQ seencheck response")
+				return seencheckedBatch, err
+			}
+
+			seencheckedBatch = append(seencheckedBatch, *newURL)
+		}
+	}
+
+	return seencheckedBatch, nil
+}
+
+func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 	discoveredURL := gocrawlhq.URL{
 		Value: URL.String(),
 	}

@@ -349,6 +349,23 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
+	// If we didn't find any assets, let's stop here
+	if len(assets) == 0 {
+		return
+	}
+
+	// If we use HQ, we seencheck the assets
+	if c.UseHQ {
+		seencheckedURLs, err := c.HQSeencheckURLs(assets)
+		if err == nil {
+			assets = seencheckedURLs
+		}
+
+		if len(assets) == 0 {
+			return
+		}
+	}
+
 	c.Frontier.QueueCount.Incr(int64(len(assets)))
 	var wg sync.WaitGroup
 	for _, asset := range assets {
@@ -373,7 +390,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			// Create the asset's item
 			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop, "")
 
-			// If --seencheck is enabled, then we check if the URI is in the
+			// If --local-seencheck is enabled, then we check if the URI is in the
 			// seencheck DB before doing anything. If it is in it, we skip the item
 			if c.Seencheck {
 				hash := strconv.FormatUint(newAsset.Hash, 10)
@@ -383,14 +400,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				}
 
 				c.Frontier.Seencheck.Seen(hash, newAsset.Type)
-			}
-
-			if c.UseHQ {
-				found, _ := c.HQSeencheck(item.URL)
-				if found {
-					// Since the asset is already seenchecked in HQ, we don't need to crawl it, as well as having been added to the local seencheck above.
-					return
-				}
 			}
 
 			// Capture the asset
