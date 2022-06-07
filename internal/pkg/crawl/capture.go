@@ -14,6 +14,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/tidwall/gjson"
 	"github.com/tomnomnom/linkheader"
+	"github.com/zeebo/xxh3"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/PuerkitoBio/goquery"
@@ -354,6 +355,29 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
+	// If --local-seencheck is enabled, then we check if the URI is in the
+	// seencheck DB. If it is in it, we skip the item
+	if c.Seencheck {
+		seencheckedBatch := []url.URL{}
+		for _, URL := range assets {
+			hash := strconv.FormatUint(xxh3.HashString(URL.String()), 10)
+			found, _ := c.Frontier.Seencheck.IsSeen(hash)
+			if found {
+				continue
+			} else {
+				seencheckedBatch = append(seencheckedBatch, URL)
+			}
+
+			c.Frontier.Seencheck.Seen(hash, "asset")
+		}
+
+		if len(seencheckedBatch) == 0 {
+			return
+		}
+		
+		assets = seencheckedBatch
+	}
+
 	// If we use HQ, we seencheck the assets
 	if c.UseHQ {
 		seencheckedURLs, err := c.HQSeencheckURLs(assets)
@@ -371,7 +395,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	for _, asset := range assets {
 		c.Frontier.QueueCount.Incr(-1)
 
-		// Just making sure we do not over archive
+		// Just making sure we do not over archive by archiving the original URL
 		if item.URL.String() == asset.String() {
 			continue
 		}
@@ -389,18 +413,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 			// Create the asset's item
 			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop, "")
-
-			// If --local-seencheck is enabled, then we check if the URI is in the
-			// seencheck DB before doing anything. If it is in it, we skip the item
-			if c.Seencheck {
-				hash := strconv.FormatUint(newAsset.Hash, 10)
-				found, _ := c.Frontier.Seencheck.IsSeen(hash)
-				if found {
-					return
-				}
-
-				c.Frontier.Seencheck.Seen(hash, newAsset.Type)
-			}
 
 			// Capture the asset
 			err = c.captureAsset(newAsset, resp.Cookies())
