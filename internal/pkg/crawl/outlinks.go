@@ -17,6 +17,9 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 	doc.Find("a").Each(func(index int, item *goquery.Selection) {
 		link, exists := item.Attr("href")
 		if exists {
+			if strings.HasPrefix(link, "#") {
+				return
+			}
 			rawOutlinks = append(rawOutlinks, link)
 		}
 	})
