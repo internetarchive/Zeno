@@ -41,7 +41,8 @@ type Flags struct {
 	HQSecret   string
 	HQStrategy string
 
-	CDXDedupeServer string
+	CDXDedupeServer    string
+	DisableLocalDedupe bool
 }
 
 type Application struct {

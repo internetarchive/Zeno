@@ -1,18 +1,14 @@
 package crawl
 
 import (
-	"net/http"
-	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/CorentinB/warc"
-	uuid "github.com/satori/go.uuid"
 )
 
 // dumpResponseToFile is like httputil.DumpResponse but dumps the response directly
 // to a file and return its path
-func (c *Crawl) dumpResponseToFile(resp *http.Response) (string, error) {
+/*func (c *Crawl) dumpResponseToFile(resp *http.Response) (string, error) {
 	var err error
 
 	// Generate a file on disk with a unique name
@@ -32,7 +28,7 @@ func (c *Crawl) dumpResponseToFile(resp *http.Response) (string, error) {
 	}
 
 	return filePath, nil
-}
+}*/
 
 func (c *Crawl) initWARCRotatorSettings() *warc.RotatorSettings {
 	var rotatorSettings = warc.NewRotatorSettings()
