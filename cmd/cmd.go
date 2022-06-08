@@ -157,6 +157,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Identify the server to use CDX deduplication. This turns CDX deduplication on.",
 		Destination: &config.App.Flags.CDXDedupeServer,
 	},
+	&cli.BoolFlag{
+		Name:        "disable-local-dedupe",
+		Usage:       "Disable local URL agonistic deduplication",
+		Value:       false,
+		Destination: &config.App.Flags.DisableLocalDedupe,
+	},
 
 	// Crawl HQ flags
 	&cli.BoolFlag{

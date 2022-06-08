@@ -81,11 +81,12 @@ type Crawl struct {
 	CrawledAssets *ratecounter.Counter
 
 	// WARC settings
-	WARCPrefix       string
-	WARCOperator     string
-	WARCWriter       chan *warc.RecordBatch
-	WARCWriterFinish chan bool
-	CDXDedupeServer  string
+	WARCPrefix         string
+	WARCOperator       string
+	WARCWriter         chan *warc.RecordBatch
+	WARCWriterFinish   chan bool
+	CDXDedupeServer    string
+	DisableLocalDedupe bool
 
 	// crawl HQ settings
 	UseHQ             bool
@@ -141,10 +142,10 @@ func (c *Crawl) Start() (err error) {
 	// and start the temp files cleaner process
 	os.MkdirAll(path.Join(c.JobPath, "temp"), os.ModePerm)
 	go c.tempFilesCleaner()
-	dedupeOptions := warc.DedupeOptions{LocalDedupe: true}
+	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe}
 
 	if c.CDXDedupeServer != "" {
-		dedupeOptions = warc.DedupeOptions{LocalDedupe: true, CDXDedupe: true, CDXURL: c.CDXDedupeServer}
+		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer}
 	}
 
 	// init the HTTP client responsible for recording HTTP(s) requests / responses
