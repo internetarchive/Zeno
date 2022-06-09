@@ -17,10 +17,6 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 	doc.Find("a").Each(func(index int, item *goquery.Selection) {
 		link, exists := item.Attr("href")
 		if exists {
-			// Hash (or fragment) URLs are navigational links pointing to the exact same page as such, they should not be treated as new outlinks.
-			if strings.HasPrefix(link, "#") {
-				return
-			}
 			rawOutlinks = append(rawOutlinks, link)
 		}
 	})
@@ -42,6 +38,9 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 
 	// Go over all outlinks and make sure they are absolute links
 	outlinks = utils.MakeAbsolute(base, outlinks)
+
+	// Hash (or fragment) URLs are navigational links pointing to the exact same page as such, they should not be treated as new outlinks.
+	outlinks = utils.RemoveFragments(outlinks)
 
 	return utils.DedupeURLs(outlinks), nil
 }
