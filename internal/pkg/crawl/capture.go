@@ -53,18 +53,26 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		if c.ClientProxied == nil || utils.StringContainsSliceElements(req.URL.Host, c.BypassProxy) {
 			resp, err = c.Client.Do(req)
 			if err != nil {
-				return resp, respPath, err
+				if retry+1 >= c.MaxRetry {
+					return resp, respPath, err
+				}
 			}
 		} else {
 			resp, err = c.ClientProxied.Do(req)
 			if err != nil {
-				if retry+2 > c.MaxRetry {
+				if retry+1 >= c.MaxRetry {
 					return resp, respPath, err
-				} else {
-					logInfo.Println("Crucial error, retrying: " + err.Error())
-					continue
 				}
 			}
+		}
+
+		if err != nil {
+			logInfo.WithFields(logrus.Fields{
+				"url":         req.URL.String(),
+				"retry_count": retry,
+				"error":       err,
+			}).Info("Crucial error, retrying...")
+			continue
 		}
 
 		if resp.StatusCode == 429 {
@@ -374,7 +382,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		if len(seencheckedBatch) == 0 {
 			return
 		}
-		
+
 		assets = seencheckedBatch
 	}
 
