@@ -19,6 +19,14 @@ func MakeAbsolute(base *url.URL, URLs []url.URL) []url.URL {
 	return URLs
 }
 
+func RemoveFragments(URLs []url.URL) []url.URL {
+	for i := range URLs {
+		URLs[i].Fragment = ""
+	}
+
+	return URLs
+}
+
 // DedupeURLs take a slice of *url.URL and dedupe it
 func DedupeURLs(URLs []url.URL) []url.URL {
 	keys := make(map[string]bool)
