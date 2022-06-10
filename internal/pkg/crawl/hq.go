@@ -100,7 +100,7 @@ func (c *Crawl) HQFinisher() {
 		locallyCrawledTotal += int(finishedItem.LocallyCrawled)
 		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedItem.ID, Value: finishedItem.URL.String()})
 
-		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) {
+		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) || c.Finished.Get() {
 		finish:
 			_, err := c.HQClient.Finished(finishedArray, locallyCrawledTotal)
 			if err != nil {
