@@ -19,7 +19,6 @@ require (
 	github.com/philippgille/gokv/leveldb v0.6.0
 	github.com/prometheus/client_golang v1.8.0
 	github.com/remeh/sizedwaitgroup v1.0.0
-	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/afero v1.6.0
 	github.com/stretchr/testify v1.7.0
@@ -28,6 +27,7 @@ require (
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeebo/xxh3 v0.8.2
+	go.uber.org/goleak v1.1.12
 	mvdan.cc/xurls/v2 v2.4.0
 )
 
@@ -70,6 +70,7 @@ require (
 	github.com/prometheus/procfs v0.2.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
+	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tebeka/strftime v0.1.5 // indirect
@@ -80,7 +81,6 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/protobuf v1.23.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
