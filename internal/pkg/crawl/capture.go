@@ -71,6 +71,9 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 				"retry_count": retry,
 				"error":       err,
 			}).Info("Crucial error, retrying...")
+			sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
+
+			time.Sleep(sleepTime)
 			continue
 		}
 
