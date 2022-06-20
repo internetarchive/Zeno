@@ -26,4 +26,4 @@ jobs:
       run: go test -race -v ./...
 
     - name: Goroutine leak detector
-      run: go test -c -o tests && for test in $(go test -list . | grep -E "^(Test|Example)"); do ./tests -test.run "^$test\$" &>/dev/null && echo -n "$test passed\n" || echo -e "$test failed\n"; done
+      run: go test -c -o tests && for test in $(go test -list . | grep -E "^(Test|Example)"); do ./tests -test.run "^$test\$" &>/dev/null && echo -e "$test passed\n" || echo -e "$test failed\n"; done
