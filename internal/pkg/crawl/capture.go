@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.Response, respPath string, err error) {
+func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.Response, err error) {
 	var (
 		newItem *frontier.Item
 		newReq  *http.Request
@@ -54,17 +53,20 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 			resp, err = c.Client.Do(req)
 			if err != nil {
 				if retry+1 >= c.MaxRetry {
-					return resp, respPath, err
+					return resp, err
 				}
 			}
 		} else {
 			resp, err = c.ClientProxied.Do(req)
 			if err != nil {
 				if retry+1 >= c.MaxRetry {
-					return resp, respPath, err
+					return resp, err
 				}
 			}
 		}
+
+		// This is unused unless there is an error or a 429.
+		sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
 
 		if err != nil {
 			logInfo.WithFields(logrus.Fields{
@@ -72,11 +74,12 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 				"retry_count": retry,
 				"error":       err,
 			}).Info("Crucial error, retrying...")
+
+			time.Sleep(sleepTime)
 			continue
 		}
 
 		if resp.StatusCode == 429 {
-			sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
 			logInfo.WithFields(logrus.Fields{
 				"url":         req.URL.String(),
 				"duration":    sleepTime.String(),
@@ -98,10 +101,9 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 	// If a redirection is catched, then we execute the redirection
 	if isRedirection(resp.StatusCode) {
 		if resp.Header.Get("location") == req.URL.String() || item.Redirect >= c.MaxRedirect {
-			return resp, respPath, nil
+			return resp, nil
 		}
 
-		defer markTempFileDone(respPath)
 		defer resp.Body.Close()
 
 		// needed for WARC writing
@@ -110,7 +112,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 
 		URL, err = url.Parse(resp.Header.Get("location"))
 		if err != nil {
-			return resp, respPath, err
+			return resp, err
 		}
 
 		// Make URL absolute if they aren't.
@@ -125,19 +127,19 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		// Prepare GET request
 		newReq, err = http.NewRequest("GET", URL.String(), nil)
 		if err != nil {
-			return resp, respPath, err
+			return resp, err
 		}
 
 		req.Header.Set("User-Agent", c.UserAgent)
 		req.Header.Set("Referer", newItem.ParentItem.URL.String())
 
-		resp, respPath, err = c.executeGET(newItem, newReq)
+		resp, err = c.executeGET(newItem, newReq)
 		if err != nil {
-			return resp, respPath, err
+			return resp, err
 		}
 	}
 
-	return resp, respPath, nil
+	return resp, nil
 }
 
 func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error {
@@ -159,13 +161,11 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 		req.AddCookie(cookies[i])
 	}
 
-	resp, respPath, err := c.executeGET(item, req)
+	resp, err = c.executeGET(item, req)
 	if err != nil {
-		markTempFileDone(respPath)
 		return err
 	}
 	defer resp.Body.Close()
-	defer markTempFileDone(respPath)
 
 	// needed for WARC writing
 	io.Copy(io.Discard, resp.Body)
@@ -223,16 +223,14 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	req.Header.Set("User-Agent", c.UserAgent)
 
 	// execute request
-	resp, respPath, err := c.executeGET(item, req)
+	resp, err = c.executeGET(item, req)
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
-		markTempFileDone(respPath)
 		return
 	}
 	defer resp.Body.Close()
-	defer markTempFileDone(respPath)
 
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
@@ -284,39 +282,13 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Turn the response into a doc that we will scrape
-	var doc *goquery.Document
-	if respPath != "" {
-		file, err := os.Open(respPath)
-		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-				"url":   item.URL.String(),
-				"path":  respPath,
-			}).Warning("Error opening temporary file for outlinks/assets extraction")
-			return
-		}
 
-		doc, err = goquery.NewDocumentFromReader(file)
-		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-				"url":   item.URL.String(),
-				"path":  respPath,
-			}).Warning("Error making goquery document from temporary file")
-			return
-		}
-		_ = doc
-		file.Close()
-		markTempFileDone(respPath)
-	} else {
-		doc, err = goquery.NewDocumentFromReader(resp.Body)
-		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-			}).Warning(item.URL.String())
-			return
-		}
-		_ = doc
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		logWarning.WithFields(logrus.Fields{
+			"error": err,
+		}).Warning(item.URL.String())
+		return
 	}
 
 	// Websites can use a <base> tag to specify a base for relative URLs in every other tags.
@@ -445,12 +417,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	wg.Wait()
-}
-
-func markTempFileDone(path string) {
-	if path != "" {
-		os.Rename(path, path+".done")
-	}
 }
 
 func getURLsFromJSON(payload gjson.Result) (links []string) {
