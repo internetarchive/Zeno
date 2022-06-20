@@ -65,20 +65,21 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 			}
 		}
 
+		// This is unused unless there is an error or a 429.
+		sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
+
 		if err != nil {
 			logInfo.WithFields(logrus.Fields{
 				"url":         req.URL.String(),
 				"retry_count": retry,
 				"error":       err,
 			}).Info("Crucial error, retrying...")
-			sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
 
 			time.Sleep(sleepTime)
 			continue
 		}
 
 		if resp.StatusCode == 429 {
-			sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
 			logInfo.WithFields(logrus.Fields{
 				"url":         req.URL.String(),
 				"duration":    sleepTime.String(),
