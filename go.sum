@@ -3,8 +3,8 @@ cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 git.archive.org/wb/gocrawlhq v1.1.9 h1:XLjRshzNsZZKP0nIoN3zs0xwef5s/y/Ngu6Qzn1BVEg=
 git.archive.org/wb/gocrawlhq v1.1.9/go.mod h1:IR7ynAW8FJH2N/MP99Vk3Fkf/Y1RgqJWAP/kK3VGStY=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/CorentinB/warc v0.8.4 h1:Nt0cnu3tpxEGZcXnx5ZMRxyL9oKV18yOWskX3j0P8K8=
-github.com/CorentinB/warc v0.8.4/go.mod h1:DJfrG1cqGkLsrQYK2BwqRd1p1BoOuKY0yQrrdVBqCOU=
+github.com/CorentinB/warc v0.8.6 h1:M/t/6h+ImHT5jcIXukpRqn4tvNIlnemWNAntGjO59GA=
+github.com/CorentinB/warc v0.8.6/go.mod h1:6Bo1vH18iD4qOSIY0ng8k00nT5HOOGAoEzdebaETBsE=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/PuerkitoBio/goquery v1.8.0 h1:PJTF7AmFCFKk1N6V6jmKfrNH9tV5pNE6lZMkG0gta/U=
 github.com/PuerkitoBio/goquery v1.8.0/go.mod h1:ypIiRMtY7COPGk+I/YbZLbxsxn9g5ejnI2HSMtkjZvI=
