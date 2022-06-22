@@ -147,18 +147,32 @@ func (c *Crawl) Start() (err error) {
 	if c.CDXDedupeServer != "" {
 		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer}
 	}
+	errChan := make(chan error)
 
 	// init the HTTP client responsible for recording HTTP(s) requests / responses
-	c.Client, err = warc.NewWARCWritingHTTPClient(rotatorSettings, "", true, dedupeOptions, []int{429})
+	c.Client, err, errChan = warc.NewWARCWritingHTTPClient(rotatorSettings, "", true, dedupeOptions, []int{429})
 	if err != nil {
 		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
 	}
 
+	go func() {
+		for err := range errChan {
+			logWarning.Errorf("WARC HTTP client error: %s", err)
+		}
+	}()
+
 	if c.Proxy != "" {
-		c.ClientProxied, err = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true, dedupeOptions, []int{429})
+		errChanProxy := make(chan error)
+		c.ClientProxied, err, errChanProxy = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true, dedupeOptions, []int{429})
 		if err != nil {
 			logrus.Fatalf("Unable to init WARC writing (proxy) HTTP client: %s", err)
 		}
+
+		go func() {
+			for err := range errChanProxy {
+				logWarning.Errorf("WARC HTTP client error: %s", err)
+			}
+		}()
 	}
 
 	logrus.Info("WARC writer initialized")
