@@ -154,6 +154,7 @@ func (c *Crawl) Start() (err error) {
 	if err != nil {
 		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
 	}
+
 	go func() {
 		for err := range errChan {
 			logWarning.Errorf("WARC HTTP client error: %s", err)
@@ -169,7 +170,7 @@ func (c *Crawl) Start() (err error) {
 
 		go func() {
 			for err := range errChanProxy {
-				logrus.Errorf("WARC HTTP client error: %s", err)
+				logWarning.Errorf("WARC HTTP client error: %s", err)
 			}
 		}()
 	}
