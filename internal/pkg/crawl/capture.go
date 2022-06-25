@@ -295,15 +295,24 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// This checks for the "base" tag and resets the "base" URL variable with the new base URL specified
 	// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
 	if !utils.StringInSlice("base", c.DisabledHTMLTags) {
+		oldBase := base
+
 		doc.Find("base").Each(func(index int, goitem *goquery.Selection) {
+			// If a new base got scraped, stop looking for one
+			if oldBase != base {
+				return
+			}
+
+			// Attempt to get a new base value from the base HTML tag
 			link, exists := goitem.Attr("href")
 			if exists {
-				base, err = url.Parse(link)
+				baseTagValue, err := url.Parse(link)
 				if err != nil {
 					logWarning.WithFields(logrus.Fields{
 						"error": err,
 					}).Warning(item.URL.String())
-					return
+				} else {
+					base = baseTagValue
 				}
 			}
 		})

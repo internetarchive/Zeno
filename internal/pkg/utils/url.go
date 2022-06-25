@@ -11,7 +11,7 @@ import (
 // on a given base *url.URL
 func MakeAbsolute(base *url.URL, URLs []url.URL) []url.URL {
 	for i, URL := range URLs {
-		if URL.IsAbs() == false {
+		if !URL.IsAbs() {
 			URLs[i] = *base.ResolveReference(&URL)
 		}
 	}
