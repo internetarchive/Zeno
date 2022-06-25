@@ -163,6 +163,12 @@ var GlobalFlags = []cli.Flag{
 		Value:       false,
 		Destination: &config.App.Flags.DisableLocalDedupe,
 	},
+	&cli.BoolFlag{
+		Name:        "disable-assets-capture",
+		Usage:       "Disable assets capture",
+		Value:       false,
+		Destination: &config.App.Flags.DisableAssetsCapture,
+	},
 
 	// Crawl HQ flags
 	&cli.BoolFlag{

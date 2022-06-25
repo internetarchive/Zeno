@@ -53,6 +53,7 @@ type Crawl struct {
 	MaxHops               uint8
 	MaxRetry              int
 	MaxRedirect           int
+	DisableAssetsCapture  bool
 	CaptureAlternatePages bool
 	DomainsCrawl          bool
 	Headless              bool

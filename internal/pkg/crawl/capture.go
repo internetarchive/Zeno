@@ -321,6 +321,10 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	waitGroup.Add(1)
 	go c.queueOutlinks(outlinks, item, &waitGroup)
 
+	if c.DisableAssetsCapture {
+		return
+	}
+
 	// Extract and capture assets
 	assets, err := c.extractAssets(base, item, doc)
 	if err != nil {
@@ -335,8 +339,8 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
-	// If --local-seencheck is enabled, then we check if the URI is in the
-	// seencheck DB. If it is in it, we skip the item
+	// If --local-seencheck is enabled, then we check if the assets are in the
+	// seencheck DB. If they are, then they are skipped.
 	if c.Seencheck {
 		seencheckedBatch := []url.URL{}
 		for _, URL := range assets {
