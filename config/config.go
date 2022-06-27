@@ -44,6 +44,7 @@ type Flags struct {
 	CDXDedupeServer      string
 	DisableLocalDedupe   bool
 	DisableAssetsCapture bool
+	CertValidation bool
 }
 
 type Application struct {
