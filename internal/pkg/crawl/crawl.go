@@ -82,12 +82,13 @@ type Crawl struct {
 	CrawledAssets *ratecounter.Counter
 
 	// WARC settings
-	WARCPrefix         string
-	WARCOperator       string
-	WARCWriter         chan *warc.RecordBatch
-	WARCWriterFinish   chan bool
-	CDXDedupeServer    string
-	DisableLocalDedupe bool
+	WARCPrefix           string
+	WARCOperator         string
+	WARCWriter           chan *warc.RecordBatch
+	WARCWriterFinish     chan bool
+	CDXDedupeServer      string
+	DisableLocalDedupe   bool
+	EnableCertValidation bool
 
 	// crawl HQ settings
 	UseHQ             bool
@@ -151,7 +152,7 @@ func (c *Crawl) Start() (err error) {
 	errChan := make(chan error)
 
 	// init the HTTP client responsible for recording HTTP(s) requests / responses
-	c.Client, err, errChan = warc.NewWARCWritingHTTPClient(rotatorSettings, "", true, dedupeOptions, []int{429})
+	c.Client, err, errChan = warc.NewWARCWritingHTTPClient(rotatorSettings, "", true, dedupeOptions, []int{429}, c.EnableCertValidation)
 	if err != nil {
 		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
 	}
@@ -164,7 +165,7 @@ func (c *Crawl) Start() (err error) {
 
 	if c.Proxy != "" {
 		errChanProxy := make(chan error)
-		c.ClientProxied, err, errChanProxy = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true, dedupeOptions, []int{429})
+		c.ClientProxied, err, errChanProxy = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true, dedupeOptions, []int{429}, c.EnableCertValidation)
 		if err != nil {
 			logrus.Fatalf("Unable to init WARC writing (proxy) HTTP client: %s", err)
 		}
