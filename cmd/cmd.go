@@ -164,10 +164,10 @@ var GlobalFlags = []cli.Flag{
 		Destination: &config.App.Flags.DisableLocalDedupe,
 	},
 	&cli.BoolFlag{
-		Name:        "enable-cert-validation",
+		Name:        "cert-validation",
 		Usage:       "Enables certificate validation on HTTPS requests",
 		Value:       false,
-		Destination: &config.App.Flags.EnableCertValidation,
+		Destination: &config.App.Flags.CertValidation,
 	},
 	&cli.BoolFlag{
 		Name:        "disable-assets-capture",
