@@ -39,11 +39,16 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 			matches := re.FindAllStringSubmatch(item.Text(), -1)
 
 			for match := range matches {
-				match_replacement := matches[match][1]
-				match_replacement = strings.Replace(match_replacement, "'", "", -1)
-				match_replacement = strings.Replace(match_replacement, "\"", "", -1)
-				match_replacement = strings.Replace(match_replacement, "//", "http://", -1)
-				rawAssets = append(rawAssets, match_replacement)
+				matchReplacement := matches[match][1]
+				matchReplacement = strings.Replace(matchReplacement, "'", "", -1)
+				matchReplacement = strings.Replace(matchReplacement, "\"", "", -1)
+
+				// If the URL already has http (or https), we don't need add anything to it.
+				if !strings.Contains(matchReplacement, "http") {
+					matchReplacement = strings.Replace(matchReplacement, "//", "http://", -1)
+				}
+
+				rawAssets = append(rawAssets, matchReplacement)
 			}
 		})
 	}
