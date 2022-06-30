@@ -9,6 +9,8 @@ github.com/CorentinB/warc v0.8.10 h1:xxfITTVo5bgBFyHi9BACOY3AwBK1zdD2fppYxBhHlKs
 github.com/CorentinB/warc v0.8.10/go.mod h1:ACU1vUDu4RG7eOU8k60nVE7GYTj4CGmOxaYIURE7aIg=
 github.com/CorentinB/warc v0.8.11 h1:12x3+mJFG8RLjt5r+iS7uiw4kjEpAp+pQHLhZpaquzk=
 github.com/CorentinB/warc v0.8.11/go.mod h1:ACU1vUDu4RG7eOU8k60nVE7GYTj4CGmOxaYIURE7aIg=
+github.com/CorentinB/warc v0.8.12 h1:OaCxKWEIfoVOpSgGFS3QbiPn0cVTO9zR8E0MaspfxAs=
+github.com/CorentinB/warc v0.8.12/go.mod h1:ACU1vUDu4RG7eOU8k60nVE7GYTj4CGmOxaYIURE7aIg=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/PuerkitoBio/goquery v1.8.0 h1:PJTF7AmFCFKk1N6V6jmKfrNH9tV5pNE6lZMkG0gta/U=
 github.com/PuerkitoBio/goquery v1.8.0/go.mod h1:ypIiRMtY7COPGk+I/YbZLbxsxn9g5ejnI2HSMtkjZvI=
