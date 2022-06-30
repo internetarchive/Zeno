@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"runtime/debug"
 	"time"
 
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
@@ -54,25 +53,4 @@ func SetupLogging(jobPath string, liveStats bool) (logInfo, logWarning *logrus.L
 	}
 
 	return logInfo, logWarning
-}
-
-// Defaults to "master" in case there is an error, else it returns the git hash with "-true" if the git tree on build was different
-func GetVersion() string {
-	version := "master"
-	if info, ok := debug.ReadBuildInfo(); ok {
-		for _, setting := range info.Settings {
-			// This returns the current git hash
-			if setting.Key == "vcs.revision" {
-				version = setting.Value
-			}
-
-			// This would show us if the current git tree is modified from the hash, possible changes that weren't committed.
-			if setting.Key == "vcs.modified" {
-				if setting.Value != "false" {
-					version = version + "-" + setting.Value
-				}
-			}
-		}
-	}
-	return version
 }

@@ -112,9 +112,6 @@ func (c *Crawl) Start() (err error) {
 	// Setup logging
 	logInfo, logWarning = utils.SetupLogging(c.JobPath, c.LiveStats)
 
-	// Initialize HTTP client
-	// c.initHTTPClient()
-
 	// Start the background process that will handle os signals
 	// to exit Zeno, like CTRL+C
 	go c.setupCloseHandler()

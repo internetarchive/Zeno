@@ -12,7 +12,7 @@ import (
 func newGetListCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "list",
-		Usage:     "Start crawling with a seed list",
+		Usage:     "Start crawling with a seed list.",
 		Action:    cmdGetList,
 		Flags:     []cli.Flag{},
 		UsageText: "<FILE> [ARGUMENTS]",
