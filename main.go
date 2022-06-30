@@ -22,6 +22,7 @@ import (
 
 	"github.com/CorentinB/Zeno/cmd"
 	_ "github.com/CorentinB/Zeno/cmd/all"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -32,7 +33,7 @@ var Version string = "master"
 func main() {
 	app := cli.NewApp()
 	app.Name = "Zeno"
-	app.Version = Version
+	app.Version = utils.GetVersion()
 	app.Authors = append(app.Authors, &cli.Author{Name: "Corentin Barreau", Email: "corentin@archive.org"})
 	app.Usage = ""
 
