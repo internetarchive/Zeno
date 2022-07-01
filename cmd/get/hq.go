@@ -11,7 +11,7 @@ import (
 func newGetHQCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "hq",
-		Usage:     "Start crawling with the crawl HQ connector",
+		Usage:     "Start crawling with the crawl HQ connector.",
 		Action:    cmdGetHQ,
 		Flags:     []cli.Flag{},
 		UsageText: "<FILE> [ARGUMENTS]",

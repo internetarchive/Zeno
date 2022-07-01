@@ -14,7 +14,7 @@ import (
 func newGetURLCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "url",
-		Usage:     "Start crawling with a single URL",
+		Usage:     "Start crawling with a single URL.",
 		Action:    cmdGetURL,
 		Flags:     []cli.Flag{},
 		UsageText: "<URL> [ARGUMENTS]",

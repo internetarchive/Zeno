@@ -25,7 +25,7 @@ func init() {
 	cmd.RegisterCommand(
 		cli.Command{
 			Name:  "get",
-			Usage: "All commands that get URLs",
+			Usage: "Archive the web!",
 			Subcommands: []*cli.Command{
 				newGetURLCmd(),
 				newGetListCmd(),
