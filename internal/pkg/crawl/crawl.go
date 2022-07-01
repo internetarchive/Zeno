@@ -2,7 +2,6 @@ package crawl
 
 import (
 	"net/http"
-	"os"
 	"path"
 	"sync"
 	"time"
@@ -134,18 +133,14 @@ func (c *Crawl) Start() (err error) {
 	// Initialize WARC writer
 	logrus.Info("Initializing WARC writer..")
 
-	// init WARC rotator settings
+	// Init WARC rotator settings
 	rotatorSettings := c.initWARCRotatorSettings()
 
-	// create the directory in which temporary files will be stored
-	// and start the temp files cleaner process
-	os.MkdirAll(path.Join(c.JobPath, "temp"), os.ModePerm)
-	go c.tempFilesCleaner()
 	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe}
-
 	if c.CDXDedupeServer != "" {
 		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer}
 	}
+
 	errChan := make(chan error)
 
 	// init the HTTP client responsible for recording HTTP(s) requests / responses
@@ -180,7 +175,7 @@ func (c *Crawl) Start() (err error) {
 		go c.startAPI()
 	}
 
-	// parse input cookie file if specified
+	// Parse input cookie file if specified
 	if c.CookieFile != "" {
 		cookieJar, err := cookiejar.NewFileJar(c.CookieFile, nil)
 		if err != nil {
