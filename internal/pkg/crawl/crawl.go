@@ -86,6 +86,7 @@ type Crawl struct {
 	WARCWriter         chan *warc.RecordBatch
 	WARCWriterFinish   chan bool
 	CDXDedupeServer    string
+	WARCFullOnDisk     bool
 	DisableLocalDedupe bool
 	CertValidation     bool
 
@@ -143,8 +144,18 @@ func (c *Crawl) Start() (err error) {
 
 	errChan := make(chan error)
 
-	// init the HTTP client responsible for recording HTTP(s) requests / responses
-	c.Client, err, errChan = warc.NewWARCWritingHTTPClient(rotatorSettings, "", true, dedupeOptions, []int{429}, c.CertValidation, path.Join(c.JobPath, "temp"))
+	// Init the HTTP client responsible for recording HTTP(s) requests / responses
+	HTTPClientSettings := warc.HTTPClientSettings{
+		RotatorSettings:     rotatorSettings,
+		DedupeOptions:       dedupeOptions,
+		DecompressBody:      true,
+		SkipHTTPStatusCodes: []int{429},
+		VerifyCerts:         c.CertValidation,
+		TempDir:             path.Join(c.JobPath, "temp"),
+		FullOnDisk:          c.WARCFullOnDisk,
+	}
+
+	c.Client, errChan, err = warc.NewWARCWritingHTTPClient(HTTPClientSettings)
 	if err != nil {
 		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
 	}
@@ -157,7 +168,11 @@ func (c *Crawl) Start() (err error) {
 
 	if c.Proxy != "" {
 		errChanProxy := make(chan error)
-		c.ClientProxied, err, errChanProxy = warc.NewWARCWritingHTTPClient(rotatorSettings, c.Proxy, true, dedupeOptions, []int{429}, c.CertValidation, path.Join(c.JobPath, "temp"))
+
+		proxyHTTPClientSettings := HTTPClientSettings
+		proxyHTTPClientSettings.Proxy = c.Proxy
+
+		c.ClientProxied, errChanProxy, err = warc.NewWARCWritingHTTPClient(proxyHTTPClientSettings)
 		if err != nil {
 			logrus.Fatalf("Unable to init WARC writing (proxy) HTTP client: %s", err)
 		}
