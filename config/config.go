@@ -31,8 +31,9 @@ type Flags struct {
 	Prometheus       bool
 	PrometheusPrefix string
 
-	WARCPrefix   string
-	WARCOperator string
+	WARCPrefix     string
+	WARCOperator   string
+	WARCFullOnDisk bool
 
 	UseHQ      bool
 	HQAddress  string
@@ -44,7 +45,7 @@ type Flags struct {
 	CDXDedupeServer      string
 	DisableLocalDedupe   bool
 	DisableAssetsCapture bool
-	CertValidation bool
+	CertValidation       bool
 }
 
 type Application struct {
