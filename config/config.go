@@ -3,15 +3,16 @@ package config
 import "github.com/urfave/cli/v2"
 
 type Flags struct {
-	UserAgent string
-	Job       string
-	Workers   int
-	MaxHops   uint
-	Headless  bool
-	Seencheck bool
-	JSON      bool
-	LiveStats bool
-	Debug     bool
+	UserAgent           string
+	Job                 string
+	Workers             int
+	MaxConcurrentAssets int
+	MaxHops             uint
+	Headless            bool
+	Seencheck           bool
+	JSON                bool
+	LiveStats           bool
+	Debug               bool
 
 	DisabledHTMLTags      cli.StringSlice
 	ExcludedHosts         cli.StringSlice

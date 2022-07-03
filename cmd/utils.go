@@ -43,6 +43,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 
 	c.Workers = flags.Workers
 	c.WorkerPool = sizedwaitgroup.New(c.Workers)
+	c.MaxConcurrentAssets = flags.MaxConcurrentAssets
 
 	c.Seencheck = flags.Seencheck
 	c.MaxRetry = flags.MaxRetry
