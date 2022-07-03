@@ -41,6 +41,7 @@ type Crawl struct {
 
 	// crawl settings
 	WorkerPool            sizedwaitgroup.SizedWaitGroup
+	MaxConcurrentAssets   int
 	Client                *warc.CustomHTTPClient
 	ClientProxied         *warc.CustomHTTPClient
 	Logger                logrus.Logger

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
+	"github.com/remeh/sizedwaitgroup"
 	"github.com/tidwall/gjson"
 	"github.com/tomnomnom/linkheader"
 	"github.com/zeebo/xxh3"
@@ -384,7 +385,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	c.Frontier.QueueCount.Incr(int64(len(assets)))
-	var wg sync.WaitGroup
+	swg := sizedwaitgroup.New(c.MaxConcurrentAssets)
 	for _, asset := range assets {
 		c.Frontier.QueueCount.Incr(-1)
 
@@ -399,10 +400,10 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			continue
 		}
 
-		wg.Add(1)
+		swg.Add()
 		c.URIsPerSecond.Incr(1)
-		go func(asset url.URL, wg *sync.WaitGroup) {
-			defer wg.Done()
+		go func(asset url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
+			defer swg.Done()
 
 			// Create the asset's item
 			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop, "")
@@ -426,10 +427,10 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			// If we made it to this point, it means that the asset have been crawled successfully,
 			// then we can increment the locallyCrawled variable
 			atomic.AddUint64(&item.LocallyCrawled, 1)
-		}(asset, &wg)
+		}(asset, &swg)
 	}
 
-	wg.Wait()
+	swg.Wait()
 }
 
 func getURLsFromJSON(payload gjson.Result) (links []string) {

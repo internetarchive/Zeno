@@ -29,6 +29,13 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Number of concurrent workers to run.",
 		Destination: &config.App.Flags.Workers,
 	},
+	&cli.IntFlag{
+		Name:        "max-concurrent-assets",
+		Aliases:     []string{"ca"},
+		Value:       8,
+		Usage:       "Max number of concurrent assets to fetch PER worker.",
+		Destination: &config.App.Flags.MaxConcurrentAssets,
+	},
 	&cli.UintFlag{
 		Name:        "max-hops",
 		Value:       0,
