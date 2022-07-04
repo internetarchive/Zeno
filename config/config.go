@@ -34,6 +34,7 @@ type Flags struct {
 
 	WARCPrefix     string
 	WARCOperator   string
+	WARCPoolSize   int
 	WARCFullOnDisk bool
 
 	UseHQ      bool

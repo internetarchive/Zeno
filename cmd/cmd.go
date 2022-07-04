@@ -170,6 +170,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Do not use RAM to store payloads when recording traffic to WARCs, everything will happen on disk (usually used to reduce memory usage).",
 		Destination: &config.App.Flags.WARCFullOnDisk,
 	},
+	&cli.IntFlag{
+		Name:        "warc-pool-size",
+		Value:       1,
+		Usage:       "Number of concurrent WARC writing threads",
+		Destination: &config.App.Flags.WARCPoolSize,
+	},
 	&cli.BoolFlag{
 		Name:        "disable-local-dedupe",
 		Usage:       "Disable local URL agonistic deduplication.",

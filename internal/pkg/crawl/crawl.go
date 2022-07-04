@@ -88,6 +88,7 @@ type Crawl struct {
 	WARCWriterFinish   chan bool
 	CDXDedupeServer    string
 	WARCFullOnDisk     bool
+	WARCPoolSize       int
 	DisableLocalDedupe bool
 	CertValidation     bool
 
@@ -137,6 +138,9 @@ func (c *Crawl) Start() (err error) {
 
 	// Init WARC rotator settings
 	rotatorSettings := c.initWARCRotatorSettings()
+
+	// Change WARC pool size
+	rotatorSettings.WARCWriterPoolSize = c.WARCPoolSize
 
 	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe}
 	if c.CDXDedupeServer != "" {
