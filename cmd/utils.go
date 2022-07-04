@@ -62,6 +62,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.DisableLocalDedupe = flags.DisableLocalDedupe
 	c.CertValidation = flags.CertValidation
 	c.WARCFullOnDisk = flags.WARCFullOnDisk
+	c.WARCPoolSize = flags.WARCPoolSize
 
 	c.API = flags.API
 	c.APIPort = flags.APIPort

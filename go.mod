@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	git.archive.org/wb/gocrawlhq v1.1.9
-	github.com/CorentinB/warc v0.8.19
+	github.com/CorentinB/warc v0.8.20
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
@@ -50,6 +50,7 @@ require (
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/klauspost/compress v1.15.1 // indirect
+	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
