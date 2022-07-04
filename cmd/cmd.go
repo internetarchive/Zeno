@@ -173,7 +173,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.IntFlag{
 		Name:        "warc-pool-size",
 		Value:       1,
-		Usage:       "Number of concurrent WARC writing threads",
+		Usage:       "Number of concurrent WARC files to write.",
 		Destination: &config.App.Flags.WARCPoolSize,
 	},
 	&cli.BoolFlag{
