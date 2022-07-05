@@ -275,15 +275,15 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
-	// If the response isn't a text/*, we do not scrape it
-	if !strings.Contains(resp.Header.Get("Content-Type"), "text/") {
-		// enforce reading all data from the response
+	// If the response isn't a text/*, we do not scrape it.
+	// We also aren't going to scrape if assets and outlinks are turned off.
+	if !strings.Contains(resp.Header.Get("Content-Type"), "text/") || (c.DisableAssetsCapture && !c.DomainsCrawl && (c.MaxHops <= item.Hop)) {
+		// Enforce reading all data from the response for WARC writing
 		io.Copy(io.Discard, resp.Body)
 		return
 	}
 
-	// Turn the response into a doc that we will scrape
-
+	// Turn the response into a doc that we will scrape for outlinks and assets.
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
