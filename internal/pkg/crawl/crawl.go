@@ -191,6 +191,10 @@ func (c *Crawl) Start() (err error) {
 
 	logrus.Info("WARC writer initialized")
 
+	// Process responsible for slowing or pausing the crawl
+	// when the WARC writing queue gets too big
+	go c.crawlSpeedLimiter()
+
 	if c.API {
 		go c.startAPI()
 	}
