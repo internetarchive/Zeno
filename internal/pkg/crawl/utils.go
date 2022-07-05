@@ -23,13 +23,16 @@ func (c *Crawl) crawlSpeedLimiter() {
 
 	for {
 		if c.Client.WaitGroup.Size() > c.Workers*8 {
-			for c.Client.WaitGroup.Size() > c.Workers*8 {
-				time.Sleep(time.Second / 2)
-			}
+			c.Paused.Set(true)
+			c.Frontier.Paused.Set(true)
 		} else if c.Client.WaitGroup.Size() > c.Workers*4 {
 			c.MaxConcurrentAssets = 1
+			c.Paused.Set(false)
+			c.Frontier.Paused.Set(false)
 		} else {
 			c.MaxConcurrentAssets = maxConcurrentAssets
+			c.Paused.Set(false)
+			c.Frontier.Paused.Set(false)
 		}
 
 		time.Sleep(time.Second / 4)
