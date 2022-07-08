@@ -156,6 +156,7 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	}
 
 	req.Header.Set("Referer", item.ParentItem.URL.String())
+	req.Header.Set("User-Agent", c.UserAgent)
 
 	// Apply cookies obtained from the original URL captured
 	for i := range cookies {
@@ -205,6 +206,8 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		req.Header.Set("Referer", item.ParentItem.URL.String())
 	}
 
+	req.Header.Set("User-Agent", c.UserAgent)
+
 	if strings.Contains(item.URL.String(), "tiktok.com") {
 		req.Header.Set("Authority", "www.tiktok.com")
 		req.Header.Set("Sec-Ch-Ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"99\", \"Microsoft Edge\";v=\"99\"")
@@ -220,8 +223,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		req.Header.Set("Sec-Fetch-Dest", "document")
 		req.Header.Set("Accept-Language", "en-US,en;q=0.9,fr;q=0.8")
 	}
-
-	req.Header.Set("User-Agent", c.UserAgent)
 
 	// execute request
 	resp, err = c.executeGET(item, req)
