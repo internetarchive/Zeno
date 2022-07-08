@@ -21,6 +21,14 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 			if exists {
 				rawAssets = append(rawAssets, link)
 			}
+
+			string, exists := item.Attr("srcset")
+			if exists {
+				string := strings.Split(string, ",")
+				for _, i := range string {
+					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(i), " ")[0])
+				}
+			}
 		})
 	}
 
@@ -164,6 +172,14 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 			link, exists := item.Attr("src")
 			if exists {
 				rawAssets = append(rawAssets, link)
+			}
+
+			string, exists := item.Attr("srcset")
+			if exists {
+				string := strings.Split(string, ",")
+				for _, i := range string {
+					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(i), " ")[0])
+				}
 			}
 		})
 	}
