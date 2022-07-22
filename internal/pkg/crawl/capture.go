@@ -127,7 +127,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 			hash := strconv.FormatUint(xxh3.HashString(URL.String()), 10)
 			found, _ := c.Frontier.Seencheck.IsSeen(hash)
 			if found {
-				return resp, nil
+				return nil, nil
 			}
 
 			c.Frontier.Seencheck.Seen(hash, "seed")
@@ -135,10 +135,10 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 			isNewURL, err := c.HQSeencheckURL(URL)
 			if err != nil {
 				return resp, err
-			}
+			}g
 
 			if !isNewURL {
-				return resp, nil
+				return nil, nil
 			}
 		}
 
