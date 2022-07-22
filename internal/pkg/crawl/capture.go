@@ -135,7 +135,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 			isNewURL, err := c.HQSeencheckURL(URL)
 			if err != nil {
 				return resp, err
-			}g
+			}
 
 			if !isNewURL {
 				return nil, nil
