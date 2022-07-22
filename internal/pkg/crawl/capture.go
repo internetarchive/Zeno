@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -23,9 +24,10 @@ import (
 
 func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.Response, err error) {
 	var (
-		newItem *frontier.Item
-		newReq  *http.Request
-		URL     *url.URL
+		executionStart = time.Now()
+		newItem        *frontier.Item
+		newReq         *http.Request
+		URL            *url.URL
 	)
 
 	defer func() {
@@ -99,12 +101,13 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		}
 	}
 
+	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
+
 	// If a redirection is catched, then we execute the redirection
 	if isRedirection(resp.StatusCode) {
 		if resp.Header.Get("location") == req.URL.String() || item.Redirect >= c.MaxRedirect {
 			return resp, nil
 		}
-
 		defer resp.Body.Close()
 
 		// Needed for WARC writing
@@ -127,7 +130,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 			hash := strconv.FormatUint(xxh3.HashString(URL.String()), 10)
 			found, _ := c.Frontier.Seencheck.IsSeen(hash)
 			if found {
-				return nil, nil
+				return nil, errors.New("URL from redirection has already been seen")
 			}
 
 			c.Frontier.Seencheck.Seen(hash, "seed")
@@ -138,7 +141,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 			}
 
 			if !isNewURL {
-				return nil, nil
+				return nil, errors.New("URL from redirection has already been seen")
 			}
 		}
 
@@ -200,9 +203,8 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 // Capture capture the URL and return the outlinks
 func (c *Crawl) Capture(item *frontier.Item) {
 	var (
-		executionStart = time.Now()
-		resp           *http.Response
-		waitGroup      sync.WaitGroup
+		resp      *http.Response
+		waitGroup sync.WaitGroup
 	)
 
 	defer func() {
@@ -246,15 +248,15 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	// execute request
 	resp, err = c.executeGET(item, req)
-	if err != nil {
+	if err != nil && err.Error() == "URL from redirection has already been seen" {
+		return
+	} else if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
 		return
 	}
 	defer resp.Body.Close()
-
-	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
 	// Scrape potential URLs from Link HTTP header
 	var (
