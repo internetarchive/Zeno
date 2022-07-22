@@ -167,10 +167,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 }
 
 func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error {
-	var (
-		executionStart = time.Now()
-		resp           *http.Response
-	)
+	var resp *http.Response
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
@@ -187,15 +184,15 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	}
 
 	resp, err = c.executeGET(item, req)
-	if err != nil {
+	if err != nil && err.Error() == "URL from redirection has already been seen" {
+		return nil
+	} else if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	// needed for WARC writing
 	io.Copy(io.Discard, resp.Body)
-
-	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
 	return nil
 }
