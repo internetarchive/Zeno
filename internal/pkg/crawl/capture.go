@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -23,9 +24,10 @@ import (
 
 func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.Response, err error) {
 	var (
-		newItem *frontier.Item
-		newReq  *http.Request
-		URL     *url.URL
+		executionStart = time.Now()
+		newItem        *frontier.Item
+		newReq         *http.Request
+		URL            *url.URL
 	)
 
 	defer func() {
@@ -99,15 +101,16 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		}
 	}
 
+	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
+
 	// If a redirection is catched, then we execute the redirection
 	if isRedirection(resp.StatusCode) {
 		if resp.Header.Get("location") == req.URL.String() || item.Redirect >= c.MaxRedirect {
 			return resp, nil
 		}
-
 		defer resp.Body.Close()
 
-		// needed for WARC writing
+		// Needed for WARC writing
 		// IMPORTANT! This will write redirects to WARC!
 		io.Copy(io.Discard, resp.Body)
 
@@ -120,6 +123,26 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		// Some redirects don't return full URLs, but rather, relative URLs. We would still like to follow these redirects.
 		if !URL.IsAbs() {
 			URL = req.URL.ResolveReference(URL)
+		}
+
+		// Seencheck the URL
+		if c.Seencheck {
+			hash := strconv.FormatUint(xxh3.HashString(URL.String()), 10)
+			found, _ := c.Frontier.Seencheck.IsSeen(hash)
+			if found {
+				return nil, errors.New("URL from redirection has already been seen")
+			}
+
+			c.Frontier.Seencheck.Seen(hash, "seed")
+		} else if c.UseHQ {
+			isNewURL, err := c.HQSeencheckURL(URL)
+			if err != nil {
+				return resp, err
+			}
+
+			if !isNewURL {
+				return nil, errors.New("URL from redirection has already been seen")
+			}
 		}
 
 		newItem = frontier.NewItem(URL, item, item.Type, item.Hop, item.ID)
@@ -144,10 +167,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 }
 
 func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error {
-	var (
-		executionStart = time.Now()
-		resp           *http.Response
-	)
+	var resp *http.Response
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
@@ -164,7 +184,12 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	}
 
 	resp, err = c.executeGET(item, req)
-	if err != nil {
+	if err != nil && err.Error() == "URL from redirection has already been seen" {
+		return nil
+	} else if err != nil {
+		logWarning.WithFields(logrus.Fields{
+			"error": err,
+		}).Warning(item.URL.String())
 		return err
 	}
 	defer resp.Body.Close()
@@ -172,17 +197,14 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	// needed for WARC writing
 	io.Copy(io.Discard, resp.Body)
 
-	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
-
 	return nil
 }
 
 // Capture capture the URL and return the outlinks
 func (c *Crawl) Capture(item *frontier.Item) {
 	var (
-		executionStart = time.Now()
-		resp           *http.Response
-		waitGroup      sync.WaitGroup
+		resp      *http.Response
+		waitGroup sync.WaitGroup
 	)
 
 	defer func() {
@@ -226,15 +248,15 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	// execute request
 	resp, err = c.executeGET(item, req)
-	if err != nil {
+	if err != nil && err.Error() == "URL from redirection has already been seen" {
+		return
+	} else if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
 		}).Warning(item.URL.String())
 		return
 	}
 	defer resp.Body.Close()
-
-	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
 	// Scrape potential URLs from Link HTTP header
 	var (
@@ -352,6 +374,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	// If --local-seencheck is enabled, then we check if the assets are in the
 	// seencheck DB. If they are, then they are skipped.
+	// Else, if we use HQ, then we use HQ's seencheck.
 	if c.Seencheck {
 		seencheckedBatch := []url.URL{}
 		for _, URL := range assets {
@@ -371,10 +394,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		}
 
 		assets = seencheckedBatch
-	}
-
-	// If we use HQ, we seencheck the assets
-	if c.UseHQ {
+	} else if c.UseHQ {
 		seencheckedURLs, err := c.HQSeencheckURLs(assets)
 		if err == nil {
 			assets = seencheckedURLs
