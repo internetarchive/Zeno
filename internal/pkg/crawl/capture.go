@@ -187,6 +187,9 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return nil
 	} else if err != nil {
+		logWarning.WithFields(logrus.Fields{
+			"error": err,
+		}).Warning(item.URL.String())
 		return err
 	}
 	defer resp.Body.Close()
