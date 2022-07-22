@@ -107,7 +107,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 
 		defer resp.Body.Close()
 
-		// needed for WARC writing
+		// Needed for WARC writing
 		// IMPORTANT! This will write redirects to WARC!
 		io.Copy(io.Discard, resp.Body)
 
@@ -120,6 +120,26 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		// Some redirects don't return full URLs, but rather, relative URLs. We would still like to follow these redirects.
 		if !URL.IsAbs() {
 			URL = req.URL.ResolveReference(URL)
+		}
+
+		// Seencheck the URL
+		if c.Seencheck {
+			hash := strconv.FormatUint(xxh3.HashString(URL.String()), 10)
+			found, _ := c.Frontier.Seencheck.IsSeen(hash)
+			if found {
+				return resp, nil
+			}
+
+			c.Frontier.Seencheck.Seen(hash, "seed")
+		} else if c.UseHQ {
+			isNewURL, err := c.HQSeencheckURL(URL)
+			if err != nil {
+				return resp, err
+			}
+
+			if !isNewURL {
+				return resp, nil
+			}
 		}
 
 		newItem = frontier.NewItem(URL, item, item.Type, item.Hop, item.ID)
@@ -352,6 +372,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	// If --local-seencheck is enabled, then we check if the assets are in the
 	// seencheck DB. If they are, then they are skipped.
+	// Else, if we use HQ, then we use HQ's seencheck.
 	if c.Seencheck {
 		seencheckedBatch := []url.URL{}
 		for _, URL := range assets {
@@ -371,10 +392,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		}
 
 		assets = seencheckedBatch
-	}
-
-	// If we use HQ, we seencheck the assets
-	if c.UseHQ {
+	} else if c.UseHQ {
 		seencheckedURLs, err := c.HQSeencheckURLs(assets)
 		if err == nil {
 			assets = seencheckedURLs
