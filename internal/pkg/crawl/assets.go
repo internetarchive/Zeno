@@ -22,6 +22,11 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 				rawAssets = append(rawAssets, link)
 			}
 
+			link, exists = item.Attr("data-src")
+			if exists {
+				rawAssets = append(rawAssets, link)
+			}
+
 			link, exists = item.Attr("srcset")
 			if exists {
 				links := strings.Split(link, ",")
@@ -54,6 +59,10 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 				// If the URL already has http (or https), we don't need add anything to it.
 				if !strings.Contains(matchReplacement, "http") {
 					matchReplacement = strings.Replace(matchReplacement, "//", "http://", -1)
+				}
+
+				if strings.HasPrefix(matchReplacement, "#wp-") {
+					continue
 				}
 
 				rawAssets = append(rawAssets, matchReplacement)
