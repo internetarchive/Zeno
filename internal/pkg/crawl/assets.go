@@ -212,6 +212,9 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 	// Turn strings into url.URL
 	assets = utils.StringSliceToURLSlice(rawAssets)
 
+	// Ensure that excluded hosts aren't in the assets.
+	assets = c.excludeHosts(assets)
+
 	// Go over all assets and outlinks and make sure they are absolute links
 	assets = utils.MakeAbsolute(base, assets)
 

@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -15,7 +14,6 @@ import (
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/tidwall/gjson"
 	"github.com/tomnomnom/linkheader"
-	"github.com/zeebo/xxh3"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/PuerkitoBio/goquery"
@@ -127,13 +125,10 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 
 		// Seencheck the URL
 		if c.Seencheck {
-			hash := strconv.FormatUint(xxh3.HashString(URL.String()), 10)
-			found, _ := c.Frontier.Seencheck.IsSeen(hash)
+			found := c.seencheckURL(URL.String(), "seed")
 			if found {
 				return nil, errors.New("URL from redirection has already been seen")
 			}
-
-			c.Frontier.Seencheck.Seen(hash, "seed")
 		} else if c.UseHQ {
 			isNewURL, err := c.HQSeencheckURL(URL)
 			if err != nil {
@@ -378,15 +373,12 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	if c.Seencheck {
 		seencheckedBatch := []url.URL{}
 		for _, URL := range assets {
-			hash := strconv.FormatUint(xxh3.HashString(URL.String()), 10)
-			found, _ := c.Frontier.Seencheck.IsSeen(hash)
+			found := c.seencheckURL(URL.String(), "asset")
 			if found {
 				continue
 			} else {
 				seencheckedBatch = append(seencheckedBatch, URL)
 			}
-
-			c.Frontier.Seencheck.Seen(hash, "asset")
 		}
 
 		if len(seencheckedBatch) == 0 {
