@@ -3,10 +3,12 @@ package crawl
 import (
 	"net/url"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
+	"github.com/zeebo/xxh3"
 )
 
 var regexOutlinks *regexp.Regexp
@@ -52,6 +54,29 @@ func (c *Crawl) handleCrawlPause() {
 
 		time.Sleep(time.Second)
 	}
+}
+
+func (c *Crawl) seencheckURL(url string, urlType string) bool {
+	hash := strconv.FormatUint(xxh3.HashString(url), 10)
+	found, _ := c.Frontier.Seencheck.IsSeen(hash)
+	if found {
+		return true
+	} else {
+		c.Frontier.Seencheck.Seen(hash, urlType)
+		return false
+	}
+}
+
+func (c *Crawl) excludeHosts(URLs []url.URL) (output []url.URL) {
+	for _, url := range URLs {
+		if utils.StringInSlice(url.Host, c.ExcludedHosts) {
+			continue
+		} else {
+			output = append(output, url)
+		}
+	}
+
+	return output
 }
 
 func extractLinksFromText(source string) (links []url.URL) {
