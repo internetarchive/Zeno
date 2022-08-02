@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	git.archive.org/wb/gocrawlhq v1.1.9
-	github.com/CorentinB/warc v0.8.21
+	github.com/CorentinB/warc v0.8.22
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
@@ -69,7 +69,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.14.0 // indirect
 	github.com/prometheus/procfs v0.2.0 // indirect
-	github.com/refraction-networking/utls v1.1.0 // indirect
+	github.com/refraction-networking/utls v1.1.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
@@ -88,6 +88,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
-
-// this is required as the upstream repo hasn't merged this PR in yet and is required for compressed certificates. Once PR 95 is merged, we can remove this.
-replace github.com/refraction-networking/utls v1.1.0 => github.com/getlantern/utls v0.0.0-20220209202455-048f18ca06ae
