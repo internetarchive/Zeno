@@ -27,6 +27,11 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 				rawAssets = append(rawAssets, link)
 			}
 
+			link, exists = item.Attr("data-lazy-src")
+			if exists {
+				rawAssets = append(rawAssets, link)
+			}
+
 			link, exists = item.Attr("data-srcset")
 			if exists {
 				links := strings.Split(link, ",")
