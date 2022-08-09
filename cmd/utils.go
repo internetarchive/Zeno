@@ -58,6 +58,13 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	// WARC settings
 	c.WARCPrefix = flags.WARCPrefix
 	c.WARCOperator = flags.WARCOperator
+
+	if flags.WARCTempDir != "" {
+		c.WARCTempDir = flags.WARCTempDir
+	} else {
+		c.WARCTempDir = path.Join(c.JobPath, "temp")
+	}
+
 	c.CDXDedupeServer = flags.CDXDedupeServer
 	c.DisableLocalDedupe = flags.DisableLocalDedupe
 	c.CertValidation = flags.CertValidation
