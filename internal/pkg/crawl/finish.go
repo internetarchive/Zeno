@@ -35,7 +35,7 @@ func (crawl *Crawl) finish() {
 	// so we can safely close the channel it is using, and wait for all the
 	// workers to notice the channel is closed, and terminate.
 	crawl.Frontier.FinishingQueueReader.Set(true)
-	for crawl.Frontier.IsQueueReaderActive.Get() != false {
+	for crawl.Frontier.IsQueueReaderActive.Get() {
 		time.Sleep(time.Second / 2)
 	}
 	close(crawl.Frontier.PullChan)
@@ -49,7 +49,7 @@ func (crawl *Crawl) finish() {
 	// it's done we close the channel safely.
 	close(crawl.Frontier.PushChan)
 	crawl.Frontier.FinishingQueueWriter.Set(true)
-	for crawl.Frontier.IsQueueWriterActive.Get() != false {
+	for crawl.Frontier.IsQueueWriterActive.Get() {
 		time.Sleep(time.Second / 2)
 	}
 
@@ -80,7 +80,7 @@ func (crawl *Crawl) finish() {
 }
 
 func (crawl *Crawl) setupCloseHandler() {
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 	logrus.Warning("CTRL+C catched.. cleaning up and exiting.")
