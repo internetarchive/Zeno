@@ -43,7 +43,7 @@ var GlobalFlags = []cli.Flag{
 		Destination: &config.App.Flags.MaxHops,
 	},
 	&cli.StringFlag{
-		Name:        "cookie-file",
+		Name:        "cookies",
 		Usage:       "File containing cookies that will be used for requests.",
 		Destination: &config.App.Flags.CookieFile,
 	},
