@@ -180,7 +180,7 @@ var GlobalFlags = []cli.Flag{
 		Name:        "warc-temp-dir",
 		Value:       "",
 		Usage:       "Custom directory to use for WARC temporary files.",
-		Destination: &config.App.Flags.WARCTempFile,
+		Destination: &config.App.Flags.WARCTempDir,
 	},
 	&cli.BoolFlag{
 		Name:        "disable-local-dedupe",
