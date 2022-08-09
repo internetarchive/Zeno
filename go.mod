@@ -1,6 +1,6 @@
 module github.com/CorentinB/Zeno
 
-go 1.18
+go 1.19
 
 require (
 	git.archive.org/wb/gocrawlhq v1.1.9
