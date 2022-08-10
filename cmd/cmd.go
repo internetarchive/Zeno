@@ -176,6 +176,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Number of concurrent WARC files to write.",
 		Destination: &config.App.Flags.WARCPoolSize,
 	},
+	&cli.StringFlag{
+		Name:        "warc-temp-dir",
+		Value:       "",
+		Usage:       "Custom directory to use for WARC temporary files.",
+		Destination: &config.App.Flags.WARCTempDir,
+	},
 	&cli.BoolFlag{
 		Name:        "disable-local-dedupe",
 		Usage:       "Disable local URL agonistic deduplication.",

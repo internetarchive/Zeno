@@ -2,7 +2,6 @@ package crawl
 
 import (
 	"net/http"
-	"path"
 	"sync"
 	"time"
 
@@ -86,6 +85,7 @@ type Crawl struct {
 	WARCOperator       string
 	WARCWriter         chan *warc.RecordBatch
 	WARCWriterFinish   chan bool
+	WARCTempDir        string
 	CDXDedupeServer    string
 	WARCFullOnDisk     bool
 	WARCPoolSize       int
@@ -156,7 +156,7 @@ func (c *Crawl) Start() (err error) {
 		DecompressBody:      true,
 		SkipHTTPStatusCodes: []int{429},
 		VerifyCerts:         c.CertValidation,
-		TempDir:             path.Join(c.JobPath, "temp"),
+		TempDir:             c.WARCTempDir,
 		FullOnDisk:          c.WARCFullOnDisk,
 	}
 
