@@ -12,36 +12,50 @@ import (
 )
 
 func (c *Crawl) HQProducer() {
-	for item := range c.HQProducerChannel {
-	send:
-		if c.Finished.Get() {
-			break
-		}
+	var discoveredArray = []gocrawlhq.URL{}
 
+	for discoveredItem := range c.HQProducerChannel {
 		discoveredURL := gocrawlhq.URL{
-			Value: item.URL.String(),
-			Via:   item.ParentItem.URL.String(),
+			Value: discoveredItem.URL.String(),
+			Via:   discoveredItem.ParentItem.URL.String(),
 		}
 
-		for i := 0; uint8(i) < item.Hop; i++ {
+		for i := 0; uint8(i) < discoveredItem.Hop; i++ {
 			discoveredURL.Path += "L"
 		}
 
-		_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, item.Type, false, false)
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"project": c.HQProject,
-				"address": c.HQAddress,
-				"err":     err.Error(),
-			}).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
-			time.Sleep(time.Second)
-			goto send
+		discoveredArray = append(discoveredArray, discoveredURL)
+
+		if len(discoveredArray) == int(math.Ceil(float64(c.Workers)/2)) {
+		send:
+			_, err := c.HQClient.Discovered(discoveredArray, discoveredItem.Type, false, false)
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"project": c.HQProject,
+					"address": c.HQAddress,
+					"err":     err.Error(),
+				}).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
+				time.Sleep(time.Second)
+				goto send
+			}
+
+			discoveredArray = []gocrawlhq.URL{}
+
+			// Maybe there is a better way to catch this
+			if c.Finished.Get() {
+				break
+			}
 		}
 	}
 }
 
 func (c *Crawl) HQConsumer() {
 	for {
+		// This is on purpose evaluated every time,
+		// because the value of workers will maybe change
+		// during the crawl in the future (to be implemented)
+		var HQBatchSize = int(math.Ceil(float64(c.Workers) / 2))
+
 		if c.Finished.Get() {
 			break
 		}
@@ -55,13 +69,19 @@ func (c *Crawl) HQConsumer() {
 			continue
 		}
 
+		// If a specific HQ batch size is set, use it
+		if c.HQBatchSize != 0 {
+			HQBatchSize = c.HQBatchSize
+		}
+
 		// get batch from crawl HQ
-		batch, err := c.HQClient.Feed(int(math.Ceil(float64(c.Workers)/2)), c.HQStrategy)
+		batch, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"project": c.HQProject,
-				"address": c.HQAddress,
-				"err":     err.Error(),
+				"project":   c.HQProject,
+				"batchSize": HQBatchSize,
+				"address":   c.HQAddress,
+				"err":       err.Error(),
 			}).Debugln("error getting new URLs from crawl HQ")
 		}
 
@@ -70,9 +90,10 @@ func (c *Crawl) HQConsumer() {
 			newURL, err := url.Parse(URL.Value)
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
-					"project": c.HQProject,
-					"address": c.HQAddress,
-					"err":     err.Error(),
+					"project":   c.HQProject,
+					"batchSize": HQBatchSize,
+					"address":   c.HQAddress,
+					"err":       err.Error(),
 				}).Errorln("unable to parse URL received from crawl HQ, discarding")
 			}
 

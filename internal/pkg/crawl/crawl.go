@@ -99,6 +99,7 @@ type Crawl struct {
 	HQKey             string
 	HQSecret          string
 	HQStrategy        string
+	HQBatchSize       int
 	HQClient          *gocrawlhq.Client
 	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item

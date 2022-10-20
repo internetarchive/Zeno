@@ -100,6 +100,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.HQKey = flags.HQKey
 	c.HQSecret = flags.HQSecret
 	c.HQStrategy = flags.HQStrategy
+	c.HQBatchSize = flags.HQBatchSize
 
 	return c
 }

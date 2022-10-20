@@ -38,12 +38,13 @@ type Flags struct {
 	WARCFullOnDisk bool
 	WARCTempDir    string
 
-	UseHQ      bool
-	HQAddress  string
-	HQProject  string
-	HQKey      string
-	HQSecret   string
-	HQStrategy string
+	UseHQ       bool
+	HQBatchSize int
+	HQAddress   string
+	HQProject   string
+	HQKey       string
+	HQSecret    string
+	HQStrategy  string
 
 	CDXDedupeServer      string
 	DisableLocalDedupe   bool
