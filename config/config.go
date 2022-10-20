@@ -39,7 +39,7 @@ type Flags struct {
 	WARCTempDir    string
 
 	UseHQ       bool
-	HQBatchSize int
+	HQBatchSize int64
 	HQAddress   string
 	HQProject   string
 	HQKey       string

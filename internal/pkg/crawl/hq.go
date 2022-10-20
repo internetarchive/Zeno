@@ -26,7 +26,7 @@ func (c *Crawl) HQProducer() {
 
 		discoveredArray = append(discoveredArray, discoveredURL)
 
-		if len(discoveredArray) == int(math.Ceil(float64(c.Workers)/2)) {
+		if len(discoveredArray) == int(math.Ceil(float64(c.Workers)/2)) || c.Finished.Get() {
 		send:
 			_, err := c.HQClient.Discovered(discoveredArray, discoveredItem.Type, false, false)
 			if err != nil {
@@ -137,6 +137,11 @@ func (c *Crawl) HQFinisher() {
 
 			finishedArray = []gocrawlhq.URL{}
 			locallyCrawledTotal = 0
+
+			// Maybe there is a better way to catch this
+			if c.Finished.Get() {
+				break
+			}
 		}
 
 	}

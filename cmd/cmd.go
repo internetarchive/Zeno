@@ -229,10 +229,10 @@ var GlobalFlags = []cli.Flag{
 		Destination: &config.App.Flags.HQProject,
 	},
 	&cli.Int64Flag{
-		Name: "hq-batch-size",
-		Usage: "Crawl HQ feeding batch size.",
+		Name:        "hq-batch-size",
+		Usage:       "Crawl HQ feeding batch size.",
 		Destination: &config.App.Flags.HQBatchSize,
-	}
+	},
 	&cli.StringFlag{
 		Name:        "hq-strategy",
 		Usage:       "Crawl HQ feeding strategy.",
