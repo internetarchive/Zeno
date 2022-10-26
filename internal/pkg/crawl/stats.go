@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/CorentinB/warc"
+	"github.com/dustin/go-humanize"
 	"github.com/gosuri/uilive"
 	"github.com/gosuri/uitable"
 	"github.com/mackerelio/go-osstat/memory"
@@ -55,6 +57,7 @@ func (c *Crawl) printLiveStats() {
 		stats.AddRow("  - Crawled seeds:", crawledSeeds)
 		stats.AddRow("  - Crawled assets:", crawledAssets)
 		stats.AddRow("  - WARC writing queue:", c.Client.WaitGroup.Size())
+		stats.AddRow("  - Data:", humanize.Bytes(uint64(warc.DataTotal.Value())))
 		stats.AddRow("", "")
 		stats.AddRow("  - Elapsed time:", time.Since(c.StartTime).String())
 		stats.AddRow("  - Allocated (heap):", bToMb(m.Alloc))
@@ -68,11 +71,11 @@ func (c *Crawl) printLiveStats() {
 }
 
 func (c *Crawl) getCrawlState() (state string) {
-	if c.Finished.Get() == true {
+	if c.Finished.Get() {
 		return "finishing"
 	}
 
-	if c.Paused.Get() == true {
+	if c.Paused.Get() {
 		return "paused"
 	}
 
