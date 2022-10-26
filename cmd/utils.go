@@ -101,6 +101,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.HQSecret = flags.HQSecret
 	c.HQStrategy = flags.HQStrategy
 	c.HQBatchSize = int(flags.HQBatchSize)
+	c.HQContinuousPull = flags.HQContinuousPull
 
 	return c
 }

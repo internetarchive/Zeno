@@ -233,6 +233,11 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Crawl HQ feeding batch size.",
 		Destination: &config.App.Flags.HQBatchSize,
 	},
+	&cli.BoolFlag{
+		Name:        "hq-continuous-pull",
+		Usage:       "If turned on, the crawler will pull URLs from Crawl HQ continuously.",
+		Destination: &config.App.Flags.HQContinuousPull,
+	},
 	&cli.StringFlag{
 		Name:        "hq-strategy",
 		Usage:       "Crawl HQ feeding strategy.",

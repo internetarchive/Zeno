@@ -64,9 +64,13 @@ func (c *Crawl) HQConsumer() {
 			time.Sleep(time.Second)
 		}
 
-		if c.ActiveWorkers.Value() >= int64(c.Workers-(c.Workers/10)) {
-			time.Sleep(time.Millisecond * 100)
-			continue
+		// If HQContinuousPull is set to true, we will pull URLs from HQ
+		// continuously, otherwise we will only pull URLs when needed
+		if !c.HQContinuousPull {
+			if c.ActiveWorkers.Value() >= int64(c.Workers-(c.Workers/10)) {
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
 		}
 
 		// If a specific HQ batch size is set, use it

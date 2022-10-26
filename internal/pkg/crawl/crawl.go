@@ -100,6 +100,7 @@ type Crawl struct {
 	HQSecret          string
 	HQStrategy        string
 	HQBatchSize       int
+	HQContinuousPull  bool
 	HQClient          *gocrawlhq.Client
 	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item
