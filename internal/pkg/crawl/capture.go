@@ -202,13 +202,13 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		waitGroup sync.WaitGroup
 	)
 
-	defer func() {
+	defer func(i *frontier.Item) {
 		waitGroup.Wait()
 
-		if c.UseHQ && item.ID != "" {
-			c.HQFinishedChannel <- item
+		if c.UseHQ && i.ID != "" {
+			c.HQFinishedChannel <- i
 		}
-	}()
+	}(item)
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", item.URL.String(), nil)
