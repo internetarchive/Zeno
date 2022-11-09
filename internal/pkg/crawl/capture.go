@@ -388,6 +388,9 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		assets = seencheckedBatch
 	} else if c.UseHQ {
 		seencheckedURLs, err := c.HQSeencheckURLs(assets)
+		// We ignore the error here because we don't want to slow down the crawl
+		// if HQ is down or if the request failed. So if we get an error, we just
+		// continue with the original list of assets.
 		if err == nil {
 			assets = seencheckedURLs
 		}

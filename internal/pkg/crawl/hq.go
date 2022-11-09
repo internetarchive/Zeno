@@ -12,6 +12,8 @@ import (
 )
 
 func (c *Crawl) HQProducer() {
+	defer c.HQChannelsWg.Done()
+
 	var discoveredArray = []gocrawlhq.URL{}
 
 	for discoveredItem := range c.HQProducerChannel {
@@ -26,9 +28,29 @@ func (c *Crawl) HQProducer() {
 
 		discoveredArray = append(discoveredArray, discoveredURL)
 
-		if len(discoveredArray) == int(math.Ceil(float64(c.Workers)/2)) || c.Finished.Get() {
-		send:
-			_, err := c.HQClient.Discovered(discoveredArray, discoveredItem.Type, false, false)
+		if len(discoveredArray) == int(math.Ceil(float64(c.Workers)/2)) {
+			for {
+				_, err := c.HQClient.Discovered(discoveredArray, "", false, false)
+				if err != nil {
+					logrus.WithFields(logrus.Fields{
+						"project": c.HQProject,
+						"address": c.HQAddress,
+						"err":     err.Error(),
+					}).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
+					time.Sleep(time.Second)
+					continue
+				}
+				break
+			}
+
+			discoveredArray = []gocrawlhq.URL{}
+		}
+	}
+
+	// send remaining URLs
+	if len(discoveredArray) > 0 {
+		for {
+			_, err := c.HQClient.Discovered(discoveredArray, "", false, false)
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
 					"project": c.HQProject,
@@ -36,15 +58,9 @@ func (c *Crawl) HQProducer() {
 					"err":     err.Error(),
 				}).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
 				time.Sleep(time.Second)
-				goto send
+				continue
 			}
-
-			discoveredArray = []gocrawlhq.URL{}
-
-			// Maybe there is a better way to catch this
-			if c.Finished.Get() {
-				break
-			}
+			break
 		}
 	}
 }
@@ -107,6 +123,8 @@ func (c *Crawl) HQConsumer() {
 }
 
 func (c *Crawl) HQFinisher() {
+	defer c.HQChannelsWg.Done()
+
 	var (
 		finishedArray       = []gocrawlhq.URL{}
 		locallyCrawledTotal int
@@ -125,8 +143,30 @@ func (c *Crawl) HQFinisher() {
 		locallyCrawledTotal += int(finishedItem.LocallyCrawled)
 		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedItem.ID, Value: finishedItem.URL.String()})
 
-		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) || c.Finished.Get() {
-		finish:
+		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) {
+			for {
+				_, err := c.HQClient.Finished(finishedArray, locallyCrawledTotal)
+				if err != nil {
+					logrus.WithFields(logrus.Fields{
+						"project":       c.HQProject,
+						"address":       c.HQAddress,
+						"finishedArray": finishedArray,
+						"err":           err.Error(),
+					}).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
+					time.Sleep(time.Second)
+					continue
+				}
+				break
+			}
+
+			finishedArray = []gocrawlhq.URL{}
+			locallyCrawledTotal = 0
+		}
+	}
+
+	// send remaining finished URLs
+	if len(finishedArray) > 0 {
+		for {
 			_, err := c.HQClient.Finished(finishedArray, locallyCrawledTotal)
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
@@ -136,18 +176,10 @@ func (c *Crawl) HQFinisher() {
 					"err":           err.Error(),
 				}).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
 				time.Sleep(time.Second)
-				goto finish
+				continue
 			}
-
-			finishedArray = []gocrawlhq.URL{}
-			locallyCrawledTotal = 0
-
-			// Maybe there is a better way to catch this
-			if c.Finished.Get() {
-				break
-			}
+			break
 		}
-
 	}
 }
 

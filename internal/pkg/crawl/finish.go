@@ -40,9 +40,24 @@ func (crawl *Crawl) finish() {
 	}
 	close(crawl.Frontier.PullChan)
 
-	logrus.Warning("Waiting for workers to finish")
+	logrus.Warning("[WORKERS] Waiting for workers to finish")
 	crawl.WorkerPool.Wait()
-	logrus.Warning("All workers finished")
+	logrus.Warning("[WORKERS] All workers finished")
+
+	// When all workers are finished, we can safely close the HQ related channels
+	if crawl.UseHQ {
+		logrus.Warning("[HQ] Waiting for finished channel to be closed")
+		close(crawl.HQFinishedChannel)
+		logrus.Warning("[HQ] Finished channel closed")
+
+		logrus.Warning("[HQ] Waiting for producer to finish")
+		close(crawl.HQProducerChannel)
+		logrus.Warning("[HQ] Producer finished")
+
+		logrus.Warning("[HQ] Waiting for all functions to return")
+		crawl.HQChannelsWg.Wait()
+		logrus.Warning("[HQ] All functions returned")
+	}
 
 	// Once all workers are done, it means nothing more is actively send to
 	// the PushChan channel, we ask for the queue writer to terminate, and when
@@ -53,30 +68,30 @@ func (crawl *Crawl) finish() {
 		time.Sleep(time.Second / 2)
 	}
 
-	logrus.Warning("Closing WARC writer(s)..")
+	logrus.Warning("[WARC] Closing writer(s)..")
 	crawl.Client.Close()
 
 	if crawl.Proxy != "" {
 		crawl.ClientProxied.Close()
 	}
 
-	logrus.Warning("WARC writer(s) closed")
+	logrus.Warning("[WARC] Writer(s) closed")
 
 	// Closing the local queue used by the frontier
 	crawl.Frontier.Queue.Close()
-	logrus.Warning("Frontier queue closed")
+	logrus.Warning("[FRONTIER] Queue closed")
 
 	// Closing the seencheck database
 	if crawl.Seencheck {
 		crawl.Frontier.Seencheck.SeenDB.Close()
-		logrus.Warning("Seencheck database closed")
+		logrus.Warning("[SEENCHECK] Database closed")
 	}
 
 	// Dumping hosts pool and frontier stats to disk
-	logrus.Warning("Dumping hosts pool and frontier stats to " + path.Join(crawl.Frontier.JobPath, "frontier.gob"))
+	logrus.Warning("[FRONTIER] Dumping hosts pool and frontier stats to " + path.Join(crawl.Frontier.JobPath, "frontier.gob"))
 	crawl.Frontier.Save()
 
-	logrus.Warning("Finished")
+	logrus.Warning("Finished!")
 }
 
 func (crawl *Crawl) setupCloseHandler() {

@@ -104,6 +104,7 @@ type Crawl struct {
 	HQClient          *gocrawlhq.Client
 	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item
+	HQChannelsWg      *sync.WaitGroup
 }
 
 // Start fire up the crawling process
@@ -111,6 +112,7 @@ func (c *Crawl) Start() (err error) {
 	c.StartTime = time.Now()
 	c.Paused = new(utils.TAtomBool)
 	c.Finished = new(utils.TAtomBool)
+	c.HQChannelsWg = new(sync.WaitGroup)
 	regexOutlinks = xurls.Relaxed()
 
 	// Setup logging
@@ -233,6 +235,7 @@ func (c *Crawl) Start() (err error) {
 		c.HQProducerChannel = make(chan *frontier.Item, c.Workers)
 		c.HQFinishedChannel = make(chan *frontier.Item, c.Workers)
 
+		c.HQChannelsWg.Add(2)
 		go c.HQConsumer()
 		go c.HQProducer()
 		go c.HQFinisher()
