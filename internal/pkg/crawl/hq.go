@@ -30,7 +30,7 @@ func (c *Crawl) HQProducer() {
 
 		if len(discoveredArray) == int(math.Ceil(float64(c.Workers)/2)) {
 			for {
-				_, err := c.HQClient.Discovered(discoveredArray, "", false, false)
+				_, err := c.HQClient.Discovered(discoveredArray, discoveredItem.Type, false, false)
 				if err != nil {
 					logrus.WithFields(logrus.Fields{
 						"project": c.HQProject,
@@ -50,7 +50,7 @@ func (c *Crawl) HQProducer() {
 	// send remaining URLs
 	if len(discoveredArray) > 0 {
 		for {
-			_, err := c.HQClient.Discovered(discoveredArray, "", false, false)
+			_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
 					"project": c.HQProject,
