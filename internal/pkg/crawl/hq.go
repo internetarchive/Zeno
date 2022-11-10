@@ -4,6 +4,7 @@ import (
 	"math"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
@@ -14,8 +15,65 @@ import (
 func (c *Crawl) HQProducer() {
 	defer c.HQChannelsWg.Done()
 
-	var discoveredArray = []gocrawlhq.URL{}
+	var (
+		discoveredArray   = []gocrawlhq.URL{}
+		mutex             = sync.Mutex{}
+		terminateProducer = make(chan bool)
+	)
 
+	// the discoveredArray is sent to the crawl HQ every 10 seconds
+	// or when it reaches a certain size
+	go func() {
+		HQLastSent := time.Now()
+
+		for {
+			select {
+			case <-terminateProducer:
+				// no need to lock the mutex here, because the producer channel
+				// is already closed, so no other goroutine can write to the slice
+				if len(discoveredArray) > 0 {
+					for {
+						_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
+						if err != nil {
+							logrus.WithFields(logrus.Fields{
+								"project": c.HQProject,
+								"address": c.HQAddress,
+								"err":     err.Error(),
+							}).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
+							time.Sleep(time.Second)
+							continue
+						}
+						break
+					}
+				}
+
+				return
+			default:
+				mutex.Lock()
+				if len(discoveredArray) >= int(math.Ceil(float64(c.Workers)/2)) || time.Since(HQLastSent) >= time.Second*10 {
+					for {
+						_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
+						if err != nil {
+							logrus.WithFields(logrus.Fields{
+								"project": c.HQProject,
+								"address": c.HQAddress,
+								"err":     err.Error(),
+							}).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
+							time.Sleep(time.Second)
+							continue
+						}
+						break
+					}
+
+					discoveredArray = []gocrawlhq.URL{}
+					HQLastSent = time.Now()
+				}
+				mutex.Unlock()
+			}
+		}
+	}()
+
+	// listen to the discovered channel and add the URLs to the discoveredArray
 	for discoveredItem := range c.HQProducerChannel {
 		discoveredURL := gocrawlhq.URL{
 			Value: discoveredItem.URL.String(),
@@ -26,43 +84,14 @@ func (c *Crawl) HQProducer() {
 			discoveredURL.Path += "L"
 		}
 
+		mutex.Lock()
 		discoveredArray = append(discoveredArray, discoveredURL)
-
-		if len(discoveredArray) == int(math.Ceil(float64(c.Workers)/2)) {
-			for {
-				_, err := c.HQClient.Discovered(discoveredArray, discoveredItem.Type, false, false)
-				if err != nil {
-					logrus.WithFields(logrus.Fields{
-						"project": c.HQProject,
-						"address": c.HQAddress,
-						"err":     err.Error(),
-					}).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
-					time.Sleep(time.Second)
-					continue
-				}
-				break
-			}
-
-			discoveredArray = []gocrawlhq.URL{}
-		}
+		mutex.Unlock()
 	}
 
-	// send remaining URLs
-	if len(discoveredArray) > 0 {
-		for {
-			_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
-			if err != nil {
-				logrus.WithFields(logrus.Fields{
-					"project": c.HQProject,
-					"address": c.HQAddress,
-					"err":     err.Error(),
-				}).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
-				time.Sleep(time.Second)
-				continue
-			}
-			break
-		}
-	}
+	// if we are here, it means that the HQProducerChannel has been closed
+	// so we need to send the last payload to the crawl HQ
+	terminateProducer <- true
 }
 
 func (c *Crawl) HQConsumer() {
