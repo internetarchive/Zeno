@@ -50,7 +50,7 @@ func (c *Crawl) HQProducer() {
 				return
 			default:
 				mutex.Lock()
-				if len(discoveredArray) >= int(math.Ceil(float64(c.Workers)/2)) || time.Since(HQLastSent) >= time.Second*10 {
+				if (len(discoveredArray) >= int(math.Ceil(float64(c.Workers)/2)) || time.Since(HQLastSent) >= time.Second*10) && len(discoveredArray) > 0 {
 					for {
 						_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
 						if err != nil {
