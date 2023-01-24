@@ -27,8 +27,9 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 			}
 
 			if len(cloudflarestreamURLs) > 0 {
-				assets = append(assets, cloudflarestreamURLs...)
-				return assets, nil
+				for _, cloudflarestreamURL := range cloudflarestreamURLs {
+					rawAssets = append(rawAssets, cloudflarestreamURL.String())
+				}
 			}
 		}
 	}
