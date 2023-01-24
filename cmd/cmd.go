@@ -201,6 +201,14 @@ var GlobalFlags = []cli.Flag{
 		Destination: &config.App.Flags.DisableAssetsCapture,
 	},
 
+	// Plugins
+	&cli.BoolFlag{
+		Name:        "cloudflarestream",
+		Usage:       "Enable Cloudflare Stream plugin. This plugin will archive videos from cloudflarestream.com.",
+		Value:       false,
+		Destination: &config.App.Flags.Cloudflarestream,
+	},
+
 	// Crawl HQ flags
 	&cli.BoolFlag{
 		Name:        "hq",

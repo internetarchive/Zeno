@@ -5,14 +5,33 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
 func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.Document) (assets []url.URL, err error) {
 	var rawAssets []string
+
+	// Execute plugins on the response
+	for _, plugin := range c.Plugins {
+		if plugin == "cloudflarestream" && strings.Contains(item.URL.String(), "cloudflarestream.com") {
+			cloudflarestreamURLs, err := cloudflarestream.Get(*item.URL, *c.Client)
+			if err != nil {
+				logWarning.WithFields(logrus.Fields{
+					"error": err,
+				}).Warning(item.URL.String())
+			}
+
+			if len(cloudflarestreamURLs) > 0 {
+				assets = append(assets, cloudflarestreamURLs...)
+				return assets, nil
+			}
+		}
+	}
 
 	// Extract assets on the page (images, scripts, videos..)
 	if !utils.StringInSlice("img", c.DisabledHTMLTags) {

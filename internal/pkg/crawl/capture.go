@@ -241,7 +241,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		req.Header.Set("Accept-Language", "en-US,en;q=0.9,fr;q=0.8")
 	}
 
-	// execute request
+	// Execute request
 	resp, err = c.executeGET(item, req)
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return

@@ -103,5 +103,10 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.HQBatchSize = int(flags.HQBatchSize)
 	c.HQContinuousPull = flags.HQContinuousPull
 
+	// Plugins
+	if flags.Cloudflarestream {
+		c.Plugins = append(c.Plugins, "cloudflarestream")
+	}
+
 	return c
 }
