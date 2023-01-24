@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/tidwall/gjson"
@@ -308,6 +309,29 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			"error": err,
 		}).Warning(item.URL.String())
 		return
+	}
+
+	// Execute plugins
+	for _, plugin := range c.Plugins {
+		if plugin == "cloudflarestream" && strings.Contains(item.URL.Host, "cloudflarestream.com") {
+			// Look for JS files necessary for the playback of the video
+			cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, item.URL, *c.Client)
+			if err != nil {
+				logWarning.WithFields(logrus.Fields{
+					"error": err,
+				}).Warning(item.URL.String())
+				return
+			}
+
+			// Seencheck the URLs we captured
+			if c.Seencheck {
+				for _, cfstreamURL := range cfstreamURLs {
+					c.seencheckURL(cfstreamURL, "asset")
+				}
+			} else if c.UseHQ {
+				c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
+			}
+		}
 	}
 
 	// Websites can use a <base> tag to specify a base for relative URLs in every other tags.

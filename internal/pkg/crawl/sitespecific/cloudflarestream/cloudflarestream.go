@@ -3,12 +3,15 @@ package cloudflarestream
 import (
 	"encoding/xml"
 	"errors"
+	"io"
+	"io/ioutil"
 	"math"
 	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/CorentinB/warc"
+	"github.com/PuerkitoBio/goquery"
 )
 
 type MPD struct {
@@ -55,7 +58,240 @@ type MPD struct {
 	} `xml:"Period"`
 }
 
-func Get(URL url.URL, httpClient warc.CustomHTTPClient) (URLs []url.URL, err error) {
+func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.CustomHTTPClient) (archivedURLs []string, err error) {
+	var latestJSURL string
+
+	// Look for the <script> tag that contains the URL to the latest JS file
+	doc.Find("script").Each(func(i int, s *goquery.Selection) {
+		// Look for the src attribute
+		src, exists := s.Attr("src")
+		if exists {
+			// If the src attribute contains the string "latest.js", then we found the right script tag
+			if strings.Contains(src, "latest.js") {
+				latestJSURL = src
+				return
+			}
+		}
+	})
+
+	// Now get that file and parse it to find a string starting with iframe and ending with .html
+	resp, err := httpClient.Get(latestJSURL)
+	if err != nil {
+		return archivedURLs, err
+	}
+	defer resp.Body.Close()
+
+	archivedURLs = append(archivedURLs, latestJSURL)
+
+	// Check that the status code is 200
+	if resp.StatusCode == 301 {
+		// If the status code is 301, then the URL is a redirect, so we need to follow it
+		location, err := resp.Location()
+		if err != nil {
+			return archivedURLs, err
+		}
+
+		resp.Body.Close()
+
+		// Get the new URL
+		resp, err = httpClient.Get(location.String())
+		if err != nil {
+			return archivedURLs, err
+		}
+		defer resp.Body.Close()
+
+		archivedURLs = append(archivedURLs, location.String())
+	}
+
+	if resp.StatusCode != 200 {
+		return archivedURLs, errors.New("cloudflarestream.GetJSFiles: status code is not 200, got " + strconv.Itoa(resp.StatusCode))
+	}
+
+	// Read the body of the response
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return archivedURLs, err
+	}
+
+	// Find location of ".concat("iframe"
+	filenameIndex := strings.Index(string(body), ".concat(\"iframe")
+	if filenameIndex == -1 {
+		return archivedURLs, errors.New("cloudflarestream.GetJSFiles: could not find iframe")
+	}
+
+	// Find location of ".html" after ".concat("iframe"
+	extensionIndex := strings.Index(string(body[filenameIndex:]), ".html")
+	if extensionIndex == -1 {
+		return archivedURLs, errors.New("cloudflarestream.GetJSFiles: could not find iframe")
+	}
+
+	// Get the URL
+	iframeFilename := string(body[filenameIndex+9 : filenameIndex+extensionIndex+5])
+
+	// Get the base URL
+	baseURL, err := url.Parse(latestJSURL)
+	if err != nil {
+		return archivedURLs, err
+	}
+
+	// Get the video ID from the watchPageURL, it's the string between the first slash after the host and the second slash
+	videoID := strings.Replace(strings.Replace(watchPageURL.String(), "/watch", "", 1), "https://"+watchPageURL.Host+"/", "", 1)
+
+	// Build the iframe URL
+	iframeURLString := baseURL.Scheme + "://" + baseURL.Host + "/embed/" + iframeFilename + "?videoId=" + videoID
+
+	// Parse the URL
+	iframeURL, err := url.Parse(iframeURLString)
+	if err != nil {
+		return archivedURLs, err
+
+	// Now we have the URL to the iframe HTML, using that page
+	// we will look for the iframe-player JS file
+	var iframePlayerURL string
+
+	iframeURLResp, err := httpClient.Get(iframeURL.String())
+	if err != nil {
+		return archivedURLs, err
+	}
+	defer iframeURLResp.Body.Close()
+
+	archivedURLs = append(archivedURLs, iframeURL.String())
+
+	// Check that the status code is 200
+	if iframeURLResp.StatusCode == 301 {
+		// If the status code is 301, then the URL is a redirect, so we need to follow it
+		location, err := iframeURLResp.Location()
+		if err != nil {
+			return archivedURLs,err
+		}
+
+		iframeURLResp.Body.Close()
+
+		// Get the new URL
+		iframeURLResp, err = httpClient.Get(location.String())
+		if err != nil {
+			return archivedURLs, err
+		}
+		defer iframeURLResp.Body.Close()
+
+		archivedURLs = append(archivedURLs, location.String())
+	}
+
+	if iframeURLResp.StatusCode != 200 {
+		return archivedURLs, errors.New("cloudflarestream.GetJSFiles: status code is not 200, got " + strconv.Itoa(iframeURLResp.StatusCode))
+	}
+
+	// Turn the body into a document we can parse
+	iframeDoc, err := goquery.NewDocumentFromReader(iframeURLResp.Body)
+	if err != nil {
+		return archivedURLs, err
+	}
+
+	// Look for the <script> tag that contains the URL to the latest JS file
+	iframeDoc.Find("script").Each(func(i int, s *goquery.Selection) {
+		// Look for the src attribute that contains "iframe-player"
+		src, exists := s.Attr("src")
+		if exists {
+			// If the src attribute contains the string "iframe-player", then we found the right script tag
+			if strings.Contains(src, "iframe-player") {
+				iframePlayerURL = src
+				return
+			}
+		}
+	})
+
+	if iframePlayerURL == "" {
+		return archivedURLs, errors.New("cloudflarestream.GetJSFiles: could not find iframe-player")
+	}
+
+	// Make the URL absolute
+	iframePlayerURL = baseURL.Scheme + "://" + baseURL.Host + "/embed/" + iframePlayerURL
+
+	// Fetch that JS file and parse it to find the potential chunk.js files
+	iframePlayerResp, err := httpClient.Get(iframePlayerURL)
+	if err != nil {
+		return archivedURLs, err
+	}
+	defer iframePlayerResp.Body.Close()
+
+	archivedURLs = append(archivedURLs, iframePlayerURL)
+
+	// Check that the status code is 200
+	if iframePlayerResp.StatusCode == 301 {
+		// If the status code is 301, then the URL is a redirect, so we need to follow it
+		location, err := iframePlayerResp.Location()
+		if err != nil {
+			return archivedURLs, err
+		}
+
+		iframePlayerResp.Body.Close()
+
+		// Get the new URL
+		iframePlayerResp, err = httpClient.Get(location.String())
+		if err != nil {
+			return archivedURLs, err
+		}
+		defer iframePlayerResp.Body.Close()
+
+		archivedURLs = append(archivedURLs, location.String())
+	}
+
+	if iframePlayerResp.StatusCode != 200 {
+		return archivedURLs, errors.New("cloudflarestream.GetJSFiles: status code is not 200, got " + strconv.Itoa(iframePlayerResp.StatusCode) + " for " + iframePlayerURL)
+	}
+
+	// Read the body of the response
+	iframePlayerBody, err := ioutil.ReadAll(iframePlayerResp.Body)
+	if err != nil {
+		return archivedURLs, err
+	}
+
+	// We are now looking for an dictionary that has numbers as keys and strings as values
+	// Remove everything after "chunk.js" (the dict is before it)
+	chunkJSIndex := strings.Index(string(iframePlayerBody), "chunk.js")
+	if chunkJSIndex == -1 {
+		return archivedURLs, errors.New("cloudflarestream.GetJSFiles: could not find chunk.js")
+	}
+
+	chunkJSObject := string(iframePlayerBody[:chunkJSIndex])
+	chunkJSObject = strings.ReplaceAll(chunkJSObject, "}[e]+\".", "")
+
+	// Find the last occurence of "{"
+	openingBracketIndex := strings.LastIndex(chunkJSObject, "{")
+	if openingBracketIndex == -1 {
+		return archivedURLs, errors.New("cloudflarestream.GetJSFiles: could not find opening bracket")
+	}
+
+	// Remove everything before the last "{"
+	chunkJSObject = chunkJSObject[openingBracketIndex+1:]
+
+	// Modify the string to make it cuttable
+	chunkJSObject = strings.ReplaceAll(chunkJSObject, ":\"", ".")
+	chunkJSObject = strings.ReplaceAll(chunkJSObject, "\",", ".chunk.js ")
+	chunkJSObject = strings.ReplaceAll(chunkJSObject, "\"", ".chunk.js")
+
+	// Split the string into a slice
+	chunkJSObjectSlice := strings.Split(chunkJSObject, " ")
+
+	// Capture the chunk.js files
+	for _, chunkJSObjectSliceItem := range chunkJSObjectSlice {
+		URL := baseURL.Scheme + "://" + baseURL.Host + "/embed/" + chunkJSObjectSliceItem
+
+		resp, err := httpClient.Get(URL)
+		if err != nil {
+			return archivedURLs, err
+		}
+
+		archivedURLs = append(archivedURLs, URL)
+
+		io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
+	}
+
+	return archivedURLs, nil
+}
+
+func GetSegments(URL url.URL, httpClient warc.CustomHTTPClient) (URLs []url.URL, err error) {
 	var (
 		mpd        MPD
 		mpdURL     string
@@ -64,12 +300,12 @@ func Get(URL url.URL, httpClient warc.CustomHTTPClient) (URLs []url.URL, err err
 
 	// Replace /watch with /manifest/video.mpd if the URL ends with /watch, else, raise an error
 	if len(URL.String()) < 6 {
-		return nil, errors.New("cloudflaresteam.Parse: URL too short")
+		return nil, errors.New("cloudflaresteam.GetSegments: URL too short")
 	} else {
 		if strings.HasSuffix(URL.String(), "/watch") {
 			mpdURL = strings.Replace(URL.String(), "/watch", "/manifest/video.mpd", 1)
 		} else {
-			return nil, errors.New("cloudflaresteam.Parse: URL does not end with /watch")
+			return nil, errors.New("cloudflaresteam.GetSegments: URL does not end with /watch")
 		}
 	}
 
@@ -82,11 +318,11 @@ func Get(URL url.URL, httpClient warc.CustomHTTPClient) (URLs []url.URL, err err
 
 	// Verify that the content-type is application/dash+xml and that the status code is 200
 	if resp.StatusCode != 200 {
-		return nil, errors.New("cloudflaresteam.Parse: status code is not 200")
+		return nil, errors.New("cloudflaresteam.GetSegments: status code is not 200")
 	}
 
 	if resp.Header.Get("Content-Type") != "application/dash+xml" {
-		return nil, errors.New("cloudflaresteam.Parse: content-type is not application/dash+xml")
+		return nil, errors.New("cloudflaresteam.GetSegments: content-type is not application/dash+xml")
 	}
 
 	// Unmarshal the MPD file into a struct with the xml package

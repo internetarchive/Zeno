@@ -18,8 +18,8 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 
 	// Execute plugins on the response
 	for _, plugin := range c.Plugins {
-		if plugin == "cloudflarestream" && strings.Contains(item.URL.String(), "cloudflarestream.com") {
-			cloudflarestreamURLs, err := cloudflarestream.Get(*item.URL, *c.Client)
+		if plugin == "cloudflarestream" && strings.Contains(item.URL.Host, "cloudflarestream.com") {
+			cloudflarestreamURLs, err := cloudflarestream.GetSegments(*item.URL, *c.Client)
 			if err != nil {
 				logWarning.WithFields(logrus.Fields{
 					"error": err,
