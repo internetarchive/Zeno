@@ -104,8 +104,8 @@ func Get(URL url.URL, httpClient warc.CustomHTTPClient) (URLs []url.URL, err err
 		for _, representation := range adaptationSet.Representation {
 			var (
 				segmentTemplate = representation.SegmentTemplate
-				timescale       int
-				segmentDuration int
+				timescale       float64
+				segmentDuration float64
 			)
 
 			// Get the init.mp4 from the initialization attribute and strip the ../../ from the beginning
@@ -116,21 +116,21 @@ func Get(URL url.URL, httpClient warc.CustomHTTPClient) (URLs []url.URL, err err
 				Path:   initURL,
 			})
 
-			timescale, err = strconv.Atoi(segmentTemplate.Timescale)
+			timescale, err = strconv.ParseFloat(segmentTemplate.Timescale, 64)
 			if err != nil {
 				return nil, err
 			}
 
-			segmentDuration, err = strconv.Atoi(segmentTemplate.Duration)
+			segmentDuration, err = strconv.ParseFloat(segmentTemplate.Duration, 64)
 			if err != nil {
 				return nil, err
 			}
 
 			// Calculate the number of segments in the video
-			segments := duration * timescale / segmentDuration
+			nbSegments := math.Ceil(float64(duration) * timescale / segmentDuration)
 
 			// For each segment, create a new URL and append it to the return URLs
-			for i := 0; i < segments; i++ {
+			for i := 0; i < int(nbSegments); i++ {
 				var (
 					segmentURL = segmentTemplate.Media
 					segmentNum = strconv.Itoa(i + 1)
