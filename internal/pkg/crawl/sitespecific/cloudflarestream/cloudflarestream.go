@@ -144,6 +144,7 @@ func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.Cu
 	iframeURL, err := url.Parse(iframeURLString)
 	if err != nil {
 		return archivedURLs, err
+	}
 
 	// Now we have the URL to the iframe HTML, using that page
 	// we will look for the iframe-player JS file
@@ -162,7 +163,7 @@ func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.Cu
 		// If the status code is 301, then the URL is a redirect, so we need to follow it
 		location, err := iframeURLResp.Location()
 		if err != nil {
-			return archivedURLs,err
+			return archivedURLs, err
 		}
 
 		iframeURLResp.Body.Close()
