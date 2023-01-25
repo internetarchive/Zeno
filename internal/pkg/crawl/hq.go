@@ -9,6 +9,7 @@ import (
 
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -76,8 +77,8 @@ func (c *Crawl) HQProducer() {
 	// listen to the discovered channel and add the URLs to the discoveredArray
 	for discoveredItem := range c.HQProducerChannel {
 		discoveredURL := gocrawlhq.URL{
-			Value: discoveredItem.URL.String(),
-			Via:   discoveredItem.ParentItem.URL.String(),
+			Value: utils.URLToString(discoveredItem.URL),
+			Via:   utils.URLToString(discoveredItem.ParentItem.URL),
 		}
 
 		for i := 0; uint8(i) < discoveredItem.Hop; i++ {
@@ -164,13 +165,13 @@ func (c *Crawl) HQFinisher() {
 			logrus.WithFields(logrus.Fields{
 				"project": c.HQProject,
 				"address": c.HQAddress,
-				"url":     finishedItem.URL.String(),
+				"url":     utils.URLToString(finishedItem.URL),
 			}).Infoln("URL has no ID, discarding")
 			continue
 		}
 
 		locallyCrawledTotal += int(finishedItem.LocallyCrawled)
-		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedItem.ID, Value: finishedItem.URL.String()})
+		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedItem.ID, Value: utils.URLToString(finishedItem.URL)})
 
 		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) {
 			for {
@@ -219,7 +220,7 @@ func (c *Crawl) HQSeencheckURLs(URLs []url.URL) (seencheckedBatch []url.URL, err
 
 	for _, URL := range URLs {
 		discoveredURLs = append(discoveredURLs, gocrawlhq.URL{
-			Value: URL.String(),
+			Value: utils.URLToString(&URL),
 		})
 	}
 
@@ -257,7 +258,7 @@ func (c *Crawl) HQSeencheckURLs(URLs []url.URL) (seencheckedBatch []url.URL, err
 
 func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 	discoveredURL := gocrawlhq.URL{
-		Value: URL.String(),
+		Value: utils.URLToString(URL),
 	}
 
 	discoveredResponse, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "asset", false, true)
@@ -265,7 +266,7 @@ func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 		logrus.WithFields(logrus.Fields{
 			"project": c.HQProject,
 			"address": c.HQAddress,
-			"url":     URL.String(),
+			"url":     utils.URLToString(URL),
 			"err":     err.Error(),
 		}).Errorln("error sending seencheck payload to crawl HQ")
 		return false, err

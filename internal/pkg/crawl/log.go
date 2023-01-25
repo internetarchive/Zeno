@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,5 +18,5 @@ func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *
 		"hop":            item.Hop,
 		"type":           item.Type,
 		"execution_time": time.Since(executionStart),
-	}).Info(item.URL.String())
+	}).Info(utils.URLToString(item.URL))
 }

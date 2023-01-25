@@ -19,17 +19,15 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 	// Execute plugins on the response
 	for _, plugin := range c.Plugins {
 		if plugin == "cloudflarestream" && strings.Contains(item.URL.Host, "cloudflarestream.com") {
-			cloudflarestreamURLs, err := cloudflarestream.GetSegments(*item.URL, *c.Client)
+			cloudflarestreamURLs, err := cloudflarestream.GetSegments(item.URL, *c.Client)
 			if err != nil {
 				logWarning.WithFields(logrus.Fields{
 					"error": err,
-				}).Warning(item.URL.String())
+				}).Warning(utils.URLToString(item.URL))
 			}
 
 			if len(cloudflarestreamURLs) > 0 {
-				for _, cloudflarestreamURL := range cloudflarestreamURLs {
-					rawAssets = append(rawAssets, cloudflarestreamURL.String())
-				}
+				assets = append(assets, cloudflarestreamURLs...)
 			}
 		}
 	}
@@ -235,7 +233,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 	}
 
 	// Turn strings into url.URL
-	assets = utils.StringSliceToURLSlice(rawAssets)
+	assets = append(assets, utils.StringSliceToURLSlice(rawAssets)...)
 
 	// Ensure that excluded hosts aren't in the assets.
 	assets = c.excludeHosts(assets)
