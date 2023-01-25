@@ -289,6 +289,26 @@ func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.Cu
 		resp.Body.Close()
 	}
 
+	// Capture additional JS files that are needed
+	var URLs = []string{
+		baseURL.Scheme + "://" + baseURL.Host + "/" + videoID + "/metadata/playerEnhancementInfo.json",
+		baseURL.Scheme + "://" + baseURL.Host + "/" + videoID + "/lifecycle",
+		baseURL.Scheme + "://" + baseURL.Host + "/" + videoID + "/thumbnails/thumbnail.jpg?height=720",
+		baseURL.Scheme + "://" + baseURL.Host + "/lifecycle",
+	}
+
+	for _, URL := range URLs {
+		resp, err := httpClient.Get(URL)
+		if err != nil {
+			return archivedURLs, err
+		}
+
+		archivedURLs = append(archivedURLs, URL)
+
+		io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
+	}
+
 	return archivedURLs, nil
 }
 
@@ -304,7 +324,7 @@ func GetSegments(URL url.URL, httpClient warc.CustomHTTPClient) (URLs []url.URL,
 		return nil, errors.New("cloudflaresteam.GetSegments: URL too short")
 	} else {
 		if strings.HasSuffix(URL.String(), "/watch") {
-			mpdURL = strings.Replace(URL.String(), "/watch", "/manifest/video.mpd", 1)
+			mpdURL = strings.Replace(URL.String(), "/watch", "/manifest/video.mpd?parentOrigin="+URL.Scheme+"://"+URL.Host, 1)
 		} else {
 			return nil, errors.New("cloudflaresteam.GetSegments: URL does not end with /watch")
 		}
