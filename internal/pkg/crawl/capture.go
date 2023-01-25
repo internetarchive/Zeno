@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/tiktok"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/tidwall/gjson"
@@ -234,20 +235,9 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	req.Header.Set("User-Agent", c.UserAgent)
 
-	if strings.Contains(utils.URLToString(item.URL), "tiktok.com") {
-		req.Header.Set("Authority", "www.tiktok.com")
-		req.Header.Set("Sec-Ch-Ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"99\", \"Microsoft Edge\";v=\"99\"")
-		req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
-		req.Header.Set("Sec-Ch-Ua-Platform", "\"Linux\"")
-		req.Header.Set("Dnt", "1")
-		req.Header.Set("Upgrade-Insecure-Requests", "1")
-		req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.74 Safari/537.36 Edg/99.0.1150.52")
-		req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
-		req.Header.Set("Sec-Fetch-Site", "none")
-		req.Header.Set("Sec-Fetch-Mode", "navigate")
-		req.Header.Set("Sec-Fetch-User", "?1")
-		req.Header.Set("Sec-Fetch-Dest", "document")
-		req.Header.Set("Accept-Language", "en-US,en;q=0.9,fr;q=0.8")
+	// Execute site-specific code on the request, before sending it
+	if strings.Contains(item.URL.Host, "tiktok.com") {
+		req = tiktok.AddHeaders(req)
 	}
 
 	// Execute request
@@ -319,7 +309,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
-	// Execute plugins
+	// Execute site-specific code on the document
 	if strings.Contains(item.URL.Host, "cloudflarestream.com") {
 		// Look for JS files necessary for the playback of the video
 		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, item.URL, *c.Client)
