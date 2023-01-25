@@ -320,25 +320,23 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Execute plugins
-	for _, plugin := range c.Plugins {
-		if plugin == "cloudflarestream" && strings.Contains(item.URL.Host, "cloudflarestream.com") {
-			// Look for JS files necessary for the playback of the video
-			cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, item.URL, *c.Client)
-			if err != nil {
-				logWarning.WithFields(logrus.Fields{
-					"error": err,
-				}).Warning(utils.URLToString(item.URL))
-				return
-			}
+	if strings.Contains(item.URL.Host, "cloudflarestream.com") {
+		// Look for JS files necessary for the playback of the video
+		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, item.URL, *c.Client)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"error": err,
+			}).Warning(utils.URLToString(item.URL))
+			return
+		}
 
-			// Seencheck the URLs we captured
-			if c.Seencheck {
-				for _, cfstreamURL := range cfstreamURLs {
-					c.seencheckURL(cfstreamURL, "asset")
-				}
-			} else if c.UseHQ {
-				c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
+		// Seencheck the URLs we captured
+		if c.Seencheck {
+			for _, cfstreamURL := range cfstreamURLs {
+				c.seencheckURL(cfstreamURL, "asset")
 			}
+		} else if c.UseHQ {
+			c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
 		}
 	}
 

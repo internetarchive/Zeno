@@ -105,9 +105,6 @@ type Crawl struct {
 	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item
 	HQChannelsWg      *sync.WaitGroup
-
-	// Plugins
-	Plugins []string
 }
 
 // Start fire up the crawling process

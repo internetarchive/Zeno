@@ -17,18 +17,16 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 	var rawAssets []string
 
 	// Execute plugins on the response
-	for _, plugin := range c.Plugins {
-		if plugin == "cloudflarestream" && strings.Contains(base.Host, "cloudflarestream.com") {
-			cloudflarestreamURLs, err := cloudflarestream.GetSegments(base, *c.Client)
-			if err != nil {
-				logWarning.WithFields(logrus.Fields{
-					"error": err,
-				}).Warning(utils.URLToString(base))
-			}
+	if strings.Contains(base.Host, "cloudflarestream.com") {
+		cloudflarestreamURLs, err := cloudflarestream.GetSegments(base, *c.Client)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"error": err,
+			}).Warning(utils.URLToString(base))
+		}
 
-			if len(cloudflarestreamURLs) > 0 {
-				assets = append(assets, cloudflarestreamURLs...)
-			}
+		if len(cloudflarestreamURLs) > 0 {
+			assets = append(assets, cloudflarestreamURLs...)
 		}
 	}
 
