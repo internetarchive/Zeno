@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/tiktok"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/tidwall/gjson"
@@ -71,7 +73,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 
 		if err != nil {
 			logInfo.WithFields(logrus.Fields{
-				"url":         req.URL.String(),
+				"url":         utils.URLToString(req.URL),
 				"retry_count": retry,
 				"error":       err,
 			}).Info("Crucial error, retrying...")
@@ -82,7 +84,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 
 		if resp.StatusCode == 429 {
 			logInfo.WithFields(logrus.Fields{
-				"url":         req.URL.String(),
+				"url":         utils.URLToString(req.URL),
 				"duration":    sleepTime.String(),
 				"retry_count": retry,
 				"status_code": resp.StatusCode,
@@ -103,7 +105,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 
 	// If a redirection is catched, then we execute the redirection
 	if isRedirection(resp.StatusCode) {
-		if resp.Header.Get("location") == req.URL.String() || item.Redirect >= c.MaxRedirect {
+		if resp.Header.Get("location") == utils.URLToString(req.URL) || item.Redirect >= c.MaxRedirect {
 			return resp, nil
 		}
 		defer resp.Body.Close()
@@ -125,7 +127,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 
 		// Seencheck the URL
 		if c.Seencheck {
-			found := c.seencheckURL(URL.String(), "seed")
+			found := c.seencheckURL(utils.URLToString(URL), "seed")
 			if found {
 				return nil, errors.New("URL from redirection has already been seen")
 			}
@@ -144,13 +146,13 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		newItem.Redirect = item.Redirect + 1
 
 		// Prepare GET request
-		newReq, err = http.NewRequest("GET", URL.String(), nil)
+		newReq, err = http.NewRequest("GET", utils.URLToString(URL), nil)
 		if err != nil {
 			return resp, err
 		}
 
 		req.Header.Set("User-Agent", c.UserAgent)
-		req.Header.Set("Referer", newItem.ParentItem.URL.String())
+		req.Header.Set("Referer", utils.URLToString(newItem.ParentItem.URL))
 
 		resp, err = c.executeGET(newItem, newReq)
 		if err != nil {
@@ -165,12 +167,12 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	var resp *http.Response
 
 	// Prepare GET request
-	req, err := http.NewRequest("GET", item.URL.String(), nil)
+	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Set("Referer", item.ParentItem.URL.String())
+	req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
 	req.Header.Set("User-Agent", c.UserAgent)
 
 	// Apply cookies obtained from the original URL captured
@@ -184,7 +186,7 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	} else if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
-		}).Warning(item.URL.String())
+		}).Warning(utils.URLToString(item.URL))
 		return err
 	}
 	defer resp.Body.Close()
@@ -210,45 +212,42 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		}
 	}(item)
 
-	// Prepare GET request
-	req, err := http.NewRequest("GET", item.URL.String(), nil)
+	unescapedURL, err := url.QueryUnescape(utils.URLToString(item.URL))
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
-		}).Warning(item.URL.String())
+		}).Warning(utils.URLToString(item.URL))
+		return
+	}
+
+	// Prepare GET request
+	req, err := http.NewRequest("GET", unescapedURL, nil)
+	if err != nil {
+		logWarning.WithFields(logrus.Fields{
+			"error": err,
+		}).Warning(utils.URLToString(item.URL))
 		return
 	}
 
 	if item.Hop > 0 && item.ParentItem != nil {
-		req.Header.Set("Referer", item.ParentItem.URL.String())
+		req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
 	}
 
 	req.Header.Set("User-Agent", c.UserAgent)
 
-	if strings.Contains(item.URL.String(), "tiktok.com") {
-		req.Header.Set("Authority", "www.tiktok.com")
-		req.Header.Set("Sec-Ch-Ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"99\", \"Microsoft Edge\";v=\"99\"")
-		req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
-		req.Header.Set("Sec-Ch-Ua-Platform", "\"Linux\"")
-		req.Header.Set("Dnt", "1")
-		req.Header.Set("Upgrade-Insecure-Requests", "1")
-		req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.74 Safari/537.36 Edg/99.0.1150.52")
-		req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
-		req.Header.Set("Sec-Fetch-Site", "none")
-		req.Header.Set("Sec-Fetch-Mode", "navigate")
-		req.Header.Set("Sec-Fetch-User", "?1")
-		req.Header.Set("Sec-Fetch-Dest", "document")
-		req.Header.Set("Accept-Language", "en-US,en;q=0.9,fr;q=0.8")
+	// Execute site-specific code on the request, before sending it
+	if strings.Contains(item.URL.Host, "tiktok.com") {
+		req = tiktok.AddHeaders(req)
 	}
 
-	// execute request
+	// Execute request
 	resp, err = c.executeGET(item, req)
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return
 	} else if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
-		}).Warning(item.URL.String())
+		}).Warning(utils.URLToString(item.URL))
 		return
 	}
 	defer resp.Body.Close()
@@ -269,11 +268,11 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
 
 	// Store the base URL to turn relative links into absolute links later
-	base, err := url.Parse(resp.Request.URL.String())
+	base, err := url.Parse(utils.URLToString(resp.Request.URL))
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
-		}).Warning(item.URL.String())
+		}).Warning(utils.URLToString(item.URL))
 		return
 	}
 
@@ -306,8 +305,29 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
-		}).Warning(item.URL.String())
+		}).Warning(utils.URLToString(item.URL))
 		return
+	}
+
+	// Execute site-specific code on the document
+	if strings.Contains(item.URL.Host, "cloudflarestream.com") {
+		// Look for JS files necessary for the playback of the video
+		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, item.URL, *c.Client)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"error": err,
+			}).Warning(utils.URLToString(item.URL))
+			return
+		}
+
+		// Seencheck the URLs we captured
+		if c.Seencheck {
+			for _, cfstreamURL := range cfstreamURLs {
+				c.seencheckURL(cfstreamURL, "asset")
+			}
+		} else if c.UseHQ {
+			c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
+		}
 	}
 
 	// Websites can use a <base> tag to specify a base for relative URLs in every other tags.
@@ -329,7 +349,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 				if err != nil {
 					logWarning.WithFields(logrus.Fields{
 						"error": err,
-					}).Warning(item.URL.String())
+					}).Warning(utils.URLToString(item.URL))
 				} else {
 					base = baseTagValue
 				}
@@ -342,7 +362,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
-		}).Warning(item.URL.String())
+		}).Warning(utils.URLToString(item.URL))
 		return
 	}
 
@@ -358,7 +378,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
-		}).Warning(item.URL.String())
+		}).Warning(utils.URLToString(item.URL))
 		return
 	}
 
@@ -373,7 +393,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	if c.Seencheck {
 		seencheckedBatch := []url.URL{}
 		for _, URL := range assets {
-			found := c.seencheckURL(URL.String(), "asset")
+			found := c.seencheckURL(utils.URLToString(&URL), "asset")
 			if found {
 				continue
 			} else {
@@ -406,7 +426,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		c.Frontier.QueueCount.Incr(-1)
 
 		// Just making sure we do not over archive by archiving the original URL
-		if item.URL.String() == asset.String() {
+		if utils.URLToString(item.URL) == utils.URLToString(&asset) {
 			continue
 		}
 
@@ -434,9 +454,9 @@ func (c *Crawl) Capture(item *frontier.Item) {
 					"rate":           c.URIsPerSecond.Rate(),
 					"active_workers": c.ActiveWorkers.Value(),
 					"parent_hop":     item.Hop,
-					"parent_url":     item.URL.String(),
+					"parent_url":     utils.URLToString(item.URL),
 					"type":           "asset",
-				}).Warning(asset.String())
+				}).Warning(utils.URLToString(&asset))
 				return
 			}
 

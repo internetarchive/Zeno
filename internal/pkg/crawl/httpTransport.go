@@ -52,7 +52,7 @@ func isRedirection(statusCode int) bool {
 // 		resp, err = t.Transport.RoundTrip(req)
 // 		if err != nil {
 // 			logWarning.WithFields(logrus.Fields{
-// 				"url":   req.URL.String(),
+// 				"url":   utils.URLToString(req.URL),
 // 				"error": err,
 // 			}).Warning("HTTP error")
 // 			return resp, err
@@ -77,7 +77,7 @@ func isRedirection(statusCode int) bool {
 // 			if resp.StatusCode == 429 {
 // 				sleepTime = sleepTime * time.Duration(exponentFactor)
 // 				logInfo.WithFields(logrus.Fields{
-// 					"url":         req.URL.String(),
+// 					"url":         utils.URLToString(req.URL),
 // 					"duration":    sleepTime.String(),
 // 					"retry_count": i,
 // 					"status_code": resp.StatusCode,

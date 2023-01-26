@@ -51,6 +51,8 @@ type Flags struct {
 	DisableLocalDedupe   bool
 	DisableAssetsCapture bool
 	CertValidation       bool
+
+	Cloudflarestream bool
 }
 
 type Application struct {

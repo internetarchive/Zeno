@@ -35,10 +35,10 @@ type Crawl struct {
 	Finished  *utils.TAtomBool
 	LiveStats bool
 
-	// frontier
+	// Frontier
 	Frontier *frontier.Frontier
 
-	// crawl settings
+	// Crawl settings
 	WorkerPool            sizedwaitgroup.SizedWaitGroup
 	MaxConcurrentAssets   int
 	Client                *warc.CustomHTTPClient
@@ -59,7 +59,7 @@ type Crawl struct {
 	Seencheck             bool
 	Workers               int
 
-	// cookie-related settings
+	// Cookie-related settings
 	CookieFile  string
 	KeepCookies bool
 	CookieJar   http.CookieJar
@@ -74,7 +74,7 @@ type Crawl struct {
 	Prometheus        bool
 	PrometheusMetrics *PrometheusMetrics
 
-	// real time statistics
+	// Real time statistics
 	URIsPerSecond *ratecounter.RateCounter
 	ActiveWorkers *ratecounter.Counter
 	CrawledSeeds  *ratecounter.Counter
@@ -92,7 +92,7 @@ type Crawl struct {
 	DisableLocalDedupe bool
 	CertValidation     bool
 
-	// crawl HQ settings
+	// Crawl HQ settings
 	UseHQ             bool
 	HQAddress         string
 	HQProject         string

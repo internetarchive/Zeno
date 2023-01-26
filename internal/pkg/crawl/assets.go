@@ -5,14 +5,30 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
 func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.Document) (assets []url.URL, err error) {
 	var rawAssets []string
+
+	// Execute plugins on the response
+	if strings.Contains(base.Host, "cloudflarestream.com") {
+		cloudflarestreamURLs, err := cloudflarestream.GetSegments(base, *c.Client)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"error": err,
+			}).Warning(utils.URLToString(base))
+		}
+
+		if len(cloudflarestreamURLs) > 0 {
+			assets = append(assets, cloudflarestreamURLs...)
+		}
+	}
 
 	// Extract assets on the page (images, scripts, videos..)
 	if !utils.StringInSlice("img", c.DisabledHTMLTags) {
@@ -215,7 +231,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 	}
 
 	// Turn strings into url.URL
-	assets = utils.StringSliceToURLSlice(rawAssets)
+	assets = append(assets, utils.StringSliceToURLSlice(rawAssets)...)
 
 	// Ensure that excluded hosts aren't in the assets.
 	assets = c.excludeHosts(assets)
