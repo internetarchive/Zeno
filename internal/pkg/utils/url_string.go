@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+// Important note:
+// This file is basically a copy of the url.URL.String() method, but with
+// small modifications to avoid escaping the path. The reason for this is
+// that we want to archive the original URL as it was crawled, and not
+// the escaped version.
+
 const upperhex = "0123456789ABCDEF"
 
 type encoding int
