@@ -18,6 +18,7 @@ type Flags struct {
 	ExcludedHosts         cli.StringSlice
 	DomainsCrawl          bool
 	CaptureAlternatePages bool
+	HTTPTimeout           int
 	MaxRedirect           int
 	MaxRetry              int
 

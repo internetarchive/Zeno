@@ -52,6 +52,7 @@ type Crawl struct {
 	MaxHops               uint8
 	MaxRetry              int
 	MaxRedirect           int
+	HTTPTimeout           int
 	DisableAssetsCapture  bool
 	CaptureAlternatePages bool
 	DomainsCrawl          bool
@@ -174,6 +175,9 @@ func (c *Crawl) Start() (err error) {
 			logWarning.Errorf("WARC HTTP client error: %s", err)
 		}
 	}()
+
+	c.Client.Timeout = time.Duration(c.HTTPTimeout) * time.Second
+	logrus.Infof("HTTP client timeout set to %d seconds", c.HTTPTimeout)
 
 	if c.Proxy != "" {
 		errChanProxy := make(chan error)

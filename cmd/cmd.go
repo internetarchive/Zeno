@@ -110,6 +110,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Number of retry if error happen when executing HTTP request.",
 		Destination: &config.App.Flags.MaxRetry,
 	},
+	&cli.IntFlag{
+		Name:        "http-timeout",
+		Value:       30,
+		Usage:       "Number of seconds to wait before timing out a request.",
+		Destination: &config.App.Flags.HTTPTimeout,
+	},
 	&cli.BoolFlag{
 		Name:        "domains-crawl",
 		Usage:       "If this is turned on, seeds will be treated as domains to crawl, therefore same-domain outlinks will be added to the queue as hop=0.",
