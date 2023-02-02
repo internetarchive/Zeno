@@ -310,13 +310,13 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Execute site-specific code on the document
-	if strings.Contains(item.URL.Host, "cloudflarestream.com") {
+	if strings.Contains(base.Host, "cloudflarestream.com") {
 		// Look for JS files necessary for the playback of the video
-		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, item.URL, *c.Client)
+		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, base, *c.Client)
 		if err != nil {
 			logWarning.WithFields(logrus.Fields{
 				"error": err,
-			}).Warning(utils.URLToString(item.URL))
+			}).Warning(utils.URLToString(base))
 			return
 		}
 
