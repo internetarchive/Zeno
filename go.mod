@@ -1,9 +1,10 @@
 module github.com/CorentinB/Zeno
 
-go 1.19
+go 1.20
 
 require (
-	git.archive.org/wb/gocrawlhq v1.1.9
+	git.archive.org/wb/gocrawlhq v1.2.0
+	github.com/CorentinB/hlsdl v1.0.1
 	github.com/CorentinB/warc v0.8.25
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
@@ -48,6 +49,7 @@ require (
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/gomodule/redigo v1.8.8 // indirect
+	github.com/grafov/m3u8 v0.11.1 // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
@@ -86,6 +88,7 @@ require (
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/protobuf v1.23.0 // indirect
+	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
