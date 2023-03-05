@@ -1,7 +1,7 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-git.archive.org/wb/gocrawlhq v1.2.0 h1:A8u7QI4FqzUSrtxO0TyvTzW27u313J1P3v+VuHQbGEc=
-git.archive.org/wb/gocrawlhq v1.2.0/go.mod h1:IR7ynAW8FJH2N/MP99Vk3Fkf/Y1RgqJWAP/kK3VGStY=
+git.archive.org/wb/gocrawlhq v1.2.1 h1:tvHlB/WS+ZIs31oPVoGd7qhKU7wKDKAjmrPgsckFEfw=
+git.archive.org/wb/gocrawlhq v1.2.1/go.mod h1:jfmFjl9LuyZB3qfR9HChNQHChPmZlu9p7649jW/MJM4=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/CorentinB/hlsdl v1.0.1 h1:9wHQCSHSLDRWmnG0L44AKUS81zO/ivq8yyiqM4EZdUc=
 github.com/CorentinB/hlsdl v1.0.1/go.mod h1:WxjLGfjwuW7GLsf84eVDrFtQges0nYr7KdkYWefmmcw=

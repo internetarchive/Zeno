@@ -3,7 +3,7 @@ module github.com/CorentinB/Zeno
 go 1.20
 
 require (
-	git.archive.org/wb/gocrawlhq v1.2.0
+	git.archive.org/wb/gocrawlhq v1.2.1
 	github.com/CorentinB/hlsdl v1.0.1
 	github.com/CorentinB/warc v0.8.25
 	github.com/PuerkitoBio/goquery v1.8.0
