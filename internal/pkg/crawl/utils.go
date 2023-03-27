@@ -4,10 +4,12 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
+	"github.com/tidwall/gjson"
 	"github.com/zeebo/xxh3"
 )
 
@@ -94,6 +96,28 @@ func extractLinksFromText(source string) (links []url.URL) {
 			continue
 		}
 		links = append(links, *URL)
+	}
+
+	return links
+}
+
+func getURLsFromJSON(payload gjson.Result) (links []string) {
+	if payload.IsArray() {
+		for _, arrayElement := range payload.Array() {
+			links = append(links, getURLsFromJSON(arrayElement)...)
+		}
+	} else {
+		for _, element := range payload.Map() {
+			if element.IsObject() {
+				links = append(links, getURLsFromJSON(element)...)
+			} else if element.IsArray() {
+				links = append(links, getURLsFromJSON(element)...)
+			} else {
+				if strings.HasPrefix(element.Str, "http") || strings.HasPrefix(element.Str, "/") {
+					links = append(links, element.Str)
+				}
+			}
+		}
 	}
 
 	return links

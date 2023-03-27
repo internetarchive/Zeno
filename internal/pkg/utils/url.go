@@ -59,3 +59,13 @@ func ValidateURL(u *url.URL) error {
 
 	return nil
 }
+
+// URLInSlice checks if a *url.URL is in a slice of *url.URL
+func URLInSlice(u *url.URL, list []*url.URL) bool {
+	for _, item := range list {
+		if item.String() == u.String() {
+			return true
+		}
+	}
+	return false
+}

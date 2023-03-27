@@ -9,6 +9,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
+	"github.com/go-rod/rod"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/remeh/sizedwaitgroup"
@@ -106,6 +107,9 @@ type Crawl struct {
 	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item
 	HQChannelsWg      *sync.WaitGroup
+
+	// Headless browser stuff
+	HeadlessBrowser *rod.Browser
 }
 
 // Start fire up the crawling process
@@ -202,6 +206,11 @@ func (c *Crawl) Start() (err error) {
 	// Process responsible for slowing or pausing the crawl
 	// when the WARC writing queue gets too big
 	go c.crawlSpeedLimiter()
+
+	// Starting the headless browser if needed
+	if c.Headless {
+		c.HeadlessBrowser = rod.New().MustConnect()
+	}
 
 	if c.API {
 		go c.startAPI()
