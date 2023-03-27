@@ -212,16 +212,8 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		}
 	}(item)
 
-	unescapedURL, err := url.QueryUnescape(utils.URLToString(item.URL))
-	if err != nil {
-		logWarning.WithFields(logrus.Fields{
-			"error": err,
-		}).Warning(utils.URLToString(item.URL))
-		return
-	}
-
 	// Prepare GET request
-	req, err := http.NewRequest("GET", unescapedURL, nil)
+	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
 			"error": err,
