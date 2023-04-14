@@ -58,8 +58,9 @@ func (c *Crawl) handleCrawlPause() {
 	}
 }
 
-func (c *Crawl) seencheckURL(url string, urlType string) bool {
-	hash := strconv.FormatUint(xxh3.HashString(url), 10)
+func (c *Crawl) seencheckURL(URL string, urlType string) bool {
+	hash := strconv.FormatUint(xxh3.HashString(URL), 10)
+
 	found, _ := c.Frontier.Seencheck.IsSeen(hash)
 	if found {
 		return true

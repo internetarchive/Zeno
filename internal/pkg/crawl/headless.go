@@ -3,38 +3,73 @@ package crawl
 import (
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/stealth"
+	"github.com/sirupsen/logrus"
 )
 
-func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeaders http.Header, capturedAssets []*url.URL, err error) {
+func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeaders http.Header, err error) {
+	var (
+		capturedAssets []url.URL
+		executionStart = time.Now()
+	)
+
 	// Set the hijack router
 	router := c.HeadlessBrowser.HijackRequests()
 	defer router.MustStop()
 
 	router.MustAdd("*", func(ctx *rod.Hijack) {
-		// TODO: add some headers like Referer & custom User-Agent
-		// ctx.Request.Req().Header.Set("My-Header", "test")
-
-		// LoadResponse runs the default request to the destination of the request.
-		// Not calling this will require you to mock the entire response.
-		// This can be done with the SetXxx (Status, Header, Body) functions on the
-		// ctx.Response struct.
-		_ = ctx.LoadResponse(&c.Client.Client, true)
+		startAssetCapture := time.Now()
 
 		// If the response is for the main page, save the body
 		if ctx.Request.URL().String() == item.URL.String() {
+			_ = ctx.LoadResponse(&c.Client.Client, true)
+
 			respBody = ctx.Response.Body()
 			respHeaders = ctx.Response.Headers().Clone()
-		}
+		} else {
+			// Cases for which we do not want to load the request:
+			// - If the URL is in the list of captured assets
+			// - If the URL is in the list of excluded hosts
+			// - If the URL is in the seencheck database
+			if utils.URLInSlice(ctx.Request.URL(), capturedAssets) {
+				return
+			} else if utils.StringInSlice(ctx.Request.URL().Host, c.ExcludedHosts) {
+				return
+			} else if c.Seencheck {
+				seen := c.seencheckURL(utils.URLToString(ctx.Request.URL()), "asset")
+				if seen {
+					return
+				}
+			} else if c.UseHQ {
+				new, err := c.HQSeencheckURL(ctx.Request.URL())
+				if err != nil {
+					logrus.WithFields(logrus.Fields{
+						"error": err,
+					}).Error("Unable to check if URL is in HQ seencheck database")
+				}
 
-		// Add the asset to the list of captured assets if it's not already in it
-		// TODO: do we want to skip that if LoadResponse failed?
-		if !utils.URLInSlice(ctx.Request.URL(), capturedAssets) {
-			capturedAssets = append(capturedAssets, ctx.Request.URL())
+				if !new {
+					return
+				}
+			}
+
+			// Load the response
+			_ = ctx.LoadResponse(&c.Client.Client, true)
+
+			var assetItem = &frontier.Item{
+				URL:        ctx.Request.URL(),
+				ParentItem: item,
+				Type:       "asset",
+			}
+
+			capturedAssets = append(capturedAssets, *ctx.Request.URL())
+
+			c.logCrawlSuccess(startAssetCapture, -1, assetItem)
 		}
 	})
 
@@ -50,11 +85,12 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 		return
 	}
 
-	// Wait for the page to load
-	err = page.WaitLoad()
+	err = page.Timeout(c.Client.Timeout).WaitLoad()
 	if err != nil {
 		return
 	}
 
-	return respBody, respHeaders, capturedAssets, nil
+	c.logCrawlSuccess(executionStart, -1, item)
+
+	return respBody, respHeaders, nil
 }

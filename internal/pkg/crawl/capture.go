@@ -88,26 +88,23 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
 	} else {
 		// Execute the GET request with the headless browser
-		body, headers, capturedAssets, err := c.captureHeadless(item)
+		body, headers, err := c.captureHeadless(item)
 		if err != nil {
 			logWarning.WithFields(logrus.Fields{
 				"error": err,
 			}).Warning(utils.URLToString(item.URL))
-			return
+
+			if err.Error() != "context deadline exceeded" {
+				return
+			}
 		}
 
 		respHeaders = headers
 		respBodyReader = strings.NewReader(body)
-
-		// Temp: print the captured assets
-		for i := range capturedAssets {
-			logInfo.WithFields(logrus.Fields{
-				"asset": capturedAssets[i],
-			}).Info("Captured asset")
-		}
 	}
 
 	if !c.Headless {
+		respBodyReader = resp.Body
 		respHeaders = resp.Header
 	}
 
@@ -122,7 +119,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	// If the response is a JSON document, we would like to scrape it for links.
 	if strings.Contains(respHeaders.Get("Content-Type"), "json") {
-		jsonBody, err := io.ReadAll(resp.Body)
+		jsonBody, err := io.ReadAll(respBodyReader)
 		if err != nil {
 			logWarning.Warning(err)
 			return
@@ -142,7 +139,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		// Enforce reading all data from the response for WARC writing (only if not headless)
 		// (otherwise the connection will be closed before the WARC writer can read it)
 		if !c.Headless {
-			io.Copy(io.Discard, resp.Body)
+			io.Copy(io.Discard, respBodyReader)
 		}
 
 		return
