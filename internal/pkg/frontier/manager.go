@@ -2,7 +2,6 @@ package frontier
 
 import (
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/paulbellamy/ratecounter"
@@ -17,10 +16,6 @@ func (f *Frontier) writeItemsToQueue() {
 
 		if f.Paused.Get() {
 			time.Sleep(time.Second)
-		}
-
-		if strings.Contains(item.URL.String(), "/calendar/") {
-			continue
 		}
 
 		// If --seencheck is enabled, then we check if the URI is in the

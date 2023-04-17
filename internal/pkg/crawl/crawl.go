@@ -10,6 +10,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/remeh/sizedwaitgroup"
@@ -209,7 +210,16 @@ func (c *Crawl) Start() (err error) {
 
 	// Starting the headless browser if needed
 	if c.Headless {
-		c.HeadlessBrowser = rod.New().MustConnect()
+		l := launcher.New().
+			Headless(false).
+			Devtools(false)
+		defer l.Cleanup()
+
+		controlURL := l.MustLaunch()
+
+		c.HeadlessBrowser = rod.New().
+			ControlURL(controlURL).
+			MustConnect()
 	}
 
 	if c.API {

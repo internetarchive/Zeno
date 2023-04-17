@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -92,9 +93,10 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		if err != nil {
 			logWarning.WithFields(logrus.Fields{
 				"error": err,
+				"func":  "Capture.captureHeadless",
 			}).Warning(utils.URLToString(item.URL))
 
-			if err.Error() != "context deadline exceeded" {
+			if !errors.Is(err, context.DeadlineExceeded) {
 				return
 			}
 		}
@@ -214,59 +216,55 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	waitGroup.Add(1)
 	go c.queueOutlinks(outlinks, item, &waitGroup)
 
-	if c.DisableAssetsCapture {
-		return
-	}
-
-	// Extract and capture assets
-	assets, err := c.extractAssets(base, item, doc)
-	if err != nil {
-		logWarning.WithFields(logrus.Fields{
-			"error": err,
-		}).Warning(utils.URLToString(item.URL))
-		return
-	}
-
-	// If we didn't find any assets, let's stop here
-	if len(assets) == 0 {
-		return
-	}
-
-	// If --local-seencheck is enabled, then we check if the assets are in the
-	// seencheck DB. If they are, then they are skipped.
-	// Else, if we use HQ, then we use HQ's seencheck.
-	if c.Seencheck {
-		seencheckedBatch := []url.URL{}
-		for _, URL := range assets {
-			found := c.seencheckURL(utils.URLToString(&URL), "asset")
-			if found {
-				continue
-			} else {
-				seencheckedBatch = append(seencheckedBatch, URL)
-			}
-		}
-
-		if len(seencheckedBatch) == 0 {
+	// If we are not in headless mode, we queue the assets for archiving
+	if !c.DisableAssetsCapture && !c.Headless {
+		// Extract and capture assets
+		assets, err := c.extractAssets(base, item, doc)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"error": err,
+			}).Warning(utils.URLToString(item.URL))
 			return
 		}
 
-		assets = seencheckedBatch
-	} else if c.UseHQ {
-		seencheckedURLs, err := c.HQSeencheckURLs(assets)
-		// We ignore the error here because we don't want to slow down the crawl
-		// if HQ is down or if the request failed. So if we get an error, we just
-		// continue with the original list of assets.
-		if err == nil {
-			assets = seencheckedURLs
-		}
-
+		// If we didn't find any assets, let's stop here
 		if len(assets) == 0 {
 			return
 		}
-	}
 
-	// If we are not in headless mode, we queue the assets for archiving
-	if !c.Headless {
+		// If --local-seencheck is enabled, then we check if the assets are in the
+		// seencheck DB. If they are, then they are skipped.
+		// Else, if we use HQ, then we use HQ's seencheck.
+		if c.Seencheck {
+			seencheckedBatch := []url.URL{}
+			for _, URL := range assets {
+				found := c.seencheckURL(utils.URLToString(&URL), "asset")
+				if found {
+					continue
+				} else {
+					seencheckedBatch = append(seencheckedBatch, URL)
+				}
+			}
+
+			if len(seencheckedBatch) == 0 {
+				return
+			}
+
+			assets = seencheckedBatch
+		} else if c.UseHQ {
+			seencheckedURLs, err := c.HQSeencheckURLs(assets)
+			// We ignore the error here because we don't want to slow down the crawl
+			// if HQ is down or if the request failed. So if we get an error, we just
+			// continue with the original list of assets.
+			if err == nil {
+				assets = seencheckedURLs
+			}
+
+			if len(assets) == 0 {
+				return
+			}
+		}
+
 		c.Frontier.QueueCount.Incr(int64(len(assets)))
 		swg := sizedwaitgroup.New(c.MaxConcurrentAssets)
 		for _, asset := range assets {
@@ -365,7 +363,6 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 
 		// This is unused unless there is an error or a 429.
 		sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
-
 		if err != nil {
 			logInfo.WithFields(logrus.Fields{
 				"url":         utils.URLToString(req.URL),

@@ -25,6 +25,8 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 	router.MustAdd("*", func(ctx *rod.Hijack) {
 		startAssetCapture := time.Now()
 
+		logrus.Infof("Capturing asset: %s", ctx.Request.URL().String())
+
 		// If the response is for the main page, save the body
 		if ctx.Request.URL().String() == item.URL.String() {
 			_ = ctx.LoadResponse(&c.Client.Client, true)
@@ -48,7 +50,7 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 			} else if c.UseHQ {
 				new, err := c.HQSeencheckURL(ctx.Request.URL())
 				if err != nil {
-					logrus.WithFields(logrus.Fields{
+					logWarning.WithFields(logrus.Fields{
 						"error": err,
 					}).Error("Unable to check if URL is in HQ seencheck database")
 				}
