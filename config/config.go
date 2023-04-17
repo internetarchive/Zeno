@@ -8,7 +8,6 @@ type Flags struct {
 	Workers             int
 	MaxConcurrentAssets int
 	MaxHops             uint
-	Headless            bool
 	Seencheck           bool
 	JSON                bool
 	LiveStats           bool
@@ -52,6 +51,10 @@ type Flags struct {
 	DisableLocalDedupe   bool
 	DisableAssetsCapture bool
 	CertValidation       bool
+
+	Headless              bool
+	Headfull              bool
+	HeadlessWaitAfterLoad uint64
 
 	Cloudflarestream bool
 }

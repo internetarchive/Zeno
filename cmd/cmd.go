@@ -54,8 +54,19 @@ var GlobalFlags = []cli.Flag{
 	},
 	&cli.BoolFlag{
 		Name:        "headless",
-		Usage:       "Use headless browsers instead of standard GET requests.",
+		Usage:       "Use headless browsers instead of standard GET requests. If --headfull is set, this flag will be ignored.",
 		Destination: &config.App.Flags.Headless,
+	},
+	&cli.BoolFlag{
+		Name:        "headfull",
+		Usage:       "Use headfull browsers instead of standard GET requests. If --headless is set, this flag will take precedence.",
+		Destination: &config.App.Flags.Headfull,
+	},
+	&cli.Uint64Flag{
+		Name:        "headless-wait-after-load",
+		Usage:       "Wait the given number of seconds after the page has loaded before closing the page.",
+		Value:       0,
+		Destination: &config.App.Flags.HeadlessWaitAfterLoad,
 	},
 	&cli.BoolFlag{
 		Name:        "local-seencheck",

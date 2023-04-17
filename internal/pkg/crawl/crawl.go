@@ -58,7 +58,6 @@ type Crawl struct {
 	DisableAssetsCapture  bool
 	CaptureAlternatePages bool
 	DomainsCrawl          bool
-	Headless              bool
 	Seencheck             bool
 	Workers               int
 
@@ -110,7 +109,10 @@ type Crawl struct {
 	HQChannelsWg      *sync.WaitGroup
 
 	// Headless browser stuff
-	HeadlessBrowser *rod.Browser
+	HeadlessBrowser       *rod.Browser
+	Headless              bool
+	Headfull              bool
+	HeadlessWaitAfterLoad uint64
 }
 
 // Start fire up the crawling process
@@ -210,8 +212,15 @@ func (c *Crawl) Start() (err error) {
 
 	// Starting the headless browser if needed
 	if c.Headless {
+		if c.Headfull {
+			logrus.Info("Starting headless browser in headfull mode")
+		} else {
+			logrus.Info("Starting headless browser in headless mode")
+		}
+
 		l := launcher.New().
-			Headless(false).
+			// Set(flags.Headless, "new").
+			Headless(!c.Headfull).
 			Devtools(false)
 		defer l.Cleanup()
 
