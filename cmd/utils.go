@@ -7,6 +7,7 @@ import (
 	"github.com/CorentinB/Zeno/config"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl"
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
@@ -84,7 +85,12 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		c.PrometheusMetrics.Prefix = flags.PrometheusPrefix
 	}
 
-	c.UserAgent = flags.UserAgent
+	if flags.UserAgent != "Zeno" {
+		c.UserAgent = flags.UserAgent
+	} else {
+		version := utils.GetVersion()
+		c.UserAgent = "Mozilla/5.0 (compatible; archive.org_bot +http://archive.org/details/archive.org_bot) Zeno/" + version.Version[:7] + " warc/" + version.WarcVersion
+	}
 	c.Headless = flags.Headless
 
 	c.CookieFile = flags.CookieFile

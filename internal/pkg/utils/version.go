@@ -1,10 +1,14 @@
 package utils
 
-import "runtime/debug"
+import (
+	"runtime/debug"
+)
 
 type Version struct {
-	Version   string
-	GoVersion string
+	Version     string
+	GoVersion   string
+	WarcVersion string
+	ZenoVersion string
 }
 
 func GetVersion() (version Version) {
@@ -24,6 +28,12 @@ func GetVersion() (version Version) {
 				if setting.Value == "true" {
 					version.Version += " (modified)"
 				}
+			}
+		}
+
+		for _, dep := range info.Deps {
+			if dep.Path == "github.com/CorentinB/warc" {
+				version.WarcVersion = dep.Version
 			}
 		}
 
