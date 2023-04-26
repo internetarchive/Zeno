@@ -87,9 +87,15 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 		return
 	}
 
+	// Wait for the page to load
 	err = page.Timeout(c.Client.Timeout).WaitLoad()
 	if err != nil {
 		return
+	}
+
+	// If --headless-wait-after-load is enabled, wait for the specified duration
+	if c.HeadlessWaitAfterLoad > 0 {
+		time.Sleep(time.Duration(c.HeadlessWaitAfterLoad) * time.Second)
 	}
 
 	c.logCrawlSuccess(executionStart, -1, item)
