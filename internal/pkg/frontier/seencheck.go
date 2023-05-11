@@ -13,9 +13,7 @@ type Seencheck struct {
 
 // IsSeen check if the hash is in the seencheck database
 func (seencheck *Seencheck) IsSeen(hash string) (found bool, value string) {
-	var retrievedValue string
-
-	found, err := seencheck.SeenDB.Get(hash, &retrievedValue)
+	found, err := seencheck.SeenDB.Get(hash, &value)
 	if err != nil {
 		panic(err)
 	}
