@@ -38,6 +38,7 @@ var GlobalFlags = []cli.Flag{
 	},
 	&cli.UintFlag{
 		Name:        "max-hops",
+		Aliases:     []string{"hops"},
 		Value:       0,
 		Usage:       "Maximum number of hops to execute.",
 		Destination: &config.App.Flags.MaxHops,
@@ -167,7 +168,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:        "warc-cdx-dedupe-server",
 		Value:       "",
-		Usage:       "Identify the server to use CDX deduplication. This turns CDX deduplication on.",
+		Usage:       "Identify the server to use CDX deduplication. This also activates CDX deduplication on.",
 		Destination: &config.App.Flags.CDXDedupeServer,
 	},
 	&cli.BoolFlag{
@@ -205,6 +206,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Disable assets capture.",
 		Value:       false,
 		Destination: &config.App.Flags.DisableAssetsCapture,
+	},
+	&cli.IntFlag{
+		Name:        "warc-dedupe-size",
+		Value:       1024,
+		Usage:       "Minimum size to deduplicate WARC records with revisit records.",
+		Destination: &config.App.Flags.WARCDedupSize,
 	},
 
 	// Crawl HQ flags
