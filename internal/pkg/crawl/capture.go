@@ -151,8 +151,9 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 			return resp, err
 		}
 
-		req.Header.Set("User-Agent", c.UserAgent)
-		req.Header.Set("Referer", utils.URLToString(newItem.ParentItem.URL))
+		// Set new request headers on the new request :(
+		newReq.Header.Set("User-Agent", c.UserAgent)
+		newReq.Header.Set("Referer", utils.URLToString(newItem.ParentItem.URL))
 
 		resp, err = c.executeGET(newItem, newReq)
 		if err != nil {
