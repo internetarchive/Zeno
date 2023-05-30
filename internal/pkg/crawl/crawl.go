@@ -153,8 +153,6 @@ func (c *Crawl) Start() (err error) {
 		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer, SizeThreshold: c.WARCDedupSize}
 	}
 
-	errChan := make(chan error)
-
 	// Init the HTTP client responsible for recording HTTP(s) requests / responses
 	HTTPClientSettings := warc.HTTPClientSettings{
 		RotatorSettings:     rotatorSettings,
@@ -166,14 +164,14 @@ func (c *Crawl) Start() (err error) {
 		FullOnDisk:          c.WARCFullOnDisk,
 	}
 
-	c.Client, errChan, err = warc.NewWARCWritingHTTPClient(HTTPClientSettings)
+	c.Client, err = warc.NewWARCWritingHTTPClient(HTTPClientSettings)
 	if err != nil {
 		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
 	}
 
 	go func() {
-		for err := range errChan {
-			logWarning.Errorf("WARC HTTP client error: %s", err)
+		for err := range c.Client.ErrChan {
+			logWarning.Errorf("WARC HTTP client error: %s", err.Err.Error())
 		}
 	}()
 
@@ -181,19 +179,17 @@ func (c *Crawl) Start() (err error) {
 	logrus.Infof("HTTP client timeout set to %d seconds", c.HTTPTimeout)
 
 	if c.Proxy != "" {
-		errChanProxy := make(chan error)
-
 		proxyHTTPClientSettings := HTTPClientSettings
 		proxyHTTPClientSettings.Proxy = c.Proxy
 
-		c.ClientProxied, errChanProxy, err = warc.NewWARCWritingHTTPClient(proxyHTTPClientSettings)
+		c.ClientProxied, err = warc.NewWARCWritingHTTPClient(proxyHTTPClientSettings)
 		if err != nil {
 			logrus.Fatalf("Unable to init WARC writing (proxy) HTTP client: %s", err)
 		}
 
 		go func() {
-			for err := range errChanProxy {
-				logWarning.Errorf("WARC HTTP client error: %s", err)
+			for err := range c.ClientProxied.ErrChan {
+				logWarning.Errorf("WARC HTTP client error: %s", err.Err.Error())
 			}
 		}()
 	}
