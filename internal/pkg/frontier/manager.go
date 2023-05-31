@@ -40,13 +40,13 @@ func (f *Frontier) writeItemsToQueue() {
 			logWarning.WithFields(logrus.Fields{
 				"err":  err.Error(),
 				"item": item,
-			}).Error("Unable to enqueue item")
+			}).Error("unable to enqueue item")
 		}
 		f.QueueCount.Incr(1)
 
 		logInfo.WithFields(logrus.Fields{
 			"url": item.URL,
-		}).Debug("Item enqueued")
+		}).Debug("item enqueued")
 	}
 
 	if f.FinishingQueueWriter.Get() {
@@ -104,7 +104,7 @@ func (f *Frontier) readItemsFromQueue() {
 			if err != nil {
 				logWarning.WithFields(logrus.Fields{
 					"err": err.Error(),
-				}).Debug("Unable to dequeue item")
+				}).Debug("unable to dequeue item")
 				if err.Error() == "goque: ID used is outside range of stack or queue" {
 					f.HostPool.Decr(host)
 				}
@@ -118,7 +118,7 @@ func (f *Frontier) readItemsFromQueue() {
 			if err != nil {
 				logWarning.WithFields(logrus.Fields{
 					"err": err.Error(),
-				}).Error("Unable to parse queue's item")
+				}).Error("unable to parse queue's item")
 				continue
 			}
 
@@ -126,7 +126,7 @@ func (f *Frontier) readItemsFromQueue() {
 			f.PullChan <- item
 			logInfo.WithFields(logrus.Fields{
 				"url": item.URL,
-			}).Debug("Item sent to workers pool")
+			}).Debug("item sent to workers pool")
 
 			f.HostPool.Decr(host)
 

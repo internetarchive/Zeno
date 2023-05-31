@@ -175,10 +175,7 @@ func (c *Crawl) Start() (err error) {
 
 	go func() {
 		for err := range c.Client.ErrChan {
-			logError.WithFields(logrus.Fields{
-				"err":     err.Err.Error(),
-				"errFunc": err.Func,
-			}).Errorf("WARC HTTP client error")
+			logError.WithFields(c.genLogFields(err, nil, nil)).Errorf("WARC HTTP client error")
 		}
 	}()
 
@@ -191,17 +188,12 @@ func (c *Crawl) Start() (err error) {
 
 		c.ClientProxied, err = warc.NewWARCWritingHTTPClient(proxyHTTPClientSettings)
 		if err != nil {
-			logError.WithFields(logrus.Fields{
-				"err": err.Error(),
-			}).Fatal("Unable to init WARC writing (proxy) HTTP client")
+			logError.Fatal("unable to init WARC writing (proxy) HTTP client")
 		}
 
 		go func() {
 			for err := range c.ClientProxied.ErrChan {
-				logError.WithFields(logrus.Fields{
-					"err":     err.Err.Error(),
-					"errFunc": err.Func,
-				}).Error("WARC HTTP client error")
+				logError.WithFields(c.genLogFields(err, nil, nil)).Error("WARC HTTP client error")
 			}
 		}()
 	}
@@ -220,9 +212,7 @@ func (c *Crawl) Start() (err error) {
 	if c.CookieFile != "" {
 		cookieJar, err := cookiejar.NewFileJar(c.CookieFile, nil)
 		if err != nil {
-			logError.WithFields(logrus.Fields{
-				"err": err.Error(),
-			}).Fatal("Unable to parse cookie file")
+			logError.WithFields(c.genLogFields(err, nil, nil)).Fatal("unable to parse cookie file")
 		}
 
 		c.Client.Jar = cookieJar

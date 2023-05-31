@@ -19,7 +19,6 @@ import (
 	"github.com/tomnomnom/linkheader"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/sirupsen/logrus"
 )
 
 func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.Response, err error) {
@@ -72,11 +71,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
 
 		if err != nil {
-			logError.WithFields(logrus.Fields{
-				"url":        utils.URLToString(req.URL),
-				"retryCount": retry,
-				"err":        err.Error(),
-			}).Error("error while executing GET request, retrying")
+			logError.WithFields(c.genLogFields(err, URL, nil)).Error("error while executing GET request, retrying")
 
 			time.Sleep(sleepTime)
 
@@ -84,12 +79,11 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		}
 
 		if resp.StatusCode == 429 {
-			logWarning.WithFields(logrus.Fields{
-				"url":        utils.URLToString(req.URL),
+			logWarning.WithFields(c.genLogFields(err, URL, map[string]interface{}{
 				"sleepTime":  sleepTime.String(),
 				"retryCount": retry,
 				"statusCode": resp.StatusCode,
-			}).Warn("we are being rate limited, sleeping then retrying..")
+			})).Warn("we are being rate limited, sleeping then retrying..")
 
 			// This ensures we aren't leaving the warc dialer hanging.
 			// Do note, 429s are filtered out by WARC writer regardless.
@@ -215,10 +209,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Prepare GET request
 	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
 	if err != nil {
-		logError.WithFields(logrus.Fields{
-			"err": err.Error(),
-			"url": utils.URLToString(item.URL),
-		}).Error("error while preparing GET request")
+		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while preparing GET request")
 		return
 	}
 
@@ -238,10 +229,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return
 	} else if err != nil {
-		logError.WithFields(logrus.Fields{
-			"err": err.Error(),
-			"url": utils.URLToString(item.URL),
-		}).Error("error while executing GET request")
+		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while executing GET request")
 		return
 	}
 	defer resp.Body.Close()
@@ -264,10 +252,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Store the base URL to turn relative links into absolute links later
 	base, err := url.Parse(utils.URLToString(resp.Request.URL))
 	if err != nil {
-		logError.WithFields(logrus.Fields{
-			"err": err.Error(),
-			"url": utils.URLToString(item.URL),
-		}).Error("error while parsing base URL")
+		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base URL")
 		return
 	}
 
@@ -275,10 +260,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	if strings.Contains(resp.Header.Get("Content-Type"), "json") {
 		jsonBody, err := io.ReadAll(resp.Body)
 		if err != nil {
-			logError.WithFields(logrus.Fields{
-				"err": err.Error(),
-				"url": utils.URLToString(item.URL),
-			}).Error("error while reading JSON body")
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading JSON body")
 			return
 		}
 
@@ -296,10 +278,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		// Enforce reading all data from the response for WARC writing
 		_, err := io.Copy(io.Discard, resp.Body)
 		if err != nil {
-			logError.WithFields(logrus.Fields{
-				"err": err.Error(),
-				"url": utils.URLToString(item.URL),
-			}).Error("error while reading response body")
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading response body")
 		}
 
 		return
@@ -308,10 +287,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Turn the response into a doc that we will scrape for outlinks and assets.
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		logError.WithFields(logrus.Fields{
-			"err": err.Error(),
-			"url": utils.URLToString(item.URL),
-		}).Error("error while creating goquery document")
+		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating goquery document")
 		return
 	}
 
@@ -320,10 +296,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		// Look for JS files necessary for the playback of the video
 		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, base, *c.Client)
 		if err != nil {
-			logError.WithFields(logrus.Fields{
-				"err": err.Error(),
-				"url": utils.URLToString(item.URL),
-			}).Error("error while getting JS files from cloudflarestream")
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting JS files from cloudflarestream")
 			return
 		}
 
@@ -337,26 +310,19 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		} else if c.UseHQ {
 			_, err := c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
 			if err != nil {
-				logError.WithFields(logrus.Fields{
-					"err":       err,
-					"parentUrl": utils.URLToString(item.URL),
-					"urls":      cfstreamURLs,
-				}).Error("error while seenchecking assets via HQ")
+				logError.WithFields(c.genLogFields(err, item.URL, map[string]interface{}{
+					"urls": cfstreamURLs,
+				})).Error("error while seenchecking assets via HQ")
 			}
 		}
 
 		// Log the archived URLs
 		for _, cfstreamURL := range cfstreamURLs {
-			logInfo.WithFields(logrus.Fields{
-				"queued":        c.Frontier.QueueCount.Value(),
-				"crawled":       c.CrawledSeeds.Value() + c.CrawledAssets.Value(),
-				"rate":          c.URIsPerSecond.Rate(),
-				"activeWorkers": c.ActiveWorkers.Value(),
-				"parentHop":     item.Hop,
-				"parentUrl":     utils.URLToString(item.URL),
-				"type":          "asset",
-				"url":           cfstreamURL,
-			}).Info("URL archived")
+			logInfo.WithFields(c.genLogFields(err, cfstreamURL, map[string]interface{}{
+				"parentHop": item.Hop,
+				"parentUrl": utils.URLToString(item.URL),
+				"type":      "asset",
+			})).Info("URL archived")
 		}
 	}
 
@@ -377,10 +343,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			if exists {
 				baseTagValue, err := url.Parse(link)
 				if err != nil {
-					logError.WithFields(logrus.Fields{
-						"err": err.Error(),
-						"url": utils.URLToString(item.URL),
-					}).Error("error while parsing base tag value")
+					logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base tag value")
 				} else {
 					base = baseTagValue
 				}
@@ -391,10 +354,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Extract outlinks
 	outlinks, err := extractOutlinks(base, doc)
 	if err != nil {
-		logError.WithFields(logrus.Fields{
-			"err": err.Error(),
-			"url": utils.URLToString(item.URL),
-		}).Error("error while extracting outlinks")
+		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting outlinks")
 		return
 	}
 
@@ -408,10 +368,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Extract and capture assets
 	assets, err := c.extractAssets(base, item, doc)
 	if err != nil {
-		logError.WithFields(logrus.Fields{
-			"err": err.Error(),
-			"url": utils.URLToString(item.URL),
-		}).Error("error while extracting assets")
+		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting assets")
 		return
 	}
 
@@ -445,11 +402,11 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		// if HQ is down or if the request failed. So if we get an error, we just
 		// continue with the original list of assets.
 		if err != nil {
-			logError.WithFields(logrus.Fields{
-				"err":       err,
+			logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"urls":      assets,
+				"parentHop": item.Hop,
 				"parentUrl": utils.URLToString(item.URL),
-			}).Error("error while seenchecking assets via HQ")
+			})).Error("error while seenchecking assets via HQ")
 		} else {
 			assets = seencheckedURLs
 		}
@@ -486,17 +443,11 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			// Capture the asset
 			err = c.captureAsset(newAsset, resp.Cookies())
 			if err != nil {
-				logError.WithFields(logrus.Fields{
-					"err":           err,
-					"queued":        c.Frontier.QueueCount.Value(),
-					"crawled":       c.CrawledSeeds.Value() + c.CrawledAssets.Value(),
-					"rate":          c.URIsPerSecond.Rate(),
-					"activeWorkers": c.ActiveWorkers.Value(),
-					"parentHop":     item.Hop,
-					"parentUrl":     utils.URLToString(item.URL),
-					"type":          "asset",
-					"url":           utils.URLToString(&asset),
-				}).Error("error while capturing asset")
+				logError.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
+					"parentHop": item.Hop,
+					"parentUrl": utils.URLToString(item.URL),
+					"type":      "asset",
+				})).Error("error while capturing asset")
 				return
 			}
 

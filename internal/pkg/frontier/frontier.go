@@ -4,6 +4,7 @@ import (
 	"path"
 	"sync"
 
+	"github.com/CorentinB/Zeno/internal/pkg/crawl"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/beeker1121/goque"
 	"github.com/paulbellamy/ratecounter"
@@ -44,10 +45,12 @@ type Frontier struct {
 
 	UseSeencheck bool
 	Seencheck    *Seencheck
+
+	Crawl *crawl.Crawl
 }
 
 // Init ininitialize the components of a frontier
-func (f *Frontier) Init(jobPath string, logInf, logWarn *logrus.Logger, workers int, useSeencheck bool) (err error) {
+func (f *Frontier) Init(jobPath string, logInf, logWarn *logrus.Logger, workers int, useSeencheck bool, c *crawl.Crawl) (err error) {
 	f.JobPath = jobPath
 
 	logInfo = logInf
