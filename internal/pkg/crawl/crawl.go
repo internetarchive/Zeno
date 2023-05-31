@@ -17,8 +17,11 @@ import (
 	"mvdan.cc/xurls/v2"
 )
 
-var logInfo *logrus.Logger
-var logWarning *logrus.Logger
+var (
+	logInfo    *logrus.Logger
+	logWarning *logrus.Logger
+	logError   *logrus.Logger
+)
 
 // PrometheusMetrics define all the metrics exposed by the Prometheus exporter
 type PrometheusMetrics struct {
@@ -29,11 +32,12 @@ type PrometheusMetrics struct {
 // Crawl define the parameters of a crawl process
 type Crawl struct {
 	*sync.Mutex
-	StartTime time.Time
-	SeedList  []frontier.Item
-	Paused    *utils.TAtomBool
-	Finished  *utils.TAtomBool
-	LiveStats bool
+	StartTime        time.Time
+	SeedList         []frontier.Item
+	Paused           *utils.TAtomBool
+	Finished         *utils.TAtomBool
+	LiveStats        bool
+	ElasticSearchURL string
 
 	// Frontier
 	Frontier *frontier.Frontier
@@ -118,7 +122,7 @@ func (c *Crawl) Start() (err error) {
 	regexOutlinks = xurls.Relaxed()
 
 	// Setup logging
-	logInfo, logWarning = utils.SetupLogging(c.JobPath, c.LiveStats)
+	logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
 
 	// Start the background process that will handle os signals
 	// to exit Zeno, like CTRL+C
@@ -171,7 +175,10 @@ func (c *Crawl) Start() (err error) {
 
 	go func() {
 		for err := range c.Client.ErrChan {
-			logWarning.Errorf("WARC HTTP client error: %s", err.Err.Error())
+			logError.WithFields(logrus.Fields{
+				"err":     err.Err.Error(),
+				"errFunc": err.Func,
+			}).Errorf("WARC HTTP client error")
 		}
 	}()
 
@@ -184,12 +191,17 @@ func (c *Crawl) Start() (err error) {
 
 		c.ClientProxied, err = warc.NewWARCWritingHTTPClient(proxyHTTPClientSettings)
 		if err != nil {
-			logrus.Fatalf("Unable to init WARC writing (proxy) HTTP client: %s", err)
+			logError.WithFields(logrus.Fields{
+				"err": err.Error(),
+			}).Fatal("Unable to init WARC writing (proxy) HTTP client")
 		}
 
 		go func() {
 			for err := range c.ClientProxied.ErrChan {
-				logWarning.Errorf("WARC HTTP client error: %s", err.Err.Error())
+				logError.WithFields(logrus.Fields{
+					"err":     err.Err.Error(),
+					"errFunc": err.Func,
+				}).Error("WARC HTTP client error")
 			}
 		}()
 	}
@@ -208,7 +220,9 @@ func (c *Crawl) Start() (err error) {
 	if c.CookieFile != "" {
 		cookieJar, err := cookiejar.NewFileJar(c.CookieFile, nil)
 		if err != nil {
-			panic(err)
+			logError.WithFields(logrus.Fields{
+				"err": err.Error(),
+			}).Fatal("Unable to parse cookie file")
 		}
 
 		c.Client.Jar = cookieJar

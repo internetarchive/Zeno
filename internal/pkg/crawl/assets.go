@@ -21,7 +21,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 		cloudflarestreamURLs, err := cloudflarestream.GetSegments(base, *c.Client)
 		if err != nil {
 			logWarning.WithFields(logrus.Fields{
-				"error": err,
+				"err": err.Error(),
 			}).Warning(utils.URLToString(base))
 		}
 

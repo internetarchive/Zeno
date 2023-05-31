@@ -12,7 +12,7 @@ func newPersistentQueue(jobPath string) (queue *goque.PrefixQueue, err error) {
 	queue, err = goque.OpenPrefixQueue(path.Join(jobPath, "queue"))
 	if err != nil {
 		logWarning.WithFields(logrus.Fields{
-			"error": err,
+			"err": err.Error(),
 		}).Error("Unable to create prefix queue")
 		return nil, err
 	}

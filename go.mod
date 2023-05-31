@@ -16,6 +16,7 @@ require (
 	github.com/gosuri/uitable v0.0.4
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/mackerelio/go-osstat v0.2.4
+	github.com/olivere/elastic/v7 v7.0.32
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/philippgille/gokv/leveldb v0.6.0
 	github.com/prometheus/client_golang v1.15.1
@@ -29,6 +30,7 @@ require (
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeebo/xxh3 v1.0.2
 	go.uber.org/goleak v1.2.1
+	gopkg.in/sohlich/elogrus.v7 v7.0.0
 	mvdan.cc/xurls/v2 v2.5.0
 )
 
@@ -54,6 +56,7 @@ require (
 	github.com/gomodule/redigo v1.8.8 // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
+	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
@@ -61,6 +64,7 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lestrrat-go/strftime v1.0.3 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect

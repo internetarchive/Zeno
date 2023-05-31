@@ -226,11 +226,12 @@ func (c *Crawl) HQSeencheckURLs(URLs []url.URL) (seencheckedBatch []url.URL, err
 
 	discoveredResponse, err := c.HQClient.Discovered(discoveredURLs, "asset", false, true)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{
+		logError.WithFields(logrus.Fields{
 			"project":  c.HQProject,
 			"address":  c.HQAddress,
 			"batchLen": len(URLs),
 			"err":      err.Error(),
+			"urls":     discoveredURLs,
 		}).Errorln("error sending seencheck payload to crawl HQ")
 		return seencheckedBatch, err
 	}
@@ -240,12 +241,13 @@ func (c *Crawl) HQSeencheckURLs(URLs []url.URL) (seencheckedBatch []url.URL, err
 			// the returned payload only contain new URLs to be crawled by Zeno
 			newURL, err := url.Parse(URL.Value)
 			if err != nil {
-				logWarning.WithFields(logrus.Fields{
+				logError.WithFields(logrus.Fields{
 					"project":  c.HQProject,
 					"address":  c.HQAddress,
 					"batchLen": len(URLs),
 					"err":      err.Error(),
-				}).Warningln("error parsing URL from HQ seencheck response")
+					"url":      URL.Value,
+				}).Errorln("error parsing URL from HQ seencheck response")
 				return seencheckedBatch, err
 			}
 

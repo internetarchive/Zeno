@@ -257,6 +257,11 @@ var GlobalFlags = []cli.Flag{
 		Value:       "lifo",
 		Destination: &config.App.Flags.HQStrategy,
 	},
+	&cli.StringFlag{
+		Name:        "es-url",
+		Usage:       "ElasticSearch URL to use for indexing crawl logs.",
+		Destination: &config.App.Flags.ElasticSearchURL,
+	},
 }
 
 var Commands []*cli.Command

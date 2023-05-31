@@ -56,23 +56,23 @@ func (c *Crawl) handleCrawlPause() {
 	}
 }
 
-func (c *Crawl) seencheckURL(url string, urlType string) bool {
-	hash := strconv.FormatUint(xxh3.HashString(url), 10)
+func (c *Crawl) seencheckURL(URL string, URLType string) bool {
+	hash := strconv.FormatUint(xxh3.HashString(URL), 10)
 	found, _ := c.Frontier.Seencheck.IsSeen(hash)
 	if found {
 		return true
 	} else {
-		c.Frontier.Seencheck.Seen(hash, urlType)
+		c.Frontier.Seencheck.Seen(hash, URLType)
 		return false
 	}
 }
 
 func (c *Crawl) excludeHosts(URLs []url.URL) (output []url.URL) {
-	for _, url := range URLs {
-		if utils.StringInSlice(url.Host, c.ExcludedHosts) {
+	for _, URL := range URLs {
+		if utils.StringInSlice(URL.Host, c.ExcludedHosts) {
 			continue
 		} else {
-			output = append(output, url)
+			output = append(output, URL)
 		}
 	}
 

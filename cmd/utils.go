@@ -26,6 +26,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.URIsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
 	c.LiveStats = flags.LiveStats
+	c.ElasticSearchURL = flags.ElasticSearchURL
 
 	// Frontier
 	c.Frontier = new(frontier.Frontier)
