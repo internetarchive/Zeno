@@ -41,13 +41,13 @@ func (c *Crawl) genLogFields(err interface{}, URL interface{}, additionalFields 
 		fields["url"] = URLValue
 	case *url.URL:
 		fields["url"] = utils.URLToString(URLValue)
+	case url.URL:
+		fields["url"] = utils.URLToString(&URLValue)
 	default:
 	}
 
-	if additionalFields != nil {
-		for key, value := range additionalFields {
-			fields[key] = value
-		}
+	for key, value := range additionalFields {
+		fields[key] = value
 	}
 
 	return fields

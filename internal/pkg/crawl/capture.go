@@ -71,7 +71,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
 
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, URL, nil)).Error("error while executing GET request, retrying")
+			logError.WithFields(c.genLogFields(err, req.URL, nil)).Error("error while executing GET request, retrying")
 
 			time.Sleep(sleepTime)
 
@@ -79,7 +79,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		}
 
 		if resp.StatusCode == 429 {
-			logWarning.WithFields(c.genLogFields(err, URL, map[string]interface{}{
+			logWarning.WithFields(c.genLogFields(err, req.URL, map[string]interface{}{
 				"sleepTime":  sleepTime.String(),
 				"retryCount": retry,
 				"statusCode": resp.StatusCode,

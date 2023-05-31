@@ -15,7 +15,6 @@ require (
 	github.com/gosuri/uilive v0.0.4
 	github.com/gosuri/uitable v0.0.4
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
-	github.com/mackerelio/go-osstat v0.2.4
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/philippgille/gokv/leveldb v0.6.0
