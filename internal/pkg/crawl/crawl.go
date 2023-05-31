@@ -129,7 +129,21 @@ func (c *Crawl) Start() (err error) {
 	go c.setupCloseHandler()
 
 	// Initialize the frontier
-	c.Frontier.Init(c.JobPath, logInfo, logWarning, c.Workers, c.Seencheck)
+	frontierLoggingChan := make(chan *frontier.FrontierLogMessage, 10)
+	go func() {
+		for log := range frontierLoggingChan {
+			switch log.Level {
+			case logrus.ErrorLevel:
+				logError.WithFields(c.genLogFields(nil, nil, log.Fields)).Error(log.Message)
+			case logrus.WarnLevel:
+				logWarning.WithFields(c.genLogFields(nil, nil, log.Fields)).Warn(log.Message)
+			case logrus.InfoLevel:
+				logInfo.WithFields(c.genLogFields(nil, nil, log.Fields)).Info(log.Message)
+			}
+		}
+	}()
+
+	c.Frontier.Init(c.JobPath, frontierLoggingChan, c.Workers, c.Seencheck)
 	c.Frontier.Load()
 	c.Frontier.Start()
 

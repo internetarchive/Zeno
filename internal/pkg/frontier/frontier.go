@@ -4,7 +4,6 @@ import (
 	"path"
 	"sync"
 
-	"github.com/CorentinB/Zeno/internal/pkg/crawl"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/beeker1121/goque"
 	"github.com/paulbellamy/ratecounter"
@@ -12,8 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var logInfo *logrus.Logger
-var logWarning *logrus.Logger
+var loggingChan chan *FrontierLogMessage
 
 // Frontier holds all the data for a frontier
 type Frontier struct {
@@ -45,17 +43,17 @@ type Frontier struct {
 
 	UseSeencheck bool
 	Seencheck    *Seencheck
+}
 
-	Crawl *crawl.Crawl
+type FrontierLogMessage struct {
+	Fields  map[string]interface{}
+	Message string
+	Level   logrus.Level
 }
 
 // Init ininitialize the components of a frontier
-func (f *Frontier) Init(jobPath string, logInf, logWarn *logrus.Logger, workers int, useSeencheck bool, c *crawl.Crawl) (err error) {
+func (f *Frontier) Init(jobPath string, loggingChan chan *FrontierLogMessage, workers int, useSeencheck bool) (err error) {
 	f.JobPath = jobPath
-
-	logInfo = logInf
-	logWarning = logWarn
-
 	f.Paused = new(utils.TAtomBool)
 
 	// Initialize host pool
@@ -74,7 +72,8 @@ func (f *Frontier) Init(jobPath string, logInf, logWarn *logrus.Logger, workers 
 	}
 	f.QueueCount = new(ratecounter.Counter)
 	f.QueueCount.Incr(int64(f.Queue.Length()))
-	logrus.Info("Persistent queue initialized")
+
+	logrus.Info("persistent queue initialized")
 
 	// Initialize the seencheck
 	f.UseSeencheck = useSeencheck
@@ -85,7 +84,8 @@ func (f *Frontier) Init(jobPath string, logInf, logWarn *logrus.Logger, workers 
 		if err != nil {
 			return err
 		}
-		logrus.Info("Seencheck initialized")
+
+		logrus.Info("seencheck initialized")
 	}
 
 	f.FinishingQueueReader = new(utils.TAtomBool)

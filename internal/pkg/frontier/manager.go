@@ -37,16 +37,25 @@ func (f *Frontier) writeItemsToQueue() {
 		// Add the item to the host's queue
 		_, err := f.Queue.EnqueueObject([]byte(item.Host), item)
 		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"err":  err.Error(),
-				"item": item,
-			}).Error("unable to enqueue item")
+			loggingChan <- &FrontierLogMessage{
+				Fields: logrus.Fields{
+					"err":  err.Error(),
+					"item": item,
+				},
+				Message: "unable to enqueue item",
+				Level:   logrus.ErrorLevel,
+			}
 		}
+
 		f.QueueCount.Incr(1)
 
-		logInfo.WithFields(logrus.Fields{
-			"url": item.URL,
-		}).Debug("item enqueued")
+		// loggingChan <- &FrontierLogMessage{
+		// 	Fields: logrus.Fields{
+		// 		"url": item.URL,
+		// 	},
+		// 	Message: "item enqueued",
+		// 	Level:   logrus.DebugLevel,
+		// }
 	}
 
 	if f.FinishingQueueWriter.Get() {
@@ -102,12 +111,19 @@ func (f *Frontier) readItemsFromQueue() {
 			// Dequeue an item from the local queue
 			queueItem, err := f.Queue.DequeueString(host)
 			if err != nil {
-				logWarning.WithFields(logrus.Fields{
-					"err": err.Error(),
-				}).Debug("unable to dequeue item")
+				loggingChan <- &FrontierLogMessage{
+					Fields: logrus.Fields{
+						"err":  err.Error(),
+						"host": host,
+					},
+					Message: "unable to dequeue item",
+					Level:   logrus.WarnLevel,
+				}
+
 				if err.Error() == "goque: ID used is outside range of stack or queue" {
 					f.HostPool.Decr(host)
 				}
+
 				continue
 			}
 			f.QueueCount.Incr(-1)
@@ -116,17 +132,24 @@ func (f *Frontier) readItemsFromQueue() {
 			var item *Item
 			err = queueItem.ToObject(&item)
 			if err != nil {
-				logWarning.WithFields(logrus.Fields{
-					"err": err.Error(),
-				}).Error("unable to parse queue's item")
+				loggingChan <- &FrontierLogMessage{
+					Fields: logrus.Fields{
+						"err":  err.Error(),
+						"item": queueItem,
+					},
+					Message: "unable to parse queue's item",
+					Level:   logrus.ErrorLevel,
+				}
+
 				continue
 			}
 
 			// Sending the item to the workers via PullChan
 			f.PullChan <- item
-			logInfo.WithFields(logrus.Fields{
-				"url": item.URL,
-			}).Debug("item sent to workers pool")
+
+			// logInfo.WithFields(logrus.Fields{
+			// 	"url": item.URL,
+			// }).Debug("item sent to workers pool")
 
 			f.HostPool.Decr(host)
 

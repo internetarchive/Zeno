@@ -34,9 +34,11 @@ func IsSeedList(path string) (seeds []Item, err error) {
 
 	// Initialize scanner
 	scanner := bufio.NewScanner(file)
+	
 	logrus.WithFields(logrus.Fields{
 		"path": path,
 	}).Info("Start reading input list")
+
 	for scanner.Scan() {
 		totalCount++
 		URL, err := url.Parse(scanner.Text())
