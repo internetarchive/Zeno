@@ -140,7 +140,6 @@ func (f *Frontier) readItemsFromQueue() {
 					Message: "unable to parse queue's item",
 					Level:   logrus.ErrorLevel,
 				}
-
 				continue
 			}
 
