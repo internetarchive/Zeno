@@ -32,15 +32,21 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.Frontier = new(frontier.Frontier)
 
 	// If the job name isn't specified, we generate a random name
-	if len(flags.Job) == 0 {
-		UUID, err := uuid.NewUUID()
-		if err != nil {
-			logrus.Fatal(err)
+	if flags.Job == "" {
+		if flags.HQProject != "" {
+			c.Job = flags.HQProject
+		} else {
+			UUID, err := uuid.NewUUID()
+			if err != nil {
+				logrus.Fatal(err)
+			}
+
+			c.Job = UUID.String()
 		}
-		c.Job = UUID.String()
 	} else {
 		c.Job = flags.Job
 	}
+
 	c.JobPath = path.Join("jobs", flags.Job)
 
 	c.Workers = flags.Workers

@@ -20,9 +20,14 @@ func (f *Frontier) Load() {
 	// Open a RO file
 	decodeFile, err := os.OpenFile(path.Join(f.JobPath, "frontier.gob"), os.O_RDONLY, 0644)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"err": err.Error(),
-		}).Warning("Unable to load Frontier stats and host pool, it is not a problem if you are starting this job for the first time")
+		loggingChan <- &FrontierLogMessage{
+			Fields: logrus.Fields{
+				"err": err.Error(),
+			},
+			Message: "unable to load Frontier stats and host pool, it is not a problem if you are starting this job for the first time",
+			Level:   logrus.WarnLevel,
+		}
+
 		return
 	}
 	defer decodeFile.Close()
@@ -40,9 +45,13 @@ func (f *Frontier) Load() {
 	// Copy the loaded data to our actual frontier
 	f.HostPool.Hosts = dump.Hosts
 
-	logrus.WithFields(logrus.Fields{
-		"hosts": len(f.HostPool.Hosts),
-	}).Info("Successfully loaded previous frontier's hosts pool")
+	loggingChan <- &FrontierLogMessage{
+		Fields: logrus.Fields{
+			"hosts": len(f.HostPool.Hosts),
+		},
+		Message: "successfully loaded previous frontier's hosts pool",
+		Level:   logrus.InfoLevel,
+	}
 }
 
 // Save write the in-memory hosts pool to resume properly the next time the job is loaded

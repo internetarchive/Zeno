@@ -129,7 +129,21 @@ func (c *Crawl) Start() (err error) {
 	go c.setupCloseHandler()
 
 	// Initialize the frontier
-	c.Frontier.Init(c.JobPath, logInfo, logWarning, c.Workers, c.Seencheck)
+	frontierLoggingChan := make(chan *frontier.FrontierLogMessage, 10)
+	go func() {
+		for log := range frontierLoggingChan {
+			switch log.Level {
+			case logrus.ErrorLevel:
+				logError.WithFields(c.genLogFields(nil, nil, log.Fields)).Error(log.Message)
+			case logrus.WarnLevel:
+				logWarning.WithFields(c.genLogFields(nil, nil, log.Fields)).Warn(log.Message)
+			case logrus.InfoLevel:
+				logInfo.WithFields(c.genLogFields(nil, nil, log.Fields)).Info(log.Message)
+			}
+		}
+	}()
+
+	c.Frontier.Init(c.JobPath, frontierLoggingChan, c.Workers, c.Seencheck)
 	c.Frontier.Load()
 	c.Frontier.Start()
 
@@ -175,10 +189,7 @@ func (c *Crawl) Start() (err error) {
 
 	go func() {
 		for err := range c.Client.ErrChan {
-			logError.WithFields(logrus.Fields{
-				"err":     err.Err.Error(),
-				"errFunc": err.Func,
-			}).Errorf("WARC HTTP client error")
+			logError.WithFields(c.genLogFields(err, nil, nil)).Errorf("WARC HTTP client error")
 		}
 	}()
 
@@ -191,17 +202,12 @@ func (c *Crawl) Start() (err error) {
 
 		c.ClientProxied, err = warc.NewWARCWritingHTTPClient(proxyHTTPClientSettings)
 		if err != nil {
-			logError.WithFields(logrus.Fields{
-				"err": err.Error(),
-			}).Fatal("Unable to init WARC writing (proxy) HTTP client")
+			logError.Fatal("unable to init WARC writing (proxy) HTTP client")
 		}
 
 		go func() {
 			for err := range c.ClientProxied.ErrChan {
-				logError.WithFields(logrus.Fields{
-					"err":     err.Err.Error(),
-					"errFunc": err.Func,
-				}).Error("WARC HTTP client error")
+				logError.WithFields(c.genLogFields(err, nil, nil)).Error("WARC HTTP client error")
 			}
 		}()
 	}
@@ -220,9 +226,7 @@ func (c *Crawl) Start() (err error) {
 	if c.CookieFile != "" {
 		cookieJar, err := cookiejar.NewFileJar(c.CookieFile, nil)
 		if err != nil {
-			logError.WithFields(logrus.Fields{
-				"err": err.Error(),
-			}).Fatal("Unable to parse cookie file")
+			logError.WithFields(c.genLogFields(err, nil, nil)).Fatal("unable to parse cookie file")
 		}
 
 		c.Client.Jar = cookieJar

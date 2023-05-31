@@ -36,11 +36,7 @@ func (c *Crawl) HQProducer() {
 					for {
 						_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
 						if err != nil {
-							logrus.WithFields(logrus.Fields{
-								"project": c.HQProject,
-								"address": c.HQAddress,
-								"err":     err.Error(),
-							}).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
+							logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
 							time.Sleep(time.Second)
 							continue
 						}
@@ -55,11 +51,7 @@ func (c *Crawl) HQProducer() {
 					for {
 						_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
 						if err != nil {
-							logrus.WithFields(logrus.Fields{
-								"project": c.HQProject,
-								"address": c.HQAddress,
-								"err":     err.Error(),
-							}).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
+							logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
 							time.Sleep(time.Second)
 							continue
 						}
@@ -127,24 +119,18 @@ func (c *Crawl) HQConsumer() {
 		// get batch from crawl HQ
 		batch, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
 		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"project":   c.HQProject,
+			logrus.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
-				"address":   c.HQAddress,
-				"err":       err.Error(),
-			}).Debugln("error getting new URLs from crawl HQ")
+			})).Debugln("error getting new URLs from crawl HQ")
 		}
 
 		// send all URLs received in the batch to the frontier
 		for _, URL := range batch.URLs {
 			newURL, err := url.Parse(URL.Value)
 			if err != nil {
-				logrus.WithFields(logrus.Fields{
-					"project":   c.HQProject,
+				logrus.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 					"batchSize": HQBatchSize,
-					"address":   c.HQAddress,
-					"err":       err.Error(),
-				}).Errorln("unable to parse URL received from crawl HQ, discarding")
+				})).Errorln("unable to parse URL received from crawl HQ, discarding")
 			}
 
 			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID)
@@ -162,11 +148,7 @@ func (c *Crawl) HQFinisher() {
 
 	for finishedItem := range c.HQFinishedChannel {
 		if finishedItem.ID == "" {
-			logrus.WithFields(logrus.Fields{
-				"project": c.HQProject,
-				"address": c.HQAddress,
-				"url":     utils.URLToString(finishedItem.URL),
-			}).Infoln("URL has no ID, discarding")
+			logWarning.WithFields(c.genLogFields(nil, finishedItem.URL, nil)).Warnln("URL has no ID, discarding")
 			continue
 		}
 
@@ -177,12 +159,9 @@ func (c *Crawl) HQFinisher() {
 			for {
 				_, err := c.HQClient.Finished(finishedArray, locallyCrawledTotal)
 				if err != nil {
-					logrus.WithFields(logrus.Fields{
-						"project":       c.HQProject,
-						"address":       c.HQAddress,
+					logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 						"finishedArray": finishedArray,
-						"err":           err.Error(),
-					}).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
+					})).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
 					time.Sleep(time.Second)
 					continue
 				}
@@ -199,12 +178,9 @@ func (c *Crawl) HQFinisher() {
 		for {
 			_, err := c.HQClient.Finished(finishedArray, locallyCrawledTotal)
 			if err != nil {
-				logrus.WithFields(logrus.Fields{
-					"project":       c.HQProject,
-					"address":       c.HQAddress,
+				logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 					"finishedArray": finishedArray,
-					"err":           err.Error(),
-				}).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
+				})).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
 				time.Sleep(time.Second)
 				continue
 			}
@@ -226,13 +202,10 @@ func (c *Crawl) HQSeencheckURLs(URLs []url.URL) (seencheckedBatch []url.URL, err
 
 	discoveredResponse, err := c.HQClient.Discovered(discoveredURLs, "asset", false, true)
 	if err != nil {
-		logError.WithFields(logrus.Fields{
-			"project":  c.HQProject,
-			"address":  c.HQAddress,
+		logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 			"batchLen": len(URLs),
-			"err":      err.Error(),
 			"urls":     discoveredURLs,
-		}).Errorln("error sending seencheck payload to crawl HQ")
+		})).Errorln("error sending seencheck payload to crawl HQ")
 		return seencheckedBatch, err
 	}
 
@@ -241,13 +214,9 @@ func (c *Crawl) HQSeencheckURLs(URLs []url.URL) (seencheckedBatch []url.URL, err
 			// the returned payload only contain new URLs to be crawled by Zeno
 			newURL, err := url.Parse(URL.Value)
 			if err != nil {
-				logError.WithFields(logrus.Fields{
-					"project":  c.HQProject,
-					"address":  c.HQAddress,
+				logError.WithFields(c.genLogFields(err, URL, map[string]interface{}{
 					"batchLen": len(URLs),
-					"err":      err.Error(),
-					"url":      URL.Value,
-				}).Errorln("error parsing URL from HQ seencheck response")
+				})).Errorln("error parsing URL from HQ seencheck response")
 				return seencheckedBatch, err
 			}
 
@@ -265,12 +234,7 @@ func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 
 	discoveredResponse, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "asset", false, true)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"project": c.HQProject,
-			"address": c.HQAddress,
-			"url":     utils.URLToString(URL),
-			"err":     err.Error(),
-		}).Errorln("error sending seencheck payload to crawl HQ")
+		logrus.WithFields(c.genLogFields(err, URL, nil)).Errorln("error sending seencheck payload to crawl HQ")
 		return false, err
 	}
 
