@@ -37,7 +37,7 @@ func (f *Frontier) writeItemsToQueue() {
 		// Add the item to the host's queue
 		_, err := f.Queue.EnqueueObject([]byte(item.Host), item)
 		if err != nil {
-			loggingChan <- &FrontierLogMessage{
+			f.LoggingChan <- &FrontierLogMessage{
 				Fields: logrus.Fields{
 					"err":  err.Error(),
 					"item": item,
@@ -111,7 +111,7 @@ func (f *Frontier) readItemsFromQueue() {
 			// Dequeue an item from the local queue
 			queueItem, err := f.Queue.DequeueString(host)
 			if err != nil {
-				loggingChan <- &FrontierLogMessage{
+				f.LoggingChan <- &FrontierLogMessage{
 					Fields: logrus.Fields{
 						"err":  err.Error(),
 						"host": host,
@@ -132,7 +132,7 @@ func (f *Frontier) readItemsFromQueue() {
 			var item *Item
 			err = queueItem.ToObject(&item)
 			if err != nil {
-				loggingChan <- &FrontierLogMessage{
+				f.LoggingChan <- &FrontierLogMessage{
 					Fields: logrus.Fields{
 						"err":  err.Error(),
 						"item": queueItem,

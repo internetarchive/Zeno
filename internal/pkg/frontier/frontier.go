@@ -11,8 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var loggingChan chan *FrontierLogMessage
-
 // Frontier holds all the data for a frontier
 type Frontier struct {
 	Paused *utils.TAtomBool
@@ -43,6 +41,7 @@ type Frontier struct {
 
 	UseSeencheck bool
 	Seencheck    *Seencheck
+	LoggingChan  chan *FrontierLogMessage
 }
 
 type FrontierLogMessage struct {
@@ -55,6 +54,7 @@ type FrontierLogMessage struct {
 func (f *Frontier) Init(jobPath string, loggingChan chan *FrontierLogMessage, workers int, useSeencheck bool) (err error) {
 	f.JobPath = jobPath
 	f.Paused = new(utils.TAtomBool)
+	f.LoggingChan = loggingChan
 
 	// Initialize host pool
 	f.HostPool = new(HostPool)
@@ -66,7 +66,7 @@ func (f *Frontier) Init(jobPath string, loggingChan chan *FrontierLogMessage, wo
 	f.PushChan = make(chan *Item, workers)
 
 	// Initialize the queue
-	f.Queue, err = newPersistentQueue(jobPath)
+	f.Queue, err = f.newPersistentQueue(jobPath)
 	if err != nil {
 		return err
 	}

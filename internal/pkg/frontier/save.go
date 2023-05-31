@@ -20,7 +20,7 @@ func (f *Frontier) Load() {
 	// Open a RO file
 	decodeFile, err := os.OpenFile(path.Join(f.JobPath, "frontier.gob"), os.O_RDONLY, 0644)
 	if err != nil {
-		loggingChan <- &FrontierLogMessage{
+		f.LoggingChan <- &FrontierLogMessage{
 			Fields: logrus.Fields{
 				"err": err.Error(),
 			},
@@ -45,7 +45,7 @@ func (f *Frontier) Load() {
 	// Copy the loaded data to our actual frontier
 	f.HostPool.Hosts = dump.Hosts
 
-	loggingChan <- &FrontierLogMessage{
+	f.LoggingChan <- &FrontierLogMessage{
 		Fields: logrus.Fields{
 			"hosts": len(f.HostPool.Hosts),
 		},
