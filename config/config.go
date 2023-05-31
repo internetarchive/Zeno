@@ -54,7 +54,8 @@ type Flags struct {
 	DisableAssetsCapture bool
 	CertValidation       bool
 
-	Cloudflarestream bool
+	CloudflareStream bool
+	ElasticSearchURL string
 }
 
 type Application struct {

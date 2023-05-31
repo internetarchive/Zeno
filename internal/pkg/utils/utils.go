@@ -8,14 +8,49 @@ import (
 	"time"
 
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
+	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/sohlich/elogrus.v7"
 )
 
 // SetupLogging setup the logger for the crawl
-func SetupLogging(jobPath string, liveStats bool) (logInfo, logWarning *logrus.Logger) {
+func SetupLogging(jobPath string, liveStats bool, esURL string) (logInfo, logWarning, logError *logrus.Logger) {
 	var logsDirectory = path.Join(jobPath, "logs")
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		logrus.Panic(err)
+	}
+
 	logInfo = logrus.New()
 	logWarning = logrus.New()
+	logError = logrus.New()
+
+	if esURL != "" {
+		client, err := elastic.NewClient(elastic.SetURL(esURL))
+		if err != nil {
+			logrus.Panic(err)
+		}
+
+		hookInfo, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.InfoLevel, "zeno")
+		if err != nil {
+			logrus.Panic(err)
+		}
+
+		hookWarning, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.WarnLevel, "zeno")
+		if err != nil {
+			logrus.Panic(err)
+		}
+
+		hookError, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.ErrorLevel, "zeno")
+		if err != nil {
+			logrus.Panic(err)
+		}
+
+		logInfo.Hooks.Add(hookInfo)
+		logWarning.Hooks.Add(hookWarning)
+		logError.Hooks.Add(hookError)
+	}
 
 	// Create logs directory for the job
 	os.MkdirAll(logsDirectory, os.ModePerm)
@@ -23,13 +58,16 @@ func SetupLogging(jobPath string, liveStats bool) (logInfo, logWarning *logrus.L
 	// Initialize rotating loggers
 	pathInfo := path.Join(logsDirectory, "zeno_info")
 	pathWarning := path.Join(logsDirectory, "zeno_warning")
+	pathError := path.Join(logsDirectory, "zeno_error")
 
 	writerInfo, err := rotatelogs.New(
 		fmt.Sprintf("%s_%s.log", pathInfo, "%Y%m%d%H%M%S"),
 		rotatelogs.WithRotationTime(time.Hour*6),
 	)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{"error": err}).Fatalln("Failed to initialize info log file")
+		logrus.WithFields(logrus.Fields{
+			"err": err.Error(),
+		}).Fatalln("failed to initialize info log file")
 	}
 
 	if !liveStats {
@@ -43,7 +81,9 @@ func SetupLogging(jobPath string, liveStats bool) (logInfo, logWarning *logrus.L
 		rotatelogs.WithRotationTime(time.Hour*6),
 	)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{"error": err}).Fatalln("Failed to initialize warning log file")
+		logrus.WithFields(logrus.Fields{
+			"err": err.Error(),
+		}).Fatalln("failed to initialize warning log file")
 	}
 
 	if !liveStats {
@@ -52,5 +92,21 @@ func SetupLogging(jobPath string, liveStats bool) (logInfo, logWarning *logrus.L
 		logWarning.SetOutput(writerWarning)
 	}
 
-	return logInfo, logWarning
+	writerError, err := rotatelogs.New(
+		fmt.Sprintf("%s_%s.log", pathError, "%Y%m%d%H%M%S"),
+		rotatelogs.WithRotationTime(time.Hour*6),
+	)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"err": err.Error(),
+		}).Fatalln("failed to initialize error log file")
+	}
+
+	if !liveStats {
+		logError.SetOutput(io.MultiWriter(writerError, os.Stdout))
+	} else {
+		logError.SetOutput(writerError)
+	}
+
+	return logInfo, logWarning, logError
 }

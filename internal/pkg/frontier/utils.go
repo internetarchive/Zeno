@@ -42,8 +42,8 @@ func IsSeedList(path string) (seeds []Item, err error) {
 		URL, err := url.Parse(scanner.Text())
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"url":   scanner.Text(),
-				"error": err.Error(),
+				"url": scanner.Text(),
+				"err": err.Error(),
 			}).Debug("This is not a valid URL")
 			continue
 		}
@@ -51,8 +51,8 @@ func IsSeedList(path string) (seeds []Item, err error) {
 		err = utils.ValidateURL(URL)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"url":   scanner.Text(),
-				"error": err.Error(),
+				"url": scanner.Text(),
+				"err": err.Error(),
 			}).Debug("This is not a valid URL")
 			continue
 		}

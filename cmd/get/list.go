@@ -34,7 +34,7 @@ func cmdGetList(c *cli.Context) error {
 	if err != nil || len(crawl.SeedList) <= 0 {
 		logrus.WithFields(logrus.Fields{
 			"input": c.Args().Get(0),
-			"error": err.Error(),
+			"err":   err.Error(),
 		}).Error("This is not a valid input")
 		return err
 	}
@@ -49,7 +49,7 @@ func cmdGetList(c *cli.Context) error {
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"crawl": crawl,
-			"error": err,
+			"err":   err.Error(),
 		}).Error("Crawl exited due to error")
 		return err
 	}
