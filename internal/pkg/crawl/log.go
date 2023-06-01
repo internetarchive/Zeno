@@ -17,6 +17,8 @@ func (c *Crawl) genLogFields(err interface{}, URL interface{}, additionalFields 
 	fields["crawled"] = c.CrawledSeeds.Value() + c.CrawledAssets.Value()
 	fields["rate"] = c.URIsPerSecond.Rate()
 	fields["activeWorkers"] = c.ActiveWorkers.Value()
+	fields["ip"] = utils.GetOutboundIP().String()
+	fields["version"] = utils.GetVersion().GoVersion
 
 	if c.HQProject != "" {
 		fields["hqProject"] = c.HQProject
