@@ -12,7 +12,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.Document) (assets []url.URL, err error) {
+func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.Document) (assets []*url.URL, err error) {
 	var rawAssets []string
 
 	// Execute plugins on the response

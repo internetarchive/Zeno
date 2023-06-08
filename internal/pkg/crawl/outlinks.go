@@ -10,7 +10,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, err error) {
+func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL, err error) {
 	var rawOutlinks []string
 
 	// Extract outlinks
@@ -45,8 +45,10 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []url.URL, 
 	return utils.DedupeURLs(outlinks), nil
 }
 
-func (c *Crawl) queueOutlinks(outlinks []url.URL, item *frontier.Item, wg *sync.WaitGroup) {
+func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *frontier.Item, wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	var excluded bool
 
 	// Send the outlinks to the pool of workers
 	for _, outlink := range outlinks {
@@ -57,15 +59,28 @@ func (c *Crawl) queueOutlinks(outlinks []url.URL, item *frontier.Item, wg *sync.
 			continue
 		}
 
+		// If the outlink match any excluded string, we ignore it
+		for _, excludedString := range c.ExcludedStrings {
+			if strings.Contains(utils.URLToString(outlink), excludedString) {
+				excluded = true
+				break
+			}
+		}
+
+		if excluded {
+			excluded = false
+			continue
+		}
+
 		if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
-			newItem := frontier.NewItem(&outlink, item, "seed", 0, "")
+			newItem := frontier.NewItem(outlink, item, "seed", 0, "")
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
 				c.Frontier.PushChan <- newItem
 			}
 		} else if c.MaxHops >= item.Hop+1 {
-			newItem := frontier.NewItem(&outlink, item, "seed", item.Hop+1, "")
+			newItem := frontier.NewItem(outlink, item, "seed", item.Hop+1, "")
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {

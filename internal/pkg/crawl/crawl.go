@@ -50,6 +50,7 @@ type Crawl struct {
 	Logger                logrus.Logger
 	DisabledHTMLTags      []string
 	ExcludedHosts         []string
+	ExcludedStrings       []string
 	UserAgent             string
 	Job                   string
 	JobPath               string
