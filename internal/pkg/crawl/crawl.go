@@ -125,6 +125,8 @@ func (c *Crawl) Start() (err error) {
 	// Setup logging, every day at midnight UTC a new setup
 	// is triggered in order to change the ES index's name
 	if c.ElasticSearchURL != "" {
+		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+
 		go func() {
 			// Get the current time and figure out when the next midnight will occur
 			now := time.Now()
