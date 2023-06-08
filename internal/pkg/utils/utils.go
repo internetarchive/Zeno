@@ -37,17 +37,17 @@ func SetupLogging(jobPath string, liveStats bool, esURL string) (logInfo, logWar
 		}
 
 		go func() {
-			hookInfo, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.InfoLevel, "zeno")
+			hookInfo, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.InfoLevel, "zeno-"+time.Now().Format("2006.01.02"))
 			if err != nil {
 				logrus.Panic(err)
 			}
 
-			hookWarning, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.WarnLevel, "zeno")
+			hookWarning, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.WarnLevel, "zeno-"+time.Now().Format("2006.01.02"))
 			if err != nil {
 				logrus.Panic(err)
 			}
 
-			hookError, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.ErrorLevel, "zeno")
+			hookError, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.ErrorLevel, "zeno-"+time.Now().Format("2006.01.02"))
 			if err != nil {
 				logrus.Panic(err)
 			}
