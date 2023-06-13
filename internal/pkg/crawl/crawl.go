@@ -125,6 +125,15 @@ func (c *Crawl) Start() (err error) {
 	// Setup logging, every day at midnight UTC a new setup
 	// is triggered in order to change the ES index's name
 	if c.ElasticSearchURL != "" {
+		// Goroutine loop that fetch the machine's IP address every second
+		go func() {
+			for {
+				ip := utils.GetOutboundIP().String()
+				constants.Store("ip", ip)
+				time.Sleep(time.Second * 10)
+			}
+		}()
+
 		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
 
 		go func() {
