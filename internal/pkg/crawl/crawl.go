@@ -137,9 +137,9 @@ func (c *Crawl) Start() (err error) {
 		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
 
 		go func() {
-			// Get the current time and figure out when the next midnight will occur
-			now := time.Now()
-			midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			// Get the current time in UTC and figure out when the next midnight will occur
+			now := time.Now().UTC()
+			midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 			if now.After(midnight) {
 				midnight = midnight.Add(24 * time.Hour)
 			}
