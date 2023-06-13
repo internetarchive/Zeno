@@ -189,14 +189,14 @@ func (c *Crawl) HQFinisher() {
 	}
 }
 
-func (c *Crawl) HQSeencheckURLs(URLs []url.URL) (seencheckedBatch []url.URL, err error) {
+func (c *Crawl) HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, err error) {
 	var (
 		discoveredURLs []gocrawlhq.URL
 	)
 
 	for _, URL := range URLs {
 		discoveredURLs = append(discoveredURLs, gocrawlhq.URL{
-			Value: utils.URLToString(&URL),
+			Value: utils.URLToString(URL),
 		})
 	}
 
@@ -220,7 +220,7 @@ func (c *Crawl) HQSeencheckURLs(URLs []url.URL) (seencheckedBatch []url.URL, err
 				return seencheckedBatch, err
 			}
 
-			seencheckedBatch = append(seencheckedBatch, *newURL)
+			seencheckedBatch = append(seencheckedBatch, newURL)
 		}
 	}
 

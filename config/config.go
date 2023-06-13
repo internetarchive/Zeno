@@ -56,6 +56,7 @@ type Flags struct {
 
 	CloudflareStream bool
 	ElasticSearchURL string
+	ExcludedStrings  cli.StringSlice
 }
 
 type Application struct {

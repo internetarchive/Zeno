@@ -50,6 +50,7 @@ type Crawl struct {
 	Logger                logrus.Logger
 	DisabledHTMLTags      []string
 	ExcludedHosts         []string
+	ExcludedStrings       []string
 	UserAgent             string
 	Job                   string
 	JobPath               string
@@ -121,8 +122,43 @@ func (c *Crawl) Start() (err error) {
 	c.HQChannelsWg = new(sync.WaitGroup)
 	regexOutlinks = xurls.Relaxed()
 
-	// Setup logging
-	logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+	// Setup logging, every day at midnight UTC a new setup
+	// is triggered in order to change the ES index's name
+	if c.ElasticSearchURL != "" {
+		// Goroutine loop that fetch the machine's IP address every second
+		go func() {
+			for {
+				ip := utils.GetOutboundIP().String()
+				constants.Store("ip", ip)
+				time.Sleep(time.Second * 10)
+			}
+		}()
+
+		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+
+		go func() {
+			// Get the current time in UTC and figure out when the next midnight will occur
+			now := time.Now().UTC()
+			midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+			if now.After(midnight) {
+				midnight = midnight.Add(24 * time.Hour)
+			}
+
+			// Calculate the duration until midnight and add a little extra time to avoid calling your function just before midnight
+			duration := midnight.Sub(now) + time.Second*10
+
+			// Create a timer that will wait until midnight
+			timer := time.NewTimer(duration)
+
+			// Wait for the timer to finish (which will occur at midnight)
+			<-timer.C
+
+			// Call your function
+			logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+		}()
+	} else {
+		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+	}
 
 	// Start the background process that will handle os signals
 	// to exit Zeno, like CTRL+C

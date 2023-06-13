@@ -381,9 +381,10 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// seencheck DB. If they are, then they are skipped.
 	// Else, if we use HQ, then we use HQ's seencheck.
 	if c.Seencheck {
-		seencheckedBatch := []url.URL{}
+		seencheckedBatch := []*url.URL{}
+
 		for _, URL := range assets {
-			found := c.seencheckURL(utils.URLToString(&URL), "asset")
+			found := c.seencheckURL(utils.URLToString(URL), "asset")
 			if found {
 				continue
 			} else {
@@ -418,11 +419,13 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	c.Frontier.QueueCount.Incr(int64(len(assets)))
 	swg := sizedwaitgroup.New(c.MaxConcurrentAssets)
+	excluded := true
+
 	for _, asset := range assets {
 		c.Frontier.QueueCount.Incr(-1)
 
 		// Just making sure we do not over archive by archiving the original URL
-		if utils.URLToString(item.URL) == utils.URLToString(&asset) {
+		if utils.URLToString(item.URL) == utils.URLToString(asset) {
 			continue
 		}
 
@@ -432,13 +435,26 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			continue
 		}
 
+		// If the URL match any excluded string, we ignore it
+		for _, excludedString := range c.ExcludedStrings {
+			if strings.Contains(utils.URLToString(asset), excludedString) {
+				excluded = true
+				break
+			}
+		}
+
+		if excluded {
+			excluded = false
+			continue
+		}
+
 		swg.Add()
 		c.URIsPerSecond.Incr(1)
-		go func(asset url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
+		go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
 			defer swg.Done()
 
 			// Create the asset's item
-			newAsset := frontier.NewItem(&asset, item, "asset", item.Hop, "")
+			newAsset := frontier.NewItem(asset, item, "asset", item.Hop, "")
 
 			// Capture the asset
 			err = c.captureAsset(newAsset, resp.Cookies())

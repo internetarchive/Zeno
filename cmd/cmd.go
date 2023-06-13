@@ -262,6 +262,11 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "ElasticSearch URL to use for indexing crawl logs.",
 		Destination: &config.App.Flags.ElasticSearchURL,
 	},
+	&cli.StringSliceFlag{
+		Name:        "exclude-string",
+		Usage:       "Discard any (discovered) URLs containing this string.",
+		Destination: &config.App.Flags.ExcludedStrings,
+	},
 }
 
 var Commands []*cli.Command

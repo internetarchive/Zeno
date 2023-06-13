@@ -8,14 +8,14 @@ import (
 )
 
 // StringSliceToURLSlice takes a slice of string and return a slice of url.URL
-func StringSliceToURLSlice(rawURLs []string) (URLs []url.URL) {
+func StringSliceToURLSlice(rawURLs []string) (URLs []*url.URL) {
 	for _, URL := range rawURLs {
 		URL, err := url.Parse(URL)
 		if err != nil {
 			continue
 		}
 
-		URLs = append(URLs, *URL)
+		URLs = append(URLs, URL)
 	}
 
 	return URLs

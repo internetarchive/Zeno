@@ -313,7 +313,7 @@ func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.Cu
 	return archivedURLs, nil
 }
 
-func GetSegments(URL *url.URL, httpClient warc.CustomHTTPClient) (URLs []url.URL, err error) {
+func GetSegments(URL *url.URL, httpClient warc.CustomHTTPClient) (URLs []*url.URL, err error) {
 	var (
 		mpd        MPD
 		mpdURL     string
@@ -368,7 +368,7 @@ func GetSegments(URL *url.URL, httpClient warc.CustomHTTPClient) (URLs []url.URL
 
 			// Get the init.mp4 from the initialization attribute and strip the ../../ from the beginning
 			initURL := strings.Replace(segmentTemplate.Initialization, "../../", "", 1)
-			URLs = append(URLs, url.URL{
+			URLs = append(URLs, &url.URL{
 				Scheme: URL.Scheme,
 				Host:   URL.Host,
 				Path:   initURL,
@@ -399,7 +399,7 @@ func GetSegments(URL *url.URL, httpClient warc.CustomHTTPClient) (URLs []url.URL
 				// Strip out ../../ from the URL
 				segmentURL = strings.Replace(segmentURL, "../../", "", -1)
 
-				URLs = append(URLs, url.URL{
+				URLs = append(URLs, &url.URL{
 					Scheme: URL.Scheme,
 					Host:   URL.Host,
 					Path:   segmentURL,

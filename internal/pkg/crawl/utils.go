@@ -67,7 +67,7 @@ func (c *Crawl) seencheckURL(URL string, URLType string) bool {
 	}
 }
 
-func (c *Crawl) excludeHosts(URLs []url.URL) (output []url.URL) {
+func (c *Crawl) excludeHosts(URLs []*url.URL) (output []*url.URL) {
 	for _, URL := range URLs {
 		if utils.StringInSlice(URL.Host, c.ExcludedHosts) {
 			continue
@@ -79,7 +79,7 @@ func (c *Crawl) excludeHosts(URLs []url.URL) (output []url.URL) {
 	return output
 }
 
-func extractLinksFromText(source string) (links []url.URL) {
+func extractLinksFromText(source string) (links []*url.URL) {
 	// Extract links and dedupe them
 	rawLinks := utils.DedupeStrings(regexOutlinks.FindAllString(source, -1))
 
@@ -93,7 +93,7 @@ func extractLinksFromText(source string) (links []url.URL) {
 		if err != nil {
 			continue
 		}
-		links = append(links, *URL)
+		links = append(links, URL)
 	}
 
 	return links

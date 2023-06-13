@@ -63,6 +63,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.DisabledHTMLTags = flags.DisabledHTMLTags.Value()
 	c.ExcludedHosts = flags.ExcludedHosts.Value()
 	c.CaptureAlternatePages = flags.CaptureAlternatePages
+	c.ExcludedStrings = flags.ExcludedStrings.Value()
 
 	// WARC settings
 	c.WARCPrefix = flags.WARCPrefix

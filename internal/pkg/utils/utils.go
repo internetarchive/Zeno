@@ -26,30 +26,36 @@ func SetupLogging(jobPath string, liveStats bool, esURL string) (logInfo, logWar
 	logWarning = logrus.New()
 	logError = logrus.New()
 
+	logInfo.SetFormatter(&logrus.JSONFormatter{})
+	logWarning.SetFormatter(&logrus.JSONFormatter{})
+	logError.SetFormatter(&logrus.JSONFormatter{})
+
 	if esURL != "" {
 		client, err := elastic.NewClient(elastic.SetURL(esURL))
 		if err != nil {
 			logrus.Panic(err)
 		}
 
-		hookInfo, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.InfoLevel, "zeno")
-		if err != nil {
-			logrus.Panic(err)
-		}
+		go func() {
+			hookInfo, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.InfoLevel, "zeno-"+time.Now().Format("2006.01.02"))
+			if err != nil {
+				logrus.Panic(err)
+			}
 
-		hookWarning, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.WarnLevel, "zeno")
-		if err != nil {
-			logrus.Panic(err)
-		}
+			hookWarning, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.WarnLevel, "zeno-"+time.Now().Format("2006.01.02"))
+			if err != nil {
+				logrus.Panic(err)
+			}
 
-		hookError, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.ErrorLevel, "zeno")
-		if err != nil {
-			logrus.Panic(err)
-		}
+			hookError, err := elogrus.NewAsyncElasticHook(client, hostname, logrus.ErrorLevel, "zeno-"+time.Now().Format("2006.01.02"))
+			if err != nil {
+				logrus.Panic(err)
+			}
 
-		logInfo.Hooks.Add(hookInfo)
-		logWarning.Hooks.Add(hookWarning)
-		logError.Hooks.Add(hookError)
+			logInfo.Hooks.Add(hookInfo)
+			logWarning.Hooks.Add(hookWarning)
+			logError.Hooks.Add(hookError)
+		}()
 	}
 
 	// Create logs directory for the job

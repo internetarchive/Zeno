@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -31,7 +30,7 @@ func (crawl *Crawl) startAPI() {
 			"crawledSeeds":  crawledSeeds,
 			"crawledAssets": crawledAssets,
 			"queued":        crawl.Frontier.QueueCount.Value(),
-			"uptime":        fmt.Sprintf("%s", time.Since(crawl.StartTime)),
+			"uptime":        time.Since(crawl.StartTime).String(),
 		})
 	})
 
