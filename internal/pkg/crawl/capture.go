@@ -15,6 +15,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/remeh/sizedwaitgroup"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tomnomnom/linkheader"
 
@@ -163,11 +164,21 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error {
 	var resp *http.Response
 
+	for c.shouldPause(item.Host) {
+		// 500ms... for now...
+		// todo: configurable sleep time
+		time.Sleep(time.Millisecond * 500)
+	}
+
 	// Prepare GET request
 	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
 	if err != nil {
 		return err
 	}
+
+	c.Frontier.CrawlPool.Incr(item.Host)
+
+	defer c.Frontier.CrawlPool.Decr(item.Host)
 
 	req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
 	req.Header.Set("User-Agent", c.UserAgent)
@@ -205,6 +216,18 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			c.HQFinishedChannel <- i
 		}
 	}(item)
+
+	for c.shouldPause(item.Host) {
+		// 500ms... for now...
+		// todo: configurable sleep time
+		// todo: remove temporary
+		logrus.Errorln("Sleep time!")
+		time.Sleep(time.Millisecond * 500)
+	}
+
+	c.Frontier.CrawlPool.Incr(item.Host)
+
+	defer c.Frontier.CrawlPool.Decr(item.Host)
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)

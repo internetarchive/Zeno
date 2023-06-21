@@ -43,27 +43,28 @@ type Crawl struct {
 	Frontier *frontier.Frontier
 
 	// Crawl settings
-	WorkerPool            sizedwaitgroup.SizedWaitGroup
-	MaxConcurrentAssets   int
-	Client                *warc.CustomHTTPClient
-	ClientProxied         *warc.CustomHTTPClient
-	Logger                logrus.Logger
-	DisabledHTMLTags      []string
-	ExcludedHosts         []string
-	ExcludedStrings       []string
-	UserAgent             string
-	Job                   string
-	JobPath               string
-	MaxHops               uint8
-	MaxRetry              int
-	MaxRedirect           int
-	HTTPTimeout           int
-	DisableAssetsCapture  bool
-	CaptureAlternatePages bool
-	DomainsCrawl          bool
-	Headless              bool
-	Seencheck             bool
-	Workers               int
+	WorkerPool                     sizedwaitgroup.SizedWaitGroup
+	MaxConcurrentAssets            int
+	Client                         *warc.CustomHTTPClient
+	ClientProxied                  *warc.CustomHTTPClient
+	Logger                         logrus.Logger
+	DisabledHTMLTags               []string
+	ExcludedHosts                  []string
+	ExcludedStrings                []string
+	UserAgent                      string
+	Job                            string
+	JobPath                        string
+	MaxHops                        uint8
+	MaxRetry                       int
+	MaxRedirect                    int
+	HTTPTimeout                    int
+	MaxConcurrentRequestsPerDomain int
+	DisableAssetsCapture           bool
+	CaptureAlternatePages          bool
+	DomainsCrawl                   bool
+	Headless                       bool
+	Seencheck                      bool
+	Workers                        int
 
 	// Cookie-related settings
 	CookieFile  string

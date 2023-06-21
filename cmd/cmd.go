@@ -138,6 +138,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Exclude a specific host from the crawl, note that it will not exclude the domain if it is encountered as an asset for another web page.",
 		Destination: &config.App.Flags.ExcludedHosts,
 	},
+	&cli.IntFlag{
+		Name:        "max-concurrent-per-domain",
+		Value:       15,
+		Usage:       "Maximum number of concurrent requests per domain",
+		Destination: &config.App.Flags.MaxConcurrentRequestsPerDomain,
+	},
 
 	// Proxy flags
 	&cli.StringFlag{

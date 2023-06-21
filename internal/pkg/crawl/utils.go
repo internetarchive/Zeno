@@ -98,3 +98,11 @@ func extractLinksFromText(source string) (links []*url.URL) {
 
 	return links
 }
+
+func (c *Crawl) shouldPause(host string) bool {
+	if int(c.Frontier.CrawlPool.GetCount(host)) >= c.MaxConcurrentRequestsPerDomain {
+		return true
+	} else {
+		return false
+	}
+}
