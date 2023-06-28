@@ -39,8 +39,6 @@ type Frontier struct {
 	// the prefix to query from the queue
 	HostPool *HostPool
 
-	CrawlPool *HostPool
-
 	UseSeencheck bool
 	Seencheck    *Seencheck
 	LoggingChan  chan *FrontierLogMessage
@@ -62,11 +60,6 @@ func (f *Frontier) Init(jobPath string, loggingChan chan *FrontierLogMessage, wo
 	f.HostPool = new(HostPool)
 	f.HostPool.Mutex = new(sync.Mutex)
 	f.HostPool.Hosts = make(map[string]*ratecounter.Counter, 0)
-
-	// todo: create new crawlpool properly.
-	f.CrawlPool = new(HostPool)
-	f.CrawlPool.Mutex = new(sync.Mutex)
-	f.CrawlPool.Hosts = make(map[string]*ratecounter.Counter, 0)
 
 	// Initialize the frontier channels
 	f.PullChan = make(chan *Item, workers)

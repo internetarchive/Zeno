@@ -53,9 +53,9 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		time.Sleep(time.Millisecond * time.Duration(c.ConcurrentSleepTime))
 	}
 
-	c.Frontier.CrawlPool.Incr(item.Host)
+	c.CrawlPool.Incr(item.Host)
 
-	defer c.Frontier.CrawlPool.Decr(item.Host)
+	defer c.CrawlPool.Decr(item.Host)
 	// todo: validate that this is decremented even on 429.
 
 	// Retry on 429 error

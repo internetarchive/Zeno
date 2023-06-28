@@ -89,9 +89,6 @@ func (f *Frontier) readItemsFromQueue() {
 		// pool that we will iterate on
 		f.HostPool.DeleteEmptyHosts()
 
-		// TODO: Delete empty hosts somewhere else
-		f.CrawlPool.DeleteEmptyHosts()
-
 		mapCopy = make(map[string]*ratecounter.Counter, 0)
 		f.HostPool.Lock()
 		for key, val := range f.HostPool.Hosts {
