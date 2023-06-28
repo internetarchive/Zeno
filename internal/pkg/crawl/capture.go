@@ -48,6 +48,16 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		time.Sleep(time.Second)
 	}
 
+	// Temporarily pause crawls for individual hosts if they are over our configured maximum concurrent requests per domain.
+	for c.shouldPause(item.Host) {
+		time.Sleep(time.Millisecond * time.Duration(c.ConcurrentSleepTime))
+	}
+
+	c.Frontier.CrawlPool.Incr(item.Host)
+
+	defer c.Frontier.CrawlPool.Decr(item.Host)
+	// todo: validate that this is decremented even on 429.
+
 	// Retry on 429 error
 	for retry := 0; retry < c.MaxRetry; retry++ {
 		// Execute GET request
@@ -163,19 +173,11 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error {
 	var resp *http.Response
 
-	for c.shouldPause(item.Host) {
-		time.Sleep(time.Millisecond * time.Duration(c.ConcurrentSleepTime))
-	}
-
 	// Prepare GET request
 	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
 	if err != nil {
 		return err
 	}
-
-	c.Frontier.CrawlPool.Incr(item.Host)
-
-	defer c.Frontier.CrawlPool.Decr(item.Host)
 
 	req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
 	req.Header.Set("User-Agent", c.UserAgent)
@@ -213,14 +215,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			c.HQFinishedChannel <- i
 		}
 	}(item)
-
-	for c.shouldPause(item.Host) {
-		time.Sleep(time.Millisecond * time.Duration(c.ConcurrentSleepTime))
-	}
-
-	c.Frontier.CrawlPool.Incr(item.Host)
-
-	defer c.Frontier.CrawlPool.Decr(item.Host)
 
 	// Prepare GET request
 	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
