@@ -140,7 +140,7 @@ var GlobalFlags = []cli.Flag{
 	},
 	&cli.IntFlag{
 		Name:        "max-concurrent-per-domain",
-		Value:       15,
+		Value:       16,
 		Usage:       "Maximum number of concurrent requests per domain",
 		Destination: &config.App.Flags.MaxConcurrentRequestsPerDomain,
 	},
