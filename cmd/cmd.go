@@ -144,6 +144,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Maximum number of concurrent requests per domain",
 		Destination: &config.App.Flags.MaxConcurrentRequestsPerDomain,
 	},
+	&cli.IntFlag{
+		Name:        "concurrent-sleep-length",
+		Value:       500,
+		Usage:       "Number of milliseconds to sleep when max concurrency is reached.",
+		Destination: &config.App.Flags.ConcurrentSleepTime,
+	},
 
 	// Proxy flags
 	&cli.StringFlag{

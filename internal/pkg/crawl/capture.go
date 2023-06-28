@@ -15,7 +15,6 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/remeh/sizedwaitgroup"
-	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tomnomnom/linkheader"
 
@@ -165,9 +164,7 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	var resp *http.Response
 
 	for c.shouldPause(item.Host) {
-		// 500ms... for now...
-		// todo: configurable sleep time
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * time.Duration(c.ConcurrentSleepTime))
 	}
 
 	// Prepare GET request
@@ -218,11 +215,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}(item)
 
 	for c.shouldPause(item.Host) {
-		// 500ms... for now...
-		// todo: configurable sleep time
-		// todo: remove temporary
-		logrus.Errorln("Sleep time!")
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * time.Duration(c.ConcurrentSleepTime))
 	}
 
 	c.Frontier.CrawlPool.Incr(item.Host)

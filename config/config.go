@@ -22,6 +22,7 @@ type Flags struct {
 	MaxRedirect                    int
 	MaxRetry                       int
 	MaxConcurrentRequestsPerDomain int
+	ConcurrentSleepTime            int
 
 	Proxy       string
 	BypassProxy cli.StringSlice

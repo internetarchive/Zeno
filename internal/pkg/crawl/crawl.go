@@ -59,6 +59,7 @@ type Crawl struct {
 	MaxRedirect                    int
 	HTTPTimeout                    int
 	MaxConcurrentRequestsPerDomain int
+	ConcurrentSleepTime            int
 	DisableAssetsCapture           bool
 	CaptureAlternatePages          bool
 	DomainsCrawl                   bool
