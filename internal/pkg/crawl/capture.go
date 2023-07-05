@@ -56,7 +56,6 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 	c.CrawlPool.Incr(item.Host)
 
 	defer c.CrawlPool.Decr(item.Host)
-	// todo: validate that this is decremented even on 429.
 
 	// Retry on 429 error
 	for retry := 0; retry < c.MaxRetry; retry++ {
