@@ -50,7 +50,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 
 	// Temporarily pause crawls for individual hosts if they are over our configured maximum concurrent requests per domain.
 	for c.shouldPause(item.Host) {
-		time.Sleep(time.Millisecond * time.Duration(c.ConcurrentSleepTime))
+		time.Sleep(time.Millisecond * time.Duration(c.RateLimitDelay))
 	}
 
 	c.CrawlPool.Incr(item.Host)
