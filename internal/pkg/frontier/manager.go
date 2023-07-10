@@ -88,6 +88,7 @@ func (f *Frontier) readItemsFromQueue() {
 		// we make a snapshot of the hosts
 		// pool that we will iterate on
 		f.HostPool.DeleteEmptyHosts()
+
 		mapCopy = make(map[string]*ratecounter.Counter, 0)
 		f.HostPool.Lock()
 		for key, val := range f.HostPool.Hosts {

@@ -14,13 +14,15 @@ type Flags struct {
 	LiveStats           bool
 	Debug               bool
 
-	DisabledHTMLTags      cli.StringSlice
-	ExcludedHosts         cli.StringSlice
-	DomainsCrawl          bool
-	CaptureAlternatePages bool
-	HTTPTimeout           int
-	MaxRedirect           int
-	MaxRetry              int
+	DisabledHTMLTags               cli.StringSlice
+	ExcludedHosts                  cli.StringSlice
+	DomainsCrawl                   bool
+	CaptureAlternatePages          bool
+	HTTPTimeout                    int
+	MaxRedirect                    int
+	MaxRetry                       int
+	MaxConcurrentRequestsPerDomain int
+	RateLimitDelay                 int
 
 	Proxy       string
 	BypassProxy cli.StringSlice

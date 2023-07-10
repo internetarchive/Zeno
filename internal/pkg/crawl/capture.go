@@ -48,6 +48,15 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		time.Sleep(time.Second)
 	}
 
+	// Temporarily pause crawls for individual hosts if they are over our configured maximum concurrent requests per domain.
+	for c.shouldPause(item.Host) {
+		time.Sleep(time.Millisecond * time.Duration(c.RateLimitDelay))
+	}
+
+	c.CrawlPool.Incr(item.Host)
+
+	defer c.CrawlPool.Decr(item.Host)
+
 	// Retry on 429 error
 	for retry := 0; retry < c.MaxRetry; retry++ {
 		// Execute GET request

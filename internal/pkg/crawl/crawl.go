@@ -43,27 +43,29 @@ type Crawl struct {
 	Frontier *frontier.Frontier
 
 	// Crawl settings
-	WorkerPool            sizedwaitgroup.SizedWaitGroup
-	MaxConcurrentAssets   int
-	Client                *warc.CustomHTTPClient
-	ClientProxied         *warc.CustomHTTPClient
-	Logger                logrus.Logger
-	DisabledHTMLTags      []string
-	ExcludedHosts         []string
-	ExcludedStrings       []string
-	UserAgent             string
-	Job                   string
-	JobPath               string
-	MaxHops               uint8
-	MaxRetry              int
-	MaxRedirect           int
-	HTTPTimeout           int
-	DisableAssetsCapture  bool
-	CaptureAlternatePages bool
-	DomainsCrawl          bool
-	Headless              bool
-	Seencheck             bool
-	Workers               int
+	WorkerPool                     sizedwaitgroup.SizedWaitGroup
+	MaxConcurrentAssets            int
+	Client                         *warc.CustomHTTPClient
+	ClientProxied                  *warc.CustomHTTPClient
+	Logger                         logrus.Logger
+	DisabledHTMLTags               []string
+	ExcludedHosts                  []string
+	ExcludedStrings                []string
+	UserAgent                      string
+	Job                            string
+	JobPath                        string
+	MaxHops                        uint8
+	MaxRetry                       int
+	MaxRedirect                    int
+	HTTPTimeout                    int
+	MaxConcurrentRequestsPerDomain int
+	RateLimitDelay                 int
+	DisableAssetsCapture           bool
+	CaptureAlternatePages          bool
+	DomainsCrawl                   bool
+	Headless                       bool
+	Seencheck                      bool
+	Workers                        int
 
 	// Cookie-related settings
 	CookieFile  string
@@ -112,6 +114,8 @@ type Crawl struct {
 	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item
 	HQChannelsWg      *sync.WaitGroup
+
+	CrawlPool *frontier.HostPool
 }
 
 // Start fire up the crawling process
@@ -182,6 +186,14 @@ func (c *Crawl) Start() (err error) {
 	c.Frontier.Init(c.JobPath, frontierLoggingChan, c.Workers, c.Seencheck)
 	c.Frontier.Load()
 	c.Frontier.Start()
+
+	// Create CrawlPool
+	c.CrawlPool = new(frontier.HostPool)
+	c.CrawlPool.Mutex = new(sync.Mutex)
+	c.CrawlPool.Hosts = make(map[string]*ratecounter.Counter, 0)
+
+	// Continually delete empty hosts inside of the newly created CrawlPool.
+	go c.clearEmptyHosts()
 
 	// Start the background process that will periodically check if the disk
 	// have enough free space, and potentially pause the crawl if it doesn't
