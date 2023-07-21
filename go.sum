@@ -5,8 +5,8 @@ git.archive.org/wb/gocrawlhq v1.2.1/go.mod h1:jfmFjl9LuyZB3qfR9HChNQHChPmZlu9p76
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/CorentinB/warc v0.8.32 h1:GROT/exLG8/RhXwnbPY9OXcjlbe8R3tsbVeyfl7OVIY=
 github.com/CorentinB/warc v0.8.32/go.mod h1:XaZNtShU+zL5nCVfa80WgaiifCdGmmghEjM8EfZQ2fg=
-github.com/NGTmeaty/elogrus v0.0.0-20230719215829-631b0a9a9a3a h1:vQ0jSDRW9CY0H4qFhy4jKk+1vAJCDDeY/+HZA6SyNtQ=
-github.com/NGTmeaty/elogrus v0.0.0-20230719215829-631b0a9a9a3a/go.mod h1:Otxl8w2OMlNatGvmAc8xox4OkBKEqnB/iwxORPa4A0Y=
+github.com/NGTmeaty/elogrus v0.0.0-20230721210659-16dbcb53c7db h1:T94T+3GC/MyhsqenVKwGc3XpKIkOALKq1nmRjkx3jGM=
+github.com/NGTmeaty/elogrus v0.0.0-20230721210659-16dbcb53c7db/go.mod h1:Otxl8w2OMlNatGvmAc8xox4OkBKEqnB/iwxORPa4A0Y=
 github.com/PuerkitoBio/goquery v1.8.1 h1:uQxhNlArOIdbrH1tr0UXwdVFgDcZDrZVdcpygAcwmWM=
 github.com/PuerkitoBio/goquery v1.8.1/go.mod h1:Q8ICL1kNUJ2sXGoAhPGUdYDJvgQgHzJsnnd3H7Ho5jQ=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=

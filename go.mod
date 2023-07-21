@@ -5,7 +5,7 @@ go 1.20
 require (
 	git.archive.org/wb/gocrawlhq v1.2.1
 	github.com/CorentinB/warc v0.8.32
-	github.com/NGTmeaty/elogrus v0.0.0-20230719215829-631b0a9a9a3a
+	github.com/NGTmeaty/elogrus v0.0.0-20230721210659-16dbcb53c7db
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
