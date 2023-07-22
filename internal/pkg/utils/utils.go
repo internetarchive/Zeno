@@ -7,10 +7,10 @@ import (
 	"path"
 	"time"
 
+	"github.com/NGTmeaty/elogrus"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/sohlich/elogrus.v7"
 )
 
 // SetupLogging setup the logger for the crawl

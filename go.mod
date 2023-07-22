@@ -5,6 +5,7 @@ go 1.20
 require (
 	git.archive.org/wb/gocrawlhq v1.2.1
 	github.com/CorentinB/warc v0.8.32
+	github.com/NGTmeaty/elogrus v0.0.0-20230721210659-16dbcb53c7db
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
@@ -29,7 +30,6 @@ require (
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeebo/xxh3 v1.0.2
 	go.uber.org/goleak v1.2.1
-	gopkg.in/sohlich/elogrus.v7 v7.0.0
 	mvdan.cc/xurls/v2 v2.5.0
 )
 
