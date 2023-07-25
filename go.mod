@@ -5,7 +5,6 @@ go 1.20
 require (
 	git.archive.org/wb/gocrawlhq v1.2.1
 	github.com/CorentinB/warc v0.8.32
-	github.com/NGTmeaty/elogrus v0.0.0-20230721210659-16dbcb53c7db
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
@@ -15,6 +14,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gosuri/uilive v0.0.4
 	github.com/gosuri/uitable v0.0.4
+	github.com/internetarchive/elogrus v0.0.0-20230725172814-093db31a64fc
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/paulbellamy/ratecounter v0.2.0
