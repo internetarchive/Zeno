@@ -21,7 +21,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 )
 
-func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.Response, err error) {
+func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection bool) (resp *http.Response, err error) {
 	var (
 		executionStart = time.Now()
 		newItem        *frontier.Item
@@ -48,14 +48,17 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		time.Sleep(time.Second)
 	}
 
-	// Temporarily pause crawls for individual hosts if they are over our configured maximum concurrent requests per domain.
-	for c.shouldPause(item.Host) {
-		time.Sleep(time.Millisecond * time.Duration(c.RateLimitDelay))
+	// Temporarily pause crawls for individual hosts if they are over our configured maximum concurrent requests per domain.'
+	// If the request is a redirection, we do not pause the crawl because we want to follow the redirection.
+	if isRedirection {
+		for c.shouldPause(item.Host) {
+			time.Sleep(time.Millisecond * time.Duration(c.RateLimitDelay))
+		}
+
+		c.CrawlPool.Incr(item.Host)
+
+		defer c.CrawlPool.Decr(item.Host)
 	}
-
-	c.CrawlPool.Incr(item.Host)
-
-	defer c.CrawlPool.Decr(item.Host)
 
 	// Retry on 429 error
 	for retry := 0; retry < c.MaxRetry; retry++ {
@@ -109,7 +112,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
 	// If a redirection is catched, then we execute the redirection
-	if isRedirection(resp.StatusCode) {
+	if isStatusCodeRedirect(resp.StatusCode) {
 		if resp.Header.Get("location") == utils.URLToString(req.URL) || item.Redirect >= c.MaxRedirect {
 			return resp, nil
 		}
@@ -160,10 +163,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request) (resp *http.R
 		newReq.Header.Set("User-Agent", c.UserAgent)
 		newReq.Header.Set("Referer", utils.URLToString(newItem.ParentItem.URL))
 
-		resp, err = c.executeGET(newItem, newReq)
-		if err != nil {
-			return resp, err
-		}
+		return c.executeGET(newItem, newReq, true)
 	}
 
 	return resp, nil
@@ -186,7 +186,7 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 		req.AddCookie(cookies[i])
 	}
 
-	resp, err = c.executeGET(item, req)
+	resp, err = c.executeGET(item, req, false)
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return nil
 	} else if err != nil {
@@ -234,7 +234,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	// Execute request
-	resp, err = c.executeGET(item, req)
+	resp, err = c.executeGET(item, req, false)
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return
 	} else if err != nil {

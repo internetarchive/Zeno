@@ -107,7 +107,7 @@ func (c *Crawl) shouldPause(host string) bool {
 	}
 }
 
-func isRedirection(statusCode int) bool {
+func isStatusCodeRedirect(statusCode int) bool {
 	if statusCode == 300 || statusCode == 301 ||
 		statusCode == 302 || statusCode == 307 ||
 		statusCode == 308 {
