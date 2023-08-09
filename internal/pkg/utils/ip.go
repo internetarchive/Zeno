@@ -2,6 +2,7 @@ package utils
 
 import (
 	"net"
+	"os"
 
 	"github.com/sirupsen/logrus"
 )
@@ -25,4 +26,13 @@ func GetOutboundIP() net.IP {
 	}
 
 	return conn.LocalAddr().(*net.UDPAddr).IP
+}
+
+func GetHostname() string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		logrus.Errorf("error getting hostname: %s", err)
+	}
+
+	return hostname
 }

@@ -13,6 +13,38 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// This function connects to HQ's websocket and listen for messages.
+// It also sends and "identify" message to the HQ to let it know that
+// Zeno is connected. This "identify" message is sent every second and
+// contains the crawler's stats and details.
+func (c *Crawl) HQWebsocket() {
+	var (
+		// the "identify" message will be sent every second
+		// to the crawl HQ
+		identifyTicker = time.NewTicker(time.Second)
+	)
+
+	defer func() {
+		identifyTicker.Stop()
+	}()
+
+	// send an "identify" message to the crawl HQ every second
+	for {
+		err := c.HQClient.Identify(&gocrawlhq.IdentifyMessage{
+			Project:   c.HQProject,
+			Job:       c.Job,
+			IP:        utils.GetOutboundIP().String(),
+			Hostname:  utils.GetHostname(),
+			GoVersion: utils.GetVersion().GoVersion,
+		})
+		if err != nil {
+			logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error sending identify payload to crawl HQ")
+		}
+
+		<-identifyTicker.C
+	}
+}
+
 func (c *Crawl) HQProducer() {
 	defer c.HQChannelsWg.Done()
 

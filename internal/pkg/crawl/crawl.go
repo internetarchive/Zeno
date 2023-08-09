@@ -306,6 +306,7 @@ func (c *Crawl) Start() (err error) {
 		go c.HQConsumer()
 		go c.HQProducer()
 		go c.HQFinisher()
+		go c.HQWebsocket()
 	} else {
 		// Push the seed list to the queue
 		logrus.Info("Pushing seeds in the local queue..")
