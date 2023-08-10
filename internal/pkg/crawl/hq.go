@@ -38,7 +38,11 @@ func (c *Crawl) HQWebsocket() {
 			GoVersion: utils.GetVersion().GoVersion,
 		})
 		if err != nil {
-			logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error sending identify payload to crawl HQ")
+			logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error sending identify payload to crawl HQ, trying to reconnect..")
+			err = c.HQClient.InitWebsocketConn()
+			if err != nil {
+				logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error initializing websocket connection to crawl HQ")
+			}
 		}
 
 		<-identifyTicker.C
