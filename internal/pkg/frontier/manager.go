@@ -104,7 +104,7 @@ func (f *Frontier) readItemsFromQueue() {
 						"host": host,
 					},
 					Message: "unable to dequeue item",
-					Level:   logrus.WarnLevel,
+					Level:   logrus.DebugLevel,
 				}
 
 				if err.Error() == "goque: ID used is outside range of stack or queue" {
