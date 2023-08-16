@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/paulbellamy/ratecounter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,7 +31,7 @@ func (f *Frontier) writeItemsToQueue() {
 
 		// Increment the counter of the host in the hosts pool,
 		// if the hosts doesn't exist in the pool, it will be created
-		f.HostPool.Incr(item.Host)
+		f.IncrHost(item.Host)
 
 		// Add the item to the host's queue
 		_, err := f.Queue.EnqueueObject([]byte(item.Host), item)
@@ -65,8 +64,6 @@ func (f *Frontier) writeItemsToQueue() {
 }
 
 func (f *Frontier) readItemsFromQueue() {
-	var mapCopy map[string]*ratecounter.Counter
-
 	f.IsQueueReaderActive.Set(true)
 
 	if f.QueueCount.Value() == 0 {
@@ -83,34 +80,23 @@ func (f *Frontier) readItemsFromQueue() {
 			time.Sleep(time.Second)
 		}
 
-		// We cleanup the hosts pool by removing
-		// all the hosts with a count of 0, then
-		// we make a snapshot of the hosts
-		// pool that we will iterate on
-		f.HostPool.DeleteEmptyHosts()
-
-		mapCopy = make(map[string]*ratecounter.Counter, 0)
-		f.HostPool.Lock()
-		for key, val := range f.HostPool.Hosts {
-			mapCopy[key] = val
-		}
-		f.HostPool.Unlock()
-
 		// We iterate over the copied pool, and dequeue
 		// new URLs to crawl based on that hosts pool
 		// that allow us to crawl a wide variety of domains
 		// at the same time, maximizing our speed
-		for host := range mapCopy {
+		f.HostPool.Range(func(host any, count any) bool {
 			if f.Paused.Get() {
 				time.Sleep(time.Second)
 			}
 
-			if f.HostPool.GetCount(host) == 0 {
-				continue
+			//logrus.Infof("host: %s, active: %d, total: %d", host.(string), f.GetActiveHostCount(host.(string)), f.GetHostCount(host.(string)))
+
+			if f.GetHostCount(host.(string)) == 0 {
+				return true
 			}
 
 			// Dequeue an item from the local queue
-			queueItem, err := f.Queue.DequeueString(host)
+			queueItem, err := f.Queue.DequeueString(host.(string))
 			if err != nil {
 				f.LoggingChan <- &FrontierLogMessage{
 					Fields: logrus.Fields{
@@ -122,11 +108,12 @@ func (f *Frontier) readItemsFromQueue() {
 				}
 
 				if err.Error() == "goque: ID used is outside range of stack or queue" {
-					f.HostPool.Decr(host)
+					f.DecrHost(host.(string))
 				}
 
-				continue
+				return true
 			}
+
 			f.QueueCount.Incr(-1)
 
 			// Turn the item from the queue into an Item
@@ -141,22 +128,21 @@ func (f *Frontier) readItemsFromQueue() {
 					Message: "unable to parse queue's item",
 					Level:   logrus.ErrorLevel,
 				}
-				continue
+
+				return true
 			}
 
 			// Sending the item to the workers via PullChan
 			f.PullChan <- item
 
-			// logInfo.WithFields(logrus.Fields{
-			// 	"url": item.URL,
-			// }).Debug("item sent to workers pool")
-
-			f.HostPool.Decr(host)
+			f.DecrHost(host.(string))
 
 			if f.FinishingQueueReader.Get() {
 				f.IsQueueReaderActive.Set(false)
-				return
+				return false
 			}
-		}
+
+			return true
+		})
 	}
 }

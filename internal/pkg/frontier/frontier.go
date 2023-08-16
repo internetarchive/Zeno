@@ -37,7 +37,7 @@ type Frontier struct {
 	// the map contains all the different hosts that Zeno crawled,
 	// with a counter for each, going through that map gives us
 	// the prefix to query from the queue
-	HostPool *HostPool
+	HostPool *sync.Map
 
 	UseSeencheck bool
 	Seencheck    *Seencheck
@@ -55,11 +55,7 @@ func (f *Frontier) Init(jobPath string, loggingChan chan *FrontierLogMessage, wo
 	f.JobPath = jobPath
 	f.Paused = new(utils.TAtomBool)
 	f.LoggingChan = loggingChan
-
-	// Initialize host pool
-	f.HostPool = new(HostPool)
-	f.HostPool.Mutex = new(sync.Mutex)
-	f.HostPool.Hosts = make(map[string]*ratecounter.Counter, 0)
+	f.HostPool = &sync.Map{}
 
 	// Initialize the frontier channels
 	f.PullChan = make(chan *Item, workers)
@@ -70,6 +66,7 @@ func (f *Frontier) Init(jobPath string, loggingChan chan *FrontierLogMessage, wo
 	if err != nil {
 		return err
 	}
+
 	f.QueueCount = new(ratecounter.Counter)
 	f.QueueCount.Incr(int64(f.Queue.Length()))
 

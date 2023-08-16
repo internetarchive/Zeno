@@ -114,8 +114,6 @@ type Crawl struct {
 	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item
 	HQChannelsWg      *sync.WaitGroup
-
-	CrawlPool *frontier.HostPool
 }
 
 // Start fire up the crawling process
@@ -186,14 +184,6 @@ func (c *Crawl) Start() (err error) {
 	c.Frontier.Init(c.JobPath, frontierLoggingChan, c.Workers, c.Seencheck)
 	c.Frontier.Load()
 	c.Frontier.Start()
-
-	// Create CrawlPool
-	c.CrawlPool = new(frontier.HostPool)
-	c.CrawlPool.Mutex = new(sync.Mutex)
-	c.CrawlPool.Hosts = make(map[string]*ratecounter.Counter, 0)
-
-	// Continually delete empty hosts inside of the newly created CrawlPool.
-	go c.clearEmptyHosts()
 
 	// Start the background process that will periodically check if the disk
 	// have enough free space, and potentially pause the crawl if it doesn't

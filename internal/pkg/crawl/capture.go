@@ -48,16 +48,16 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 		time.Sleep(time.Second)
 	}
 
-	// Temporarily pause crawls for individual hosts if they are over our configured maximum concurrent requests per domain.'
+	// Temporarily pause crawls for individual hosts if they are over our configured maximum concurrent requests per domain.
 	// If the request is a redirection, we do not pause the crawl because we want to follow the redirection.
 	if isRedirection {
 		for c.shouldPause(item.Host) {
 			time.Sleep(time.Millisecond * time.Duration(c.RateLimitDelay))
 		}
 
-		c.CrawlPool.Incr(item.Host)
+		c.Frontier.IncrHostActive(item.Host)
 
-		defer c.CrawlPool.Decr(item.Host)
+		defer c.Frontier.DecrHostActive(item.Host)
 	}
 
 	// Retry on 429 error

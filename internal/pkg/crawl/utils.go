@@ -89,10 +89,12 @@ func extractLinksFromText(source string) (links []*url.URL) {
 		if err != nil {
 			continue
 		}
+
 		err = utils.ValidateURL(URL)
 		if err != nil {
 			continue
 		}
+
 		links = append(links, URL)
 	}
 
@@ -100,11 +102,7 @@ func extractLinksFromText(source string) (links []*url.URL) {
 }
 
 func (c *Crawl) shouldPause(host string) bool {
-	if int(c.CrawlPool.GetCount(host)) >= c.MaxConcurrentRequestsPerDomain {
-		return true
-	} else {
-		return false
-	}
+	return c.Frontier.GetActiveHostCount(host) >= c.MaxConcurrentRequestsPerDomain
 }
 
 func isStatusCodeRedirect(statusCode int) bool {
@@ -114,12 +112,4 @@ func isStatusCodeRedirect(statusCode int) bool {
 		return true
 	}
 	return false
-}
-
-func (c *Crawl) clearEmptyHosts() {
-	for {
-		// Clear empty hosts and wait 5 seconds. This is locking so I can't imagine it's great for performance to run super frequently.
-		c.CrawlPool.DeleteEmptyHosts()
-		time.Sleep(time.Second * 5)
-	}
 }

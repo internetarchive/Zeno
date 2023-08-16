@@ -1,77 +1,166 @@
 package frontier
 
-import (
-	"sync"
+import "github.com/sirupsen/logrus"
 
-	"github.com/paulbellamy/ratecounter"
-)
-
-// HostPool holds all the active hosts in the pool
-type HostPool struct {
-	*sync.Mutex
-	Hosts map[string]*ratecounter.Counter
+type PoolItem struct {
+	TotalCount  uint64
+	ActiveCount uint64
 }
 
 // IsHostInPool return true if the Host is in the pool
-func (pool *HostPool) IsHostInPool(host string) bool {
-	pool.Lock()
-	if _, ok := pool.Hosts[host]; ok {
-		pool.Unlock()
+func (f *Frontier) IsHostInPool(host string) bool {
+	if _, ok := f.HostPool.Load(host); ok {
 		return true
 	}
-	pool.Unlock()
 	return false
 }
 
-// DeleteEmptyHosts remove all the hosts that have a count
-// of zero from the hosts pool
-func (pool *HostPool) DeleteEmptyHosts() {
-	pool.Lock()
-	for host, hostCount := range pool.Hosts {
-		if hostCount.Value() <= 0 {
-			delete(pool.Hosts, host)
+// Incr increment by 1 the counter of an host in the pool
+func (f *Frontier) IncrHost(host string) {
+	for {
+		v, ok := f.HostPool.Load(host)
+		if !ok {
+			f.HostPool.Store(host, PoolItem{1, 0})
+			return
 		}
+
+		swapped := f.HostPool.CompareAndSwap(host, v, PoolItem{
+			v.(PoolItem).TotalCount + 1,
+			v.(PoolItem).ActiveCount,
+		})
+
+		if !swapped {
+			f.LoggingChan <- &FrontierLogMessage{
+				Fields: logrus.Fields{
+					"host": host,
+				},
+				Message: "unable to swap host pool item for host increase",
+				Level:   logrus.ErrorLevel,
+			}
+
+			continue
+		}
+
+		return
 	}
-	pool.Unlock()
 }
 
-// Incr increment by 1 the counter of an host in the pool
-func (pool *HostPool) Incr(host string) {
-	pool.Lock()
-	if _, ok := pool.Hosts[host]; !ok {
-		pool.Hosts[host] = new(ratecounter.Counter)
+func (f *Frontier) IncrHostActive(host string) {
+	for {
+		v, ok := f.HostPool.Load(host)
+		if !ok {
+			f.HostPool.Store(host, PoolItem{1, 1})
+			return
+		}
+
+		swapped := f.HostPool.CompareAndSwap(host, v, PoolItem{
+			v.(PoolItem).TotalCount + 1,
+			v.(PoolItem).ActiveCount + 1,
+		})
+
+		if !swapped {
+			f.LoggingChan <- &FrontierLogMessage{
+				Fields: logrus.Fields{
+					"host": host,
+				},
+				Message: "unable to swap host pool item for active host increase",
+				Level:   logrus.ErrorLevel,
+			}
+
+			continue
+		}
+
+		return
 	}
-	pool.Hosts[host].Incr(1)
-	pool.Unlock()
 }
 
 // Decr decrement by 1 the counter of an host in the pool
-func (pool *HostPool) Decr(host string) {
-	pool.Lock()
-	if _, ok := pool.Hosts[host]; !ok {
-		pool.Unlock()
+func (f *Frontier) DecrHost(host string) {
+	for {
+		v, ok := f.HostPool.Load(host)
+		if !ok {
+			return
+		}
+
+		swapped := f.HostPool.CompareAndSwap(host, v, PoolItem{
+			v.(PoolItem).TotalCount - 1,
+			v.(PoolItem).ActiveCount,
+		})
+
+		if !swapped {
+			f.LoggingChan <- &FrontierLogMessage{
+				Fields: logrus.Fields{
+					"host": host,
+				},
+				Message: "unable to swap host pool item for host decrease",
+				Level:   logrus.ErrorLevel,
+			}
+
+			continue
+		}
+
 		return
 	}
+}
 
-	if pool.Hosts[host].Value()-1 <= 0 {
-		delete(pool.Hosts, host)
-		pool.Unlock()
+func (f *Frontier) DecrHostActive(host string) {
+	for {
+		v, ok := f.HostPool.Load(host)
+		if !ok {
+			return
+		}
+
+		swapped := f.HostPool.CompareAndSwap(host, v, PoolItem{
+			v.(PoolItem).TotalCount,
+			v.(PoolItem).ActiveCount - 1,
+		})
+
+		if !swapped {
+			f.LoggingChan <- &FrontierLogMessage{
+				Fields: logrus.Fields{
+					"host": host,
+				},
+				Message: "unable to swap host pool item for active host decrease",
+				Level:   logrus.ErrorLevel,
+			}
+
+			continue
+		}
+
+		if v.(PoolItem).TotalCount == 0 && v.(PoolItem).ActiveCount == 0 {
+			f.HostPool.Delete(host)
+		}
+
 		return
 	}
-
-	pool.Hosts[host].Incr(-1)
-	pool.Unlock()
 }
 
 // GetCount return the counter of the key
-func (pool *HostPool) GetCount(host string) (value int64) {
-	pool.Lock()
-	if _, ok := pool.Hosts[host]; !ok {
-		pool.Unlock()
+func (f *Frontier) GetHostCount(host string) (value int) {
+	v, ok := f.HostPool.Load(host)
+	if !ok {
 		return 0
 	}
-	value = pool.Hosts[host].Value()
-	pool.Unlock()
 
-	return value
+	return int(v.(PoolItem).TotalCount)
+}
+
+func (f *Frontier) GetActiveHostCount(host string) (value int) {
+	v, ok := f.HostPool.Load(host)
+	if !ok {
+		return 0
+	}
+
+	return int(v.(PoolItem).ActiveCount)
+}
+
+func (f *Frontier) GetHostsCount() (value int64) {
+	var count int64
+
+	f.HostPool.Range(func(host any, count any) bool {
+		value++
+		return true
+	})
+
+	return count
 }
