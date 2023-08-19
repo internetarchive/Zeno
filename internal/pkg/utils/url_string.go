@@ -49,7 +49,8 @@ func URLToString(u *url.URL) string {
 			}
 		}
 
-		if u.Path != "" && u.Path[0] != '/' && u.Host != "" {
+		path := u.EscapedPath()
+		if path != "" && path[0] != '/' && u.Host != "" {
 			buf.WriteByte('/')
 		}
 
@@ -60,11 +61,11 @@ func URLToString(u *url.URL) string {
 			// it would be mistaken for a scheme name. Such a segment must be
 			// preceded by a dot-segment (e.g., "./this:that") to make a relative-
 			// path reference.
-			if segment, _, _ := strings.Cut(u.Path, "/"); strings.Contains(segment, ":") {
+			if segment, _, _ := strings.Cut(path, "/"); strings.Contains(segment, ":") {
 				buf.WriteString("./")
 			}
 		}
-		buf.WriteString(u.Path)
+		buf.WriteString(path)
 	}
 
 	if u.ForceQuery || u.RawQuery != "" {
