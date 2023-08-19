@@ -70,7 +70,7 @@ func URLToString(u *url.URL) string {
 
 	if u.ForceQuery || u.RawQuery != "" {
 		buf.WriteByte('?')
-		buf.WriteString(u.RawQuery)
+		buf.WriteString(u.Query().Encode())
 	}
 
 	if u.Fragment != "" {
