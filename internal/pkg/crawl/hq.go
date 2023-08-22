@@ -105,8 +105,8 @@ func (c *Crawl) HQProducer() {
 	// listen to the discovered channel and add the URLs to the discoveredArray
 	for discoveredItem := range c.HQProducerChannel {
 		discoveredURL := gocrawlhq.URL{
-			Value: utils.URLToString(discoveredItem.URL),
-			Via:   utils.URLToString(discoveredItem.ParentItem.URL),
+			Value: discoveredItem.URL.String(),
+			Via:   discoveredItem.ParentItem.URL.String(),
 		}
 
 		for i := 0; uint8(i) < discoveredItem.Hop; i++ {
@@ -189,7 +189,7 @@ func (c *Crawl) HQFinisher() {
 		}
 
 		locallyCrawledTotal += int(finishedItem.LocallyCrawled)
-		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedItem.ID, Value: utils.URLToString(finishedItem.URL)})
+		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedItem.ID, Value: finishedItem.URL.String()})
 
 		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) {
 			for {
@@ -232,7 +232,7 @@ func (c *Crawl) HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, e
 
 	for _, URL := range URLs {
 		discoveredURLs = append(discoveredURLs, gocrawlhq.URL{
-			Value: utils.URLToString(URL),
+			Value: URL.String(),
 		})
 	}
 
@@ -265,7 +265,7 @@ func (c *Crawl) HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, e
 
 func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 	discoveredURL := gocrawlhq.URL{
-		Value: utils.URLToString(URL),
+		Value: URL.String(),
 	}
 
 	discoveredResponse, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "asset", false, true)

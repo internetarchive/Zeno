@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
 	"github.com/PuerkitoBio/goquery"
 )
@@ -95,13 +94,13 @@ func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.Cu
 		resp.Body.Close()
 
 		// Get the new URL
-		resp, err = httpClient.Get(utils.URLToString(location))
+		resp, err = httpClient.Get(location.String())
 		if err != nil {
 			return archivedURLs, err
 		}
 		defer resp.Body.Close()
 
-		archivedURLs = append(archivedURLs, utils.URLToString(location))
+		archivedURLs = append(archivedURLs, location.String())
 	}
 
 	if resp.StatusCode != 200 {
@@ -136,7 +135,7 @@ func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.Cu
 	}
 
 	// Get the video ID from the watchPageURL, it's the string between the first slash after the host and the second slash
-	videoID := strings.Replace(strings.Replace(utils.URLToString(watchPageURL), "/watch", "", 1), "https://"+watchPageURL.Host+"/", "", 1)
+	videoID := strings.Replace(strings.Replace(watchPageURL.String(), "/watch", "", 1), "https://"+watchPageURL.Host+"/", "", 1)
 
 	// Build the iframe URL
 	iframeURLString := baseURL.Scheme + "://" + baseURL.Host + "/embed/" + iframeFilename + "?videoId=" + videoID
@@ -151,13 +150,13 @@ func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.Cu
 	// we will look for the iframe-player JS file
 	var iframePlayerURL string
 
-	iframeURLResp, err := httpClient.Get(utils.URLToString(iframeURL))
+	iframeURLResp, err := httpClient.Get(iframeURL.String())
 	if err != nil {
 		return archivedURLs, err
 	}
 	defer iframeURLResp.Body.Close()
 
-	archivedURLs = append(archivedURLs, utils.URLToString(iframeURL))
+	archivedURLs = append(archivedURLs, iframeURL.String())
 
 	// Check that the status code is 200
 	if iframeURLResp.StatusCode == 301 {
@@ -170,13 +169,13 @@ func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.Cu
 		iframeURLResp.Body.Close()
 
 		// Get the new URL
-		iframeURLResp, err = httpClient.Get(utils.URLToString(location))
+		iframeURLResp, err = httpClient.Get(location.String())
 		if err != nil {
 			return archivedURLs, err
 		}
 		defer iframeURLResp.Body.Close()
 
-		archivedURLs = append(archivedURLs, utils.URLToString(location))
+		archivedURLs = append(archivedURLs, location.String())
 	}
 
 	if iframeURLResp.StatusCode != 200 {
@@ -229,13 +228,13 @@ func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.Cu
 		iframePlayerResp.Body.Close()
 
 		// Get the new URL
-		iframePlayerResp, err = httpClient.Get(utils.URLToString(location))
+		iframePlayerResp, err = httpClient.Get(location.String())
 		if err != nil {
 			return archivedURLs, err
 		}
 		defer iframePlayerResp.Body.Close()
 
-		archivedURLs = append(archivedURLs, utils.URLToString(location))
+		archivedURLs = append(archivedURLs, location.String())
 	}
 
 	if iframePlayerResp.StatusCode != 200 {
@@ -321,11 +320,11 @@ func GetSegments(URL *url.URL, httpClient warc.CustomHTTPClient) (URLs []*url.UR
 	)
 
 	// Replace /watch with /manifest/video.mpd if the URL ends with /watch, else, raise an error
-	if len(utils.URLToString(URL)) < 6 {
+	if len(URL.String()) < 6 {
 		return nil, errors.New("cloudflaresteam.GetSegments: URL too short")
 	} else {
-		if strings.HasSuffix(utils.URLToString(URL), "/watch") {
-			mpdURL = strings.Replace(utils.URLToString(URL), "/watch", "/manifest/video.mpd?parentOrigin="+URL.Scheme+"://"+URL.Host, 1)
+		if strings.HasSuffix(URL.String(), "/watch") {
+			mpdURL = strings.Replace(URL.String(), "/watch", "/manifest/video.mpd?parentOrigin="+URL.Scheme+"://"+URL.Host, 1)
 		} else {
 			return nil, errors.New("cloudflaresteam.GetSegments: URL does not end with /watch")
 		}

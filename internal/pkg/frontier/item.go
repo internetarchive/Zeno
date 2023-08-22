@@ -3,7 +3,6 @@ package frontier
 import (
 	"net/url"
 
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/zeebo/xxh3"
 )
 
@@ -31,7 +30,7 @@ func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint8, ID stri
 	item.Host = URL.Host
 	item.Hop = hop
 	item.ParentItem = parentItem
-	item.Hash = xxh3.HashString(utils.URLToString(URL))
+	item.Hash = xxh3.HashString(URL.String())
 	item.Type = itemType
 
 	return item

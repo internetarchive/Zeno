@@ -33,8 +33,8 @@ func DedupeURLs(URLs []*url.URL) []*url.URL {
 	list := []*url.URL{}
 
 	for _, entry := range URLs {
-		if _, value := keys[URLToString(entry)]; !value {
-			keys[URLToString(entry)] = true
+		if _, value := keys[entry.String()]; !value {
+			keys[entry.String()] = true
 
 			if entry.Scheme == "http" || entry.Scheme == "https" {
 				list = append(list, entry)
@@ -47,14 +47,14 @@ func DedupeURLs(URLs []*url.URL) []*url.URL {
 
 // ValidateURL validates a *url.URL
 func ValidateURL(u *url.URL) error {
-	valid := govalidator.IsURL(URLToString(u))
+	valid := govalidator.IsURL(u.String())
 
 	if u.Scheme != "http" && u.Scheme != "https" {
 		valid = false
 	}
 
 	if !valid {
-		return errors.New("Not a valid URL")
+		return errors.New("not a valid URL")
 	}
 
 	return nil
