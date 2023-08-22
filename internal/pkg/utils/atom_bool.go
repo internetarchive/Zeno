@@ -16,5 +16,8 @@ func (b *TAtomBool) Set(value bool) {
 
 // Get return the value of an atomic boolean
 func (b *TAtomBool) Get() bool {
-	return atomic.LoadInt32(&(b.flag)) != 0
+	if atomic.LoadInt32(&(b.flag)) != 0 {
+		return true
+	}
+	return false
 }

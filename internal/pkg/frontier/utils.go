@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/gosuri/uilive"
 	"github.com/sirupsen/logrus"
 )
@@ -33,7 +34,7 @@ func IsSeedList(path string) (seeds []Item, err error) {
 
 	// Initialize scanner
 	scanner := bufio.NewScanner(file)
-
+	
 	logrus.WithFields(logrus.Fields{
 		"path": path,
 	}).Info("Start reading input list")
@@ -49,14 +50,14 @@ func IsSeedList(path string) (seeds []Item, err error) {
 			continue
 		}
 
-		// err = utils.ValidateURL(URL)
-		// if err != nil {
-		// 	logrus.WithFields(logrus.Fields{
-		// 		"url": scanner.Text(),
-		// 		"err": err.Error(),
-		// 	}).Debug("this is not a valid URL")
-		// 	continue
-		// }
+		err = utils.ValidateURL(URL)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"url": scanner.Text(),
+				"err": err.Error(),
+			}).Debug("This is not a valid URL")
+			continue
+		}
 
 		item := NewItem(URL, nil, "seed", 0, "")
 		seeds = append(seeds, *item)
@@ -71,7 +72,7 @@ func IsSeedList(path string) (seeds []Item, err error) {
 	}
 
 	if len(seeds) == 0 {
-		return seeds, errors.New("seed list's content invalid")
+		return seeds, errors.New("Seed list's content invalid")
 	}
 
 	return seeds, nil

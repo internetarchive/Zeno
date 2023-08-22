@@ -113,7 +113,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 
 	// If a redirection is catched, then we execute the redirection
 	if isStatusCodeRedirect(resp.StatusCode) {
-		if resp.Header.Get("location") == req.URL.String() || item.Redirect >= c.MaxRedirect {
+		if resp.Header.Get("location") == utils.URLToString(req.URL) || item.Redirect >= c.MaxRedirect {
 			return resp, nil
 		}
 		defer resp.Body.Close()
@@ -135,7 +135,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 
 		// Seencheck the URL
 		if c.Seencheck {
-			found := c.seencheckURL(URL.String(), "seed")
+			found := c.seencheckURL(utils.URLToString(URL), "seed")
 			if found {
 				return nil, errors.New("URL from redirection has already been seen")
 			}
@@ -154,14 +154,14 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 		newItem.Redirect = item.Redirect + 1
 
 		// Prepare GET request
-		newReq, err = http.NewRequest("GET", URL.String(), nil)
+		newReq, err = http.NewRequest("GET", utils.URLToString(URL), nil)
 		if err != nil {
 			return resp, err
 		}
 
 		// Set new request headers on the new request :(
 		newReq.Header.Set("User-Agent", c.UserAgent)
-		newReq.Header.Set("Referer", newItem.ParentItem.URL.String())
+		newReq.Header.Set("Referer", utils.URLToString(newItem.ParentItem.URL))
 
 		return c.executeGET(newItem, newReq, true)
 	}
@@ -173,12 +173,12 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	var resp *http.Response
 
 	// Prepare GET request
-	req, err := http.NewRequest("GET", item.URL.String(), nil)
+	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Set("Referer", item.ParentItem.URL.String())
+	req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
 	req.Header.Set("User-Agent", c.UserAgent)
 
 	// Apply cookies obtained from the original URL captured
@@ -216,14 +216,14 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}(item)
 
 	// Prepare GET request
-	req, err := http.NewRequest("GET", item.URL.String(), nil)
+	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
 	if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while preparing GET request")
 		return
 	}
 
 	if item.Hop > 0 && item.ParentItem != nil {
-		req.Header.Set("Referer", item.ParentItem.URL.String())
+		req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
 	}
 
 	req.Header.Set("User-Agent", c.UserAgent)
@@ -259,7 +259,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
 
 	// Store the base URL to turn relative links into absolute links later
-	base, err := url.Parse(resp.Request.URL.String())
+	base, err := url.Parse(utils.URLToString(resp.Request.URL))
 	if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base URL")
 		return
@@ -329,7 +329,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		for _, cfstreamURL := range cfstreamURLs {
 			logInfo.WithFields(c.genLogFields(err, cfstreamURL, map[string]interface{}{
 				"parentHop": item.Hop,
-				"parentUrl": item.URL.String(),
+				"parentUrl": utils.URLToString(item.URL),
 				"type":      "asset",
 			})).Info("URL archived")
 		}
@@ -393,7 +393,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		seencheckedBatch := []*url.URL{}
 
 		for _, URL := range assets {
-			found := c.seencheckURL(URL.String(), "asset")
+			found := c.seencheckURL(utils.URLToString(URL), "asset")
 			if found {
 				continue
 			} else {
@@ -415,7 +415,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"urls":      assets,
 				"parentHop": item.Hop,
-				"parentUrl": item.URL.String(),
+				"parentUrl": utils.URLToString(item.URL),
 			})).Error("error while seenchecking assets via HQ")
 		} else {
 			assets = seencheckedURLs
@@ -434,7 +434,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		c.Frontier.QueueCount.Incr(-1)
 
 		// Just making sure we do not over archive by archiving the original URL
-		if item.URL.String() == asset.String() {
+		if utils.URLToString(item.URL) == utils.URLToString(asset) {
 			continue
 		}
 
@@ -446,7 +446,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 		// If the URL match any excluded string, we ignore it
 		for _, excludedString := range c.ExcludedStrings {
-			if strings.Contains(asset.String(), excludedString) {
+			if strings.Contains(utils.URLToString(asset), excludedString) {
 				excluded = true
 				break
 			}
@@ -470,7 +470,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			if err != nil {
 				logError.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
 					"parentHop": item.Hop,
-					"parentUrl": item.URL.String(),
+					"parentUrl": utils.URLToString(item.URL),
 					"type":      "asset",
 				})).Error("error while capturing asset")
 				return

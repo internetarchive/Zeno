@@ -61,7 +61,7 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *frontier.Item, wg *sync
 
 		// If the outlink match any excluded string, we ignore it
 		for _, excludedString := range c.ExcludedStrings {
-			if strings.Contains(outlink.String(), excludedString) {
+			if strings.Contains(utils.URLToString(outlink), excludedString) {
 				excluded = true
 				break
 			}

@@ -65,9 +65,9 @@ func (c *Crawl) genLogFields(err interface{}, URL interface{}, additionalFields 
 	case string:
 		fields["url"] = URLValue
 	case *url.URL:
-		fields["url"] = URLValue.String()
+		fields["url"] = utils.URLToString(URLValue)
 	case url.URL:
-		fields["url"] = URLValue.String()
+		fields["url"] = utils.URLToString(&URLValue)
 	default:
 	}
 
@@ -85,7 +85,7 @@ func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *
 	fields["hop"] = item.Hop
 	fields["type"] = item.Type
 	fields["executionTime"] = time.Since(executionStart).Milliseconds()
-	fields["url"] = item.URL.String()
+	fields["url"] = utils.URLToString(item.URL)
 
 	logInfo.WithFields(fields).Info("URL archived")
 }
