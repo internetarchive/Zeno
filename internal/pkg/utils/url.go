@@ -54,7 +54,7 @@ func ValidateURL(u *url.URL) error {
 	}
 
 	if !valid {
-		return errors.New("Not a valid URL")
+		return errors.New("not a valid URL")
 	}
 
 	return nil

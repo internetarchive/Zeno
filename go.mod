@@ -1,10 +1,10 @@
 module github.com/CorentinB/Zeno
 
-go 1.20
+go 1.21
 
 require (
 	git.archive.org/wb/gocrawlhq v1.2.4
-	github.com/CorentinB/warc v0.8.32
+	github.com/CorentinB/warc v0.8.33
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/beeker1121/goque v2.1.0+incompatible
@@ -30,6 +30,7 @@ require (
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeebo/xxh3 v1.0.2
 	go.uber.org/goleak v1.2.1
+	golang.org/x/net v0.10.0
 	mvdan.cc/xurls/v2 v2.5.0
 )
 
@@ -94,7 +95,6 @@ require (
 	github.com/ugorji/go/codec v1.2.9 // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
