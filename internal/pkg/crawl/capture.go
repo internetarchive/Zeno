@@ -428,7 +428,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	c.Frontier.QueueCount.Incr(int64(len(assets)))
 	swg := sizedwaitgroup.New(c.MaxConcurrentAssets)
-	excluded := true
+	excluded := false
 
 	for _, asset := range assets {
 		c.Frontier.QueueCount.Incr(-1)
@@ -459,6 +459,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 		swg.Add()
 		c.URIsPerSecond.Incr(1)
+
 		go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
 			defer swg.Done()
 
