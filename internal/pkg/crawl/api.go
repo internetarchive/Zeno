@@ -56,5 +56,8 @@ func (crawl *Crawl) startAPI() {
 		r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	}
 
-	r.Run(":" + crawl.APIPort)
+	err := r.Run(":" + crawl.APIPort)
+	if err != nil {
+		logError.Fatalf("unable to start API: %s", err.Error())
+	}
 }
