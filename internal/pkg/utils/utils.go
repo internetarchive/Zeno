@@ -13,6 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var LogInfo, LogWarning, LogError *logrus.Logger
+
 // SetupLogging setup the logger for the crawl
 func SetupLogging(jobPath string, liveStats bool, esURL string) (logInfo, logWarning, logError *logrus.Logger) {
 	var logsDirectory = path.Join(jobPath, "logs")
@@ -117,6 +119,10 @@ func SetupLogging(jobPath string, liveStats bool, esURL string) (logInfo, logWar
 	} else {
 		logError.SetOutput(writerError)
 	}
+
+	LogInfo = logInfo
+	LogWarning = logWarning
+	LogError = logError
 
 	return logInfo, logWarning, logError
 }
