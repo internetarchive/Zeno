@@ -50,7 +50,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 
 	// Temporarily pause crawls for individual hosts if they are over our configured maximum concurrent requests per domain.
 	// If the request is a redirection, we do not pause the crawl because we want to follow the redirection.
-	if isRedirection {
+	if !isRedirection {
 		for c.shouldPause(item.Host) {
 			time.Sleep(time.Millisecond * time.Duration(c.RateLimitDelay))
 		}
