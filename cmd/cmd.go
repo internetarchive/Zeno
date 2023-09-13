@@ -38,6 +38,7 @@ var GlobalFlags = []cli.Flag{
 	},
 	&cli.UintFlag{
 		Name:        "max-hops",
+		Aliases:     []string{"hops"},
 		Value:       0,
 		Usage:       "Maximum number of hops to execute.",
 		Destination: &config.App.Flags.MaxHops,
@@ -148,6 +149,18 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Exclude a specific host from the crawl, note that it will not exclude the domain if it is encountered as an asset for another web page.",
 		Destination: &config.App.Flags.ExcludedHosts,
 	},
+	&cli.IntFlag{
+		Name:        "max-concurrent-per-domain",
+		Value:       16,
+		Usage:       "Maximum number of concurrent requests per domain",
+		Destination: &config.App.Flags.MaxConcurrentRequestsPerDomain,
+	},
+	&cli.IntFlag{
+		Name:        "concurrent-sleep-length",
+		Value:       500,
+		Usage:       "Number of milliseconds to sleep when max concurrency per domain is reached.",
+		Destination: &config.App.Flags.RateLimitDelay,
+	},
 
 	// Proxy flags
 	&cli.StringFlag{
@@ -178,7 +191,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:        "warc-cdx-dedupe-server",
 		Value:       "",
-		Usage:       "Identify the server to use CDX deduplication. This turns CDX deduplication on.",
+		Usage:       "Identify the server to use CDX deduplication. This also activates CDX deduplication on.",
 		Destination: &config.App.Flags.CDXDedupeServer,
 	},
 	&cli.BoolFlag{
@@ -216,6 +229,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Disable assets capture.",
 		Value:       false,
 		Destination: &config.App.Flags.DisableAssetsCapture,
+	},
+	&cli.IntFlag{
+		Name:        "warc-dedupe-size",
+		Value:       1024,
+		Usage:       "Minimum size to deduplicate WARC records with revisit records.",
+		Destination: &config.App.Flags.WARCDedupSize,
 	},
 
 	// Crawl HQ flags
@@ -260,6 +279,16 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Crawl HQ feeding strategy.",
 		Value:       "lifo",
 		Destination: &config.App.Flags.HQStrategy,
+	},
+	&cli.StringFlag{
+		Name:        "es-url",
+		Usage:       "ElasticSearch URL to use for indexing crawl logs.",
+		Destination: &config.App.Flags.ElasticSearchURL,
+	},
+	&cli.StringSliceFlag{
+		Name:        "exclude-string",
+		Usage:       "Discard any (discovered) URLs containing this string.",
+		Destination: &config.App.Flags.ExcludedStrings,
 	},
 }
 

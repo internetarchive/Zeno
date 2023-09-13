@@ -9,17 +9,17 @@ import (
 
 // MakeAbsolute turn all URLs in a slice of url.URL into absolute URLs, based
 // on a given base *url.URL
-func MakeAbsolute(base *url.URL, URLs []url.URL) []url.URL {
+func MakeAbsolute(base *url.URL, URLs []*url.URL) []*url.URL {
 	for i, URL := range URLs {
 		if !URL.IsAbs() {
-			URLs[i] = *base.ResolveReference(&URL)
+			URLs[i] = base.ResolveReference(URL)
 		}
 	}
 
 	return URLs
 }
 
-func RemoveFragments(URLs []url.URL) []url.URL {
+func RemoveFragments(URLs []*url.URL) []*url.URL {
 	for i := range URLs {
 		URLs[i].Fragment = ""
 	}
@@ -28,13 +28,13 @@ func RemoveFragments(URLs []url.URL) []url.URL {
 }
 
 // DedupeURLs take a slice of *url.URL and dedupe it
-func DedupeURLs(URLs []url.URL) []url.URL {
+func DedupeURLs(URLs []*url.URL) []*url.URL {
 	keys := make(map[string]bool)
-	list := []url.URL{}
+	list := []*url.URL{}
 
 	for _, entry := range URLs {
-		if _, value := keys[URLToString(&entry)]; !value {
-			keys[URLToString(&entry)] = true
+		if _, value := keys[URLToString(entry)]; !value {
+			keys[URLToString(entry)] = true
 
 			if entry.Scheme == "http" || entry.Scheme == "https" {
 				list = append(list, entry)
@@ -54,7 +54,7 @@ func ValidateURL(u *url.URL) error {
 	}
 
 	if !valid {
-		return errors.New("Not a valid URL")
+		return errors.New("not a valid URL")
 	}
 
 	return nil

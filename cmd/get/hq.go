@@ -33,7 +33,7 @@ func cmdGetHQ(c *cli.Context) error {
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"crawl": crawl,
-			"error": err,
+			"err":   err.Error(),
 		}).Error("Crawl exited due to error")
 		return err
 	}

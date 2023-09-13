@@ -12,9 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var logInfo *logrus.Logger
-var logWarning *logrus.Logger
-
 // Frontier holds all the data for a frontier
 type Frontier struct {
 	Paused *utils.TAtomBool
@@ -41,38 +38,40 @@ type Frontier struct {
 	// the map contains all the different hosts that Zeno crawled,
 	// with a counter for each, going through that map gives us
 	// the prefix to query from the queue
-	HostPool *HostPool
+	HostPool *sync.Map
 
 	UseSeencheck bool
 	Seencheck    *Seencheck
+	LoggingChan  chan *FrontierLogMessage
+}
+
+type FrontierLogMessage struct {
+	Fields  map[string]interface{}
+	Message string
+	Level   logrus.Level
 }
 
 // Init ininitialize the components of a frontier
-func (f *Frontier) Init(jobPath string, logInf, logWarn *logrus.Logger, workers int, useSeencheck bool) (err error) {
+func (f *Frontier) Init(jobPath string, loggingChan chan *FrontierLogMessage, workers int, useSeencheck bool) (err error) {
 	f.JobPath = jobPath
-
-	logInfo = logInf
-	logWarning = logWarn
-
 	f.Paused = new(utils.TAtomBool)
-
-	// Initialize host pool
-	f.HostPool = new(HostPool)
-	f.HostPool.Mutex = new(sync.Mutex)
-	f.HostPool.Hosts = make(map[string]*ratecounter.Counter, 0)
+	f.LoggingChan = loggingChan
+	f.HostPool = &sync.Map{}
 
 	// Initialize the frontier channels
 	f.PullChan = make(chan *Item, workers)
 	f.PushChan = make(chan *Item, workers)
 
 	// Initialize the queue
-	f.Queue, err = newPersistentQueue(jobPath)
+	f.Queue, err = f.newPersistentQueue(jobPath)
 	if err != nil {
 		return err
 	}
+
 	f.QueueCount = new(ratecounter.Counter)
 	f.QueueCount.Incr(int64(f.Queue.Length()))
-	logrus.Info("Persistent queue initialized")
+
+	logrus.Info("persistent queue initialized")
 
 	// Initialize the seencheck
 	f.UseSeencheck = useSeencheck
@@ -83,7 +82,8 @@ func (f *Frontier) Init(jobPath string, logInf, logWarn *logrus.Logger, workers 
 		if err != nil {
 			return err
 		}
-		logrus.Info("Seencheck initialized")
+
+		logrus.Info("seencheck initialized")
 	}
 
 	f.FinishingQueueReader = new(utils.TAtomBool)

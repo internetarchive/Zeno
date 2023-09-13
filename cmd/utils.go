@@ -7,6 +7,7 @@ import (
 	"github.com/CorentinB/Zeno/config"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl"
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
@@ -25,20 +26,27 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.URIsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
 	c.LiveStats = flags.LiveStats
+	c.ElasticSearchURL = flags.ElasticSearchURL
 
 	// Frontier
 	c.Frontier = new(frontier.Frontier)
 
 	// If the job name isn't specified, we generate a random name
-	if len(flags.Job) == 0 {
-		UUID, err := uuid.NewUUID()
-		if err != nil {
-			logrus.Fatal(err)
+	if flags.Job == "" {
+		if flags.HQProject != "" {
+			c.Job = flags.HQProject
+		} else {
+			UUID, err := uuid.NewUUID()
+			if err != nil {
+				logrus.Fatal(err)
+			}
+
+			c.Job = UUID.String()
 		}
-		c.Job = UUID.String()
 	} else {
 		c.Job = flags.Job
 	}
+
 	c.JobPath = path.Join("jobs", flags.Job)
 
 	c.Workers = flags.Workers
@@ -47,6 +55,8 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 
 	c.Seencheck = flags.Seencheck
 	c.HTTPTimeout = flags.HTTPTimeout
+	c.MaxConcurrentRequestsPerDomain = flags.MaxConcurrentRequestsPerDomain
+	c.RateLimitDelay = flags.RateLimitDelay
 	c.MaxRetry = flags.MaxRetry
 	c.MaxRedirect = flags.MaxRedirect
 	c.MaxHops = uint8(flags.MaxHops)
@@ -55,6 +65,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.DisabledHTMLTags = flags.DisabledHTMLTags.Value()
 	c.ExcludedHosts = flags.ExcludedHosts.Value()
 	c.CaptureAlternatePages = flags.CaptureAlternatePages
+	c.ExcludedStrings = flags.ExcludedStrings.Value()
 
 	// WARC settings
 	c.WARCPrefix = flags.WARCPrefix
@@ -71,6 +82,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.CertValidation = flags.CertValidation
 	c.WARCFullOnDisk = flags.WARCFullOnDisk
 	c.WARCPoolSize = flags.WARCPoolSize
+	c.WARCDedupSize = flags.WARCDedupSize
 
 	c.API = flags.API
 	c.APIPort = flags.APIPort
@@ -84,8 +96,14 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		c.PrometheusMetrics.Prefix = flags.PrometheusPrefix
 	}
 
-	c.UserAgent = flags.UserAgent
+	if flags.UserAgent != "Zeno" {
+		c.UserAgent = flags.UserAgent
+	} else {
+		version := utils.GetVersion()
+		c.UserAgent = "Mozilla/5.0 (compatible; archive.org_bot +http://archive.org/details/archive.org_bot) Zeno/" + version.Version[:7] + " warc/" + version.WarcVersion
+	}
 
+	c.Headless = flags.Headless
 	c.CookieFile = flags.CookieFile
 	c.KeepCookies = flags.KeepCookies
 

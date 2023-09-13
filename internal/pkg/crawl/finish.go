@@ -19,7 +19,7 @@ func (crawl *Crawl) catchFinish() {
 
 	for {
 		time.Sleep(time.Second * 5)
-		if crawl.ActiveWorkers.Value() == 0 && crawl.Frontier.QueueCount.Value() == 0 && crawl.Finished.Get() == false && (crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() > 0) {
+		if crawl.ActiveWorkers.Value() == 0 && crawl.Frontier.QueueCount.Value() == 0 && !crawl.Finished.Get() && (crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() > 0) {
 			logrus.Warning("No additional URL to archive, finishing")
 			crawl.finish()
 			os.Exit(0)

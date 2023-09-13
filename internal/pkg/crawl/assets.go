@@ -9,20 +9,17 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
-func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.Document) (assets []url.URL, err error) {
+func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.Document) (assets []*url.URL, err error) {
 	var rawAssets []string
 
 	// Execute plugins on the response
 	if strings.Contains(base.Host, "cloudflarestream.com") {
 		cloudflarestreamURLs, err := cloudflarestream.GetSegments(base, *c.Client)
 		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-			}).Warning(utils.URLToString(base))
+			logWarning.WithFields(c.genLogFields(err, item.URL, nil)).Warnln("error getting cloudflarestream segments")
 		}
 
 		if len(cloudflarestreamURLs) > 0 {

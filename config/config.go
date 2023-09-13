@@ -13,13 +13,15 @@ type Flags struct {
 	LiveStats           bool
 	Debug               bool
 
-	DisabledHTMLTags      cli.StringSlice
-	ExcludedHosts         cli.StringSlice
-	DomainsCrawl          bool
-	CaptureAlternatePages bool
-	HTTPTimeout           int
-	MaxRedirect           int
-	MaxRetry              int
+	DisabledHTMLTags               cli.StringSlice
+	ExcludedHosts                  cli.StringSlice
+	DomainsCrawl                   bool
+	CaptureAlternatePages          bool
+	HTTPTimeout                    int
+	MaxRedirect                    int
+	MaxRetry                       int
+	MaxConcurrentRequestsPerDomain int
+	RateLimitDelay                 int
 
 	Proxy       string
 	BypassProxy cli.StringSlice
@@ -35,6 +37,7 @@ type Flags struct {
 	WARCPrefix     string
 	WARCOperator   string
 	WARCPoolSize   int
+	WARCDedupSize  int
 	WARCFullOnDisk bool
 	WARCTempDir    string
 
@@ -57,6 +60,8 @@ type Flags struct {
 	HeadlessWaitAfterLoad uint64
 
 	Cloudflarestream bool
+	ElasticSearchURL string
+	ExcludedStrings  cli.StringSlice
 }
 
 type Application struct {

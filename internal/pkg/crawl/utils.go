@@ -58,31 +58,30 @@ func (c *Crawl) handleCrawlPause() {
 	}
 }
 
-func (c *Crawl) seencheckURL(URL string, urlType string) bool {
+func (c *Crawl) seencheckURL(URL string, URLType string) bool {
 	hash := strconv.FormatUint(xxh3.HashString(URL), 10)
-
 	found, _ := c.Frontier.Seencheck.IsSeen(hash)
 	if found {
 		return true
 	} else {
-		c.Frontier.Seencheck.Seen(hash, urlType)
+		c.Frontier.Seencheck.Seen(hash, URLType)
 		return false
 	}
 }
 
-func (c *Crawl) excludeHosts(URLs []url.URL) (output []url.URL) {
-	for _, url := range URLs {
-		if utils.StringInSlice(url.Host, c.ExcludedHosts) {
+func (c *Crawl) excludeHosts(URLs []*url.URL) (output []*url.URL) {
+	for _, URL := range URLs {
+		if utils.StringInSlice(URL.Host, c.ExcludedHosts) {
 			continue
 		} else {
-			output = append(output, url)
+			output = append(output, URL)
 		}
 	}
 
 	return output
 }
 
-func extractLinksFromText(source string) (links []url.URL) {
+func extractLinksFromText(source string) (links []*url.URL) {
 	// Extract links and dedupe them
 	rawLinks := utils.DedupeStrings(regexOutlinks.FindAllString(source, -1))
 
@@ -92,11 +91,13 @@ func extractLinksFromText(source string) (links []url.URL) {
 		if err != nil {
 			continue
 		}
+
 		err = utils.ValidateURL(URL)
 		if err != nil {
 			continue
 		}
-		links = append(links, *URL)
+
+		links = append(links, URL)
 	}
 
 	return links
@@ -122,4 +123,17 @@ func getURLsFromJSON(payload gjson.Result) (links []string) {
 	}
 
 	return links
+}
+
+func (c *Crawl) shouldPause(host string) bool {
+	return c.Frontier.GetActiveHostCount(host) >= c.MaxConcurrentRequestsPerDomain
+}
+
+func isStatusCodeRedirect(statusCode int) bool {
+	if statusCode == 300 || statusCode == 301 ||
+		statusCode == 302 || statusCode == 307 ||
+		statusCode == 308 {
+		return true
+	}
+	return false
 }

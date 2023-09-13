@@ -19,8 +19,11 @@ import (
 	"mvdan.cc/xurls/v2"
 )
 
-var logInfo *logrus.Logger
-var logWarning *logrus.Logger
+var (
+	logInfo    *logrus.Logger
+	logWarning *logrus.Logger
+	logError   *logrus.Logger
+)
 
 // PrometheusMetrics define all the metrics exposed by the Prometheus exporter
 type PrometheusMetrics struct {
@@ -31,35 +34,40 @@ type PrometheusMetrics struct {
 // Crawl define the parameters of a crawl process
 type Crawl struct {
 	*sync.Mutex
-	StartTime time.Time
-	SeedList  []frontier.Item
-	Paused    *utils.TAtomBool
-	Finished  *utils.TAtomBool
-	LiveStats bool
+	StartTime        time.Time
+	SeedList         []frontier.Item
+	Paused           *utils.TAtomBool
+	Finished         *utils.TAtomBool
+	LiveStats        bool
+	ElasticSearchURL string
 
 	// Frontier
 	Frontier *frontier.Frontier
 
 	// Crawl settings
-	WorkerPool            sizedwaitgroup.SizedWaitGroup
-	MaxConcurrentAssets   int
-	Client                *warc.CustomHTTPClient
-	ClientProxied         *warc.CustomHTTPClient
-	Logger                logrus.Logger
-	DisabledHTMLTags      []string
-	ExcludedHosts         []string
-	UserAgent             string
-	Job                   string
-	JobPath               string
-	MaxHops               uint8
-	MaxRetry              int
-	MaxRedirect           int
-	HTTPTimeout           int
-	DisableAssetsCapture  bool
-	CaptureAlternatePages bool
-	DomainsCrawl          bool
-	Seencheck             bool
-	Workers               int
+	WorkerPool                     sizedwaitgroup.SizedWaitGroup
+	MaxConcurrentAssets            int
+	Client                         *warc.CustomHTTPClient
+	ClientProxied                  *warc.CustomHTTPClient
+	Logger                         logrus.Logger
+	DisabledHTMLTags               []string
+	ExcludedHosts                  []string
+	ExcludedStrings                []string
+	UserAgent                      string
+	Job                            string
+	JobPath                        string
+	MaxHops                        uint8
+	MaxRetry                       int
+	MaxRedirect                    int
+	HTTPTimeout                    int
+	MaxConcurrentRequestsPerDomain int
+	RateLimitDelay                 int
+	DisableAssetsCapture           bool
+	CaptureAlternatePages          bool
+	DomainsCrawl                   bool
+	Headless                       bool
+	Seencheck                      bool
+	Workers                        int
 
 	// Cookie-related settings
 	CookieFile  string
@@ -91,6 +99,7 @@ type Crawl struct {
 	CDXDedupeServer    string
 	WARCFullOnDisk     bool
 	WARCPoolSize       int
+	WARCDedupSize      int
 	DisableLocalDedupe bool
 	CertValidation     bool
 
@@ -123,15 +132,64 @@ func (c *Crawl) Start() (err error) {
 	c.HQChannelsWg = new(sync.WaitGroup)
 	regexOutlinks = xurls.Relaxed()
 
-	// Setup logging
-	logInfo, logWarning = utils.SetupLogging(c.JobPath, c.LiveStats)
+	// Setup logging, every day at midnight UTC a new setup
+	// is triggered in order to change the ES index's name
+	if c.ElasticSearchURL != "" {
+		// Goroutine loop that fetch the machine's IP address every second
+		go func() {
+			for {
+				ip := utils.GetOutboundIP().String()
+				constants.Store("ip", ip)
+				time.Sleep(time.Second * 10)
+			}
+		}()
+
+		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+
+		go func() {
+			// Get the current time in UTC and figure out when the next midnight will occur
+			now := time.Now().UTC()
+			midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+			if now.After(midnight) {
+				midnight = midnight.Add(24 * time.Hour)
+			}
+
+			// Calculate the duration until midnight and add a little extra time to avoid calling your function just before midnight
+			duration := midnight.Sub(now) + time.Second*10
+
+			// Create a timer that will wait until midnight
+			timer := time.NewTimer(duration)
+
+			// Wait for the timer to finish (which will occur at midnight)
+			<-timer.C
+
+			// Call your function
+			logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+		}()
+	} else {
+		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+	}
 
 	// Start the background process that will handle os signals
 	// to exit Zeno, like CTRL+C
 	go c.setupCloseHandler()
 
 	// Initialize the frontier
-	c.Frontier.Init(c.JobPath, logInfo, logWarning, c.Workers, c.Seencheck)
+	frontierLoggingChan := make(chan *frontier.FrontierLogMessage, 10)
+	go func() {
+		for log := range frontierLoggingChan {
+			switch log.Level {
+			case logrus.ErrorLevel:
+				logError.WithFields(c.genLogFields(nil, nil, log.Fields)).Error(log.Message)
+			case logrus.WarnLevel:
+				logWarning.WithFields(c.genLogFields(nil, nil, log.Fields)).Warn(log.Message)
+			case logrus.InfoLevel:
+				logInfo.WithFields(c.genLogFields(nil, nil, log.Fields)).Info(log.Message)
+			}
+		}
+	}()
+
+	c.Frontier.Init(c.JobPath, frontierLoggingChan, c.Workers, c.Seencheck)
 	c.Frontier.Load()
 	c.Frontier.Start()
 
@@ -154,12 +212,10 @@ func (c *Crawl) Start() (err error) {
 	// Change WARC pool size
 	rotatorSettings.WARCWriterPoolSize = c.WARCPoolSize
 
-	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe}
+	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, SizeThreshold: c.WARCDedupSize}
 	if c.CDXDedupeServer != "" {
-		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer}
+		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer, SizeThreshold: c.WARCDedupSize}
 	}
-
-	errChan := make(chan error)
 
 	// Init the HTTP client responsible for recording HTTP(s) requests / responses
 	HTTPClientSettings := warc.HTTPClientSettings{
@@ -172,14 +228,14 @@ func (c *Crawl) Start() (err error) {
 		FullOnDisk:          c.WARCFullOnDisk,
 	}
 
-	c.Client, errChan, err = warc.NewWARCWritingHTTPClient(HTTPClientSettings)
+	c.Client, err = warc.NewWARCWritingHTTPClient(HTTPClientSettings)
 	if err != nil {
 		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
 	}
 
 	go func() {
-		for err := range errChan {
-			logWarning.Errorf("WARC HTTP client error: %s", err)
+		for err := range c.Client.ErrChan {
+			logError.WithFields(c.genLogFields(err, nil, nil)).Errorf("WARC HTTP client error")
 		}
 	}()
 
@@ -187,19 +243,17 @@ func (c *Crawl) Start() (err error) {
 	logrus.Infof("HTTP client timeout set to %d seconds", c.HTTPTimeout)
 
 	if c.Proxy != "" {
-		errChanProxy := make(chan error)
-
 		proxyHTTPClientSettings := HTTPClientSettings
 		proxyHTTPClientSettings.Proxy = c.Proxy
 
-		c.ClientProxied, errChanProxy, err = warc.NewWARCWritingHTTPClient(proxyHTTPClientSettings)
+		c.ClientProxied, err = warc.NewWARCWritingHTTPClient(proxyHTTPClientSettings)
 		if err != nil {
-			logrus.Fatalf("Unable to init WARC writing (proxy) HTTP client: %s", err)
+			logError.Fatal("unable to init WARC writing (proxy) HTTP client")
 		}
 
 		go func() {
-			for err := range errChanProxy {
-				logWarning.Errorf("WARC HTTP client error: %s", err)
+			for err := range c.ClientProxied.ErrChan {
+				logError.WithFields(c.genLogFields(err, nil, nil)).Error("WARC HTTP client error")
 			}
 		}()
 	}
@@ -239,7 +293,7 @@ func (c *Crawl) Start() (err error) {
 	if c.CookieFile != "" {
 		cookieJar, err := cookiejar.NewFileJar(c.CookieFile, nil)
 		if err != nil {
-			panic(err)
+			logError.WithFields(c.genLogFields(err, nil, nil)).Fatal("unable to parse cookie file")
 		}
 
 		c.Client.Jar = cookieJar
@@ -271,6 +325,7 @@ func (c *Crawl) Start() (err error) {
 		go c.HQConsumer()
 		go c.HQProducer()
 		go c.HQFinisher()
+		go c.HQWebsocket()
 	} else {
 		// Push the seed list to the queue
 		logrus.Info("Pushing seeds in the local queue..")

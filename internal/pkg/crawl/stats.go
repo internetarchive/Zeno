@@ -10,24 +10,10 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/gosuri/uilive"
 	"github.com/gosuri/uitable"
-	"github.com/mackerelio/go-osstat/memory"
-	"github.com/sirupsen/logrus"
 )
 
 func bToMb(b uint64) uint64 {
 	return b / 1024 / 1024
-}
-
-func getMemory() string {
-	memory, err := memory.Get()
-	if err != nil {
-		logWarning.WithFields(logrus.Fields{
-			"error": err,
-		}).Warning("Unable to get memory usage")
-		return "error/error"
-	}
-
-	return strconv.Itoa(int(bToMb(memory.Used))) + "/" + strconv.Itoa(int(bToMb(memory.Total))) + "MB"
 }
 
 func (c *Crawl) printLiveStats() {

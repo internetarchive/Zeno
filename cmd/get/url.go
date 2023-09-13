@@ -6,7 +6,6 @@ import (
 	"github.com/CorentinB/Zeno/cmd"
 	"github.com/CorentinB/Zeno/config"
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -33,14 +32,14 @@ func cmdGetURL(c *cli.Context) error {
 
 	// Initialize initial seed list
 	input, err := url.Parse(c.Args().Get(0))
-	err = utils.ValidateURL(input)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"input": c.Args().Get(0),
-			"error": err.Error(),
+			"err":   err.Error(),
 		}).Error("This is not a valid input")
 		return err
 	}
+
 	crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, "seed", 0, ""))
 
 	// Start crawl
@@ -48,7 +47,7 @@ func cmdGetURL(c *cli.Context) error {
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"crawl": crawl,
-			"error": err,
+			"err":   err.Error(),
 		}).Error("Crawl exited due to error")
 		return err
 	}
