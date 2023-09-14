@@ -65,7 +65,6 @@ type Crawl struct {
 	DisableAssetsCapture           bool
 	CaptureAlternatePages          bool
 	DomainsCrawl                   bool
-	Headless                       bool
 	Seencheck                      bool
 	Workers                        int
 

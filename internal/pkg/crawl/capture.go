@@ -14,7 +14,6 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/tiktok"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/tidwall/gjson"
 	"github.com/tomnomnom/linkheader"
@@ -23,298 +22,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
 )
-
-// Capture capture the URL and return the outlinks
-func (c *Crawl) Capture(item *frontier.Item) {
-	var (
-		resp           *http.Response
-		waitGroup      sync.WaitGroup
-		respHeaders    http.Header
-		respBodyReader io.Reader
-	)
-
-	defer func(i *frontier.Item) {
-		waitGroup.Wait()
-
-		if c.UseHQ && i.ID != "" {
-			c.HQFinishedChannel <- i
-		}
-	}(item)
-
-	if !c.Headless {
-		// Prepare GET request
-		req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
-		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-			}).Warning(utils.URLToString(item.URL))
-			return
-		}
-
-		if item.Hop > 0 && item.ParentItem != nil {
-			req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
-		}
-
-		req.Header.Set("User-Agent", c.UserAgent)
-
-		// Execute site-specific code on the request, before sending it
-		if strings.Contains(item.URL.Host, "tiktok.com") {
-			req = tiktok.AddHeaders(req)
-		}
-
-		// Execute request
-		resp, err = c.executeGET(item, req)
-		if err != nil && err.Error() == "URL from redirection has already been seen" {
-			return
-		} else if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-			}).Warning(utils.URLToString(item.URL))
-			return
-		}
-		defer resp.Body.Close()
-
-		// Scrape potential URLs from Link HTTP header
-		var (
-			links      = linkheader.Parse(resp.Header.Get("link"))
-			discovered []string
-		)
-
-		for _, link := range links {
-			if link.Rel == "prev" || link.Rel == "next" {
-				discovered = append(discovered, link.URL)
-			}
-		}
-
-		waitGroup.Add(1)
-		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
-	} else {
-		// Execute the GET request with the headless browser
-		body, headers, err := c.captureHeadless(item)
-		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-				"func":  "Capture.captureHeadless",
-			}).Warning(utils.URLToString(item.URL))
-
-			if !errors.Is(err, context.DeadlineExceeded) {
-				return
-			}
-		}
-
-		respHeaders = headers
-		respBodyReader = strings.NewReader(body)
-	}
-
-	if !c.Headless {
-		respBodyReader = resp.Body
-		respHeaders = resp.Header
-	}
-
-	// Store the base URL to turn relative links into absolute links later
-	base, err := url.Parse(utils.URLToString(item.URL))
-	if err != nil {
-		logWarning.WithFields(logrus.Fields{
-			"error": err,
-		}).Warning(utils.URLToString(item.URL))
-		return
-	}
-
-	// If the response is a JSON document, we would like to scrape it for links.
-	if strings.Contains(respHeaders.Get("Content-Type"), "json") {
-		jsonBody, err := io.ReadAll(respBodyReader)
-		if err != nil {
-			logWarning.Warning(err)
-			return
-		}
-
-		outlinks := getURLsFromJSON(gjson.ParseBytes(jsonBody))
-
-		waitGroup.Add(1)
-		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(outlinks)), item, &waitGroup)
-
-		return
-	}
-
-	// If the response isn't a text/*, we do not scrape it.
-	// We also aren't going to scrape if assets and outlinks are turned off.
-	if !strings.Contains(respHeaders.Get("Content-Type"), "text/") || (c.DisableAssetsCapture && !c.DomainsCrawl && (c.MaxHops <= item.Hop)) {
-		// Enforce reading all data from the response for WARC writing (only if not headless)
-		// (otherwise the connection will be closed before the WARC writer can read it)
-		if !c.Headless {
-			io.Copy(io.Discard, respBodyReader)
-		}
-
-		return
-	}
-
-	// Turn the response into a doc that we will scrape for outlinks and assets.
-	doc, err := goquery.NewDocumentFromReader(respBodyReader)
-	if err != nil {
-		logWarning.WithFields(logrus.Fields{
-			"error": err,
-		}).Warning(utils.URLToString(item.URL))
-		return
-	}
-
-	// Execute site-specific code on the document
-	if strings.Contains(base.Host, "cloudflarestream.com") {
-		// Look for JS files necessary for the playback of the video
-		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, base, *c.Client)
-		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-			}).Warning(utils.URLToString(base))
-			return
-		}
-
-		// Seencheck the URLs we captured
-		if c.Seencheck {
-			for _, cfstreamURL := range cfstreamURLs {
-				c.seencheckURL(cfstreamURL, "asset")
-			}
-		} else if c.UseHQ {
-			c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
-		}
-	}
-
-	// Websites can use a <base> tag to specify a base for relative URLs in every other tags.
-	// This checks for the "base" tag and resets the "base" URL variable with the new base URL specified
-	// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-	if !utils.StringInSlice("base", c.DisabledHTMLTags) {
-		oldBase := base
-
-		doc.Find("base").Each(func(index int, goitem *goquery.Selection) {
-			// If a new base got scraped, stop looking for one
-			if oldBase != base {
-				return
-			}
-
-			// Attempt to get a new base value from the base HTML tag
-			link, exists := goitem.Attr("href")
-			if exists {
-				baseTagValue, err := url.Parse(link)
-				if err != nil {
-					logWarning.WithFields(logrus.Fields{
-						"error": err,
-					}).Warning(utils.URLToString(item.URL))
-				} else {
-					base = baseTagValue
-				}
-			}
-		})
-	}
-
-	// Extract outlinks
-	outlinks, err := extractOutlinks(base, doc)
-	if err != nil {
-		logWarning.WithFields(logrus.Fields{
-			"error": err,
-		}).Warning(utils.URLToString(item.URL))
-		return
-	}
-
-	waitGroup.Add(1)
-	go c.queueOutlinks(outlinks, item, &waitGroup)
-
-	// If we are not in headless mode, we queue the assets for archiving
-	if !c.DisableAssetsCapture && !c.Headless {
-		// Extract and capture assets
-		assets, err := c.extractAssets(base, item, doc)
-		if err != nil {
-			logWarning.WithFields(logrus.Fields{
-				"error": err,
-			}).Warning(utils.URLToString(item.URL))
-			return
-		}
-
-		// If we didn't find any assets, let's stop here
-		if len(assets) == 0 {
-			return
-		}
-
-		// If --local-seencheck is enabled, then we check if the assets are in the
-		// seencheck DB. If they are, then they are skipped.
-		// Else, if we use HQ, then we use HQ's seencheck.
-		if c.Seencheck {
-			seencheckedBatch := []url.URL{}
-			for _, URL := range assets {
-				found := c.seencheckURL(utils.URLToString(&URL), "asset")
-				if found {
-					continue
-				} else {
-					seencheckedBatch = append(seencheckedBatch, URL)
-				}
-			}
-
-			if len(seencheckedBatch) == 0 {
-				return
-			}
-
-			assets = seencheckedBatch
-		} else if c.UseHQ {
-			seencheckedURLs, err := c.HQSeencheckURLs(assets)
-			// We ignore the error here because we don't want to slow down the crawl
-			// if HQ is down or if the request failed. So if we get an error, we just
-			// continue with the original list of assets.
-			if err == nil {
-				assets = seencheckedURLs
-			}
-
-			if len(assets) == 0 {
-				return
-			}
-		}
-
-		c.Frontier.QueueCount.Incr(int64(len(assets)))
-		swg := sizedwaitgroup.New(c.MaxConcurrentAssets)
-		for _, asset := range assets {
-			c.Frontier.QueueCount.Incr(-1)
-
-			// Just making sure we do not over archive by archiving the original URL
-			if utils.URLToString(item.URL) == utils.URLToString(&asset) {
-				continue
-			}
-
-			// We ban googlevideo.com URLs because they are heavily rate limited by default, and
-			// we don't want the crawler to spend an innapropriate amount of time archiving them
-			if strings.Contains(item.Host, "googlevideo.com") {
-				continue
-			}
-
-			swg.Add()
-			c.URIsPerSecond.Incr(1)
-			go func(asset url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
-				defer swg.Done()
-
-				// Create the asset's item
-				newAsset := frontier.NewItem(&asset, item, "asset", item.Hop, "")
-
-				// Capture the asset
-				err = c.captureAsset(newAsset, resp.Cookies())
-				if err != nil {
-					logWarning.WithFields(logrus.Fields{
-						"error":          err,
-						"queued":         c.Frontier.QueueCount.Value(),
-						"crawled":        c.CrawledSeeds.Value() + c.CrawledAssets.Value(),
-						"rate":           c.URIsPerSecond.Rate(),
-						"active_workers": c.ActiveWorkers.Value(),
-						"parent_hop":     item.Hop,
-						"parent_url":     utils.URLToString(item.URL),
-						"type":           "asset",
-					}).Warning(utils.URLToString(&asset))
-					return
-				}
-
-				// If we made it to this point, it means that the asset have been crawled successfully,
-				// then we can increment the locallyCrawled variable
-				atomic.AddUint64(&item.LocallyCrawled, 1)
-			}(asset, &swg)
-		}
-
-		swg.Wait()
-	}
-}
 
 func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection bool) (resp *http.Response, err error) {
 	var (
@@ -497,8 +204,10 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 // Capture capture the URL and return the outlinks
 func (c *Crawl) Capture(item *frontier.Item) {
 	var (
-		resp      *http.Response
-		waitGroup sync.WaitGroup
+		resp           *http.Response
+		waitGroup      sync.WaitGroup
+		respHeaders    http.Header
+		respBodyReader io.Reader
 	)
 
 	defer func(i *frontier.Item) {
@@ -509,58 +218,81 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		}
 	}(item)
 
-	// Prepare GET request
-	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
-	if err != nil {
-		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while preparing GET request")
-		return
-	}
-
-	if item.Hop > 0 && item.ParentItem != nil {
-		req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
-	}
-
-	req.Header.Set("User-Agent", c.UserAgent)
-
-	// Execute site-specific code on the request, before sending it
-	if strings.Contains(item.URL.Host, "tiktok.com") {
-		req = tiktok.AddHeaders(req)
-	}
-
-	// Execute request
-	resp, err = c.executeGET(item, req, false)
-	if err != nil && err.Error() == "URL from redirection has already been seen" {
-		return
-	} else if err != nil {
-		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while executing GET request")
-		return
-	}
-	defer resp.Body.Close()
-
-	// Scrape potential URLs from Link HTTP header
-	var (
-		links      = linkheader.Parse(resp.Header.Get("link"))
-		discovered []string
-	)
-
-	for _, link := range links {
-		if link.Rel == "prev" || link.Rel == "next" {
-			discovered = append(discovered, link.URL)
+	if !c.Headless {
+		// Prepare GET request
+		req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while preparing GET request")
+			return
 		}
+
+		if item.Hop > 0 && item.ParentItem != nil {
+			req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
+		}
+
+		req.Header.Set("User-Agent", c.UserAgent)
+
+		// Execute site-specific code on the request, before sending it
+		if strings.Contains(item.URL.Host, "tiktok.com") {
+			req = tiktok.AddHeaders(req)
+		}
+
+		// Execute request
+		resp, err = c.executeGET(item, req, false)
+		if err != nil && err.Error() == "URL from redirection has already been seen" {
+			return
+		} else if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while executing GET request")
+			return
+		}
+		defer resp.Body.Close()
+
+		// Scrape potential URLs from Link HTTP header
+		var (
+			links      = linkheader.Parse(resp.Header.Get("link"))
+			discovered []string
+		)
+
+		for _, link := range links {
+			if link.Rel == "prev" || link.Rel == "next" {
+				discovered = append(discovered, link.URL)
+			}
+		}
+
+		waitGroup.Add(1)
+		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
+	} else {
+		// Execute the GET request with the headless browser
+		body, headers, err := c.captureHeadless(item)
+		if err != nil {
+			logWarning.WithFields(logrus.Fields{
+				"error": err,
+				"func":  "Capture.captureHeadless",
+			}).Warning(utils.URLToString(item.URL))
+
+			if !errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+		}
+
+		respHeaders = headers
+		respBodyReader = strings.NewReader(body)
 	}
 
-	waitGroup.Add(1)
-	go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
+	if !c.Headless {
+		respBodyReader = resp.Body
+		respHeaders = resp.Header
+	}
 
 	// Store the base URL to turn relative links into absolute links later
-	base, err := url.Parse(utils.URLToString(resp.Request.URL))
+	base, err := url.Parse(utils.URLToString(item.URL))
 	if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base URL")
 		return
 	}
 
 	// If the response is a JSON document, we would like to scrape it for links.
-	if strings.Contains(resp.Header.Get("Content-Type"), "json") {
+	if strings.Contains(respHeaders.Get("Content-Type"), "json") {
 		jsonBody, err := io.ReadAll(resp.Body)
 		if err != nil {
 			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading JSON body")
@@ -577,11 +309,11 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 	// If the response isn't a text/*, we do not scrape it.
 	// We also aren't going to scrape if assets and outlinks are turned off.
-	if !strings.Contains(resp.Header.Get("Content-Type"), "text/") || (c.DisableAssetsCapture && !c.DomainsCrawl && (c.MaxHops <= item.Hop)) {
-		// Enforce reading all data from the response for WARC writing
-		_, err := io.Copy(io.Discard, resp.Body)
-		if err != nil {
-			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading response body")
+	if !strings.Contains(respHeaders.Get("Content-Type"), "text/") || (c.DisableAssetsCapture && !c.DomainsCrawl && (c.MaxHops <= item.Hop)) {
+		// Enforce reading all data from the response for WARC writing (only if not headless)
+		// (otherwise the connection will be closed before the WARC writer can read it)
+		if !c.Headless {
+			io.Copy(io.Discard, respBodyReader)
 		}
 
 		return
@@ -664,140 +396,117 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	waitGroup.Add(1)
 	go c.queueOutlinks(outlinks, item, &waitGroup)
 
-	if c.DisableAssetsCapture {
-		return
-	}
-
-	// Extract and capture assets
-	assets, err := c.extractAssets(base, item, doc)
-	if err != nil {
-		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting assets")
-		return
-	}
-
-	// If we didn't find any assets, let's stop here
-	if len(assets) == 0 {
-		return
-	}
-
-	// If --local-seencheck is enabled, then we check if the assets are in the
-	// seencheck DB. If they are, then they are skipped.
-	// Else, if we use HQ, then we use HQ's seencheck.
-	if c.Seencheck {
-		seencheckedBatch := []*url.URL{}
-
-		for _, URL := range assets {
-			found := c.seencheckURL(utils.URLToString(URL), "asset")
-			if found {
-				continue
-			} else {
-				seencheckedBatch = append(seencheckedBatch, URL)
-			}
-		}
-
-		if len(seencheckedBatch) == 0 {
+	// If we are not in headless mode, we queue the assets for archiving
+	if !c.DisableAssetsCapture && !c.Headless {
+		// Extract and capture assets
+		assets, err := c.extractAssets(base, item, doc)
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting assets")
 			return
 		}
 
-		assets = seencheckedBatch
-	} else if c.UseHQ {
-		seencheckedURLs, err := c.HQSeencheckURLs(assets)
-		// We ignore the error here because we don't want to slow down the crawl
-		// if HQ is down or if the request failed. So if we get an error, we just
-		// continue with the original list of assets.
-		if err != nil {
-			logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-				"urls":      assets,
-				"parentHop": item.Hop,
-				"parentUrl": utils.URLToString(item.URL),
-			})).Error("error while seenchecking assets via HQ")
-		} else {
-			assets = seencheckedURLs
-		}
-
+		// If we didn't find any assets, let's stop here
 		if len(assets) == 0 {
 			return
 		}
-	}
 
-	c.Frontier.QueueCount.Incr(int64(len(assets)))
-	swg := sizedwaitgroup.New(c.MaxConcurrentAssets)
-	excluded := false
+		// If --local-seencheck is enabled, then we check if the assets are in the
+		// seencheck DB. If they are, then they are skipped.
+		// Else, if we use HQ, then we use HQ's seencheck.
+		if c.Seencheck {
+			seencheckedBatch := []*url.URL{}
 
-	for _, asset := range assets {
-		c.Frontier.QueueCount.Incr(-1)
-
-		// Just making sure we do not over archive by archiving the original URL
-		if utils.URLToString(item.URL) == utils.URLToString(asset) {
-			continue
-		}
-
-		// We ban googlevideo.com URLs because they are heavily rate limited by default, and
-		// we don't want the crawler to spend an innapropriate amount of time archiving them
-		if strings.Contains(item.Host, "googlevideo.com") {
-			continue
-		}
-
-		// If the URL match any excluded string, we ignore it
-		for _, excludedString := range c.ExcludedStrings {
-			if strings.Contains(utils.URLToString(asset), excludedString) {
-				excluded = true
-				break
+			for _, URL := range assets {
+				found := c.seencheckURL(utils.URLToString(URL), "asset")
+				if found {
+					continue
+				} else {
+					seencheckedBatch = append(seencheckedBatch, URL)
+				}
 			}
-		}
 
-		if excluded {
-			excluded = false
-			continue
-		}
-
-		swg.Add()
-		c.URIsPerSecond.Incr(1)
-
-		go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
-			defer swg.Done()
-
-			// Create the asset's item
-			newAsset := frontier.NewItem(asset, item, "asset", item.Hop, "")
-
-			// Capture the asset
-			err = c.captureAsset(newAsset, resp.Cookies())
-			if err != nil {
-				logError.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
-					"parentHop": item.Hop,
-					"parentUrl": utils.URLToString(item.URL),
-					"type":      "asset",
-				})).Error("error while capturing asset")
+			if len(seencheckedBatch) == 0 {
 				return
 			}
 
-			// If we made it to this point, it means that the asset have been crawled successfully,
-			// then we can increment the locallyCrawled variable
-			atomic.AddUint64(&item.LocallyCrawled, 1)
-		}(asset, &swg)
-	}
-
-	swg.Wait()
-}
-
-func getURLsFromJSON(payload gjson.Result) (links []string) {
-	if payload.IsArray() {
-		for _, arrayElement := range payload.Array() {
-			links = append(links, getURLsFromJSON(arrayElement)...)
-		}
-	} else {
-		for _, element := range payload.Map() {
-			if element.IsObject() {
-				links = append(links, getURLsFromJSON(element)...)
-			} else if element.IsArray() {
-				links = append(links, getURLsFromJSON(element)...)
+			assets = seencheckedBatch
+		} else if c.UseHQ {
+			seencheckedURLs, err := c.HQSeencheckURLs(assets)
+			// We ignore the error here because we don't want to slow down the crawl
+			// if HQ is down or if the request failed. So if we get an error, we just
+			// continue with the original list of assets.
+			if err != nil {
+				logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+					"urls":      assets,
+					"parentHop": item.Hop,
+					"parentUrl": utils.URLToString(item.URL),
+				})).Error("error while seenchecking assets via HQ")
 			} else {
-				if strings.HasPrefix(element.Str, "http") || strings.HasPrefix(element.Str, "/") {
-					links = append(links, element.Str)
-				}
+				assets = seencheckedURLs
+			}
+
+			if len(assets) == 0 {
+				return
 			}
 		}
-	}
 
-	return links
+		c.Frontier.QueueCount.Incr(int64(len(assets)))
+		swg := sizedwaitgroup.New(c.MaxConcurrentAssets)
+		excluded := false
+
+		for _, asset := range assets {
+			c.Frontier.QueueCount.Incr(-1)
+
+			// Just making sure we do not over archive by archiving the original URL
+			if utils.URLToString(item.URL) == utils.URLToString(asset) {
+				continue
+			}
+
+			// We ban googlevideo.com URLs because they are heavily rate limited by default, and
+			// we don't want the crawler to spend an innapropriate amount of time archiving them
+			if strings.Contains(item.Host, "googlevideo.com") {
+				continue
+			}
+
+			// If the URL match any excluded string, we ignore it
+			for _, excludedString := range c.ExcludedStrings {
+				if strings.Contains(utils.URLToString(asset), excludedString) {
+					excluded = true
+					break
+				}
+			}
+
+			if excluded {
+				excluded = false
+				continue
+			}
+
+			swg.Add()
+			c.URIsPerSecond.Incr(1)
+
+			go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
+				defer swg.Done()
+
+				// Create the asset's item
+				newAsset := frontier.NewItem(asset, item, "asset", item.Hop, "")
+
+				// Capture the asset
+				err = c.captureAsset(newAsset, resp.Cookies())
+				if err != nil {
+					logError.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
+						"parentHop": item.Hop,
+						"parentUrl": utils.URLToString(item.URL),
+						"type":      "asset",
+					})).Error("error while capturing asset")
+					return
+				}
+
+				// If we made it to this point, it means that the asset have been crawled successfully,
+				// then we can increment the locallyCrawled variable
+				atomic.AddUint64(&item.LocallyCrawled, 1)
+			}(asset, &swg)
+		}
+
+		swg.Wait()
+	}
 }

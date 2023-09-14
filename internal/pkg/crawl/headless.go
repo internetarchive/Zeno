@@ -25,8 +25,6 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 	router.MustAdd("*", func(ctx *rod.Hijack) {
 		startAssetCapture := time.Now()
 
-		logrus.Infof("Capturing asset: %s", ctx.Request.URL().String())
-
 		// If the response is for the main page, save the body
 		if ctx.Request.URL().String() == item.URL.String() {
 			_ = ctx.LoadResponse(&c.Client.Client, true)
@@ -61,7 +59,10 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 			}
 
 			// Load the response
-			_ = ctx.LoadResponse(&c.Client.Client, true)
+			err = ctx.LoadResponse(&c.Client.Client, true)
+			if err != nil {
+				c.Logger.Error(err)
+			}
 
 			var assetItem = &frontier.Item{
 				URL:        ctx.Request.URL(),

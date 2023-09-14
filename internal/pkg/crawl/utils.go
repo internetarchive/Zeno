@@ -103,6 +103,19 @@ func extractLinksFromText(source string) (links []*url.URL) {
 	return links
 }
 
+func (c *Crawl) shouldPause(host string) bool {
+	return c.Frontier.GetActiveHostCount(host) >= c.MaxConcurrentRequestsPerDomain
+}
+
+func isStatusCodeRedirect(statusCode int) bool {
+	if statusCode == 300 || statusCode == 301 ||
+		statusCode == 302 || statusCode == 307 ||
+		statusCode == 308 {
+		return true
+	}
+	return false
+}
+
 func getURLsFromJSON(payload gjson.Result) (links []string) {
 	if payload.IsArray() {
 		for _, arrayElement := range payload.Array() {
@@ -123,17 +136,4 @@ func getURLsFromJSON(payload gjson.Result) (links []string) {
 	}
 
 	return links
-}
-
-func (c *Crawl) shouldPause(host string) bool {
-	return c.Frontier.GetActiveHostCount(host) >= c.MaxConcurrentRequestsPerDomain
-}
-
-func isStatusCodeRedirect(statusCode int) bool {
-	if statusCode == 300 || statusCode == 301 ||
-		statusCode == 302 || statusCode == 307 ||
-		statusCode == 308 {
-		return true
-	}
-	return false
 }
