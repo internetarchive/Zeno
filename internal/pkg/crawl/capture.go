@@ -201,7 +201,7 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	return nil
 }
 
-// Capture capture the URL and return the outlinks
+// Capture capture the URL and queue the outlinks
 func (c *Crawl) Capture(item *frontier.Item) {
 	var (
 		resp           *http.Response
@@ -313,14 +313,18 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		// Enforce reading all data from the response for WARC writing (only if not headless)
 		// (otherwise the connection will be closed before the WARC writer can read it)
 		if !c.Headless {
-			io.Copy(io.Discard, respBodyReader)
+			_, err = io.Copy(io.Discard, respBodyReader)
+			if err != nil {
+				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading response body")
+				return
+			}
 		}
 
 		return
 	}
 
 	// Turn the response into a doc that we will scrape for outlinks and assets.
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	doc, err := goquery.NewDocumentFromReader(respBodyReader)
 	if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating goquery document")
 		return
