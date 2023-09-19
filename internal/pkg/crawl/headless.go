@@ -31,7 +31,9 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 		if ctx.Request.URL().String() == item.URL.String() {
 			err = ctx.LoadResponse(&c.Client.Client, true)
 			if err != nil {
-				c.Logger.Error(err)
+				logError.WithFields(logrus.Fields{
+					"error": err,
+				}).Error("unable to load response")
 				return
 			}
 
@@ -55,7 +57,7 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 				if err != nil {
 					logWarning.WithFields(logrus.Fields{
 						"error": err,
-					}).Error("Unable to check if URL is in HQ seencheck database")
+					}).Error("unable to check if URL is in HQ seencheck database")
 				}
 
 				if !new {
@@ -66,7 +68,9 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 			// Load the response
 			err = ctx.LoadResponse(&c.Client.Client, true)
 			if err != nil {
-				c.Logger.Error(err)
+				logError.WithFields(logrus.Fields{
+					"error": err,
+				}).Error("unable to load response")
 			}
 
 			var assetItem = &frontier.Item{
