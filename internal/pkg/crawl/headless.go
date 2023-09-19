@@ -1,6 +1,8 @@
 package crawl
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -39,6 +41,8 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 
 			respHeaders = ctx.Response.Headers().Clone()
 		} else {
+			var failure = false
+
 			// Cases for which we do not want to load the request:
 			// - If the URL is in the list of captured assets
 			// - If the URL is in the list of excluded hosts
@@ -67,10 +71,16 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 
 			// Load the response
 			err = ctx.LoadResponse(&c.Client.Client, true)
-			if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				logError.WithFields(logrus.Fields{
+					"error": err,
+				}).Error("unable to load response (deadline exceeded)")
+				failure = true
+			} else if err != nil {
 				logError.WithFields(logrus.Fields{
 					"error": err,
 				}).Error("unable to load response")
+				failure = true
 			}
 
 			var assetItem = &frontier.Item{
@@ -81,7 +91,9 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 
 			capturedAssets = append(capturedAssets, *ctx.Request.URL())
 
-			c.logCrawlSuccess(startAssetCapture, -1, assetItem)
+			if !failure {
+				c.logCrawlSuccess(startAssetCapture, -1, assetItem)
+			}
 		}
 	})
 
@@ -162,6 +174,17 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 		return
 	}
 
+	// Wait for all the ongoing requests to finish
+	// err = page.Timeout(c.Client.Timeout).WaitIdle(time.Second * 5)
+	// if err != nil {
+	// 	return
+	// }
+
+	// err = page.Timeout(c.Client.Timeout).WaitIdle()
+	// if err != nil {
+	// 	return
+	// }
+
 	// If --headless-wait-after-load is enabled, wait for the specified duration
 	if c.HeadlessWaitAfterLoad > 0 {
 		time.Sleep(time.Duration(c.HeadlessWaitAfterLoad) * time.Second)
@@ -186,6 +209,13 @@ func setHeadlessCookies(page *rod.Page, item *frontier.Item) (newPage *rod.Page,
 			Name:   "SOCS",
 			Value:  "CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg",
 			Domain: ".youtube.com",
+			Path:   "/",
+		})
+	} else if strings.Contains(item.Host, "facebook") {
+		cookies = append(cookies, &proto.NetworkCookieParam{
+			Name:   "datr",
+			Value:  "IR4KZY2Q-Brjuv6QU8AdZ_WE",
+			Domain: ".facebook.com",
 			Path:   "/",
 		})
 	}
