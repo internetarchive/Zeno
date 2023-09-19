@@ -29,9 +29,12 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 
 		// If the response is for the main page, save the body
 		if ctx.Request.URL().String() == item.URL.String() {
-			_ = ctx.LoadResponse(&c.Client.Client, true)
+			err = ctx.LoadResponse(&c.Client.Client, true)
+			if err != nil {
+				c.Logger.Error(err)
+				return
+			}
 
-			respBody = ctx.Response.Body()
 			respHeaders = ctx.Response.Headers().Clone()
 		} else {
 			// Cases for which we do not want to load the request:
@@ -158,6 +161,12 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 	// If --headless-wait-after-load is enabled, wait for the specified duration
 	if c.HeadlessWaitAfterLoad > 0 {
 		time.Sleep(time.Duration(c.HeadlessWaitAfterLoad) * time.Second)
+	}
+
+	// Save the page content
+	respBody, err = page.Timeout(c.Client.Timeout).HTML()
+	if err != nil {
+		return
 	}
 
 	c.logCrawlSuccess(executionStart, -1, item)
