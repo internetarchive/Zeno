@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/telegram"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/tiktok"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
@@ -231,6 +232,17 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Execute site-specific code on the request, before sending it
 	if strings.Contains(item.URL.Host, "tiktok.com") {
 		req = tiktok.AddHeaders(req)
+	}
+
+	if telegram.IsTelegramURL(utils.URLToString(item.URL)) && !telegram.IsTelegramEmbedURL(utils.URLToString(item.URL)) {
+		// If the URL is a Telegram URL, we make an embed URL out of it
+		embedURL := telegram.CreateEmbedURL(item.URL)
+
+		// Then we create an item
+		embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID)
+
+		// And capture it
+		c.Capture(embedItem)
 	}
 
 	// Execute request
