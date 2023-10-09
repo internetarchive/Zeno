@@ -27,6 +27,32 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 		}
 	}
 
+	// Check all style attributes for background-image
+	doc.Find("*").Each(func(index int, item *goquery.Selection) {
+		style, exists := item.Attr("style")
+		if exists {
+			re := regexp.MustCompile(`(?m)background-image: url\((.*?)\)`)
+			matches := re.FindAllStringSubmatch(style, -1)
+
+			for match := range matches {
+				matchReplacement := matches[match][1]
+				matchReplacement = strings.Replace(matchReplacement, "'", "", -1)
+				matchReplacement = strings.Replace(matchReplacement, "\"", "", -1)
+
+				// If the URL already has http (or https), we don't need add anything to it.
+				if !strings.Contains(matchReplacement, "http") {
+					matchReplacement = strings.Replace(matchReplacement, "//", "http://", -1)
+				}
+
+				if strings.HasPrefix(matchReplacement, "#wp-") {
+					continue
+				}
+
+				rawAssets = append(rawAssets, matchReplacement)
+			}
+		}
+	})
+
 	// Extract assets on the page (images, scripts, videos..)
 	if !utils.StringInSlice("img", c.DisabledHTMLTags) {
 		doc.Find("img").Each(func(index int, item *goquery.Selection) {
