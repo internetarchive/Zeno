@@ -19,6 +19,7 @@ require (
 	github.com/internetarchive/elogrus v0.0.0-20230725172814-093db31a64fc
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/olivere/elastic/v7 v7.0.32
+	github.com/orirawlings/persistent-cookiejar v0.3.2
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/philippgille/gokv/leveldb v0.6.0
 	github.com/prometheus/client_golang v1.16.0
@@ -26,7 +27,6 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/afero v1.9.5
 	github.com/stretchr/testify v1.8.4
-	github.com/telanflow/cookiejar v0.0.0-20190719062046-114449e86aa5
 	github.com/tidwall/gjson v1.16.0
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 	github.com/urfave/cli/v2 v2.25.7
@@ -60,7 +60,6 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/gomodule/redigo v1.8.9 // indirect
 	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -100,11 +99,13 @@ require (
 	github.com/ysmood/got v0.35.1 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.8.0 // indirect
+	go4.org v0.0.0-20190313082347-94abd6928b1d // indirect
 	golang.org/x/arch v0.5.0 // indirect
 	golang.org/x/crypto v0.13.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
+	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

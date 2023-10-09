@@ -103,7 +103,7 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 	page := stealth.MustPage(c.HeadlessBrowser)
 	defer page.MustClose()
 
-	// Set some cookies
+	// Set cookies if needed
 	page, err = setHeadlessCookies(page, item)
 	if err != nil {
 		return

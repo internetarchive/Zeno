@@ -1,7 +1,9 @@
 package crawl
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -11,11 +13,11 @@ import (
 	"github.com/CorentinB/warc"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
+	cookiejar "github.com/orirawlings/persistent-cookiejar"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
-	"github.com/telanflow/cookiejar"
 	"mvdan.cc/xurls/v2"
 )
 
@@ -290,12 +292,27 @@ func (c *Crawl) Start() (err error) {
 
 	// Parse input cookie file if specified
 	if c.CookieFile != "" {
-		cookieJar, err := cookiejar.NewFileJar(c.CookieFile, nil)
+		jar, err := cookiejar.New(&cookiejar.Options{
+			PublicSuffixList:      nil,
+			Filename:              c.CookieFile,
+			PersistSessionCookies: true,
+		})
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, nil, nil)).Error("unable to create cookie jar")
+			return err
+		}
+
+		fmt.Println(jar.AllCookies())
+
+		// Fake FB URL
+		u, _ := url.Parse("https://www.facebook.com/")
 		if err != nil {
 			logError.WithFields(c.genLogFields(err, nil, nil)).Fatal("unable to parse cookie file")
 		}
 
-		c.Client.Jar = cookieJar
+		logrus.Panic("Cookie jar: ", jar.Cookies(u))
+
+		c.Client.Jar = jar
 	}
 
 	// Fire up the desired amount of workers
