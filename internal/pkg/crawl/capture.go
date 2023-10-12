@@ -13,6 +13,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/telegram"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/tiktok"
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/vk"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/remeh/sizedwaitgroup"
@@ -230,11 +231,9 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	req.Header.Set("User-Agent", c.UserAgent)
 
 	// Execute site-specific code on the request, before sending it
-	if strings.Contains(item.URL.Host, "tiktok.com") {
+	if tiktok.IsTikTokURL(utils.URLToString(item.URL)) {
 		req = tiktok.AddHeaders(req)
-	}
-
-	if telegram.IsTelegramURL(utils.URLToString(item.URL)) && !telegram.IsTelegramEmbedURL(utils.URLToString(item.URL)) {
+	} else if telegram.IsTelegramURL(utils.URLToString(item.URL)) && !telegram.IsTelegramEmbedURL(utils.URLToString(item.URL)) {
 		// If the URL is a Telegram URL, we make an embed URL out of it
 		embedURL := telegram.CreateEmbedURL(item.URL)
 
@@ -243,6 +242,8 @@ func (c *Crawl) Capture(item *frontier.Item) {
 
 		// And capture it
 		c.Capture(embedItem)
+	} else if vk.IsVKURL(utils.URLToString(item.URL)) {
+		req = vk.AddHeaders(req)
 	}
 
 	// Execute request
