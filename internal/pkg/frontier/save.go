@@ -1,10 +1,8 @@
 package frontier
 
 import (
-	"encoding/gob"
 	"os"
 	"path"
-	"sync"
 
 	"github.com/sirupsen/logrus"
 )
@@ -27,17 +25,15 @@ func (f *Frontier) Load() {
 	}
 	defer decodeFile.Close()
 
-	// Create a decoder
-	decoder := gob.NewDecoder(decodeFile)
-
-	// We create the structure to load the file's content
-	var dump = new(sync.Map)
-
-	// Decode the content of the file in the structure
-	decoder.Decode(&dump)
-
-	// Copy the loaded data to our actual frontier
-	f.HostPool = dump
+	if err := SyncMapDecode(f.HostPool, decodeFile); err != nil {
+		f.LoggingChan <- &FrontierLogMessage{
+			Fields: logrus.Fields{
+				"err": err.Error(),
+			},
+			Message: "unable to decode Frontier stats and host pool",
+			Level:   logrus.WarnLevel,
+		}
+	}
 
 	f.LoggingChan <- &FrontierLogMessage{
 		Fields: logrus.Fields{
@@ -53,13 +49,25 @@ func (f *Frontier) Save() {
 	// Create a file for IO
 	encodeFile, err := os.OpenFile(path.Join(f.JobPath, "frontier.gob"), os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		logrus.Warning(err)
+		f.LoggingChan <- &FrontierLogMessage{
+			Fields: logrus.Fields{
+				"err": err.Error(),
+			},
+			Message: "unable to open Frontier file",
+			Level:   logrus.WarnLevel,
+		}
 	}
 	defer encodeFile.Close()
 
 	// Write to the file
-	var encoder = gob.NewEncoder(encodeFile)
-	if err := encoder.Encode(f.HostPool); err != nil {
-		logrus.Warning(err)
+
+	if err := SyncMapEncode(f.HostPool, encodeFile); err != nil {
+		f.LoggingChan <- &FrontierLogMessage{
+			Fields: logrus.Fields{
+				"err": err.Error(),
+			},
+			Message: "unable to save Frontier stats and host pool",
+			Level:   logrus.WarnLevel,
+		}
 	}
 }
