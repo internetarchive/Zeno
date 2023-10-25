@@ -24,5 +24,8 @@ func AddHeaders(req *http.Request) *http.Request {
 	req.Header.Set("Sec-Fetch-User", "?1")
 	req.Header.Set("Upgrade-Insecure-Requests", "1")
 
+	// Gives "Your browser is out of date" error when using default UA.
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
+
 	return req
 }
