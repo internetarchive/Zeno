@@ -1,6 +1,13 @@
 package tiktok
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
+
+func IsTikTokURL(URL string) bool {
+	return strings.Contains(URL, "/tiktok.com")
+}
 
 func AddHeaders(req *http.Request) *http.Request {
 	req.Header.Set("Authority", "www.tiktok.com")

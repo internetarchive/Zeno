@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/telegram"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/tiktok"
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/vk"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/tidwall/gjson"
@@ -233,8 +235,19 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		req.Header.Set("User-Agent", c.UserAgent)
 
 		// Execute site-specific code on the request, before sending it
-		if strings.Contains(item.URL.Host, "tiktok.com") {
+		if tiktok.IsTikTokURL(utils.URLToString(item.URL)) {
 			req = tiktok.AddHeaders(req)
+		} else if telegram.IsTelegramURL(utils.URLToString(item.URL)) && !telegram.IsTelegramEmbedURL(utils.URLToString(item.URL)) {
+			// If the URL is a Telegram URL, we make an embed URL out of it
+			embedURL := telegram.CreateEmbedURL(item.URL)
+
+			// Then we create an item
+			embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID)
+
+			// And capture it
+			c.Capture(embedItem)
+		} else if vk.IsVKURL(utils.URLToString(item.URL)) {
+			req = vk.AddHeaders(req)
 		}
 
 		// Execute request
@@ -257,10 +270,43 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			if link.Rel == "prev" || link.Rel == "next" {
 				discovered = append(discovered, link.URL)
 			}
-		}
 
-		waitGroup.Add(1)
-		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
+			if item.Hop > 0 && item.ParentItem != nil {
+				req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
+			}
+
+			req.Header.Set("User-Agent", c.UserAgent)
+
+			// Execute site-specific code on the request, before sending it
+			if strings.Contains(item.URL.Host, "tiktok.com") {
+				req = tiktok.AddHeaders(req)
+			}
+
+			// Execute request
+			resp, err = c.executeGET(item, req, false)
+			if err != nil && err.Error() == "URL from redirection has already been seen" {
+				return
+			} else if err != nil {
+				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while executing GET request")
+				return
+			}
+			defer resp.Body.Close()
+
+			// Scrape potential URLs from Link HTTP header
+			var (
+				links      = linkheader.Parse(resp.Header.Get("link"))
+				discovered []string
+			)
+
+			for _, link := range links {
+				if link.Rel == "prev" || link.Rel == "next" {
+					discovered = append(discovered, link.URL)
+				}
+			}
+
+			waitGroup.Add(1)
+			go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(discovered)), item, &waitGroup)
+		}
 	} else {
 		// Execute the GET request with the headless browser
 		body, headers, err := c.captureHeadless(item)

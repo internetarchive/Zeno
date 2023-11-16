@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
-	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
@@ -19,6 +17,9 @@ import (
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
 	"mvdan.cc/xurls/v2"
+
+	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 )
 
 var (
@@ -145,7 +146,11 @@ func (c *Crawl) Start() (err error) {
 			}
 		}()
 
-		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+		logInfo, logWarning, logError = utils.SetupLogging(
+			c.JobPath,
+			c.LiveStats,
+			c.ElasticSearchURL,
+		)
 
 		go func() {
 			// Get the current time in UTC and figure out when the next midnight will occur
@@ -165,7 +170,11 @@ func (c *Crawl) Start() (err error) {
 			<-timer.C
 
 			// Call your function
-			logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+			logInfo, logWarning, logError = utils.SetupLogging(
+				c.JobPath,
+				c.LiveStats,
+				c.ElasticSearchURL,
+			)
 		}()
 	} else {
 		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
@@ -213,9 +222,17 @@ func (c *Crawl) Start() (err error) {
 	// Change WARC pool size
 	rotatorSettings.WARCWriterPoolSize = c.WARCPoolSize
 
-	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, SizeThreshold: c.WARCDedupSize}
+	dedupeOptions := warc.DedupeOptions{
+		LocalDedupe:   !c.DisableLocalDedupe,
+		SizeThreshold: c.WARCDedupSize,
+	}
 	if c.CDXDedupeServer != "" {
-		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer, SizeThreshold: c.WARCDedupSize}
+		dedupeOptions = warc.DedupeOptions{
+			LocalDedupe:   !c.DisableLocalDedupe,
+			CDXDedupe:     true,
+			CDXURL:        c.CDXDedupeServer,
+			SizeThreshold: c.WARCDedupSize,
+		}
 	}
 
 	// Init the HTTP client responsible for recording HTTP(s) requests / responses

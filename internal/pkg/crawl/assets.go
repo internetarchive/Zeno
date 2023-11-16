@@ -27,6 +27,21 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 		}
 	}
 
+	// Check all style attributes for background-image
+	doc.Find("*").Each(func(index int, item *goquery.Selection) {
+		style, exists := item.Attr("style")
+		if exists {
+			re := regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
+			matches := re.FindAllStringSubmatch(style, -1)
+
+			for match := range matches {
+				if len(matches[match]) > 0 {
+					rawAssets = append(rawAssets, matches[match][1])
+				}
+			}
+		}
+	})
+
 	// Extract assets on the page (images, scripts, videos..)
 	if !utils.StringInSlice("img", c.DisabledHTMLTags) {
 		doc.Find("img").Each(func(index int, item *goquery.Selection) {
