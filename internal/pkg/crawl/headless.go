@@ -103,10 +103,13 @@ func (c *Crawl) captureHeadless(item *frontier.Item) (respBody string, respHeade
 	page := stealth.MustPage(c.HeadlessBrowser)
 	defer page.MustClose()
 
-	// Set cookies if needed
-	page, err = setHeadlessCookies(page, item)
-	if err != nil {
-		return
+	// Set cookies if needed (if no other cookies for this URL are set)
+	// TODO: proxied client is not handled
+	if len(c.Client.Jar.Cookies(item.URL)) == 0 {
+		page, err = setHeadlessCookies(page, item)
+		if err != nil {
+			return
+		}
 	}
 
 	// Navigate to the URL
