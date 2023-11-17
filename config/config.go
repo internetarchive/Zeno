@@ -8,7 +8,6 @@ type Flags struct {
 	Workers             int
 	MaxConcurrentAssets int
 	MaxHops             uint
-	Headless            bool
 	Seencheck           bool
 	JSON                bool
 	LiveStats           bool
@@ -56,7 +55,11 @@ type Flags struct {
 	DisableAssetsCapture bool
 	CertValidation       bool
 
-	CloudflareStream bool
+	Headless              bool
+	Headfull              bool
+	HeadlessWaitAfterLoad uint64
+
+	Cloudflarestream bool
 	ElasticSearchURL string
 	ExcludedStrings  cli.StringSlice
 }

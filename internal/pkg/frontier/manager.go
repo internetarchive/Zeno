@@ -21,6 +21,7 @@ func (f *Frontier) writeItemsToQueue() {
 		// seencheck DB before doing anything. If it is in it, we skip the item
 		if f.UseSeencheck {
 			hash := strconv.FormatUint(item.Hash, 10)
+
 			found, value := f.Seencheck.IsSeen(hash)
 			if !found || (value == "asset" && item.Type == "seed") {
 				f.Seencheck.Seen(hash, item.Type)

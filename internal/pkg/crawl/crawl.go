@@ -1,20 +1,21 @@
 package crawl
 
 import (
-	"net/http"
 	"sync"
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
-	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
+	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
-	"github.com/telanflow/cookiejar"
 	"mvdan.cc/xurls/v2"
+
+	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/CorentinB/Zeno/internal/pkg/utils"
 )
 
 var (
@@ -63,14 +64,12 @@ type Crawl struct {
 	DisableAssetsCapture           bool
 	CaptureAlternatePages          bool
 	DomainsCrawl                   bool
-	Headless                       bool
 	Seencheck                      bool
 	Workers                        int
 
 	// Cookie-related settings
 	CookieFile  string
 	KeepCookies bool
-	CookieJar   http.CookieJar
 
 	// proxy settings
 	Proxy       string
@@ -114,6 +113,12 @@ type Crawl struct {
 	HQFinishedChannel chan *frontier.Item
 	HQProducerChannel chan *frontier.Item
 	HQChannelsWg      *sync.WaitGroup
+
+	// Headless browser stuff
+	HeadlessBrowser       *rod.Browser
+	Headless              bool
+	Headfull              bool
+	HeadlessWaitAfterLoad uint64
 }
 
 // Start fire up the crawling process
@@ -136,7 +141,11 @@ func (c *Crawl) Start() (err error) {
 			}
 		}()
 
-		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+		logInfo, logWarning, logError = utils.SetupLogging(
+			c.JobPath,
+			c.LiveStats,
+			c.ElasticSearchURL,
+		)
 
 		go func() {
 			// Get the current time in UTC and figure out when the next midnight will occur
@@ -156,7 +165,11 @@ func (c *Crawl) Start() (err error) {
 			<-timer.C
 
 			// Call your function
-			logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
+			logInfo, logWarning, logError = utils.SetupLogging(
+				c.JobPath,
+				c.LiveStats,
+				c.ElasticSearchURL,
+			)
 		}()
 	} else {
 		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
@@ -204,9 +217,17 @@ func (c *Crawl) Start() (err error) {
 	// Change WARC pool size
 	rotatorSettings.WARCWriterPoolSize = c.WARCPoolSize
 
-	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, SizeThreshold: c.WARCDedupSize}
+	dedupeOptions := warc.DedupeOptions{
+		LocalDedupe:   !c.DisableLocalDedupe,
+		SizeThreshold: c.WARCDedupSize,
+	}
 	if c.CDXDedupeServer != "" {
-		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer, SizeThreshold: c.WARCDedupSize}
+		dedupeOptions = warc.DedupeOptions{
+			LocalDedupe:   !c.DisableLocalDedupe,
+			CDXDedupe:     true,
+			CDXURL:        c.CDXDedupeServer,
+			SizeThreshold: c.WARCDedupSize,
+		}
 	}
 
 	// Init the HTTP client responsible for recording HTTP(s) requests / responses
@@ -256,18 +277,37 @@ func (c *Crawl) Start() (err error) {
 	// when the WARC writing queue gets too big
 	go c.crawlSpeedLimiter()
 
+	// Starting the headless browser if needed
+	if c.Headless {
+		if c.Headfull {
+			logrus.Info("Starting headless browser in headfull mode")
+		} else {
+			logrus.Info("Starting headless browser in headless mode")
+		}
+
+		l := launcher.New().
+			// Set(flags.Headless, "new").
+			Headless(!c.Headfull).
+			Devtools(false)
+		defer l.Cleanup()
+
+		controlURL := l.MustLaunch()
+
+		c.HeadlessBrowser = rod.New().
+			ControlURL(controlURL).
+			MustConnect()
+	}
+
 	if c.API {
 		go c.startAPI()
 	}
 
 	// Parse input cookie file if specified
 	if c.CookieFile != "" {
-		cookieJar, err := cookiejar.NewFileJar(c.CookieFile, nil)
+		err = c.loadCookiesFromFile()
 		if err != nil {
 			logError.WithFields(c.genLogFields(err, nil, nil)).Fatal("unable to parse cookie file")
 		}
-
-		c.Client.Jar = cookieJar
 	}
 
 	// Fire up the desired amount of workers

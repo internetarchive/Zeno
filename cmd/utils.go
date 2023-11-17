@@ -102,8 +102,8 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		version := utils.GetVersion()
 		c.UserAgent = "Mozilla/5.0 (compatible; archive.org_bot +http://archive.org/details/archive.org_bot) Zeno/" + version.Version[:7] + " warc/" + version.WarcVersion
 	}
-	c.Headless = flags.Headless
 
+	c.Headless = flags.Headless
 	c.CookieFile = flags.CookieFile
 	c.KeepCookies = flags.KeepCookies
 
@@ -120,6 +120,19 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.HQStrategy = flags.HQStrategy
 	c.HQBatchSize = int(flags.HQBatchSize)
 	c.HQContinuousPull = flags.HQContinuousPull
+
+	// Headless settings
+	c.Headless = flags.Headless
+	c.Headfull = flags.Headfull
+	c.HeadlessWaitAfterLoad = flags.HeadlessWaitAfterLoad
+
+	// If Headfull is true, then we make sure Headless is true
+	// as well. The reason is that "headless" is (in the context of Zeno)
+	// considered as a method of crawling and headfull is considered
+	// as a method of rendering for the browser.
+	if c.Headfull {
+		c.Headless = true
+	}
 
 	return c
 }

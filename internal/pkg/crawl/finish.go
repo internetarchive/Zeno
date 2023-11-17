@@ -59,6 +59,11 @@ func (crawl *Crawl) finish() {
 		logrus.Warning("[HQ] All functions returned")
 	}
 
+	// Closing headless browser
+	if crawl.Headless {
+		crawl.HeadlessBrowser.Close()
+	}
+
 	// Once all workers are done, it means nothing more is actively send to
 	// the PushChan channel, we ask for the queue writer to terminate, and when
 	// it's done we close the channel safely.
