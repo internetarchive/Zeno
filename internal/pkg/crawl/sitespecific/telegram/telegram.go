@@ -13,7 +13,7 @@ func IsTelegramURL(url string) bool {
 	return strings.Contains(url, "/t.me/")
 }
 
-func CreateEmbedURL(URL *url.URL) {
+func TransformURL(URL *url.URL) {
 	// Add embed=1 to the URL, without changing the original URL
 	if len(URL.RawQuery) > 0 {
 		URL.RawQuery += "&embed=1&mode=tme"

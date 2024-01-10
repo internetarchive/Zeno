@@ -235,10 +235,10 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		req = tiktok.AddHeaders(req)
 	} else if telegram.IsTelegramURL(utils.URLToString(item.URL)) && !telegram.IsTelegramEmbedURL(utils.URLToString(item.URL)) {
 		// If the URL is a Telegram URL, we make an embed URL out of it
-		embedURL := telegram.CreateEmbedURL(item.URL)
+		telegram.TransformURL(item.URL)
 
 		// Then we create an item
-		embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID)
+		embedItem := frontier.NewItem(item.URL, item, item.Type, item.Hop, item.ID)
 
 		// And capture it
 		c.Capture(embedItem)
