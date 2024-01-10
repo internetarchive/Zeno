@@ -19,3 +19,6 @@ jobs:
         goarch: amd64
         goversion: 1.21.6
         compress_assets: OFF
+        md5sum: FALSE
+        sha256sum: TRUE
+        asset_name: 'Zeno-linux-amd64'
