@@ -9,7 +9,7 @@ func IsTikTokURL(URL string) bool {
 	return strings.Contains(URL, "/tiktok.com")
 }
 
-func AddHeaders(req *http.Request) *http.Request {
+func AddHeaders(req *http.Request) {
 	req.Header.Set("Authority", "www.tiktok.com")
 	req.Header.Set("Sec-Ch-Ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"99\", \"Microsoft Edge\";v=\"99\"")
 	req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
@@ -23,6 +23,4 @@ func AddHeaders(req *http.Request) *http.Request {
 	req.Header.Set("Sec-Fetch-User", "?1")
 	req.Header.Set("Sec-Fetch-Dest", "document")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9,fr;q=0.8")
-
-	return req
 }
