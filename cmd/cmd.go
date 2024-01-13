@@ -141,7 +141,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.IntFlag{
 		Name:        "max-concurrent-per-domain",
 		Value:       16,
-		Usage:       "Maximum number of concurrent requests per domain",
+		Usage:       "Maximum number of concurrent requests per domain.",
 		Destination: &config.App.Flags.MaxConcurrentRequestsPerDomain,
 	},
 	&cli.IntFlag{
@@ -149,6 +149,20 @@ var GlobalFlags = []cli.Flag{
 		Value:       500,
 		Usage:       "Number of milliseconds to sleep when max concurrency per domain is reached.",
 		Destination: &config.App.Flags.RateLimitDelay,
+	},
+
+	&cli.IntFlag{
+		Name:        "crawl-time-limit",
+		Value:       0,
+		Usage:       "Number of seconds until the crawl will automatically set itself into the finished state.",
+		Destination: &config.App.Flags.CrawlTimeLimit,
+	},
+
+	&cli.IntFlag{
+		Name:        "crawl-max-time-limit",
+		Value:       0,
+		Usage:       "Number of seconds until the crawl will automatically panic itself. Default to crawl-time-limit + (crawl-time-limit / 10)",
+		Destination: &config.App.Flags.MaxCrawlTimeLimit,
 	},
 
 	// Proxy flags

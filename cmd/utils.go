@@ -57,6 +57,15 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.HTTPTimeout = flags.HTTPTimeout
 	c.MaxConcurrentRequestsPerDomain = flags.MaxConcurrentRequestsPerDomain
 	c.RateLimitDelay = flags.RateLimitDelay
+	c.CrawlTimeLimit = flags.CrawlTimeLimit
+
+	// Defaults --max-crawl-time-limit to 10% more than --crawl-time-limit
+	if flags.MaxCrawlTimeLimit == 0 && flags.CrawlTimeLimit != 0 {
+		c.MaxCrawlTimeLimit = flags.CrawlTimeLimit + (flags.CrawlTimeLimit / 10)
+	} else {
+		c.MaxCrawlTimeLimit = flags.MaxCrawlTimeLimit
+	}
+
 	c.MaxRetry = flags.MaxRetry
 	c.MaxRedirect = flags.MaxRedirect
 	c.MaxHops = uint8(flags.MaxHops)

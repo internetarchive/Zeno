@@ -22,7 +22,6 @@ func (crawl *Crawl) catchFinish() {
 		if crawl.ActiveWorkers.Value() == 0 && crawl.Frontier.QueueCount.Value() == 0 && !crawl.Finished.Get() && (crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() > 0) {
 			logrus.Warning("No additional URL to archive, finishing")
 			crawl.finish()
-			os.Exit(0)
 		}
 	}
 }
@@ -92,6 +91,8 @@ func (crawl *Crawl) finish() {
 	crawl.Frontier.Save()
 
 	logrus.Warning("Finished!")
+
+	os.Exit(0)
 }
 
 func (crawl *Crawl) setupCloseHandler() {
@@ -101,5 +102,4 @@ func (crawl *Crawl) setupCloseHandler() {
 	logrus.Warning("CTRL+C catched.. cleaning up and exiting.")
 	signal.Stop(c)
 	crawl.finish()
-	os.Exit(0)
 }

@@ -60,6 +60,8 @@ type Crawl struct {
 	HTTPTimeout                    int
 	MaxConcurrentRequestsPerDomain int
 	RateLimitDelay                 int
+	CrawlTimeLimit                 int
+	MaxCrawlTimeLimit              int
 	DisableAssetsCapture           bool
 	CaptureAlternatePages          bool
 	DomainsCrawl                   bool
@@ -123,6 +125,16 @@ func (c *Crawl) Start() (err error) {
 	c.Finished = new(utils.TAtomBool)
 	c.HQChannelsWg = new(sync.WaitGroup)
 	regexOutlinks = xurls.Relaxed()
+
+	// Setup the --crawl-time-limit clock
+	if c.CrawlTimeLimit != 0 {
+		go func() {
+			time.Sleep(time.Second * time.Duration(c.CrawlTimeLimit))
+			go c.finish()
+			time.Sleep((time.Duration(c.MaxCrawlTimeLimit) * time.Second) - (time.Duration(c.CrawlTimeLimit) * time.Second))
+			logError.Fatal("Crawl time limit reached, exiting..")
+		}()
+	}
 
 	// Setup logging, every day at midnight UTC a new setup
 	// is triggered in order to change the ES index's name
