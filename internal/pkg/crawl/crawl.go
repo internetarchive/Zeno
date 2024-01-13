@@ -130,9 +130,10 @@ func (c *Crawl) Start() (err error) {
 	if c.CrawlTimeLimit != 0 {
 		go func() {
 			time.Sleep(time.Second * time.Duration(c.CrawlTimeLimit))
+			logInfo.Infoln("Crawl time limit reached: attempting to finish the crawl.")
 			go c.finish()
 			time.Sleep((time.Duration(c.MaxCrawlTimeLimit) * time.Second) - (time.Duration(c.CrawlTimeLimit) * time.Second))
-			logError.Fatal("Crawl time limit reached, exiting..")
+			logError.Fatal("Max crawl time limit reached, exiting..")
 		}()
 	}
 
