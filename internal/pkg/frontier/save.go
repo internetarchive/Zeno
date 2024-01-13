@@ -60,7 +60,6 @@ func (f *Frontier) Save() {
 	defer encodeFile.Close()
 
 	// Write to the file
-
 	if err := SyncMapEncode(f.HostPool, encodeFile); err != nil {
 		f.LoggingChan <- &FrontierLogMessage{
 			Fields: logrus.Fields{
