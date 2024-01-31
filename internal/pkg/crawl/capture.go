@@ -13,6 +13,7 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/telegram"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/tiktok"
+	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/truthsocial"
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/vk"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
@@ -202,7 +203,7 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	return nil
 }
 
-// Capture capture the URL and return the outlinks
+// Capture capture the URL
 func (c *Crawl) Capture(item *frontier.Item) {
 	var (
 		resp      *http.Response
@@ -231,7 +232,37 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	req.Header.Set("User-Agent", c.UserAgent)
 
 	// Execute site-specific code on the request, before sending it
-	if tiktok.IsTikTokURL(utils.URLToString(item.URL)) {
+	if truthsocial.IsTruthSocialURL(utils.URLToString(item.URL)) {
+		// Get the API URL from the URL
+		apiURL, err := truthsocial.GenerateAPIURL(utils.URLToString(item.URL))
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
+		} else {
+			if apiURL == nil {
+				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
+			} else {
+				// Then we create an item
+				apiItem := frontier.NewItem(apiURL, item, item.Type, item.Hop, item.ID)
+
+				// And capture it
+				c.Capture(apiItem)
+			}
+		}
+
+		// Grab few embeds that are needed for the playback
+		embedURLs, err := truthsocial.EmbedURLs()
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting embed URLs")
+		} else {
+			for _, embedURL := range embedURLs {
+				// Create the embed item
+				embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID)
+
+				// Capture the embed item
+				c.Capture(embedItem)
+			}
+		}
+	} else if tiktok.IsTikTokURL(utils.URLToString(item.URL)) {
 		tiktok.AddHeaders(req)
 	} else if telegram.IsTelegramURL(utils.URLToString(item.URL)) && !telegram.IsTelegramEmbedURL(utils.URLToString(item.URL)) {
 		// If the URL is a Telegram URL, we make an embed URL out of it
