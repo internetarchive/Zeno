@@ -242,7 +242,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:        "cdx-cookie",
 		Value:       "",
-		Usage:       "Pass custom cookie during CDX requests",
+		Usage:       "Pass custom cookie during CDX requests. Example: 'cdx_auth_token=test_value'",
 		Destination: &config.App.Flags.WARCCustomCookie,
 	},
 	// Crawl HQ flags
