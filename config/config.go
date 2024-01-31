@@ -37,12 +37,13 @@ type Flags struct {
 	Prometheus       bool
 	PrometheusPrefix string
 
-	WARCPrefix     string
-	WARCOperator   string
-	WARCPoolSize   int
-	WARCDedupSize  int
-	WARCFullOnDisk bool
-	WARCTempDir    string
+	WARCPrefix       string
+	WARCOperator     string
+	WARCPoolSize     int
+	WARCDedupSize    int
+	WARCFullOnDisk   bool
+	WARCTempDir      string
+	WARCCustomCookie string
 
 	UseHQ            bool
 	HQBatchSize      int64
