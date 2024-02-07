@@ -239,7 +239,12 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Minimum size to deduplicate WARC records with revisit records.",
 		Destination: &config.App.Flags.WARCDedupSize,
 	},
-
+	&cli.StringFlag{
+		Name:        "cdx-cookie",
+		Value:       "",
+		Usage:       "Pass custom cookie during CDX requests. Example: 'cdx_auth_token=test_value'",
+		Destination: &config.App.Flags.WARCCustomCookie,
+	},
 	// Crawl HQ flags
 	&cli.BoolFlag{
 		Name:        "hq",

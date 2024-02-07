@@ -92,6 +92,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.WARCFullOnDisk = flags.WARCFullOnDisk
 	c.WARCPoolSize = flags.WARCPoolSize
 	c.WARCDedupSize = flags.WARCDedupSize
+	c.WARCCustomCookie = flags.WARCCustomCookie
 
 	c.API = flags.API
 	c.APIPort = flags.APIPort

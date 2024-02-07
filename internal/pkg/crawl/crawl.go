@@ -102,6 +102,7 @@ type Crawl struct {
 	WARCDedupSize      int
 	DisableLocalDedupe bool
 	CertValidation     bool
+	WARCCustomCookie   string
 
 	// Crawl HQ settings
 	UseHQ             bool
@@ -219,7 +220,7 @@ func (c *Crawl) Start() (err error) {
 
 	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, SizeThreshold: c.WARCDedupSize}
 	if c.CDXDedupeServer != "" {
-		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer, SizeThreshold: c.WARCDedupSize}
+		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer, CDXCookie: c.WARCCustomCookie, SizeThreshold: c.WARCDedupSize}
 	}
 
 	// Init the HTTP client responsible for recording HTTP(s) requests / responses
