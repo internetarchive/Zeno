@@ -250,18 +250,18 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		}
 
 		// Grab few embeds that are needed for the playback
-		embedURLs, err := truthsocial.EmbedURLs()
-		if err != nil {
-			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting embed URLs")
-		} else {
-			for _, embedURL := range embedURLs {
-				// Create the embed item
-				embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID)
+		// embedURLs, err := truthsocial.EmbedURLs()
+		// if err != nil {
+		// 	logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting embed URLs")
+		// } else {
+		// 	for _, embedURL := range embedURLs {
+		// 		// Create the embed item
+		// 		embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID)
 
-				// Capture the embed item
-				c.Capture(embedItem)
-			}
-		}
+		// 		// Capture the embed item
+		// 		c.Capture(embedItem)
+		// 	}
+		// }
 	} else if tiktok.IsTikTokURL(utils.URLToString(item.URL)) {
 		tiktok.AddHeaders(req)
 	} else if telegram.IsTelegramURL(utils.URLToString(item.URL)) && !telegram.IsTelegramEmbedURL(utils.URLToString(item.URL)) {
