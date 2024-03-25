@@ -3,11 +3,9 @@ package crawl
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -292,9 +290,6 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting URLs from JSON")
 			return
 		}
-
-		fmt.Println(outlinksFromJSON)
-		os.Exit(1)
 
 		waitGroup.Add(1)
 		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(outlinksFromJSON)), item, &waitGroup)
