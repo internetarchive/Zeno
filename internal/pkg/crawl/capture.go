@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -16,8 +17,8 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/vk"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/clbanning/mxj/v2"
 	"github.com/remeh/sizedwaitgroup"
-	"github.com/tidwall/gjson"
 	"github.com/tomnomnom/linkheader"
 
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
@@ -263,9 +264,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	)
 
 	for _, link := range links {
-		if link.Rel == "prev" || link.Rel == "next" {
-			discovered = append(discovered, link.URL)
-		}
+		discovered = append(discovered, link.URL)
 	}
 
 	waitGroup.Add(1)
@@ -278,7 +277,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		return
 	}
 
-	// If the response is a JSON document, we would like to scrape it for links.
+	// If the response is a JSON document, we want to scrape it for links
 	if strings.Contains(resp.Header.Get("Content-Type"), "json") {
 		jsonBody, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -286,12 +285,39 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			return
 		}
 
-		outlinks := getURLsFromJSON(gjson.ParseBytes(jsonBody))
+		outlinksFromJSON, err := getURLsFromJSON(string(jsonBody))
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting URLs from JSON")
+			return
+		}
 
 		waitGroup.Add(1)
-		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(outlinks)), item, &waitGroup)
+		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(outlinksFromJSON)), item, &waitGroup)
 
 		return
+	}
+
+	// If the response is an XML document, we want to scrape it for links
+	if strings.Contains(resp.Header.Get("Content-Type"), "xml") {
+		xmlBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading XML body")
+			return
+		}
+
+		mv, err := mxj.NewMapXml(xmlBody)
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing XML body")
+			return
+		}
+
+		for _, value := range mv.LeafValues() {
+			if _, ok := value.(string); ok {
+				if strings.HasPrefix(value.(string), "http") {
+					discovered = append(discovered, value.(string))
+				}
+			}
+		}
 	}
 
 	// If the response isn't a text/*, we do not scrape it.
@@ -499,24 +525,37 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	swg.Wait()
 }
 
-func getURLsFromJSON(payload gjson.Result) (links []string) {
-	if payload.IsArray() {
-		for _, arrayElement := range payload.Array() {
-			links = append(links, getURLsFromJSON(arrayElement)...)
-		}
-	} else {
-		for _, element := range payload.Map() {
-			if element.IsObject() {
-				links = append(links, getURLsFromJSON(element)...)
-			} else if element.IsArray() {
-				links = append(links, getURLsFromJSON(element)...)
-			} else {
-				if strings.HasPrefix(element.Str, "http") || strings.HasPrefix(element.Str, "/") {
-					links = append(links, element.Str)
-				}
-			}
-		}
+func getURLsFromJSON(jsonString string) ([]string, error) {
+	var data interface{}
+	err := json.Unmarshal([]byte(jsonString), &data)
+	if err != nil {
+		return nil, err
 	}
 
-	return links
+	links := make([]string, 0)
+	findURLs(data, &links)
+
+	return links, nil
+}
+
+func findURLs(data interface{}, links *[]string) {
+	switch v := data.(type) {
+	case string:
+		if isValidURL(v) {
+			*links = append(*links, v)
+		}
+	case []interface{}:
+		for _, element := range v {
+			findURLs(element, links)
+		}
+	case map[string]interface{}:
+		for _, value := range v {
+			findURLs(value, links)
+		}
+	}
+}
+
+func isValidURL(str string) bool {
+	u, err := url.Parse(str)
+	return err == nil && u.Scheme != "" && u.Host != ""
 }

@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 	"sync"
@@ -27,6 +28,15 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL,
 		if exists {
 			rawOutlinks = append(rawOutlinks, link)
 		}
+	})
+
+	doc.Find("ref").Each(func(index int, item *goquery.Selection) {
+		link, exists := item.Attr("target")
+		if exists {
+			rawOutlinks = append(rawOutlinks, link)
+		}
+
+		fmt.Println(item.Text())
 	})
 
 	// Turn strings into url.URL

@@ -8,6 +8,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/beeker1121/goque v2.1.0+incompatible
+	github.com/clbanning/mxj/v2 v2.7.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.9.1
@@ -25,7 +26,6 @@ require (
 	github.com/spf13/afero v1.11.0
 	github.com/stretchr/testify v1.9.0
 	github.com/telanflow/cookiejar v0.0.0-20190719062046-114449e86aa5
-	github.com/tidwall/gjson v1.17.1
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/zeebo/xxh3 v1.0.2
@@ -85,8 +85,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
