@@ -9,7 +9,6 @@ import (
 	"github.com/CorentinB/Zeno/internal/pkg/frontier"
 	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/tidwall/gjson"
 )
 
 func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.Document) (assets []*url.URL, err error) {
@@ -27,7 +26,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 		}
 	}
 
-	// Check all style attributes for background-image
+	// Check all elements style attributes for background-image & also data-preview
 	doc.Find("*").Each(func(index int, item *goquery.Selection) {
 		style, exists := item.Attr("style")
 		if exists {
@@ -38,6 +37,13 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 				if len(matches[match]) > 0 {
 					rawAssets = append(rawAssets, matches[match][1])
 				}
+			}
+		}
+
+		dataPreview, exists := item.Attr("data-preview")
+		if exists {
+			if strings.HasPrefix(dataPreview, "http") {
+				rawAssets = append(rawAssets, dataPreview)
 			}
 		}
 	})
@@ -121,8 +127,8 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 			scriptType, exists := item.Attr("type")
 			if exists {
 				if scriptType == "application/json" {
-					payload := gjson.Parse(item.Text())
-					rawAssets = append(rawAssets, getURLsFromJSON(payload)...)
+					URLsFromJSON, _ := getURLsFromJSON(item.Text())
+					rawAssets = append(rawAssets, URLsFromJSON...)
 				}
 			}
 
@@ -169,8 +175,8 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 					}
 
 					if len(jsonContent[1]) > payloadEndPosition {
-						payload := gjson.Parse(jsonContent[1][:payloadEndPosition+1])
-						rawAssets = append(rawAssets, removeGoogleVideoURLs(getURLsFromJSON(payload))...)
+						URLsFromJSON, _ := getURLsFromJSON(jsonContent[1][:payloadEndPosition+1])
+						rawAssets = append(rawAssets, removeGoogleVideoURLs(URLsFromJSON)...)
 					}
 				}
 			}
