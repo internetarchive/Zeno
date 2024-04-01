@@ -5,10 +5,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
-	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
 func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.Document) (assets []*url.URL, err error) {

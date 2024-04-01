@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/xxh3"
 )

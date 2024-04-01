@@ -4,8 +4,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/beeker1121/goque"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/philippgille/gokv/leveldb"
 	"github.com/sirupsen/logrus"

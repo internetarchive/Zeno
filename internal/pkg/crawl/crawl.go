@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
-	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/remeh/sizedwaitgroup"
@@ -105,18 +105,19 @@ type Crawl struct {
 	WARCCustomCookie   string
 
 	// Crawl HQ settings
-	UseHQ             bool
-	HQAddress         string
-	HQProject         string
-	HQKey             string
-	HQSecret          string
-	HQStrategy        string
-	HQBatchSize       int
-	HQContinuousPull  bool
-	HQClient          *gocrawlhq.Client
-	HQFinishedChannel chan *frontier.Item
-	HQProducerChannel chan *frontier.Item
-	HQChannelsWg      *sync.WaitGroup
+	UseHQ                  bool
+	HQAddress              string
+	HQProject              string
+	HQKey                  string
+	HQSecret               string
+	HQStrategy             string
+	HQBatchSize            int
+	HQContinuousPull       bool
+	HQClient               *gocrawlhq.Client
+	HQFinishedChannel      chan *frontier.Item
+	HQProducerChannel      chan *frontier.Item
+	HQChannelsWg           *sync.WaitGroup
+	HQRateLimitingSendBack bool
 }
 
 // Start fire up the crawling process

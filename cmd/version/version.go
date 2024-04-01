@@ -1,8 +1,8 @@
 package version
 
 import (
-	"github.com/CorentinB/Zeno/cmd"
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/cmd"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/urfave/cli/v2"
 )
 

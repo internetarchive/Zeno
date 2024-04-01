@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
-	"github.com/CorentinB/Zeno/config"
+	"github.com/internetarchive/Zeno/config"
 )
 
 var GlobalFlags = []cli.Flag{
@@ -287,6 +287,11 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Crawl HQ feeding strategy.",
 		Value:       "lifo",
 		Destination: &config.App.Flags.HQStrategy,
+	},
+	&cli.BoolFlag{
+		Name:        "hq-rate-limiting-send-back",
+		Usage:       "If turned on, the crawler will send back URLs that hit a rate limit to crawl HQ.",
+		Destination: &config.App.Flags.HQRateLimitingSendBack,
 	},
 	&cli.StringFlag{
 		Name:        "es-url",

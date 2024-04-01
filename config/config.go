@@ -45,14 +45,15 @@ type Flags struct {
 	WARCTempDir      string
 	WARCCustomCookie string
 
-	UseHQ            bool
-	HQBatchSize      int64
-	HQAddress        string
-	HQProject        string
-	HQKey            string
-	HQSecret         string
-	HQStrategy       string
-	HQContinuousPull bool
+	UseHQ                  bool
+	HQBatchSize            int64
+	HQAddress              string
+	HQProject              string
+	HQKey                  string
+	HQSecret               string
+	HQStrategy             string
+	HQContinuousPull       bool
+	HQRateLimitingSendBack bool
 
 	CDXDedupeServer      string
 	DisableLocalDedupe   bool

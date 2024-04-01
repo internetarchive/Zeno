@@ -4,11 +4,11 @@ import (
 	"path"
 	"time"
 
-	"github.com/CorentinB/Zeno/config"
-	"github.com/CorentinB/Zeno/internal/pkg/crawl"
-	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/google/uuid"
+	"github.com/internetarchive/Zeno/config"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl"
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
@@ -130,6 +130,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.HQStrategy = flags.HQStrategy
 	c.HQBatchSize = int(flags.HQBatchSize)
 	c.HQContinuousPull = flags.HQContinuousPull
+	c.HQRateLimitingSendBack = flags.HQRateLimitingSendBack
 
 	return c
 }

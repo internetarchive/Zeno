@@ -6,9 +6,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
 func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL, err error) {
@@ -83,14 +83,14 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *frontier.Item, wg *sync
 		}
 
 		if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
-			newItem := frontier.NewItem(outlink, item, "seed", 0, "")
+			newItem := frontier.NewItem(outlink, item, "seed", 0, "", false)
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
 				c.Frontier.PushChan <- newItem
 			}
 		} else if c.MaxHops >= item.Hop+1 {
-			newItem := frontier.NewItem(outlink, item, "seed", item.Hop+1, "")
+			newItem := frontier.NewItem(outlink, item, "seed", item.Hop+1, "", false)
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {

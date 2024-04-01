@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
 type MPD struct {

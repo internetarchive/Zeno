@@ -3,9 +3,9 @@ package get
 import (
 	"net/url"
 
-	"github.com/CorentinB/Zeno/cmd"
-	"github.com/CorentinB/Zeno/config"
-	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/cmd"
+	"github.com/internetarchive/Zeno/config"
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -21,7 +21,7 @@ func newGetURLCmd() *cli.Command {
 }
 
 func cmdGetURL(c *cli.Context) error {
-	err := initLogging(c)
+	err := initLogging()
 	if err != nil {
 		logrus.Error("Unable to parse arguments")
 		return err
@@ -40,7 +40,7 @@ func cmdGetURL(c *cli.Context) error {
 		return err
 	}
 
-	crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, "seed", 0, ""))
+	crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, "seed", 0, "", false))
 
 	// Start crawl
 	err = crawl.Start()

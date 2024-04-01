@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
-	"github.com/CorentinB/Zeno/internal/pkg/frontier"
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -104,13 +104,32 @@ func (c *Crawl) HQProducer() {
 
 	// listen to the discovered channel and add the URLs to the discoveredArray
 	for discoveredItem := range c.HQProducerChannel {
+		var via string
+
+		if discoveredItem.ParentItem != nil {
+			via = utils.URLToString(discoveredItem.ParentItem.URL)
+		}
+
 		discoveredURL := gocrawlhq.URL{
 			Value: utils.URLToString(discoveredItem.URL),
-			Via:   utils.URLToString(discoveredItem.ParentItem.URL),
+			Via:   via,
 		}
 
 		for i := 0; uint8(i) < discoveredItem.Hop; i++ {
 			discoveredURL.Path += "L"
+		}
+
+		if discoveredItem.BypassSeencheck {
+			for {
+				_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "seed", true, false)
+				if err != nil {
+					logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
+					time.Sleep(time.Second)
+					continue
+				}
+				break
+			}
+			continue
 		}
 
 		mutex.Lock()
@@ -169,7 +188,7 @@ func (c *Crawl) HQConsumer() {
 				})).Errorln("unable to parse URL received from crawl HQ, discarding")
 			}
 
-			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID)
+			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, false)
 		}
 	}
 }

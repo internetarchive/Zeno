@@ -28,9 +28,9 @@ func SetupLogging(jobPath string, liveStats bool, esURL string) (logInfo, logWar
 	logWarning = logrus.New()
 	logError = logrus.New()
 
-	logInfo.SetFormatter(&logrus.JSONFormatter{})
-	logWarning.SetFormatter(&logrus.JSONFormatter{})
-	logError.SetFormatter(&logrus.JSONFormatter{})
+	//logInfo.SetFormatter(&logrus.JSONFormatter{})
+	//logWarning.SetFormatter(&logrus.JSONFormatter{})
+	//logError.SetFormatter(&logrus.JSONFormatter{})
 
 	if esURL != "" {
 		client, err := elastic.NewClient(elastic.SetURL(esURL))

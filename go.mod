@@ -1,4 +1,4 @@
-module github.com/CorentinB/Zeno
+module github.com/internetarchive/Zeno
 
 go 1.22
 

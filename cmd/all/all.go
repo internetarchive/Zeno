@@ -1,6 +1,6 @@
 package all
 
 import (
-	_ "github.com/CorentinB/Zeno/cmd/get"
-	_ "github.com/CorentinB/Zeno/cmd/version"
+	_ "github.com/internetarchive/Zeno/cmd/get"
+	_ "github.com/internetarchive/Zeno/cmd/version"
 )

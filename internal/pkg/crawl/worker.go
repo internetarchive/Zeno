@@ -3,7 +3,7 @@ package crawl
 import (
 	"time"
 
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
 const (

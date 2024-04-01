@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/CorentinB/warc"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
 func (c *Crawl) initWARCRotatorSettings() *warc.RotatorSettings {

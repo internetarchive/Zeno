@@ -1,13 +1,13 @@
 package get
 
 import (
-	"github.com/CorentinB/Zeno/cmd"
-	"github.com/CorentinB/Zeno/config"
+	"github.com/internetarchive/Zeno/cmd"
+	"github.com/internetarchive/Zeno/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
-func initLogging(c *cli.Context) (err error) {
+func initLogging() (err error) {
 	// Log as JSON instead of the default ASCII formatter.
 	if config.App.Flags.JSON {
 		log.SetFormatter(&log.JSONFormatter{})

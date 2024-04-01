@@ -11,17 +11,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
-	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/telegram"
-	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/tiktok"
-	"github.com/CorentinB/Zeno/internal/pkg/crawl/sitespecific/vk"
-	"github.com/CorentinB/Zeno/internal/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/clbanning/mxj/v2"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/telegram"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/tiktok"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/vk"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/tomnomnom/linkheader"
 
-	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 )
 
 func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection bool) (resp *http.Response, err error) {
@@ -98,21 +98,30 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 				"sleepTime":  sleepTime.String(),
 				"retryCount": retry,
 				"statusCode": resp.StatusCode,
-			})).Warn("we are being rate limited, sleeping then retrying..")
+			})).Debugf("we are being rate limited")
 
 			// This ensures we aren't leaving the warc dialer hanging.
 			// Do note, 429s are filtered out by WARC writer regardless.
 			io.Copy(io.Discard, resp.Body)
 			resp.Body.Close()
 
-			time.Sleep(sleepTime)
+			// If --hq-rate-limiting-send-back is enabled, we send the URL back to HQ
+			if c.UseHQ && c.HQRateLimitingSendBack {
+				return nil, errors.New("URL is being rate limited, sending back to HQ")
+			} else {
+				logWarning.WithFields(c.genLogFields(err, req.URL, map[string]interface{}{
+					"sleepTime":  sleepTime.String(),
+					"retryCount": retry,
+					"statusCode": resp.StatusCode,
+				})).Warn("URL is being rate limited")
+			}
+
 			continue
 		} else {
+			c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 			break
 		}
 	}
-
-	c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 
 	// If a redirection is catched, then we execute the redirection
 	if isStatusCodeRedirect(resp.StatusCode) {
@@ -153,7 +162,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 			}
 		}
 
-		newItem = frontier.NewItem(URL, item, item.Type, item.Hop, item.ID)
+		newItem = frontier.NewItem(URL, item, item.Type, item.Hop, item.ID, false)
 		newItem.Redirect = item.Redirect + 1
 
 		// Prepare GET request
@@ -239,7 +248,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		telegram.TransformURL(item.URL)
 
 		// Then we create an item
-		embedItem := frontier.NewItem(item.URL, item, item.Type, item.Hop, item.ID)
+		embedItem := frontier.NewItem(item.URL, item, item.Type, item.Hop, item.ID, false)
 
 		// And capture it
 		c.Capture(embedItem)
@@ -250,6 +259,10 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Execute request
 	resp, err = c.executeGET(item, req, false)
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
+		return
+	} else if err != nil && err.Error() == "URL is being rate limited, sending back to HQ" {
+		c.HQFinishedChannel <- item
+		c.HQProducerChannel <- frontier.NewItem(item.URL, item.ParentItem, item.Type, item.Hop, "", true)
 		return
 	} else if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while executing GET request")
@@ -503,7 +516,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			defer swg.Done()
 
 			// Create the asset's item
-			newAsset := frontier.NewItem(asset, item, "asset", item.Hop, "")
+			newAsset := frontier.NewItem(asset, item, "asset", item.Hop, "", false)
 
 			// Capture the asset
 			err = c.captureAsset(newAsset, resp.Cookies())

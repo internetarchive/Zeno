@@ -1,9 +1,9 @@
 package get
 
 import (
-	"github.com/CorentinB/Zeno/cmd"
-	"github.com/CorentinB/Zeno/config"
-	"github.com/CorentinB/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/cmd"
+	"github.com/internetarchive/Zeno/config"
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -20,7 +20,7 @@ func newGetListCmd() *cli.Command {
 }
 
 func cmdGetList(c *cli.Context) error {
-	err := initLogging(c)
+	err := initLogging()
 	if err != nil {
 		log.Error("Unable to parse arguments")
 		return err
