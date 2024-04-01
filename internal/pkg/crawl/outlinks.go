@@ -83,14 +83,14 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *frontier.Item, wg *sync
 		}
 
 		if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
-			newItem := frontier.NewItem(outlink, item, "seed", 0, "", false)
+			newItem := frontier.NewItem(outlink, item, "seed", 0, "", utils.Pointer(false))
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
 				c.Frontier.PushChan <- newItem
 			}
 		} else if c.MaxHops >= item.Hop+1 {
-			newItem := frontier.NewItem(outlink, item, "seed", item.Hop+1, "", false)
+			newItem := frontier.NewItem(outlink, item, "seed", item.Hop+1, "", utils.Pointer(false))
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {

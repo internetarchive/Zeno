@@ -119,7 +119,7 @@ func (c *Crawl) HQProducer() {
 			discoveredURL.Path += "L"
 		}
 
-		if discoveredItem.BypassSeencheck {
+		if *discoveredItem.BypassSeencheck {
 			for {
 				_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "seed", true, false)
 				if err != nil {
@@ -188,7 +188,7 @@ func (c *Crawl) HQConsumer() {
 				})).Errorln("unable to parse URL received from crawl HQ, discarding")
 			}
 
-			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, false)
+			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, utils.Pointer(false))
 		}
 	}
 }

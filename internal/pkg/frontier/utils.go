@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/gosuri/uilive"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,7 +52,7 @@ func IsSeedList(path string) (seeds []Item, err error) {
 			continue
 		}
 
-		item := NewItem(URL, nil, "seed", 0, "", false)
+		item := NewItem(URL, nil, "seed", 0, "", utils.Pointer(false))
 		seeds = append(seeds, *item)
 		validCount++
 		fmt.Fprintf(writer, "\t   Reading input list.. Found %d valid URLs out of %d URLs read.\n", validCount, totalCount)

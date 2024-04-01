@@ -18,11 +18,11 @@ type Item struct {
 	URL             *url.URL
 	ParentItem      *Item
 	LocallyCrawled  uint64
-	BypassSeencheck bool
+	BypassSeencheck *bool
 }
 
 // NewItem initialize an *Item
-func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint8, ID string, bypassSeencheck bool) *Item {
+func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint8, ID string, bypassSeencheck *bool) *Item {
 	item := new(Item)
 
 	item.URL = URL

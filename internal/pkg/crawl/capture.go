@@ -162,7 +162,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 			}
 		}
 
-		newItem = frontier.NewItem(URL, item, item.Type, item.Hop, item.ID, false)
+		newItem = frontier.NewItem(URL, item, item.Type, item.Hop, item.ID, utils.Pointer(false))
 		newItem.Redirect = item.Redirect + 1
 
 		// Prepare GET request
@@ -248,7 +248,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		telegram.TransformURL(item.URL)
 
 		// Then we create an item
-		embedItem := frontier.NewItem(item.URL, item, item.Type, item.Hop, item.ID, false)
+		embedItem := frontier.NewItem(item.URL, item, item.Type, item.Hop, item.ID, utils.Pointer(false))
 
 		// And capture it
 		c.Capture(embedItem)
@@ -261,8 +261,8 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return
 	} else if err != nil && err.Error() == "URL is being rate limited, sending back to HQ" {
-		c.HQFinishedChannel <- item
-		c.HQProducerChannel <- frontier.NewItem(item.URL, item.ParentItem, item.Type, item.Hop, "", true)
+		c.HQProducerChannel <- frontier.NewItem(item.URL, item.ParentItem, item.Type, item.Hop, "", utils.Pointer(true))
+		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("URL is being rate limited, sending back to HQ")
 		return
 	} else if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while executing GET request")
@@ -516,7 +516,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			defer swg.Done()
 
 			// Create the asset's item
-			newAsset := frontier.NewItem(asset, item, "asset", item.Hop, "", false)
+			newAsset := frontier.NewItem(asset, item, "asset", item.Hop, "", utils.Pointer(false))
 
 			// Capture the asset
 			err = c.captureAsset(newAsset, resp.Cookies())
