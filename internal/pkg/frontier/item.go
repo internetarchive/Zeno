@@ -18,11 +18,11 @@ type Item struct {
 	URL             *url.URL
 	ParentItem      *Item
 	LocallyCrawled  uint64
-	BypassSeencheck *bool
+	BypassSeencheck string
 }
 
 // NewItem initialize an *Item
-func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint8, ID string, bypassSeencheck *bool) *Item {
+func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint8, ID string, bypassSeencheck bool) *Item {
 	item := new(Item)
 
 	item.URL = URL
@@ -34,7 +34,14 @@ func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint8, ID stri
 	item.ParentItem = parentItem
 	item.Hash = xxh3.HashString(utils.URLToString(URL))
 	item.Type = itemType
-	item.BypassSeencheck = bypassSeencheck
+
+	// The reason we are using a string instead of a bool is because
+	// gob's encode/decode doesn't properly support booleans
+	if bypassSeencheck {
+		item.BypassSeencheck = "true"
+	} else {
+		item.BypassSeencheck = "false"
+	}
 
 	return item
 }

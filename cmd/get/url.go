@@ -6,7 +6,6 @@ import (
 	"github.com/internetarchive/Zeno/cmd"
 	"github.com/internetarchive/Zeno/config"
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -41,7 +40,7 @@ func cmdGetURL(c *cli.Context) error {
 		return err
 	}
 
-	crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, "seed", 0, "", utils.Pointer(false)))
+	crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, "seed", 0, "", false))
 
 	// Start crawl
 	err = crawl.Start()

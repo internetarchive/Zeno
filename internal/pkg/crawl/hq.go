@@ -119,7 +119,9 @@ func (c *Crawl) HQProducer() {
 			discoveredURL.Path += "L"
 		}
 
-		if *discoveredItem.BypassSeencheck {
+		// The reason we are using a string instead of a bool is because
+		// gob's encode/decode doesn't properly support booleans
+		if discoveredItem.BypassSeencheck == "true" {
 			for {
 				_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "seed", true, false)
 				if err != nil {
@@ -188,7 +190,7 @@ func (c *Crawl) HQConsumer() {
 				})).Errorln("unable to parse URL received from crawl HQ, discarding")
 			}
 
-			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, utils.Pointer(false))
+			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, false)
 		}
 	}
 }
