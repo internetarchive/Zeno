@@ -16,6 +16,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/telegram"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/tiktok"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/vk"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/remeh/sizedwaitgroup"
@@ -86,6 +87,10 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 		sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
 
 		if err != nil {
+			if strings.Contains(err.Error(), "unsupported protocol scheme") || strings.Contains(err.Error(), "no such host") {
+				return nil, err
+			}
+
 			logError.WithFields(c.genLogFields(err, req.URL, nil)).Error("error while executing GET request, retrying")
 
 			time.Sleep(sleepTime)
@@ -241,7 +246,37 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	req.Header.Set("User-Agent", c.UserAgent)
 
 	// Execute site-specific code on the request, before sending it
-	if tiktok.IsTikTokURL(utils.URLToString(item.URL)) {
+	if truthsocial.IsTruthSocialURL(utils.URLToString(item.URL)) {
+		// Get the API URL from the URL
+		apiURL, err := truthsocial.GenerateAPIURL(utils.URLToString(item.URL))
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
+		} else {
+			if apiURL == nil {
+				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
+			} else {
+				// Then we create an item
+				apiItem := frontier.NewItem(apiURL, item, item.Type, item.Hop, item.ID, false)
+
+				// And capture it
+				c.Capture(apiItem)
+			}
+
+			// Grab few embeds that are needed for the playback
+			embedURLs, err := truthsocial.EmbedURLs()
+			if err != nil {
+				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting embed URLs")
+			} else {
+				for _, embedURL := range embedURLs {
+					// Create the embed item
+					embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
+
+					// Capture the embed item
+					c.Capture(embedItem)
+				}
+			}
+		}
+	} else if tiktok.IsTikTokURL(utils.URLToString(item.URL)) {
 		tiktok.AddHeaders(req)
 	} else if telegram.IsTelegramURL(utils.URLToString(item.URL)) && !telegram.IsTelegramEmbedURL(utils.URLToString(item.URL)) {
 		// If the URL is a Telegram URL, we make an embed URL out of it
