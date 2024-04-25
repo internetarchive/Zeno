@@ -64,8 +64,9 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *frontier.Item, wg *sync
 	for _, outlink := range outlinks {
 		outlink := outlink
 
-		// If the host of the outlink is in the host exclusion list, we ignore it
-		if utils.StringInSlice(outlink.Host, c.ExcludedHosts) {
+		// If the host of the outlink is in the host exclusion list, or the host is not in the host inclusion list
+		// if one is specified, we ignore the outlink
+		if utils.StringInSlice(outlink.Host, c.ExcludedHosts) || !c.checkIncludedHosts(outlink.Host) {
 			continue
 		}
 

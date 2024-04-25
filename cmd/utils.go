@@ -73,6 +73,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.DisableAssetsCapture = flags.DisableAssetsCapture
 	c.DisabledHTMLTags = flags.DisabledHTMLTags.Value()
 	c.ExcludedHosts = flags.ExcludedHosts.Value()
+	c.IncludedHosts = flags.IncludedHosts.Value()
 	c.CaptureAlternatePages = flags.CaptureAlternatePages
 	c.ExcludedStrings = flags.ExcludedStrings.Value()
 

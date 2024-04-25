@@ -1,10 +1,10 @@
 module github.com/internetarchive/Zeno
 
-go 1.22
+go 1.22.2
 
 require (
 	git.archive.org/wb/gocrawlhq v1.2.4
-	github.com/CorentinB/warc v0.8.36
+	github.com/CorentinB/warc v0.8.38
 	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/beeker1121/goque v2.1.0+incompatible
@@ -77,7 +77,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.0 // indirect
-	github.com/prometheus/common v0.50.0 // indirect
+	github.com/prometheus/common v0.53.0 // indirect
 	github.com/prometheus/procfs v0.13.0 // indirect
 	github.com/quic-go/quic-go v0.41.0 // indirect
 	github.com/refraction-networking/utls v1.6.3 // indirect

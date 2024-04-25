@@ -138,6 +138,11 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Exclude a specific host from the crawl, note that it will not exclude the domain if it is encountered as an asset for another web page.",
 		Destination: &config.App.Flags.ExcludedHosts,
 	},
+	&cli.StringSliceFlag{
+		Name:        "include-host",
+		Usage:       "Only crawl specific hosts, note that it will not include the domain if it is encountered as an asset for another web page.",
+		Destination: &config.App.Flags.IncludedHosts,
+	},
 	&cli.IntFlag{
 		Name:        "max-concurrent-per-domain",
 		Value:       16,
@@ -302,6 +307,11 @@ var GlobalFlags = []cli.Flag{
 		Name:        "exclude-string",
 		Usage:       "Discard any (discovered) URLs containing this string.",
 		Destination: &config.App.Flags.ExcludedStrings,
+	},
+	&cli.BoolFlag{
+		Name:        "random-local-ip",
+		Usage:       "Use random local IP for requests. (will be ignored if a proxy is set)",
+		Destination: &config.App.Flags.RandomLocalIP,
 	},
 }
 

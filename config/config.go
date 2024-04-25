@@ -16,6 +16,7 @@ type Flags struct {
 
 	DisabledHTMLTags               cli.StringSlice
 	ExcludedHosts                  cli.StringSlice
+	IncludedHosts                  cli.StringSlice
 	DomainsCrawl                   bool
 	CaptureAlternatePages          bool
 	HTTPTimeout                    int
@@ -25,6 +26,7 @@ type Flags struct {
 	RateLimitDelay                 int
 	CrawlTimeLimit                 int
 	MaxCrawlTimeLimit              int
+	RandomLocalIP                  bool
 
 	Proxy       string
 	BypassProxy cli.StringSlice

@@ -50,6 +50,7 @@ type Crawl struct {
 	Logger                         logrus.Logger
 	DisabledHTMLTags               []string
 	ExcludedHosts                  []string
+	IncludedHosts                  []string
 	ExcludedStrings                []string
 	UserAgent                      string
 	Job                            string
@@ -68,6 +69,7 @@ type Crawl struct {
 	Headless                       bool
 	Seencheck                      bool
 	Workers                        int
+	RandomLocalIP                  bool
 
 	// Cookie-related settings
 	CookieFile  string
@@ -216,9 +218,6 @@ func (c *Crawl) Start() (err error) {
 	// Init WARC rotator settings
 	rotatorSettings := c.initWARCRotatorSettings()
 
-	// Change WARC pool size
-	rotatorSettings.WARCWriterPoolSize = c.WARCPoolSize
-
 	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, SizeThreshold: c.WARCDedupSize}
 	if c.CDXDedupeServer != "" {
 		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer, CDXCookie: c.WARCCustomCookie, SizeThreshold: c.WARCDedupSize}
@@ -233,6 +232,7 @@ func (c *Crawl) Start() (err error) {
 		VerifyCerts:         c.CertValidation,
 		TempDir:             c.WARCTempDir,
 		FullOnDisk:          c.WARCFullOnDisk,
+		RandomLocalIP:       c.RandomLocalIP,
 	}
 
 	c.Client, err = warc.NewWARCWritingHTTPClient(HTTPClientSettings)

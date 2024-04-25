@@ -33,7 +33,7 @@ func (c *Crawl) Worker() {
 		}
 
 		// If the host of the item is in the host exclusion list, we skip it
-		if utils.StringInSlice(item.Host, c.ExcludedHosts) {
+		if utils.StringInSlice(item.Host, c.ExcludedHosts) || !c.checkIncludedHosts(item.Host) {
 			continue
 		}
 
