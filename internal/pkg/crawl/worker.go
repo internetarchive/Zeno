@@ -34,6 +34,11 @@ func (c *Crawl) Worker() {
 
 		// If the host of the item is in the host exclusion list, we skip it
 		if utils.StringInSlice(item.Host, c.ExcludedHosts) || !c.checkIncludedHosts(item.Host) {
+			if c.UseHQ {
+				// If we are using the HQ, we want to mark the item as done
+				c.HQFinishedChannel <- item
+			}
+
 			continue
 		}
 
