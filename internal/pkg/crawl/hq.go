@@ -152,6 +152,7 @@ func (c *Crawl) HQConsumer() {
 		var HQBatchSize = int(math.Ceil(float64(c.Workers) / 2))
 
 		if c.Finished.Get() {
+			c.Logger.Info("crawl finished, stopping HQ consumer")
 			break
 		}
 
@@ -176,7 +177,7 @@ func (c *Crawl) HQConsumer() {
 		// get batch from crawl HQ
 		batch, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
 		if err != nil {
-			logrus.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+			c.Logger.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
 			})).Debugln("error getting new URLs from crawl HQ")
 		}
@@ -185,7 +186,7 @@ func (c *Crawl) HQConsumer() {
 		for _, URL := range batch.URLs {
 			newURL, err := url.Parse(URL.Value)
 			if err != nil {
-				logrus.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+				c.Logger.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 					"batchSize": HQBatchSize,
 				})).Errorln("unable to parse URL received from crawl HQ, discarding")
 			}
