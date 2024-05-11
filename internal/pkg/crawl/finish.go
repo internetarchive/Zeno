@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,7 +21,11 @@ func (crawl *Crawl) catchFinish() {
 	for {
 		time.Sleep(time.Second * 5)
 		if !crawl.UseHQ && crawl.ActiveWorkers.Value() == 0 && crawl.Frontier.QueueCount.Value() == 0 && !crawl.Finished.Get() && (crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() > 0) {
-			logrus.Warning("No additional URL to archive, finishing")
+			crawl.Frontier.LoggingChan <- &frontier.FrontierLogMessage{
+				Fields:  logrus.Fields{},
+				Message: "no more work to do, finishing",
+				Level:   logrus.WarnLevel,
+			}
 			crawl.finish()
 		}
 	}
@@ -39,23 +44,23 @@ func (crawl *Crawl) finish() {
 	}
 	close(crawl.Frontier.PullChan)
 
-	logrus.Warning("[WORKERS] Waiting for workers to finish")
+	crawl.Logger.Warning("[WORKERS] Waiting for workers to finish")
 	crawl.WorkerPool.Wait()
-	logrus.Warning("[WORKERS] All workers finished")
+	crawl.Logger.Warning("[WORKERS] All workers finished")
 
 	// When all workers are finished, we can safely close the HQ related channels
 	if crawl.UseHQ {
-		logrus.Warning("[HQ] Waiting for finished channel to be closed")
+		crawl.Logger.Warning("[HQ] Waiting for finished channel to be closed")
 		close(crawl.HQFinishedChannel)
-		logrus.Warning("[HQ] Finished channel closed")
+		crawl.Logger.Warning("[HQ] Finished channel closed")
 
-		logrus.Warning("[HQ] Waiting for producer to finish")
+		crawl.Logger.Warning("[HQ] Waiting for producer to finish")
 		close(crawl.HQProducerChannel)
-		logrus.Warning("[HQ] Producer finished")
+		crawl.Logger.Warning("[HQ] Producer finished")
 
-		logrus.Warning("[HQ] Waiting for all functions to return")
+		crawl.Logger.Warning("[HQ] Waiting for all functions to return")
 		crawl.HQChannelsWg.Wait()
-		logrus.Warning("[HQ] All functions returned")
+		crawl.Logger.Warning("[HQ] All functions returned")
 	}
 
 	// Once all workers are done, it means nothing more is actively send to
@@ -67,30 +72,30 @@ func (crawl *Crawl) finish() {
 		time.Sleep(time.Second / 2)
 	}
 
-	logrus.Warning("[WARC] Closing writer(s)..")
+	crawl.Logger.Warning("[WARC] Closing writer(s)..")
 	crawl.Client.Close()
 
 	if crawl.Proxy != "" {
 		crawl.ClientProxied.Close()
 	}
 
-	logrus.Warning("[WARC] Writer(s) closed")
+	crawl.Logger.Warning("[WARC] Writer(s) closed")
 
 	// Closing the local queue used by the frontier
 	crawl.Frontier.Queue.Close()
-	logrus.Warning("[FRONTIER] Queue closed")
+	crawl.Logger.Warning("[FRONTIER] Queue closed")
 
 	// Closing the seencheck database
 	if crawl.Seencheck {
 		crawl.Frontier.Seencheck.SeenDB.Close()
-		logrus.Warning("[SEENCHECK] Database closed")
+		crawl.Logger.Warning("[SEENCHECK] Database closed")
 	}
 
 	// Dumping hosts pool and frontier stats to disk
-	logrus.Warning("[FRONTIER] Dumping hosts pool and frontier stats to " + path.Join(crawl.Frontier.JobPath, "frontier.gob"))
+	crawl.Logger.Warning("[FRONTIER] Dumping hosts pool and frontier stats to " + path.Join(crawl.Frontier.JobPath, "frontier.gob"))
 	crawl.Frontier.Save()
 
-	logrus.Warning("Finished!")
+	crawl.Logger.Warning("Finished!")
 
 	os.Exit(0)
 }
@@ -99,7 +104,7 @@ func (crawl *Crawl) setupCloseHandler() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-	logrus.Warning("CTRL+C catched.. cleaning up and exiting.")
+	crawl.Logger.Warning("CTRL+C catched.. cleaning up and exiting.")
 	signal.Stop(c)
 	crawl.finish()
 }
