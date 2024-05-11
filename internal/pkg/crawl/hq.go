@@ -152,7 +152,7 @@ func (c *Crawl) HQConsumer() {
 		var HQBatchSize = int(math.Ceil(float64(c.Workers) / 2))
 
 		if c.Finished.Get() {
-			c.Logger.Info("crawl finished, stopping HQ consumer")
+			c.Logger.Warn("crawl finished, stopping HQ consumer")
 			break
 		}
 

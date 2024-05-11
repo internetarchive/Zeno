@@ -17,7 +17,7 @@ func (f *Frontier) writeItemsToQueue() {
 			time.Sleep(time.Second)
 		}
 
-		// If --seencheck is enabled, then we check if the URI is in the
+		// If --local-seencheck is enabled, then we check if the URI is in the
 		// seencheck DB before doing anything. If it is in it, we skip the item
 		if f.UseSeencheck {
 			hash := strconv.FormatUint(item.Hash, 10)
