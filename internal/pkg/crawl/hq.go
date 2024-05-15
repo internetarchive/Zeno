@@ -183,15 +183,18 @@ func (c *Crawl) HQConsumer() {
 		}
 
 		// send all URLs received in the batch to the frontier
-		for _, URL := range batch.URLs {
-			newURL, err := url.Parse(URL.Value)
-			if err != nil {
-				c.Logger.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-					"batchSize": HQBatchSize,
-				})).Errorln("unable to parse URL received from crawl HQ, discarding")
-			}
+		if len(batch.URLs) > 0 {
+			for _, URL := range batch.URLs {
+				newURL, err := url.Parse(URL.Value)
+				if err != nil {
+					c.Logger.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+						"batchSize": HQBatchSize,
+					})).Errorln("unable to parse URL received from crawl HQ, discarding")
+					continue
+				}
 
-			c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, false)
+				c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, false)
+			}
 		}
 	}
 }
