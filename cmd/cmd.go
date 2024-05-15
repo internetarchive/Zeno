@@ -169,6 +169,13 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Number of seconds until the crawl will automatically panic itself. Default to crawl-time-limit + (crawl-time-limit / 10)",
 		Destination: &config.App.Flags.MaxCrawlTimeLimit,
 	},
+	&cli.IntFlag{
+		Name:        "min-space-required",
+		Aliases:     []string{"msr"},
+		Value:       20,
+		Usage:       "Minimum space required to start crawl",
+		Destination: &config.App.Flags.MinSpaceRequired,
+	},
 
 	// Proxy flags
 	&cli.StringFlag{

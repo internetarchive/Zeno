@@ -13,6 +13,7 @@ type Flags struct {
 	JSON                bool
 	LiveStats           bool
 	Debug               bool
+	MinSpaceRequired    int
 
 	DisabledHTMLTags               cli.StringSlice
 	ExcludedHosts                  cli.StringSlice
