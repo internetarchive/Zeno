@@ -152,7 +152,7 @@ func (c *Crawl) HQConsumer() {
 		var HQBatchSize = int(math.Ceil(float64(c.Workers) / 2))
 
 		if c.Finished.Get() {
-			c.Logger.Warn("crawl finished, stopping HQ consumer")
+			c.Logger.Error("crawl finished, stopping HQ consumer")
 			break
 		}
 
@@ -179,7 +179,7 @@ func (c *Crawl) HQConsumer() {
 		if err != nil {
 			c.Logger.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
-			})).Debugln("error getting new URLs from crawl HQ")
+			})).Errorln("error getting new URLs from crawl HQ")
 		}
 
 		// send all URLs received in the batch to the frontier
