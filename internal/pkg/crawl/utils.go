@@ -55,8 +55,8 @@ func (c *Crawl) handleCrawlPause() {
 	for {
 		spaceLeft := float64(utils.GetFreeDiskSpace(c.JobPath).Avail) / float64(GB)
 		if spaceLeft <= float64(c.MinSpaceRequired) {
-			logrus.Errorln(fmt.Sprintf("Not enough disk space: %d GB required, %f GB available", c.MinSpaceRequired, spaceLeft))
-			logrus.Errorln("Please free some space and restart the crawler.")
+			logrus.Errorln(fmt.Sprintf("Not enough disk space: %d GB required, %f GB available. "+
+				"Please free some space for the crawler to resume.", c.MinSpaceRequired, spaceLeft))
 			c.Paused.Set(true)
 			c.Frontier.Paused.Set(true)
 		} else {

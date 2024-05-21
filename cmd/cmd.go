@@ -173,7 +173,7 @@ var GlobalFlags = []cli.Flag{
 		Name:        "min-space-required",
 		Aliases:     []string{"msr"},
 		Value:       20,
-		Usage:       "Minimum space required to start crawl",
+		Usage:       "Minimum space (GB) required to start crawl",
 		Destination: &config.App.Flags.MinSpaceRequired,
 	},
 
