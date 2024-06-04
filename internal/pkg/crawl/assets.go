@@ -26,6 +26,15 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 		}
 	}
 
+	// Get assets from JSON payloads in data-item values
+	doc.Find("[data-item]").Each(func(index int, item *goquery.Selection) {
+		dataItem, exists := item.Attr("data-item")
+		if exists {
+			URLsFromJSON, _ := getURLsFromJSON(dataItem)
+			rawAssets = append(rawAssets, URLsFromJSON...)
+		}
+	})
+
 	// Check all elements style attributes for background-image & also data-preview
 	doc.Find("*").Each(func(index int, item *goquery.Selection) {
 		style, exists := item.Attr("style")

@@ -14,6 +14,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/clbanning/mxj/v2"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/libsyn"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/telegram"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/truthsocial"
@@ -274,6 +275,18 @@ func (c *Crawl) Capture(item *frontier.Item) {
 					// Capture the embed item
 					c.Capture(embedItem)
 				}
+			}
+		}
+	} else if libsyn.IsLibsynURL(utils.URLToString(item.URL)) {
+		// Generate the highwinds URL
+		highwindsURL, err := libsyn.GenerateHighwindsURL(utils.URLToString(item.URL))
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating libsyn URL")
+		} else {
+			if highwindsURL == nil {
+				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating libsyn URL")
+			} else {
+				c.Capture(frontier.NewItem(highwindsURL, item, item.Type, item.Hop, item.ID, false))
 			}
 		}
 	} else if tiktok.IsTikTokURL(utils.URLToString(item.URL)) {
