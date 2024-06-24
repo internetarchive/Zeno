@@ -2,6 +2,7 @@ package crawl
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-contrib/pprof"
@@ -10,6 +11,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+type APIWorkersState struct {
+	Workers []*APIWorkerState `json:"workers"`
+}
+
+type APIWorkerState struct {
+	WorkerID  int    `json:"worker_id"`
+	Status    string `json:"status"`
+	LastError string `json:"last_error"`
+	Locked    bool   `json:"locked"`
+}
 
 func (crawl *Crawl) startAPI() {
 	gin.SetMode(gin.ReleaseMode)
@@ -55,6 +67,24 @@ func (crawl *Crawl) startAPI() {
 		logInfo.Info("Starting Prometheus export")
 		r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	}
+
+	r.GET("/workers", func(c *gin.Context) {
+		workersState := crawl.GetWorkerState(-1)
+		c.JSON(200, workersState)
+	})
+
+	r.GET("/workers/:worker_id", func(c *gin.Context) {
+		workerID := c.Param("worker_id")
+		workerIDInt, err := strconv.Atoi(workerID)
+		if err != nil {
+			c.JSON(404, gin.H{
+				"error": "Worker not found",
+			})
+			return
+		}
+		workersState := crawl.GetWorkerState(workerIDInt)
+		c.JSON(200, workersState)
+	})
 
 	err := r.Run(":" + crawl.APIPort)
 	if err != nil {

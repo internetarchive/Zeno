@@ -1,8 +1,10 @@
 package crawl
 
 import (
+	"sync"
 	"time"
 
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
@@ -17,33 +19,117 @@ const (
 	GB = 1024 * MB
 )
 
-// Worker is the key component of a crawl, it's a background processed dispatched
+type status int
+
+const (
+	idle status = iota
+	processing
+	completed
+)
+
+func (s status) String() string {
+	statusStr := map[status]string{
+		idle:       "idle",
+		processing: "processing",
+		completed:  "completed",
+	}
+	return statusStr[s]
+}
+
+type workerState struct {
+	currentItem  *frontier.Item
+	previousItem *frontier.Item
+	status       status
+	lastError    error
+	lastSeen     time.Time
+}
+
+type Worker struct {
+	sync.Mutex
+	state           *workerState
+	doneSignal      chan bool
+	crawlParameters *Crawl
+}
+
+// Run is the key component of a crawl, it's a background processed dispatched
 // when the crawl starts, it listens on a channel to get new URLs to archive,
 // and eventually push newly discovered URLs back in the frontier.
-func (c *Crawl) Worker() {
-	defer c.WorkerPool.Done()
-
+func (w *Worker) Run() {
 	// Start archiving the URLs!
-	for item := range c.Frontier.PullChan {
+	for item := range w.crawlParameters.Frontier.PullChan {
 		item := item
 
-		// Check if the crawl is paused
-		for c.Paused.Get() {
-			time.Sleep(time.Second)
+		// Check if the crawl is paused or needs to be stopped
+		switch {
+		case <-w.doneSignal:
+			w.Lock()
+			w.state.currentItem = nil
+			w.state.status = completed
+			return
+		default:
+			for w.crawlParameters.Paused.Get() {
+				time.Sleep(time.Second)
+			}
 		}
 
 		// If the host of the item is in the host exclusion list, we skip it
-		if utils.StringInSlice(item.Host, c.ExcludedHosts) || !c.checkIncludedHosts(item.Host) {
-			if c.UseHQ {
+		if utils.StringInSlice(item.Host, w.crawlParameters.ExcludedHosts) || !w.crawlParameters.checkIncludedHosts(item.Host) {
+			if w.crawlParameters.UseHQ {
 				// If we are using the HQ, we want to mark the item as done
-				c.HQFinishedChannel <- item
+				w.crawlParameters.HQFinishedChannel <- item
 			}
 
 			continue
 		}
 
-		c.ActiveWorkers.Incr(1)
-		c.Capture(item)
-		c.ActiveWorkers.Incr(-1)
+		// Launches the capture of the given item
+		w.Capture(item)
+	}
+}
+
+func (w *Worker) Capture(item *frontier.Item) {
+	// Locks the worker
+	w.Lock()
+	defer w.Unlock()
+
+	// Signals that the worker is processing an item
+	w.crawlParameters.ActiveWorkers.Incr(1)
+	w.state.currentItem = item
+	w.state.status = processing
+
+	// Capture the item
+	err := w.crawlParameters.Capture(item)
+	if err != nil {
+		w.PushLastError(err)
+	}
+
+	// Signals that the worker has finished processing the item
+	w.state.status = idle
+	w.state.currentItem = nil
+	w.state.previousItem = item
+	w.crawlParameters.ActiveWorkers.Incr(-1)
+	w.state.lastSeen = time.Now()
+}
+
+func (w *Worker) Stop() {
+	w.doneSignal <- true
+}
+
+func (w *Worker) PushLastError(err error) {
+	w.Lock()
+	w.state.lastError = err
+	w.Unlock()
+}
+
+func newWorker(crawlParameters *Crawl) *Worker {
+	return &Worker{
+		state: &workerState{
+			status:       idle,
+			previousItem: nil,
+			currentItem:  nil,
+			lastError:    nil,
+		},
+		doneSignal:      make(chan bool),
+		crawlParameters: crawlParameters,
 	}
 }
