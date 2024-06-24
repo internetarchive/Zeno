@@ -10,7 +10,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
-	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,7 +49,8 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.JobPath = path.Join("jobs", flags.Job)
 
 	c.Workers = flags.Workers
-	c.WorkerPool = sizedwaitgroup.New(c.Workers)
+	c.WorkerPool = make([]*crawl.Worker, 0)
+	c.WorkerStopTimeout = time.Second * 60 // Placeholder for WorkerStopTimeout
 	c.MaxConcurrentAssets = flags.MaxConcurrentAssets
 
 	c.Seencheck = flags.Seencheck

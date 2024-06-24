@@ -219,7 +219,7 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 }
 
 // Capture capture the URL and return the outlinks
-func (c *Crawl) Capture(item *frontier.Item) {
+func (c *Crawl) Capture(item *frontier.Item) error {
 	var (
 		resp      *http.Response
 		waitGroup sync.WaitGroup
@@ -237,7 +237,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
 	if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while preparing GET request")
-		return
+		return err
 	}
 
 	if item.Hop > 0 && item.ParentItem != nil {
@@ -307,14 +307,14 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	// Execute request
 	resp, err = c.executeGET(item, req, false)
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
-		return
+		return err
 	} else if err != nil && err.Error() == "URL is being rate limited, sending back to HQ" {
 		c.HQProducerChannel <- frontier.NewItem(item.URL, item.ParentItem, item.Type, item.Hop, "", true)
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("URL is being rate limited, sending back to HQ")
-		return
+		return err
 	} else if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while executing GET request")
-		return
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -335,7 +335,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	base, err := url.Parse(utils.URLToString(resp.Request.URL))
 	if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base URL")
-		return
+		return err
 	}
 
 	// If the response is a JSON document, we want to scrape it for links
@@ -343,19 +343,19 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		jsonBody, err := io.ReadAll(resp.Body)
 		if err != nil {
 			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading JSON body")
-			return
+			return err
 		}
 
 		outlinksFromJSON, err := getURLsFromJSON(string(jsonBody))
 		if err != nil {
 			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting URLs from JSON")
-			return
+			return err
 		}
 
 		waitGroup.Add(1)
 		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(outlinksFromJSON)), item, &waitGroup)
 
-		return
+		return err
 	}
 
 	// If the response is an XML document, we want to scrape it for links
@@ -363,13 +363,13 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		xmlBody, err := io.ReadAll(resp.Body)
 		if err != nil {
 			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading XML body")
-			return
+			return err
 		}
 
 		mv, err := mxj.NewMapXml(xmlBody)
 		if err != nil {
 			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing XML body")
-			return
+			return err
 		}
 
 		for _, value := range mv.LeafValues() {
@@ -390,14 +390,14 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading response body")
 		}
 
-		return
+		return err
 	}
 
 	// Turn the response into a doc that we will scrape for outlinks and assets.
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating goquery document")
-		return
+		return err
 	}
 
 	// Execute site-specific code on the document
@@ -406,7 +406,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, base, *c.Client)
 		if err != nil {
 			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting JS files from cloudflarestream")
-			return
+			return err
 		}
 
 		// Seencheck the URLs we captured, we ignore the returned value here
@@ -464,26 +464,26 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	outlinks, err := extractOutlinks(base, doc)
 	if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting outlinks")
-		return
+		return err
 	}
 
 	waitGroup.Add(1)
 	go c.queueOutlinks(outlinks, item, &waitGroup)
 
 	if c.DisableAssetsCapture {
-		return
+		return err
 	}
 
 	// Extract and capture assets
 	assets, err := c.extractAssets(base, item, doc)
 	if err != nil {
 		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting assets")
-		return
+		return err
 	}
 
 	// If we didn't find any assets, let's stop here
 	if len(assets) == 0 {
-		return
+		return err
 	}
 
 	// If --local-seencheck is enabled, then we check if the assets are in the
@@ -502,7 +502,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		}
 
 		if len(seencheckedBatch) == 0 {
-			return
+			return err
 		}
 
 		assets = seencheckedBatch
@@ -522,7 +522,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 		}
 
 		if len(assets) == 0 {
-			return
+			return err
 		}
 	}
 
@@ -584,6 +584,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 	}
 
 	swg.Wait()
+	return err
 }
 
 func getURLsFromJSON(jsonString string) ([]string, error) {
