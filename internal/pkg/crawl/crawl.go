@@ -402,6 +402,9 @@ func (c *Crawl) EnsureWorkersFinished() bool {
 // GetWorkerState returns the state of a worker given its index in the worker pool
 // if the provided index is -1 then the state of all workers is returned
 func (c *Crawl) GetWorkerState(index int) interface{} {
+	c.WorkerMutex.RLock()
+	defer c.WorkerMutex.RUnlock()
+
 	if index == -1 {
 		var workersStatus = new(APIWorkersState)
 		for i, worker := range c.WorkerPool {
