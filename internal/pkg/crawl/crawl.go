@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
 	"github.com/telanflow/cookiejar"
 	"mvdan.cc/xurls/v2"
@@ -42,8 +42,13 @@ type Crawl struct {
 	// Frontier
 	Frontier *frontier.Frontier
 
+	// Worker pool
+	WorkerMutex       sync.RWMutex
+	WorkerPool        []*Worker
+	WorkerStopSignal  chan bool
+	WorkerStopTimeout time.Duration
+
 	// Crawl settings
-	WorkerPool                     sizedwaitgroup.SizedWaitGroup
 	MaxConcurrentAssets            int
 	Client                         *warc.CustomHTTPClient
 	ClientProxied                  *warc.CustomHTTPClient
@@ -287,9 +292,11 @@ func (c *Crawl) Start() (err error) {
 
 	// Fire up the desired amount of workers
 	for i := 0; i < c.Workers; i++ {
-		c.WorkerPool.Add()
-		go c.Worker()
+		worker := newWorker(c)
+		c.WorkerPool = append(c.WorkerPool, worker)
+		go worker.Run()
 	}
+	go c.WorkerWatcher()
 
 	// Start the process responsible for printing live stats on the standard output
 	if c.LiveStats {
@@ -334,4 +341,90 @@ func (c *Crawl) Start() (err error) {
 	}
 
 	return
+}
+
+func (c *Crawl) WorkerWatcher() {
+	var toEnd = false
+
+	for {
+		select {
+		// Stop the workers
+		case <-c.WorkerStopSignal:
+			for _, worker := range c.WorkerPool {
+				worker.doneSignal <- true
+			}
+			toEnd = true
+
+		// Check for finished workers and remove them from the pool
+		// End the watcher if a stop signal was received and all workers are completed
+		default:
+			c.WorkerMutex.RLock()
+			for i, worker := range c.WorkerPool {
+				if worker.state.status == completed {
+					// Remove the worker from the pool
+					c.WorkerMutex.RUnlock()
+					c.WorkerMutex.Lock()
+					c.WorkerPool = append(c.WorkerPool[:i], c.WorkerPool[i+1:]...)
+					c.WorkerMutex.Unlock()
+				}
+			}
+
+			if toEnd && len(c.WorkerPool) == 0 {
+				return // All workers are completed
+			}
+		}
+	}
+}
+
+func (c *Crawl) EnsureWorkersFinished() bool {
+	var workerPoolLen int
+	var timer = time.NewTimer(c.WorkerStopTimeout)
+
+	for {
+		c.WorkerMutex.RLock()
+		workerPoolLen = len(c.WorkerPool)
+		if workerPoolLen == 0 {
+			c.WorkerMutex.RUnlock()
+			return true
+		}
+		c.WorkerMutex.RUnlock()
+		select {
+		case <-timer.C:
+			c.Logger.Warning(fmt.Sprintf("[WORKERS] Timeout reached. %d workers still running", workerPoolLen))
+			return false
+		default:
+			c.Logger.Warning(fmt.Sprintf("[WORKERS] Waiting for %d workers to finish", workerPoolLen))
+			time.Sleep(time.Second * 5)
+		}
+	}
+}
+
+// GetWorkerState returns the state of a worker given its index in the worker pool
+// if the provided index is -1 then the state of all workers is returned
+func (c *Crawl) GetWorkerState(index int) interface{} {
+	if index == -1 {
+		var workersStatus = new(APIWorkersState)
+		for i, worker := range c.WorkerPool {
+			workersStatus.Workers = append(workersStatus.Workers, _getWorkerState(worker, i))
+		}
+		return workersStatus
+	}
+	if index >= len(c.WorkerPool) {
+		return nil
+	}
+	return _getWorkerState(c.WorkerPool[index], index)
+}
+
+func _getWorkerState(worker *Worker, index int) *APIWorkerState {
+	isLocked := false
+	if worker.TryLock() {
+		isLocked = true
+		worker.Unlock()
+	}
+	return &APIWorkerState{
+		WorkerID:  index,
+		Status:    worker.state.status.String(),
+		LastError: worker.state.lastError.Error(),
+		Locked:    isLocked,
+	}
 }

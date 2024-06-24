@@ -32,6 +32,7 @@ func (crawl *Crawl) catchFinish() {
 }
 
 func (crawl *Crawl) finish() {
+	crawl.WorkerStopSignal <- true
 	crawl.Finished.Set(true)
 
 	// First we wait for the queue reader to finish its current work,
@@ -45,7 +46,7 @@ func (crawl *Crawl) finish() {
 	close(crawl.Frontier.PullChan)
 
 	crawl.Logger.Warning("[WORKERS] Waiting for workers to finish")
-	crawl.WorkerPool.Wait()
+	crawl.EnsureWorkersFinished()
 	crawl.Logger.Warning("[WORKERS] All workers finished")
 
 	// When all workers are finished, we can safely close the HQ related channels
