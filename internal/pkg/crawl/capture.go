@@ -15,6 +15,7 @@ import (
 	"github.com/clbanning/mxj/v2"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/libsyn"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/streamable"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/telegram"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/truthsocial"
@@ -266,7 +267,7 @@ func (c *Crawl) Capture(item *frontier.Item) {
 			// Grab few embeds that are needed for the playback
 			embedURLs, err := truthsocial.EmbedURLs()
 			if err != nil {
-				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting embed URLs")
+				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting embed URLs for truthsocial")
 			} else {
 				for _, embedURL := range embedURLs {
 					// Create the embed item
@@ -275,6 +276,20 @@ func (c *Crawl) Capture(item *frontier.Item) {
 					// Capture the embed item
 					c.Capture(embedItem)
 				}
+			}
+		}
+	} else if streamable.IsStreamableURL(utils.URLToString(item.URL)) {
+		// Get the player URLs
+		embedURLs, err := streamable.EmbedURLs()
+		if err != nil {
+			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting embed URLs for streamable")
+		} else {
+			for _, embedURL := range embedURLs {
+				// Create the embed item
+				embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
+
+				// Capture the embed item
+				c.Capture(embedItem)
 			}
 		}
 	} else if libsyn.IsLibsynURL(utils.URLToString(item.URL)) {
