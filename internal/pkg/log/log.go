@@ -144,6 +144,35 @@ func (l *Logger) Fatal(msg string, args ...any) {
 	os.Exit(1)
 }
 
+// WithFields returns a new Logger with the given fields added to all log entries.
+// The fields are key-value pairs that will be included in every subsequent log entry
+// made by the returned logger.
+//
+// This method creates a new Logger instance and does not modify the original logger.
+// It can be chained with other WithFields calls or logging methods.
+//
+// Parameters:
+//   - fields: A map of key-value pairs to be included in all log entries
+//
+// Returns:
+//   - *Logger: A new Logger instance with the specified fields attached
+//
+// Example:
+//
+//	logger := log.Default()
+//	userLogger := logger.WithFields(map[string]interface{}{
+//	    "user_id": 12345,
+//	    "ip": "192.168.1.1",
+//	})
+//	userLogger.Info("User logged in")
+func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
+	args := make([]any, 0, len(fields)*2)
+	for k, v := range fields {
+		args = append(args, k, v)
+	}
+	return &Logger{slogger: l.slogger.With(args...)}
+}
+
 //-------------------------------------------------------------------------------------
 // Following methods are used to implement the slog.Handler interface for multiHandler
 //-------------------------------------------------------------------------------------
