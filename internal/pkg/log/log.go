@@ -15,6 +15,7 @@ var (
 
 // Logger wraps slog.Logger to provide multi-output functionality
 type Logger struct {
+	handler *multiHandler
 	slogger *slog.Logger
 }
 
@@ -43,11 +44,13 @@ type Config struct {
 func New(cfg Config) (*Logger, error) {
 	var handlers []slog.Handler
 
+	// Create stdout handler
 	stdoutHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.StdoutLevel,
 	})
 	handlers = append(handlers, stdoutHandler)
 
+	// Create file handler if FileOutput is specified
 	if cfg.FileOutput != "" {
 		file, err := os.OpenFile(cfg.FileOutput, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
@@ -59,11 +62,13 @@ func New(cfg Config) (*Logger, error) {
 		handlers = append(handlers, jsonHandler)
 	}
 
+	// Create multi-handler
 	mh := &multiHandler{handlers: handlers}
 
+	// Create slog.Logger
 	slogger := slog.New(mh)
 
-	return &Logger{slogger: slogger}, nil
+	return &Logger{handler: mh, slogger: slogger}, nil
 }
 
 // Default returns the default Logger instance.
@@ -142,35 +147,6 @@ func (l *Logger) Error(msg string, args ...any) {
 func (l *Logger) Fatal(msg string, args ...any) {
 	l.slogger.Log(context.Background(), slog.LevelError, msg, args...)
 	os.Exit(1)
-}
-
-// WithFields returns a new Logger with the given fields added to all log entries.
-// The fields are key-value pairs that will be included in every subsequent log entry
-// made by the returned logger.
-//
-// This method creates a new Logger instance and does not modify the original logger.
-// It can be chained with other WithFields calls or logging methods.
-//
-// Parameters:
-//   - fields: A map of key-value pairs to be included in all log entries
-//
-// Returns:
-//   - *Logger: A new Logger instance with the specified fields attached
-//
-// Example:
-//
-//	logger := log.Default()
-//	userLogger := logger.WithFields(map[string]interface{}{
-//	    "user_id": 12345,
-//	    "ip": "192.168.1.1",
-//	})
-//	userLogger.Info("User logged in")
-func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
-	args := make([]any, 0, len(fields)*2)
-	for k, v := range fields {
-		args = append(args, k, v)
-	}
-	return &Logger{slogger: l.slogger.With(args...)}
 }
 
 //-------------------------------------------------------------------------------------

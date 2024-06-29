@@ -87,5 +87,5 @@ func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *
 	fields["executionTime"] = time.Since(executionStart).Milliseconds()
 	fields["url"] = utils.URLToString(item.URL)
 
-	logInfo.WithFields(fields).Info("URL archived")
+	c.Log.WithFields(fields).Info("URL archived")
 }
