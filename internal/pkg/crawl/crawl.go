@@ -291,8 +291,8 @@ func (c *Crawl) Start() (err error) {
 	}
 
 	// Fire up the desired amount of workers
-	for i := 0; i < c.Workers; i++ {
-		worker := newWorker(c)
+	for i := uint(0); i < uint(c.Workers); i++ {
+		worker := newWorker(c, i)
 		c.WorkerPool = append(c.WorkerPool, worker)
 		go worker.Run()
 	}
@@ -348,7 +348,8 @@ func (c *Crawl) WorkerWatcher() {
 
 	for {
 		select {
-		// Stop the workers
+
+		// Stop the workers when requested
 		case <-c.WorkerStopSignal:
 			for _, worker := range c.WorkerPool {
 				worker.doneSignal <- true
@@ -356,22 +357,22 @@ func (c *Crawl) WorkerWatcher() {
 			toEnd = true
 
 		// Check for finished workers and remove them from the pool
-		// End the watcher if a stop signal was received and all workers are completed
+		// End the watcher if a stop signal was received beforehand and all workers are completed
 		default:
-			c.WorkerMutex.RLock()
+			c.WorkerMutex.Lock()
 			for i, worker := range c.WorkerPool {
 				if worker.state.status == completed {
 					// Remove the worker from the pool
-					c.WorkerMutex.RUnlock()
-					c.WorkerMutex.Lock()
 					c.WorkerPool = append(c.WorkerPool[:i], c.WorkerPool[i+1:]...)
-					c.WorkerMutex.Unlock()
 				}
+				worker.id = uint(i)
 			}
 
 			if toEnd && len(c.WorkerPool) == 0 {
+				c.WorkerMutex.Unlock()
 				return // All workers are completed
 			}
+			c.WorkerMutex.Unlock()
 		}
 	}
 }
@@ -419,15 +420,23 @@ func (c *Crawl) GetWorkerState(index int) interface{} {
 }
 
 func _getWorkerState(worker *Worker, index int) *APIWorkerState {
-	isLocked := false
+	lastErr := ""
+	isLocked := true
+
 	if worker.TryLock() {
-		isLocked = true
+		isLocked = false
 		worker.Unlock()
 	}
+
+	if worker.state.lastError != nil {
+		lastErr = worker.state.lastError.Error()
+	}
+
 	return &APIWorkerState{
-		WorkerID:  index,
+		WorkerID:  worker.id,
 		Status:    worker.state.status.String(),
-		LastError: worker.state.lastError.Error(),
+		LastSeen:  worker.state.lastSeen.Format(time.RFC3339),
+		LastError: lastErr,
 		Locked:    isLocked,
 	}
 }
