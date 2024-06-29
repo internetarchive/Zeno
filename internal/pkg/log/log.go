@@ -88,6 +88,17 @@ func Default() *Logger {
 	return defaultLogger
 }
 
+// Debug logs a message at Debug level.
+// The first argument is the message to log, and subsequent arguments are key-value pairs
+// that will be included in the log entry.
+//
+// Parameters:
+//   - msg: The message to log
+//   - args: Optional key-value pairs to include in the log entry
+func (l *Logger) Debug(msg string, args ...any) {
+	l.slogger.Debug(msg, args...)
+}
+
 // Info logs a message at Info level.
 // The first argument is the message to log, and subsequent arguments are key-value pairs
 // that will be included in the log entry.
@@ -121,15 +132,16 @@ func (l *Logger) Error(msg string, args ...any) {
 	l.slogger.Error(msg, args...)
 }
 
-// Debug logs a message at Debug level.
+// Fatal logs a message at Fatal level and then calls os.Exit(1).
 // The first argument is the message to log, and subsequent arguments are key-value pairs
 // that will be included in the log entry.
 //
 // Parameters:
 //   - msg: The message to log
 //   - args: Optional key-value pairs to include in the log entry
-func (l *Logger) Debug(msg string, args ...any) {
-	l.slogger.Debug(msg, args...)
+func (l *Logger) Fatal(msg string, args ...any) {
+	l.slogger.Log(context.Background(), slog.LevelError, msg, args...)
+	os.Exit(1)
 }
 
 //-------------------------------------------------------------------------------------

@@ -9,18 +9,13 @@ import (
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"github.com/telanflow/cookiejar"
 	"mvdan.cc/xurls/v2"
-)
-
-var (
-	logInfo    *logrus.Logger
-	logWarning *logrus.Logger
-	logError   *logrus.Logger
 )
 
 // PrometheusMetrics define all the metrics exposed by the Prometheus exporter
@@ -38,6 +33,9 @@ type Crawl struct {
 	Finished         *utils.TAtomBool
 	LiveStats        bool
 	ElasticSearchURL string
+
+	// Logger
+	Log *log.Logger
 
 	// Frontier
 	Frontier *frontier.Frontier
