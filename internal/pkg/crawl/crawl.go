@@ -1,3 +1,4 @@
+// Package crawl handles all the crawling logic for Zeno
 package crawl
 
 import (
@@ -302,6 +303,8 @@ func (c *Crawl) Start() (err error) {
 	return
 }
 
+// WorkerWatcher is a background process that watches over the workers
+// and remove them from the pool when they are done
 func (c *Crawl) WorkerWatcher() {
 	var toEnd = false
 
@@ -336,6 +339,7 @@ func (c *Crawl) WorkerWatcher() {
 	}
 }
 
+// EnsureWorkersFinished waits for all workers to finish
 func (c *Crawl) EnsureWorkersFinished() bool {
 	var workerPoolLen int
 	var timer = time.NewTimer(c.WorkerStopTimeout)
@@ -367,18 +371,18 @@ func (c *Crawl) GetWorkerState(index int) interface{} {
 
 	if index == -1 {
 		var workersStatus = new(APIWorkersState)
-		for i, worker := range c.WorkerPool {
-			workersStatus.Workers = append(workersStatus.Workers, _getWorkerState(worker, i))
+		for _, worker := range c.WorkerPool {
+			workersStatus.Workers = append(workersStatus.Workers, _getWorkerState(worker))
 		}
 		return workersStatus
 	}
 	if index >= len(c.WorkerPool) {
 		return nil
 	}
-	return _getWorkerState(c.WorkerPool[index], index)
+	return _getWorkerState(c.WorkerPool[index])
 }
 
-func _getWorkerState(worker *Worker, index int) *APIWorkerState {
+func _getWorkerState(worker *Worker) *APIWorkerState {
 	lastErr := ""
 	isLocked := true
 
