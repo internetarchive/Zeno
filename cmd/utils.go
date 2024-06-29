@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"log/slog"
 	"path"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/internetarchive/Zeno/config"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl"
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/sirupsen/logrus"
@@ -17,6 +19,17 @@ import (
 // *crawl.Crawl initialized with it
 func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	var c = new(crawl.Crawl)
+
+	// Logger
+	customLogger, err := log.New(log.Config{
+		FileOutput:  "zeno.log",
+		FileLevel:   slog.LevelDebug,
+		StdoutLevel: slog.LevelInfo,
+	})
+	if err != nil {
+		panic(err)
+	}
+	c.Log = customLogger
 
 	// Statistics counters
 	c.CrawledSeeds = new(ratecounter.Counter)
