@@ -46,6 +46,7 @@ type workerState struct {
 
 type Worker struct {
 	sync.Mutex
+	id              uint
 	state           *workerState
 	doneSignal      chan bool
 	crawlParameters *Crawl
@@ -60,7 +61,7 @@ func (w *Worker) Run() {
 		item := item
 
 		// Check if the crawl is paused or needs to be stopped
-		switch {
+		select {
 		case <-w.doneSignal:
 			w.Lock()
 			w.state.currentItem = nil
@@ -121,8 +122,9 @@ func (w *Worker) PushLastError(err error) {
 	w.Unlock()
 }
 
-func newWorker(crawlParameters *Crawl) *Worker {
+func newWorker(crawlParameters *Crawl, id uint) *Worker {
 	return &Worker{
+		id: id,
 		state: &workerState{
 			status:       idle,
 			previousItem: nil,

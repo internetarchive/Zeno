@@ -17,9 +17,10 @@ type APIWorkersState struct {
 }
 
 type APIWorkerState struct {
-	WorkerID  int    `json:"worker_id"`
+	WorkerID  uint   `json:"worker_id"`
 	Status    string `json:"status"`
 	LastError string `json:"last_error"`
+	LastSeen  string `json:"last_seen"`
 	Locked    bool   `json:"locked"`
 }
 
@@ -73,16 +74,24 @@ func (crawl *Crawl) startAPI() {
 		c.JSON(200, workersState)
 	})
 
-	r.GET("/workers/:worker_id", func(c *gin.Context) {
+	r.GET("/worker/:worker_id", func(c *gin.Context) {
 		workerID := c.Param("worker_id")
 		workerIDInt, err := strconv.Atoi(workerID)
 		if err != nil {
+			c.JSON(400, gin.H{
+				"error": "Unsupported worker ID",
+			})
+			return
+		}
+
+		workersState := crawl.GetWorkerState(workerIDInt)
+		if workersState == nil {
 			c.JSON(404, gin.H{
 				"error": "Worker not found",
 			})
 			return
 		}
-		workersState := crawl.GetWorkerState(workerIDInt)
+
 		c.JSON(200, workersState)
 	})
 
