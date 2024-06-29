@@ -13,10 +13,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// APIWorkersState represents the state of all API workers.
 type APIWorkersState struct {
 	Workers []*APIWorkerState `json:"workers"`
 }
 
+// APIWorkerState represents the state of an API worker.
 type APIWorkerState struct {
 	WorkerID  uint   `json:"worker_id"`
 	Status    string `json:"status"`
@@ -25,6 +27,7 @@ type APIWorkerState struct {
 	Locked    bool   `json:"locked"`
 }
 
+// startAPI starts the API server for the crawl.
 func (crawl *Crawl) startAPI() {
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = crawl.Log.Writer(slog.LevelInfo)
