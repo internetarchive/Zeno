@@ -306,18 +306,18 @@ var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:        "es-user",
 		Usage:       "ElasticSearch username to use for indexing crawl logs.",
-		Destination: &config.App.Flags.ElasticSearchURLs,
+		Destination: &config.App.Flags.ElasticSearchUsername,
 	},
 	&cli.StringFlag{
 		Name:        "es-password",
 		Usage:       "ElasticSearch password to use for indexing crawl logs.",
-		Destination: &config.App.Flags.ElasticSearchURLs,
+		Destination: &config.App.Flags.ElasticSearchPassword,
 	},
 	&cli.StringFlag{
 		Name:        "es-index-prefix",
 		Usage:       "ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno-`",
 		Value:       "zeno-",
-		Destination: &config.App.Flags.ElasticSearchURLs,
+		Destination: &config.App.Flags.ElasticSearchIndexPrefix,
 	},
 	&cli.StringSliceFlag{
 		Name:        "exclude-string",

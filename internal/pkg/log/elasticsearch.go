@@ -14,11 +14,11 @@ import (
 
 // ElasticsearchConfig holds the configuration for Elasticsearch logging
 type ElasticsearchConfig struct {
-	Addresses []string
-	Username  string
-	Password  string
-	Index     string
-	Level     slog.Level
+	Addresses   []string
+	Username    string
+	Password    string
+	IndexPrefix string
+	Level       slog.Level
 }
 
 // ElasticsearchHandler implements slog.Handler for Elasticsearch
@@ -129,6 +129,9 @@ func (h *ElasticsearchHandler) createIndex() error {
 
 	res, err := req.Do(context.Background(), h.client)
 	if err != nil {
+		if strings.Contains(err.Error(), "EOF") {
+			return fmt.Errorf("error creating index: received EOF from Elasticsearch, is the server running? check your ES logs for more information")
+		}
 		return fmt.Errorf("error creating index: %w", err)
 	}
 	defer res.Body.Close()

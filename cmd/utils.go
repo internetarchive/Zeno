@@ -23,18 +23,27 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	var c = new(crawl.Crawl)
 
 	// Logger
+	var elasticSearchConfig *log.ElasticsearchConfig
 	elasticSearchURLs := strings.Split(flags.ElasticSearchURLs, ",")
+	if elasticSearchURLs[0] == "" {
+		elasticSearchConfig = nil
+	} else {
+		elasticSearchConfig = &log.ElasticsearchConfig{
+			Addresses:   elasticSearchURLs,
+			Username:    flags.ElasticSearchUsername,
+			Password:    flags.ElasticSearchPassword,
+			IndexPrefix: flags.ElasticSearchIndexPrefix,
+			Level:       slog.LevelDebug,
+		}
+	}
+
 	customLogger, err := log.New(log.Config{
 		FileOutput:               "zeno.log",
 		FileLevel:                slog.LevelDebug,
 		StdoutLevel:              slog.LevelInfo,
 		RotateLogFile:            true,
 		RotateElasticSearchIndex: true,
-		ElasticsearchConfig: &log.ElasticsearchConfig{
-			Addresses: elasticSearchURLs,
-			Username:  flags.ElasticSearchUsername,
-			Password:  flags.ElasticSearchPassword,
-		},
+		ElasticsearchConfig:      elasticSearchConfig,
 	})
 	if err != nil {
 		fmt.Println(err)
