@@ -28,12 +28,11 @@ type PrometheusMetrics struct {
 // Crawl define the parameters of a crawl process
 type Crawl struct {
 	*sync.Mutex
-	StartTime        time.Time
-	SeedList         []frontier.Item
-	Paused           *utils.TAtomBool
-	Finished         *utils.TAtomBool
-	LiveStats        bool
-	ElasticSearchURL string
+	StartTime time.Time
+	SeedList  []frontier.Item
+	Paused    *utils.TAtomBool
+	Finished  *utils.TAtomBool
+	LiveStats bool
 
 	// Logger
 	Log *log.Logger
@@ -178,7 +177,7 @@ func (c *Crawl) Start() (err error) {
 	go c.writeFrontierToDisk()
 
 	// Initialize WARC writer
-	logrus.Info("Initializing WARC writer..")
+	c.Log.Info("Initializing WARC writer..")
 
 	// Init WARC rotator settings
 	rotatorSettings := c.initWARCRotatorSettings()

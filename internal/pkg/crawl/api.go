@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
@@ -100,7 +101,7 @@ func (crawl *Crawl) startAPI() {
 		c.JSON(200, workersState)
 	})
 
-	err := r.Run(":" + crawl.APIPort)
+	err := r.Run(fmt.Sprintf(":%s", crawl.APIPort))
 	if err != nil {
 		crawl.Log.Fatal("unable to start API", "error", err.Error())
 	}

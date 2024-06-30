@@ -3,9 +3,13 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"sync"
+	"time"
+
+	"github.com/elastic/go-elasticsearch/v8"
 )
 
 var (
@@ -15,8 +19,10 @@ var (
 
 // Logger wraps slog.Logger to provide multi-output functionality
 type Logger struct {
-	handler *multiHandler
-	slogger *slog.Logger
+	handler      *multiHandler
+	slogger      *slog.Logger
+	mu           sync.Mutex
+	stopRotation chan struct{}
 }
 
 // multiHandler implements slog.Handler interface for multiple outputs
@@ -26,9 +32,12 @@ type multiHandler struct {
 
 // Config holds the configuration for the logger
 type Config struct {
-	FileOutput  string
-	FileLevel   slog.Level
-	StdoutLevel slog.Level
+	FileOutput               string
+	FileLevel                slog.Level
+	StdoutLevel              slog.Level
+	RotateLogFile            bool
+	ElasticsearchConfig      *ElasticsearchConfig
+	RotateElasticSearchIndex bool
 }
 
 // New creates a new Logger instance with the given configuration.
@@ -56,10 +65,37 @@ func New(cfg Config) (*Logger, error) {
 		if err != nil {
 			return nil, err
 		}
-		jsonHandler := slog.NewJSONHandler(file, &slog.HandlerOptions{
-			Level: cfg.FileLevel,
+		fileHandler := &fileHandler{
+			Handler:      slog.NewJSONHandler(file, &slog.HandlerOptions{Level: cfg.FileLevel}),
+			filename:     cfg.FileOutput,
+			file:         file,
+			interval:     6 * time.Hour,
+			lastRotation: time.Now(),
+		}
+		handlers = append(handlers, fileHandler)
+	}
+
+	// Create Elasticsearch handler if ElasticsearchConfig is specified
+	if cfg.ElasticsearchConfig != nil {
+		esClient, err := elasticsearch.NewClient(elasticsearch.Config{
+			Addresses: cfg.ElasticsearchConfig.Addresses,
+			Username:  cfg.ElasticsearchConfig.Username,
+			Password:  cfg.ElasticsearchConfig.Password,
 		})
-		handlers = append(handlers, jsonHandler)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Elasticsearch client: %w", err)
+		}
+		esHandler := &ElasticsearchHandler{
+			client: esClient,
+			index:  fmt.Sprintf("zeno-%s", time.Now().Format("2006.01.02")),
+			level:  cfg.ElasticsearchConfig.Level,
+			attrs:  []slog.Attr{},
+			groups: []string{},
+		}
+		if err := esHandler.createIndex(); err != nil {
+			return nil, fmt.Errorf("failed to create Elasticsearch index: %w", err)
+		}
+		handlers = append(handlers, esHandler)
 	}
 
 	// Create multi-handler
@@ -68,7 +104,12 @@ func New(cfg Config) (*Logger, error) {
 	// Create slog.Logger
 	slogger := slog.New(mh)
 
-	return &Logger{handler: mh, slogger: slogger}, nil
+	logger := &Logger{handler: mh, slogger: slogger}
+
+	// Start rotation goroutine
+	logger.startRotation()
+
+	return logger, nil
 }
 
 // Default returns the default Logger instance.
@@ -153,7 +194,7 @@ func (l *Logger) Fatal(msg string, args ...any) {
 // Following methods are used to implement the slog.Handler interface for multiHandler
 //-------------------------------------------------------------------------------------
 
-// This method checks if any of the underlying handlers are enabled for a given log level.
+// Enabled checks if any of the underlying handlers are enabled for a given log level.
 // It's used internally to determine if a log message should be processed by a given handler
 func (h *multiHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	for _, handler := range h.handlers {
@@ -164,7 +205,7 @@ func (h *multiHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return false
 }
 
-// This method is responsible for passing the log record to all underlying handlers.
+// Handle is responsible for passing the log record to all underlying handlers.
 // It's called internally when a log message needs to be written.
 func (h *multiHandler) Handle(ctx context.Context, r slog.Record) error {
 	for _, handler := range h.handlers {
@@ -175,7 +216,7 @@ func (h *multiHandler) Handle(ctx context.Context, r slog.Record) error {
 	return nil
 }
 
-// This method creates a new handler with additional attributes.
+// WithAttrs creates a new handler with additional attributes.
 // It's used internally when the logger is asked to include additional context with all subsequent log messages.
 func (h *multiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	handlers := make([]slog.Handler, len(h.handlers))
@@ -185,7 +226,7 @@ func (h *multiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &multiHandler{handlers: handlers}
 }
 
-// This method creates a new handler with a new group added to the attribute grouping hierarchy.
+// WithGroups creates a new handler with a new group added to the attribute grouping hierarchy.
 // It's used internally when the logger is asked to group a set of attributes together.
 func (h *multiHandler) WithGroup(name string) slog.Handler {
 	handlers := make([]slog.Handler, len(h.handlers))

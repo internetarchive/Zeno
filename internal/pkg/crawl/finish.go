@@ -98,6 +98,9 @@ func (crawl *Crawl) finish() {
 
 	crawl.Log.Warn("Finished!")
 
+	crawl.Log.Warn("Shutting down the logger, bai bai")
+	crawl.Log.Stop()
+
 	os.Exit(0)
 }
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"log/slog"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,7 +13,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
-	"github.com/sirupsen/logrus"
 )
 
 // InitCrawlWithCMD takes a config.Flags struct and return a
@@ -21,10 +21,18 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	var c = new(crawl.Crawl)
 
 	// Logger
+	elasticSearchURLs := strings.Split(flags.ElasticSearchURLs, ",")
 	customLogger, err := log.New(log.Config{
-		FileOutput:  "zeno.log",
-		FileLevel:   slog.LevelDebug,
-		StdoutLevel: slog.LevelInfo,
+		FileOutput:               "zeno.log",
+		FileLevel:                slog.LevelDebug,
+		StdoutLevel:              slog.LevelInfo,
+		RotateLogFile:            true,
+		RotateElasticSearchIndex: true,
+		ElasticsearchConfig: &log.ElasticsearchConfig{
+			Addresses: elasticSearchURLs,
+			Username:  flags.ElasticSearchUsername,
+			Password:  flags.ElasticSearchPassword,
+		},
 	})
 	if err != nil {
 		panic(err)
@@ -38,7 +46,6 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.URIsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
 	c.LiveStats = flags.LiveStats
-	c.ElasticSearchURL = flags.ElasticSearchURL
 
 	// Frontier
 	c.Frontier = new(frontier.Frontier)
@@ -50,7 +57,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		} else {
 			UUID, err := uuid.NewUUID()
 			if err != nil {
-				logrus.Fatal(err)
+				c.Log.Fatal("cmd/utils.go:InitCrawlWithCMD():uuid.NewUUID()", "error", err)
 			}
 
 			c.Job = UUID.String()
