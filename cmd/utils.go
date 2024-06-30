@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -35,9 +37,20 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		},
 	})
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 	c.Log = customLogger
+
+	go func() {
+		errChan := c.Log.Errors()
+		for {
+			select {
+			case err := <-errChan:
+				fmt.Fprintf(os.Stderr, "Logging error: %v\n", err)
+			}
+		}
+	}()
 
 	// Statistics counters
 	c.CrawledSeeds = new(ratecounter.Counter)

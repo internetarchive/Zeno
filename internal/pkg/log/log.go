@@ -23,6 +23,7 @@ type Logger struct {
 	slogger      *slog.Logger
 	mu           sync.Mutex
 	stopRotation chan struct{}
+	errorChan    chan error
 }
 
 // multiHandler implements slog.Handler interface for multiple outputs
@@ -104,7 +105,11 @@ func New(cfg Config) (*Logger, error) {
 	// Create slog.Logger
 	slogger := slog.New(mh)
 
-	logger := &Logger{handler: mh, slogger: slogger}
+	logger := &Logger{
+		handler:   mh,
+		slogger:   slogger,
+		errorChan: make(chan error, 10),
+	}
 
 	// Start rotation goroutine
 	logger.startRotation()
@@ -134,6 +139,27 @@ func Default() *Logger {
 	return defaultLogger
 }
 
+// Errors returns a channel that will receive logging errors
+func (l *Logger) Errors() <-chan error {
+	return l.errorChan
+}
+
+func (l *Logger) log(level slog.Level, msg string, args ...any) {
+	// Create a new Record with the message and args
+	r := slog.NewRecord(time.Now(), level, msg, 0)
+	r.Add(args...)
+
+	err := l.handler.Handle(context.Background(), r)
+	if err != nil {
+		select {
+		case l.errorChan <- err:
+		default:
+			// If the error channel is full, log to stderr as a last resort
+			fmt.Fprintf(os.Stderr, "Logging error: %v\n", err)
+		}
+	}
+}
+
 // Debug logs a message at Debug level.
 // The first argument is the message to log, and subsequent arguments are key-value pairs
 // that will be included in the log entry.
@@ -142,7 +168,7 @@ func Default() *Logger {
 //   - msg: The message to log
 //   - args: Optional key-value pairs to include in the log entry
 func (l *Logger) Debug(msg string, args ...any) {
-	l.slogger.Debug(msg, args...)
+	l.log(slog.LevelDebug, msg, args...)
 }
 
 // Info logs a message at Info level.
@@ -153,7 +179,7 @@ func (l *Logger) Debug(msg string, args ...any) {
 //   - msg: The message to log
 //   - args: Optional key-value pairs to include in the log entry
 func (l *Logger) Info(msg string, args ...any) {
-	l.slogger.Info(msg, args...)
+	l.log(slog.LevelInfo, msg, args...)
 }
 
 // Warn logs a message at Warn level.
@@ -164,7 +190,7 @@ func (l *Logger) Info(msg string, args ...any) {
 //   - msg: The message to log
 //   - args: Optional key-value pairs to include in the log entry
 func (l *Logger) Warn(msg string, args ...any) {
-	l.slogger.Warn(msg, args...)
+	l.log(slog.LevelWarn, msg, args...)
 }
 
 // Error logs a message at Error level.
@@ -175,10 +201,10 @@ func (l *Logger) Warn(msg string, args ...any) {
 //   - msg: The message to log
 //   - args: Optional key-value pairs to include in the log entry
 func (l *Logger) Error(msg string, args ...any) {
-	l.slogger.Error(msg, args...)
+	l.log(slog.LevelError, msg, args...)
 }
 
-// Fatal logs a message at Fatal level and then calls os.Exit(1).
+// Fatal logs a message at Error level and then calls os.Exit(1).
 // The first argument is the message to log, and subsequent arguments are key-value pairs
 // that will be included in the log entry.
 //
@@ -186,7 +212,7 @@ func (l *Logger) Error(msg string, args ...any) {
 //   - msg: The message to log
 //   - args: Optional key-value pairs to include in the log entry
 func (l *Logger) Fatal(msg string, args ...any) {
-	l.slogger.Log(context.Background(), slog.LevelError, msg, args...)
+	l.log(slog.LevelError, msg, args...)
 	os.Exit(1)
 }
 
@@ -208,10 +234,14 @@ func (h *multiHandler) Enabled(ctx context.Context, level slog.Level) bool {
 // Handle is responsible for passing the log record to all underlying handlers.
 // It's called internally when a log message needs to be written.
 func (h *multiHandler) Handle(ctx context.Context, r slog.Record) error {
+	var errs []error
 	for _, handler := range h.handlers {
 		if err := handler.Handle(ctx, r); err != nil {
-			return err
+			errs = append(errs, fmt.Errorf("handler error: %w", err))
 		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("multiple handler errors: %v", errs)
 	}
 	return nil
 }
