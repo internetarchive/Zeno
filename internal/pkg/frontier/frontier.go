@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/beeker1121/goque"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/philippgille/gokv/leveldb"
@@ -42,6 +43,7 @@ type Frontier struct {
 	UseSeencheck bool
 	Seencheck    *Seencheck
 	LoggingChan  chan *FrontierLogMessage
+	Log          *log.Logger
 }
 
 type FrontierLogMessage struct {
@@ -70,7 +72,7 @@ func (f *Frontier) Init(jobPath string, loggingChan chan *FrontierLogMessage, wo
 	f.QueueCount = new(ratecounter.Counter)
 	f.QueueCount.Incr(int64(f.Queue.Length()))
 
-	logrus.Info("persistent queue initialized")
+	f.Log.Info("persistent queue initialized")
 
 	// Initialize the seencheck
 	f.UseSeencheck = useSeencheck
@@ -82,7 +84,7 @@ func (f *Frontier) Init(jobPath string, loggingChan chan *FrontierLogMessage, wo
 			return err
 		}
 
-		logrus.Info("seencheck initialized")
+		f.Log.Info("seencheck initialized")
 	}
 
 	f.FinishingQueueReader = new(utils.TAtomBool)

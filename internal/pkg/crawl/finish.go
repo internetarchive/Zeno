@@ -45,23 +45,23 @@ func (crawl *Crawl) finish() {
 	}
 	close(crawl.Frontier.PullChan)
 
-	crawl.Logger.Warning("[WORKERS] Waiting for workers to finish")
+	crawl.Log.Warn("[WORKERS] Waiting for workers to finish")
 	crawl.EnsureWorkersFinished()
-	crawl.Logger.Warning("[WORKERS] All workers finished")
+	crawl.Log.Warn("[WORKERS] All workers finished")
 
 	// When all workers are finished, we can safely close the HQ related channels
 	if crawl.UseHQ {
-		crawl.Logger.Warning("[HQ] Waiting for finished channel to be closed")
+		crawl.Log.Warn("[HQ] Waiting for finished channel to be closed")
 		close(crawl.HQFinishedChannel)
-		crawl.Logger.Warning("[HQ] Finished channel closed")
+		crawl.Log.Warn("[HQ] Finished channel closed")
 
-		crawl.Logger.Warning("[HQ] Waiting for producer to finish")
+		crawl.Log.Warn("[HQ] Waiting for producer to finish")
 		close(crawl.HQProducerChannel)
-		crawl.Logger.Warning("[HQ] Producer finished")
+		crawl.Log.Warn("[HQ] Producer finished")
 
-		crawl.Logger.Warning("[HQ] Waiting for all functions to return")
+		crawl.Log.Warn("[HQ] Waiting for all functions to return")
 		crawl.HQChannelsWg.Wait()
-		crawl.Logger.Warning("[HQ] All functions returned")
+		crawl.Log.Warn("[HQ] All functions returned")
 	}
 
 	// Once all workers are done, it means nothing more is actively send to
@@ -73,30 +73,34 @@ func (crawl *Crawl) finish() {
 		time.Sleep(time.Second / 2)
 	}
 
-	crawl.Logger.Warning("[WARC] Closing writer(s)..")
+	crawl.Log.Warn("[WARC] Closing writer(s)..")
 	crawl.Client.Close()
 
 	if crawl.Proxy != "" {
 		crawl.ClientProxied.Close()
 	}
 
-	crawl.Logger.Warning("[WARC] Writer(s) closed")
+	crawl.Log.Warn("[WARC] Writer(s) closed")
 
 	// Closing the local queue used by the frontier
 	crawl.Frontier.Queue.Close()
-	crawl.Logger.Warning("[FRONTIER] Queue closed")
+	crawl.Log.Warn("[FRONTIER] Queue closed")
 
 	// Closing the seencheck database
 	if crawl.Seencheck {
 		crawl.Frontier.Seencheck.SeenDB.Close()
-		crawl.Logger.Warning("[SEENCHECK] Database closed")
+		crawl.Log.Warn("[SEENCHECK] Database closed")
 	}
 
 	// Dumping hosts pool and frontier stats to disk
-	crawl.Logger.Warning("[FRONTIER] Dumping hosts pool and frontier stats to " + path.Join(crawl.Frontier.JobPath, "frontier.gob"))
+	crawl.Log.Warn("[FRONTIER] Dumping hosts pool and frontier stats to " + path.Join(crawl.Frontier.JobPath, "frontier.gob"))
 	crawl.Frontier.Save()
 
-	crawl.Logger.Warning("Finished!")
+	crawl.Log.Warn("Finished!")
+
+	crawl.Log.Warn("Shutting down the logger, bai bai")
+	crawl.Log.StopRotation()
+	crawl.Log.StopErrorLog()
 
 	os.Exit(0)
 }
@@ -105,7 +109,7 @@ func (crawl *Crawl) setupCloseHandler() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-	crawl.Logger.Warning("CTRL+C catched.. cleaning up and exiting.")
+	crawl.Log.Warn("CTRL+C catched.. cleaning up and exiting.")
 	signal.Stop(c)
 	crawl.finish()
 }

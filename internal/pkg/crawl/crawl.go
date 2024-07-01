@@ -1,3 +1,4 @@
+// Package crawl handles all the crawling logic for Zeno
 package crawl
 
 import (
@@ -9,18 +10,13 @@ import (
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"github.com/telanflow/cookiejar"
 	"mvdan.cc/xurls/v2"
-)
-
-var (
-	logInfo    *logrus.Logger
-	logWarning *logrus.Logger
-	logError   *logrus.Logger
 )
 
 // PrometheusMetrics define all the metrics exposed by the Prometheus exporter
@@ -32,12 +28,14 @@ type PrometheusMetrics struct {
 // Crawl define the parameters of a crawl process
 type Crawl struct {
 	*sync.Mutex
-	StartTime        time.Time
-	SeedList         []frontier.Item
-	Paused           *utils.TAtomBool
-	Finished         *utils.TAtomBool
-	LiveStats        bool
-	ElasticSearchURL string
+	StartTime time.Time
+	SeedList  []frontier.Item
+	Paused    *utils.TAtomBool
+	Finished  *utils.TAtomBool
+	LiveStats bool
+
+	// Logger
+	Log *log.Logger
 
 	// Frontier
 	Frontier *frontier.Frontier
@@ -52,7 +50,6 @@ type Crawl struct {
 	MaxConcurrentAssets            int
 	Client                         *warc.CustomHTTPClient
 	ClientProxied                  *warc.CustomHTTPClient
-	Logger                         logrus.Logger
 	DisabledHTMLTags               []string
 	ExcludedHosts                  []string
 	IncludedHosts                  []string
@@ -139,49 +136,11 @@ func (c *Crawl) Start() (err error) {
 	if c.CrawlTimeLimit != 0 {
 		go func() {
 			time.Sleep(time.Second * time.Duration(c.CrawlTimeLimit))
-			logInfo.Infoln("Crawl time limit reached: attempting to finish the crawl.")
+			c.Log.Info("Crawl time limit reached: attempting to finish the crawl.")
 			go c.finish()
 			time.Sleep((time.Duration(c.MaxCrawlTimeLimit) * time.Second) - (time.Duration(c.CrawlTimeLimit) * time.Second))
-			logError.Fatal("Max crawl time limit reached, exiting..")
+			c.Log.Fatal("Max crawl time limit reached, exiting..")
 		}()
-	}
-
-	// Setup logging, every day at midnight UTC a new setup
-	// is triggered in order to change the ES index's name
-	if c.ElasticSearchURL != "" {
-		// Goroutine loop that fetch the machine's IP address every second
-		go func() {
-			for {
-				ip := utils.GetOutboundIP().String()
-				constants.Store("ip", ip)
-				time.Sleep(time.Second * 10)
-			}
-		}()
-
-		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
-
-		go func() {
-			// Get the current time in UTC and figure out when the next midnight will occur
-			now := time.Now().UTC()
-			midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-			if now.After(midnight) {
-				midnight = midnight.Add(24 * time.Hour)
-			}
-
-			// Calculate the duration until midnight and add a little extra time to avoid calling your function just before midnight
-			duration := midnight.Sub(now) + time.Second*10
-
-			// Create a timer that will wait until midnight
-			timer := time.NewTimer(duration)
-
-			// Wait for the timer to finish (which will occur at midnight)
-			<-timer.C
-
-			// Call your function
-			logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
-		}()
-	} else {
-		logInfo, logWarning, logError = utils.SetupLogging(c.JobPath, c.LiveStats, c.ElasticSearchURL)
 	}
 
 	// Start the background process that will handle os signals
@@ -194,11 +153,11 @@ func (c *Crawl) Start() (err error) {
 		for log := range frontierLoggingChan {
 			switch log.Level {
 			case logrus.ErrorLevel:
-				logError.WithFields(c.genLogFields(nil, nil, log.Fields)).Error(log.Message)
+				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Error(log.Message)
 			case logrus.WarnLevel:
-				logWarning.WithFields(c.genLogFields(nil, nil, log.Fields)).Warn(log.Message)
+				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Warn(log.Message)
 			case logrus.InfoLevel:
-				logInfo.WithFields(c.genLogFields(nil, nil, log.Fields)).Info(log.Message)
+				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Info(log.Message)
 			}
 		}
 	}()
@@ -218,7 +177,7 @@ func (c *Crawl) Start() (err error) {
 	go c.writeFrontierToDisk()
 
 	// Initialize WARC writer
-	logrus.Info("Initializing WARC writer..")
+	c.Log.Info("Initializing WARC writer..")
 
 	// Init WARC rotator settings
 	rotatorSettings := c.initWARCRotatorSettings()
@@ -242,17 +201,17 @@ func (c *Crawl) Start() (err error) {
 
 	c.Client, err = warc.NewWARCWritingHTTPClient(HTTPClientSettings)
 	if err != nil {
-		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
+		c.Log.Fatal("Unable to init WARC writing HTTP client", "error", err)
 	}
 
 	go func() {
 		for err := range c.Client.ErrChan {
-			logError.WithFields(c.genLogFields(err, nil, nil)).Errorf("WARC HTTP client error")
+			c.Log.WithFields(c.genLogFields(err, nil, nil)).Error("WARC HTTP client error")
 		}
 	}()
 
 	c.Client.Timeout = time.Duration(c.HTTPTimeout) * time.Second
-	logrus.Infof("HTTP client timeout set to %d seconds", c.HTTPTimeout)
+	c.Log.Info("HTTP client timeout set", "timeout", c.HTTPTimeout)
 
 	if c.Proxy != "" {
 		proxyHTTPClientSettings := HTTPClientSettings
@@ -260,17 +219,17 @@ func (c *Crawl) Start() (err error) {
 
 		c.ClientProxied, err = warc.NewWARCWritingHTTPClient(proxyHTTPClientSettings)
 		if err != nil {
-			logError.Fatal("unable to init WARC writing (proxy) HTTP client")
+			c.Log.Fatal("unable to init WARC writing (proxy) HTTP client")
 		}
 
 		go func() {
 			for err := range c.ClientProxied.ErrChan {
-				logError.WithFields(c.genLogFields(err, nil, nil)).Error("WARC HTTP client error")
+				c.Log.WithFields(c.genLogFields(err, nil, nil)).Error("WARC HTTP client error")
 			}
 		}()
 	}
 
-	logrus.Info("WARC writer initialized")
+	c.Log.Info("WARC writer initialized")
 
 	// Process responsible for slowing or pausing the crawl
 	// when the WARC writing queue gets too big
@@ -284,7 +243,7 @@ func (c *Crawl) Start() (err error) {
 	if c.CookieFile != "" {
 		cookieJar, err := cookiejar.NewFileJar(c.CookieFile, nil)
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, nil, nil)).Fatal("unable to parse cookie file")
+			c.Log.WithFields(c.genLogFields(err, nil, nil)).Fatal("unable to parse cookie file")
 		}
 
 		c.Client.Jar = cookieJar
@@ -321,13 +280,13 @@ func (c *Crawl) Start() (err error) {
 		go c.HQWebsocket()
 	} else {
 		// Push the seed list to the queue
-		logrus.Info("Pushing seeds in the local queue..")
+		c.Log.Info("Pushing seeds in the local queue..")
 		for _, item := range c.SeedList {
 			item := item
 			c.Frontier.PushChan <- &item
 		}
 		c.SeedList = nil
-		logrus.Info("All seeds are now in queue, crawling will start")
+		c.Log.Info("All seeds are now in queue, crawling will start")
 	}
 
 	// Start the background process that will catch when there
@@ -343,6 +302,8 @@ func (c *Crawl) Start() (err error) {
 	return
 }
 
+// WorkerWatcher is a background process that watches over the workers
+// and remove them from the pool when they are done
 func (c *Crawl) WorkerWatcher() {
 	var toEnd = false
 
@@ -377,6 +338,7 @@ func (c *Crawl) WorkerWatcher() {
 	}
 }
 
+// EnsureWorkersFinished waits for all workers to finish
 func (c *Crawl) EnsureWorkersFinished() bool {
 	var workerPoolLen int
 	var timer = time.NewTimer(c.WorkerStopTimeout)
@@ -391,10 +353,10 @@ func (c *Crawl) EnsureWorkersFinished() bool {
 		c.WorkerMutex.RUnlock()
 		select {
 		case <-timer.C:
-			c.Logger.Warning(fmt.Sprintf("[WORKERS] Timeout reached. %d workers still running", workerPoolLen))
+			c.Log.Warn(fmt.Sprintf("[WORKERS] Timeout reached. %d workers still running", workerPoolLen))
 			return false
 		default:
-			c.Logger.Warning(fmt.Sprintf("[WORKERS] Waiting for %d workers to finish", workerPoolLen))
+			c.Log.Warn(fmt.Sprintf("[WORKERS] Waiting for %d workers to finish", workerPoolLen))
 			time.Sleep(time.Second * 5)
 		}
 	}
@@ -408,18 +370,18 @@ func (c *Crawl) GetWorkerState(index int) interface{} {
 
 	if index == -1 {
 		var workersStatus = new(APIWorkersState)
-		for i, worker := range c.WorkerPool {
-			workersStatus.Workers = append(workersStatus.Workers, _getWorkerState(worker, i))
+		for _, worker := range c.WorkerPool {
+			workersStatus.Workers = append(workersStatus.Workers, _getWorkerState(worker))
 		}
 		return workersStatus
 	}
 	if index >= len(c.WorkerPool) {
 		return nil
 	}
-	return _getWorkerState(c.WorkerPool[index], index)
+	return _getWorkerState(c.WorkerPool[index])
 }
 
-func _getWorkerState(worker *Worker, index int) *APIWorkerState {
+func _getWorkerState(worker *Worker) *APIWorkerState {
 	lastErr := ""
 	isLocked := true
 

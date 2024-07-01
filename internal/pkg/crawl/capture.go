@@ -92,7 +92,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 				return nil, err
 			}
 
-			logError.WithFields(c.genLogFields(err, req.URL, nil)).Error("error while executing GET request, retrying")
+			c.Log.WithFields(c.genLogFields(err, req.URL, nil)).Error("error while executing GET request, retrying")
 
 			time.Sleep(sleepTime)
 
@@ -100,11 +100,11 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 		}
 
 		if resp.StatusCode == 429 {
-			logWarning.WithFields(c.genLogFields(err, req.URL, map[string]interface{}{
+			c.Log.WithFields(c.genLogFields(err, req.URL, map[string]interface{}{
 				"sleepTime":  sleepTime.String(),
 				"retryCount": retry,
 				"statusCode": resp.StatusCode,
-			})).Debugf("we are being rate limited")
+			})).Info("we are being rate limited")
 
 			// This ensures we aren't leaving the warc dialer hanging.
 			// Do note, 429s are filtered out by WARC writer regardless.
@@ -114,19 +114,17 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 			// If --hq-rate-limiting-send-back is enabled, we send the URL back to HQ
 			if c.UseHQ && c.HQRateLimitingSendBack {
 				return nil, errors.New("URL is being rate limited, sending back to HQ")
-			} else {
-				logWarning.WithFields(c.genLogFields(err, req.URL, map[string]interface{}{
-					"sleepTime":  sleepTime.String(),
-					"retryCount": retry,
-					"statusCode": resp.StatusCode,
-				})).Warn("URL is being rate limited")
 			}
+			c.Log.WithFields(c.genLogFields(err, req.URL, map[string]interface{}{
+				"sleepTime":  sleepTime.String(),
+				"retryCount": retry,
+				"statusCode": resp.StatusCode,
+			})).Warn("URL is being rate limited")
 
 			continue
-		} else {
-			c.logCrawlSuccess(executionStart, resp.StatusCode, item)
-			break
 		}
+		c.logCrawlSuccess(executionStart, resp.StatusCode, item)
+		break
 	}
 
 	// If a redirection is catched, then we execute the redirection
@@ -236,7 +234,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 	// Prepare GET request
 	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
 	if err != nil {
-		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while preparing GET request")
+		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while preparing GET request")
 		return err
 	}
 
@@ -251,10 +249,10 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		// Get the API URL from the URL
 		apiURL, err := truthsocial.GenerateAPIURL(utils.URLToString(item.URL))
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
 		} else {
 			if apiURL == nil {
-				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
 			} else {
 				// Then we create an item
 				apiItem := frontier.NewItem(apiURL, item, item.Type, item.Hop, item.ID, false)
@@ -266,7 +264,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 			// Grab few embeds that are needed for the playback
 			embedURLs, err := truthsocial.EmbedURLs()
 			if err != nil {
-				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting embed URLs")
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting embed URLs")
 			} else {
 				for _, embedURL := range embedURLs {
 					// Create the embed item
@@ -281,10 +279,10 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		// Generate the highwinds URL
 		highwindsURL, err := libsyn.GenerateHighwindsURL(utils.URLToString(item.URL))
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating libsyn URL")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating libsyn URL")
 		} else {
 			if highwindsURL == nil {
-				logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating libsyn URL")
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating libsyn URL")
 			} else {
 				c.Capture(frontier.NewItem(highwindsURL, item, item.Type, item.Hop, item.ID, false))
 			}
@@ -310,10 +308,10 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		return err
 	} else if err != nil && err.Error() == "URL is being rate limited, sending back to HQ" {
 		c.HQProducerChannel <- frontier.NewItem(item.URL, item.ParentItem, item.Type, item.Hop, "", true)
-		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("URL is being rate limited, sending back to HQ")
+		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("URL is being rate limited, sending back to HQ")
 		return err
 	} else if err != nil {
-		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while executing GET request")
+		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while executing GET request")
 		return err
 	}
 	defer resp.Body.Close()
@@ -334,7 +332,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 	// Store the base URL to turn relative links into absolute links later
 	base, err := url.Parse(utils.URLToString(resp.Request.URL))
 	if err != nil {
-		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base URL")
+		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base URL")
 		return err
 	}
 
@@ -342,13 +340,13 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 	if strings.Contains(resp.Header.Get("Content-Type"), "json") {
 		jsonBody, err := io.ReadAll(resp.Body)
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading JSON body")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading JSON body")
 			return err
 		}
 
 		outlinksFromJSON, err := getURLsFromJSON(string(jsonBody))
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting URLs from JSON")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting URLs from JSON")
 			return err
 		}
 
@@ -362,13 +360,13 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 	if strings.Contains(resp.Header.Get("Content-Type"), "xml") {
 		xmlBody, err := io.ReadAll(resp.Body)
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading XML body")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading XML body")
 			return err
 		}
 
 		mv, err := mxj.NewMapXml(xmlBody)
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing XML body")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing XML body")
 			return err
 		}
 
@@ -387,7 +385,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		// Enforce reading all data from the response for WARC writing
 		_, err := io.Copy(io.Discard, resp.Body)
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading response body")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading response body")
 		}
 
 		return err
@@ -396,7 +394,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 	// Turn the response into a doc that we will scrape for outlinks and assets.
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating goquery document")
+		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating goquery document")
 		return err
 	}
 
@@ -405,7 +403,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		// Look for JS files necessary for the playback of the video
 		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, base, *c.Client)
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting JS files from cloudflarestream")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting JS files from cloudflarestream")
 			return err
 		}
 
@@ -419,7 +417,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		} else if c.UseHQ {
 			_, err := c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
 			if err != nil {
-				logError.WithFields(c.genLogFields(err, item.URL, map[string]interface{}{
+				c.Log.WithFields(c.genLogFields(err, item.URL, map[string]interface{}{
 					"urls": cfstreamURLs,
 				})).Error("error while seenchecking assets via HQ")
 			}
@@ -427,7 +425,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 
 		// Log the archived URLs
 		for _, cfstreamURL := range cfstreamURLs {
-			logInfo.WithFields(c.genLogFields(err, cfstreamURL, map[string]interface{}{
+			c.Log.WithFields(c.genLogFields(err, cfstreamURL, map[string]interface{}{
 				"parentHop": item.Hop,
 				"parentUrl": utils.URLToString(item.URL),
 				"type":      "asset",
@@ -452,7 +450,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 			if exists {
 				baseTagValue, err := url.Parse(link)
 				if err != nil {
-					logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base tag value")
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base tag value")
 				} else {
 					base = baseTagValue
 				}
@@ -463,7 +461,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 	// Extract outlinks
 	outlinks, err := extractOutlinks(base, doc)
 	if err != nil {
-		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting outlinks")
+		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting outlinks")
 		return err
 	}
 
@@ -477,7 +475,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 	// Extract and capture assets
 	assets, err := c.extractAssets(base, item, doc)
 	if err != nil {
-		logError.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting assets")
+		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting assets")
 		return err
 	}
 
@@ -496,9 +494,8 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 			found := c.seencheckURL(utils.URLToString(URL), "asset")
 			if found {
 				continue
-			} else {
-				seencheckedBatch = append(seencheckedBatch, URL)
 			}
+			seencheckedBatch = append(seencheckedBatch, URL)
 		}
 
 		if len(seencheckedBatch) == 0 {
@@ -512,7 +509,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		// if HQ is down or if the request failed. So if we get an error, we just
 		// continue with the original list of assets.
 		if err != nil {
-			logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"urls":      assets,
 				"parentHop": item.Hop,
 				"parentUrl": utils.URLToString(item.URL),
@@ -569,7 +566,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 			// Capture the asset
 			err = c.captureAsset(newAsset, resp.Cookies())
 			if err != nil {
-				logError.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
+				c.Log.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
 					"parentHop": item.Hop,
 					"parentUrl": utils.URLToString(item.URL),
 					"type":      "asset",

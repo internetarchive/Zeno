@@ -1,22 +1,59 @@
 package cmd
 
 import (
+	"fmt"
+	"log/slog"
+	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/config"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl"
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
-	"github.com/sirupsen/logrus"
 )
 
 // InitCrawlWithCMD takes a config.Flags struct and return a
 // *crawl.Crawl initialized with it
 func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	var c = new(crawl.Crawl)
+
+	// Logger
+	var elasticSearchConfig *log.ElasticsearchConfig
+	elasticSearchURLs := strings.Split(flags.ElasticSearchURLs, ",")
+	if elasticSearchURLs[0] == "" {
+		elasticSearchConfig = nil
+	} else {
+		elasticSearchConfig = &log.ElasticsearchConfig{
+			Addresses:   elasticSearchURLs,
+			Username:    flags.ElasticSearchUsername,
+			Password:    flags.ElasticSearchPassword,
+			IndexPrefix: flags.ElasticSearchIndexPrefix,
+			Level:       slog.LevelDebug,
+		}
+	}
+
+	logFileOutput := &log.Logfile{
+		Dir:    strings.TrimRight(flags.LogFileOutputDir, "/"),
+		Prefix: "zeno",
+	}
+	customLogger, err := log.New(log.Config{
+		FileOutput:               logFileOutput,
+		FileLevel:                slog.LevelDebug,
+		StdoutLevel:              slog.LevelInfo,
+		RotateLogFile:            true,
+		RotateElasticSearchIndex: true,
+		ElasticsearchConfig:      elasticSearchConfig,
+	})
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	c.Log = customLogger
 
 	// Statistics counters
 	c.CrawledSeeds = new(ratecounter.Counter)
@@ -25,10 +62,10 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.URIsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
 	c.LiveStats = flags.LiveStats
-	c.ElasticSearchURL = flags.ElasticSearchURL
 
 	// Frontier
 	c.Frontier = new(frontier.Frontier)
+	c.Frontier.Log = c.Log
 
 	// If the job name isn't specified, we generate a random name
 	if flags.Job == "" {
@@ -37,7 +74,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		} else {
 			UUID, err := uuid.NewUUID()
 			if err != nil {
-				logrus.Fatal(err)
+				c.Log.Fatal("cmd/utils.go:InitCrawlWithCMD():uuid.NewUUID()", "error", err)
 			}
 
 			c.Job = UUID.String()

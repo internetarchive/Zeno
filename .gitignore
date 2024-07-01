@@ -3,3 +3,4 @@ jobs/
 Zeno
 *.txt
 *.sh
+zeno.log

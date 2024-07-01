@@ -1,6 +1,8 @@
 package crawl
 
 import (
+	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"time"
@@ -12,10 +14,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// APIWorkersState represents the state of all API workers.
 type APIWorkersState struct {
 	Workers []*APIWorkerState `json:"workers"`
 }
 
+// APIWorkerState represents the state of an API worker.
 type APIWorkerState struct {
 	WorkerID  uint   `json:"worker_id"`
 	Status    string `json:"status"`
@@ -24,15 +28,17 @@ type APIWorkerState struct {
 	Locked    bool   `json:"locked"`
 }
 
+// startAPI starts the API server for the crawl.
 func (crawl *Crawl) startAPI() {
 	gin.SetMode(gin.ReleaseMode)
-	gin.DefaultWriter = logInfo.Out
+	gin.DefaultWriter = crawl.Log.Writer(slog.LevelInfo)
+	gin.DefaultErrorWriter = crawl.Log.Writer(slog.LevelError)
 
 	r := gin.Default()
 
 	pprof.Register(r)
 
-	logInfo.Info("Starting API")
+	crawl.Log.Info("Starting API")
 	r.GET("/", func(c *gin.Context) {
 		crawledSeeds := crawl.CrawledSeeds.Value()
 		crawledAssets := crawl.CrawledAssets.Value()
@@ -54,7 +60,7 @@ func (crawl *Crawl) startAPI() {
 		labels["crawljob"] = crawl.Job
 		hostname, err := os.Hostname()
 		if err != nil {
-			logWarning.Warn("Unable to retrieve hostname of machine")
+			crawl.Log.Warn("Unable to retrieve hostname of machine")
 			hostname = "unknown"
 		}
 		labels["host"] = hostname + ":" + crawl.APIPort
@@ -65,7 +71,7 @@ func (crawl *Crawl) startAPI() {
 			Help:        "The total number of crawled URI",
 		})
 
-		logInfo.Info("Starting Prometheus export")
+		crawl.Log.Info("Starting Prometheus export")
 		r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	}
 
@@ -95,8 +101,8 @@ func (crawl *Crawl) startAPI() {
 		c.JSON(200, workersState)
 	})
 
-	err := r.Run(":" + crawl.APIPort)
+	err := r.Run(fmt.Sprintf(":%s", crawl.APIPort))
 	if err != nil {
-		logError.Fatalf("unable to start API: %s", err.Error())
+		crawl.Log.Fatal("unable to start API", "error", err.Error())
 	}
 }

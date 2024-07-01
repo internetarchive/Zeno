@@ -18,7 +18,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 	if strings.Contains(base.Host, "cloudflarestream.com") {
 		cloudflarestreamURLs, err := cloudflarestream.GetSegments(base, *c.Client)
 		if err != nil {
-			logWarning.WithFields(c.genLogFields(err, item.URL, nil)).Warnln("error getting cloudflarestream segments")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Warn("error getting cloudflarestream segments")
 		}
 
 		if len(cloudflarestreamURLs) > 0 {
@@ -144,7 +144,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.D
 			// Apply regex on the script's HTML to extract potential assets
 			outerHTML, err := goquery.OuterHtml(item)
 			if err != nil {
-				logWarning.Warning(err)
+				c.Log.Warn("crawl/assets.go:extractAssets():goquery.OuterHtml():", "error", err)
 			} else {
 				scriptLinks := utils.DedupeStrings(regexOutlinks.FindAllString(outerHTML, -1))
 				for _, scriptLink := range scriptLinks {

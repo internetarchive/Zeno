@@ -152,7 +152,7 @@ func (c *Crawl) HQConsumer() {
 		var HQBatchSize = int(math.Ceil(float64(c.Workers) / 2))
 
 		if c.Finished.Get() {
-			c.Logger.Error("crawl finished, stopping HQ consumer")
+			c.Log.Error("crawl finished, stopping HQ consumer")
 			break
 		}
 
@@ -177,9 +177,9 @@ func (c *Crawl) HQConsumer() {
 		// get batch from crawl HQ
 		batch, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
 		if err != nil {
-			c.Logger.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
-			})).Errorln("error getting new URLs from crawl HQ")
+			})).Error("error getting new URLs from crawl HQ")
 		}
 
 		// send all URLs received in the batch to the frontier
@@ -187,9 +187,9 @@ func (c *Crawl) HQConsumer() {
 			for _, URL := range batch.URLs {
 				newURL, err := url.Parse(URL.Value)
 				if err != nil {
-					c.Logger.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 						"batchSize": HQBatchSize,
-					})).Errorln("unable to parse URL received from crawl HQ, discarding")
+					})).Error("unable to parse URL received from crawl HQ, discarding")
 					continue
 				}
 
@@ -209,7 +209,7 @@ func (c *Crawl) HQFinisher() {
 
 	for finishedItem := range c.HQFinishedChannel {
 		if finishedItem.ID == "" {
-			logWarning.WithFields(c.genLogFields(nil, finishedItem.URL, nil)).Warnln("URL has no ID, discarding")
+			c.Log.WithFields(c.genLogFields(nil, finishedItem.URL, nil)).Warn("URL has no ID, discarding")
 			continue
 		}
 
@@ -220,9 +220,9 @@ func (c *Crawl) HQFinisher() {
 			for {
 				_, err := c.HQClient.Finished(finishedArray, locallyCrawledTotal)
 				if err != nil {
-					logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 						"finishedArray": finishedArray,
-					})).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
+					})).Error("error submitting finished urls to crawl HQ. retrying in one second...")
 					time.Sleep(time.Second)
 					continue
 				}
@@ -239,9 +239,9 @@ func (c *Crawl) HQFinisher() {
 		for {
 			_, err := c.HQClient.Finished(finishedArray, locallyCrawledTotal)
 			if err != nil {
-				logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+				c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 					"finishedArray": finishedArray,
-				})).Errorln("error submitting finished urls to crawl HQ. retrying in one second...")
+				})).Error("error submitting finished urls to crawl HQ. retrying in one second...")
 				time.Sleep(time.Second)
 				continue
 			}
@@ -263,10 +263,10 @@ func (c *Crawl) HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, e
 
 	discoveredResponse, err := c.HQClient.Discovered(discoveredURLs, "asset", false, true)
 	if err != nil {
-		logError.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+		c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 			"batchLen": len(URLs),
 			"urls":     discoveredURLs,
-		})).Errorln("error sending seencheck payload to crawl HQ")
+		})).Error("error sending seencheck payload to crawl HQ")
 		return seencheckedBatch, err
 	}
 
@@ -275,9 +275,9 @@ func (c *Crawl) HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, e
 			// the returned payload only contain new URLs to be crawled by Zeno
 			newURL, err := url.Parse(URL.Value)
 			if err != nil {
-				logError.WithFields(c.genLogFields(err, URL, map[string]interface{}{
+				c.Log.WithFields(c.genLogFields(err, URL, map[string]interface{}{
 					"batchLen": len(URLs),
-				})).Errorln("error parsing URL from HQ seencheck response")
+				})).Error("error parsing URL from HQ seencheck response")
 				return seencheckedBatch, err
 			}
 
