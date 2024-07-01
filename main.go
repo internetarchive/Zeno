@@ -5,8 +5,8 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/internetarchive/Zeno/cmd"
-	_ "github.com/internetarchive/Zeno/cmd/all"
+	"github.com/internetarchive/Zeno/cmd/v1"
+	_ "github.com/internetarchive/Zeno/cmd/v1/all"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
