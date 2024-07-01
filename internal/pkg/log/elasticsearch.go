@@ -28,6 +28,7 @@ type ElasticsearchHandler struct {
 	level  slog.Level
 	attrs  []slog.Attr
 	groups []string
+	config *ElasticsearchConfig
 }
 
 // Handle is responsible for passing the log record to all underlying handlers.
@@ -145,4 +146,32 @@ func (h *ElasticsearchHandler) createIndex() error {
 	}
 
 	return nil
+}
+
+// Rotate implements the rotation for the Elasticsearch handler.
+// It updates the index name to use the current date and creates the new index if it doesn't exist.
+func (h *ElasticsearchHandler) Rotate() error {
+	newIndex := fmt.Sprintf("%s-%s", h.config.IndexPrefix, time.Now().Format("2006.01.02"))
+
+	// If the index name hasn't changed, no need to rotate
+	if newIndex == h.index {
+		return nil
+	}
+
+	// Update the index name
+	h.index = newIndex
+
+	// Create the new index
+	err := h.createIndex()
+	if err != nil {
+		return fmt.Errorf("failed to create new Elasticsearch index during rotation: %w", err)
+	}
+
+	return nil
+}
+
+// NextRotation calculates the next rotation time, which is the start of the next day
+func (h *ElasticsearchHandler) NextRotation() time.Time {
+	now := time.Now()
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Add(24 * time.Hour)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -23,17 +24,13 @@ type Logger struct {
 	slogger      *slog.Logger
 	mu           sync.Mutex
 	stopRotation chan struct{}
+	stopErrorLog chan struct{}
 	errorChan    chan error
-}
-
-// multiHandler implements slog.Handler interface for multiple outputs
-type multiHandler struct {
-	handlers []slog.Handler
 }
 
 // Config holds the configuration for the logger
 type Config struct {
-	FileOutput               string
+	FileOutput               *Logfile
 	FileLevel                slog.Level
 	StdoutLevel              slog.Level
 	RotateLogFile            bool
@@ -61,17 +58,24 @@ func New(cfg Config) (*Logger, error) {
 	handlers = append(handlers, stdoutHandler)
 
 	// Create file handler if FileOutput is specified
-	if cfg.FileOutput != "" {
-		file, err := os.OpenFile(cfg.FileOutput, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if cfg.FileOutput != nil {
+		// Create directories if they don't exist
+		err := os.MkdirAll(filepath.Dir(cfg.FileOutput.Filename()), 0755)
+		if err != nil {
+			return nil, err
+		}
+
+		// Open log file
+		file, err := os.OpenFile(cfg.FileOutput.Filename(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			return nil, err
 		}
 		fileHandler := &fileHandler{
-			Handler:      slog.NewJSONHandler(file, &slog.HandlerOptions{Level: cfg.FileLevel}),
-			filename:     cfg.FileOutput,
-			file:         file,
-			interval:     6 * time.Hour,
-			lastRotation: time.Now(),
+			Handler:          slog.NewJSONHandler(file, &slog.HandlerOptions{Level: cfg.FileLevel}),
+			filename:         cfg.FileOutput.Filename(),
+			file:             file,
+			rotationInterval: 6 * time.Hour,
+			lastRotation:     time.Now(),
 		}
 		handlers = append(handlers, fileHandler)
 	}
@@ -88,10 +92,11 @@ func New(cfg Config) (*Logger, error) {
 		}
 		esHandler := &ElasticsearchHandler{
 			client: esClient,
-			index:  fmt.Sprintf("zeno-%s", time.Now().Format("2006.01.02")),
+			index:  fmt.Sprintf("%s-%s", cfg.ElasticsearchConfig.IndexPrefix, time.Now().Format("2006.01.02")),
 			level:  cfg.ElasticsearchConfig.Level,
 			attrs:  []slog.Attr{},
 			groups: []string{},
+			config: cfg.ElasticsearchConfig,
 		}
 		if err := esHandler.createIndex(); err != nil {
 			return nil, fmt.Errorf("failed to create Elasticsearch index: %w", err)
@@ -106,9 +111,10 @@ func New(cfg Config) (*Logger, error) {
 	slogger := slog.New(mh)
 
 	logger := &Logger{
-		handler:   mh,
-		slogger:   slogger,
-		errorChan: make(chan error, 10),
+		handler:      mh,
+		slogger:      slogger,
+		errorChan:    make(chan error, 10),
+		stopErrorLog: make(chan struct{}),
 	}
 
 	// Start rotation goroutine
@@ -127,7 +133,7 @@ func New(cfg Config) (*Logger, error) {
 func Default() *Logger {
 	once.Do(func() {
 		logger, err := New(Config{
-			FileOutput:  "zeno.log",
+			FileOutput:  &Logfile{Dir: "jobs", Prefix: "zeno"},
 			FileLevel:   slog.LevelInfo,
 			StdoutLevel: slog.LevelInfo,
 		})
@@ -214,54 +220,4 @@ func (l *Logger) Error(msg string, args ...any) {
 func (l *Logger) Fatal(msg string, args ...any) {
 	l.log(slog.LevelError, msg, args...)
 	os.Exit(1)
-}
-
-//-------------------------------------------------------------------------------------
-// Following methods are used to implement the slog.Handler interface for multiHandler
-//-------------------------------------------------------------------------------------
-
-// Enabled checks if any of the underlying handlers are enabled for a given log level.
-// It's used internally to determine if a log message should be processed by a given handler
-func (h *multiHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	for _, handler := range h.handlers {
-		if handler.Enabled(ctx, level) {
-			return true
-		}
-	}
-	return false
-}
-
-// Handle is responsible for passing the log record to all underlying handlers.
-// It's called internally when a log message needs to be written.
-func (h *multiHandler) Handle(ctx context.Context, r slog.Record) error {
-	var errs []error
-	for _, handler := range h.handlers {
-		if err := handler.Handle(ctx, r); err != nil {
-			errs = append(errs, fmt.Errorf("handler error: %w", err))
-		}
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("multiple handler errors: %v", errs)
-	}
-	return nil
-}
-
-// WithAttrs creates a new handler with additional attributes.
-// It's used internally when the logger is asked to include additional context with all subsequent log messages.
-func (h *multiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	handlers := make([]slog.Handler, len(h.handlers))
-	for i, handler := range h.handlers {
-		handlers[i] = handler.WithAttrs(attrs)
-	}
-	return &multiHandler{handlers: handlers}
-}
-
-// WithGroups creates a new handler with a new group added to the attribute grouping hierarchy.
-// It's used internally when the logger is asked to group a set of attributes together.
-func (h *multiHandler) WithGroup(name string) slog.Handler {
-	handlers := make([]slog.Handler, len(h.handlers))
-	for i, handler := range h.handlers {
-		handlers[i] = handler.WithGroup(name)
-	}
-	return &multiHandler{handlers: handlers}
 }

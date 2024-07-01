@@ -201,7 +201,7 @@ func (c *Crawl) Start() (err error) {
 
 	c.Client, err = warc.NewWARCWritingHTTPClient(HTTPClientSettings)
 	if err != nil {
-		logrus.Fatalf("Unable to init WARC writing HTTP client: %s", err)
+		c.Log.Fatal("Unable to init WARC writing HTTP client", "error", err)
 	}
 
 	go func() {
@@ -211,7 +211,7 @@ func (c *Crawl) Start() (err error) {
 	}()
 
 	c.Client.Timeout = time.Duration(c.HTTPTimeout) * time.Second
-	logrus.Infof("HTTP client timeout set to %d seconds", c.HTTPTimeout)
+	c.Log.Info("HTTP client timeout set", "timeout", c.HTTPTimeout)
 
 	if c.Proxy != "" {
 		proxyHTTPClientSettings := HTTPClientSettings
@@ -229,7 +229,7 @@ func (c *Crawl) Start() (err error) {
 		}()
 	}
 
-	logrus.Info("WARC writer initialized")
+	c.Log.Info("WARC writer initialized")
 
 	// Process responsible for slowing or pausing the crawl
 	// when the WARC writing queue gets too big
@@ -280,13 +280,13 @@ func (c *Crawl) Start() (err error) {
 		go c.HQWebsocket()
 	} else {
 		// Push the seed list to the queue
-		logrus.Info("Pushing seeds in the local queue..")
+		c.Log.Info("Pushing seeds in the local queue..")
 		for _, item := range c.SeedList {
 			item := item
 			c.Frontier.PushChan <- &item
 		}
 		c.SeedList = nil
-		logrus.Info("All seeds are now in queue, crawling will start")
+		c.Log.Info("All seeds are now in queue, crawling will start")
 	}
 
 	// Start the background process that will catch when there

@@ -62,12 +62,12 @@ type Flags struct {
 	DisableAssetsCapture bool
 	CertValidation       bool
 
-	CloudflareStream         bool
 	ElasticSearchURLs        string
 	ElasticSearchUsername    string
 	ElasticSearchPassword    string
 	ElasticSearchIndexPrefix string
 	ExcludedStrings          cli.StringSlice
+	LogFileOutputDir         string
 }
 
 type Application struct {

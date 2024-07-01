@@ -298,6 +298,13 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "If turned on, the crawler will send back URLs that hit a rate limit to crawl HQ.",
 		Destination: &config.App.Flags.HQRateLimitingSendBack,
 	},
+	// Logging flags
+	&cli.StringFlag{
+		Name:        "log-file-output-dir",
+		Usage:       "Directory to write log files to.",
+		Value:       "jobs",
+		Destination: &config.App.Flags.LogFileOutputDir,
+	},
 	&cli.StringFlag{
 		Name:        "es-url",
 		Usage:       "comma-separated ElasticSearch URL to use for indexing crawl logs.",
@@ -315,8 +322,8 @@ var GlobalFlags = []cli.Flag{
 	},
 	&cli.StringFlag{
 		Name:        "es-index-prefix",
-		Usage:       "ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno-`",
-		Value:       "zeno-",
+		Usage:       "ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno`, without `-`",
+		Value:       "zeno",
 		Destination: &config.App.Flags.ElasticSearchIndexPrefix,
 	},
 	&cli.StringSliceFlag{

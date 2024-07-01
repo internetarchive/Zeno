@@ -37,8 +37,12 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		}
 	}
 
+	logFileOutput := &log.Logfile{
+		Dir:    strings.TrimRight(flags.LogFileOutputDir, "/"),
+		Prefix: "zeno",
+	}
 	customLogger, err := log.New(log.Config{
-		FileOutput:               "zeno.log",
+		FileOutput:               logFileOutput,
 		FileLevel:                slog.LevelDebug,
 		StdoutLevel:              slog.LevelInfo,
 		RotateLogFile:            true,
@@ -51,16 +55,6 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	}
 	c.Log = customLogger
 
-	go func() {
-		errChan := c.Log.Errors()
-		for {
-			select {
-			case err := <-errChan:
-				fmt.Fprintf(os.Stderr, "Logging error: %v\n", err)
-			}
-		}
-	}()
-
 	// Statistics counters
 	c.CrawledSeeds = new(ratecounter.Counter)
 	c.CrawledAssets = new(ratecounter.Counter)
@@ -71,6 +65,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 
 	// Frontier
 	c.Frontier = new(frontier.Frontier)
+	c.Frontier.Log = c.Log
 
 	// If the job name isn't specified, we generate a random name
 	if flags.Job == "" {
