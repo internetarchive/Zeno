@@ -1,7 +1,7 @@
 package get
 
 import (
-	"github.com/internetarchive/Zeno/cmd"
+	"github.com/internetarchive/Zeno/cmd/v1"
 	"github.com/internetarchive/Zeno/config"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
