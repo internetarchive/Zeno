@@ -2,7 +2,7 @@ package get
 
 import (
 	"github.com/internetarchive/Zeno/cmd/v1"
-	"github.com/internetarchive/Zeno/config"
+	"github.com/internetarchive/Zeno/config/v1"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )

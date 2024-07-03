@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
-	"github.com/internetarchive/Zeno/config"
+	"github.com/internetarchive/Zeno/config/v1"
 )
 
 var GlobalFlags = []cli.Flag{

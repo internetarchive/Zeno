@@ -4,7 +4,7 @@ import (
 	"net/url"
 
 	"github.com/internetarchive/Zeno/cmd/v1"
-	"github.com/internetarchive/Zeno/config"
+	"github.com/internetarchive/Zeno/config/v1"
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
