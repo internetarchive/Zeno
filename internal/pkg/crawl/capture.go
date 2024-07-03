@@ -14,6 +14,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/clbanning/mxj/v2"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/facebook"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/libsyn"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/telegram"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/tiktok"
@@ -264,7 +265,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 			// Grab few embeds that are needed for the playback
 			embedURLs, err := truthsocial.EmbedURLs()
 			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting embed URLs")
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting TruthSocial embed URLs")
 			} else {
 				for _, embedURL := range embedURLs {
 					// Create the embed item
@@ -272,6 +273,25 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 
 					// Capture the embed item
 					c.Capture(embedItem)
+				}
+			}
+		}
+	} else if facebook.IsFacebookPostURL(utils.URLToString(item.URL)) {
+		// Generate the embed URL
+		embedURL, err := facebook.GenerateEmbedURL(utils.URLToString(item.URL))
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating Facebook embed URL")
+		} else {
+			if embedURL == nil {
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating Facebook embed URL")
+			} else {
+				// Create the embed item
+				embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
+
+				// Capture the embed item
+				err = c.Capture(embedItem)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing Facebook embed URL")
 				}
 			}
 		}
