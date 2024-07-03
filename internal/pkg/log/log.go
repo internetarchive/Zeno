@@ -76,6 +76,7 @@ func New(cfg Config) (*Logger, error) {
 			file:             file,
 			rotationInterval: 6 * time.Hour,
 			lastRotation:     time.Now(),
+			logfile:          cfg.FileOutput,
 		}
 		handlers = append(handlers, fileHandler)
 	}

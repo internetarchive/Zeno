@@ -24,7 +24,9 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 
 	// Logger
 	var elasticSearchConfig *log.ElasticsearchConfig
+
 	elasticSearchURLs := strings.Split(flags.ElasticSearchURLs, ",")
+
 	if elasticSearchURLs[0] == "" {
 		elasticSearchConfig = nil
 	} else {
@@ -37,12 +39,11 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		}
 	}
 
-	logFileOutput := &log.Logfile{
-		Dir:    strings.TrimRight(flags.LogFileOutputDir, "/"),
-		Prefix: "zeno",
-	}
 	customLogger, err := log.New(log.Config{
-		FileOutput:               logFileOutput,
+		FileOutput: &log.Logfile{
+			Dir:    strings.TrimRight(flags.LogFileOutputDir, "/"),
+			Prefix: "zeno",
+		},
 		FileLevel:                slog.LevelDebug,
 		StdoutLevel:              slog.LevelInfo,
 		RotateLogFile:            true,
