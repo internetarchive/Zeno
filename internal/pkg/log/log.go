@@ -20,9 +20,9 @@ var (
 
 // Logger wraps slog.Logger to provide multi-output functionality
 type Logger struct {
+	sync.Mutex
 	handler      *multiHandler
 	slogger      *slog.Logger
-	mu           sync.Mutex
 	stopRotation chan struct{}
 	stopErrorLog chan struct{}
 	errorChan    chan error
@@ -30,7 +30,7 @@ type Logger struct {
 
 // Config holds the configuration for the logger
 type Config struct {
-	FileOutput               *Logfile
+	FileConfig               *LogfileConfig
 	FileLevel                slog.Level
 	StdoutLevel              slog.Level
 	RotateLogFile            bool
@@ -58,25 +58,24 @@ func New(cfg Config) (*Logger, error) {
 	handlers = append(handlers, stdoutHandler)
 
 	// Create file handler if FileOutput is specified
-	if cfg.FileOutput != nil {
+	if cfg.FileConfig != nil {
 		// Create directories if they don't exist
-		err := os.MkdirAll(filepath.Dir(cfg.FileOutput.Filename()), 0755)
+		err := os.MkdirAll(filepath.Dir(cfg.FileConfig.Filename()), 0755)
 		if err != nil {
 			return nil, err
 		}
 
 		// Open log file
-		file, err := os.OpenFile(cfg.FileOutput.Filename(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		file, err := os.OpenFile(cfg.FileConfig.Filename(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			return nil, err
 		}
 		fileHandler := &fileHandler{
 			Handler:          slog.NewJSONHandler(file, &slog.HandlerOptions{Level: cfg.FileLevel}),
-			filename:         cfg.FileOutput.Filename(),
-			file:             file,
+			fileDescriptor:   file,
 			rotationInterval: 6 * time.Hour,
 			lastRotation:     time.Now(),
-			logfile:          cfg.FileOutput,
+			logfileConfig:    cfg.FileConfig,
 		}
 		handlers = append(handlers, fileHandler)
 	}
@@ -134,7 +133,7 @@ func New(cfg Config) (*Logger, error) {
 func Default() *Logger {
 	once.Do(func() {
 		logger, err := New(Config{
-			FileOutput:  &Logfile{Dir: "jobs", Prefix: "zeno"},
+			FileConfig:  &LogfileConfig{Dir: "jobs", Prefix: "zeno"},
 			FileLevel:   slog.LevelInfo,
 			StdoutLevel: slog.LevelInfo,
 		})

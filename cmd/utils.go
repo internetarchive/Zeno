@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -40,8 +41,8 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	}
 
 	customLogger, err := log.New(log.Config{
-		FileOutput: &log.Logfile{
-			Dir:    strings.TrimRight(flags.LogFileOutputDir, "/"),
+		FileConfig: &log.LogfileConfig{
+			Dir:    filepath.Dir(flags.LogFileOutputDir),
 			Prefix: "zeno",
 		},
 		FileLevel:                slog.LevelDebug,
