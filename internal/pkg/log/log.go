@@ -1,4 +1,12 @@
 // Package log provides a custom logging solution with multi-output support
+// and log rotation for file output.
+// -----------------------------------------------------------------------------
+// When Logger.{Debug, Info, Warn, Error, Fatal} is called, the log message is
+// passed to all underlying handlers represented by Logger.handler
+// Then multiHandler.Handle is called to pass the log message to all underlying handlers.
+// -----------------------------------------------------------------------------
+// The rotation mechanism works by locking the logger, checking if it's time to rotate,
+// and then calling the Rotate method on all rotatable handlers.
 package log
 
 import (
@@ -151,6 +159,9 @@ func (l *Logger) Errors() <-chan error {
 }
 
 func (l *Logger) log(level slog.Level, msg string, args ...any) {
+	l.Lock()
+	defer l.Unlock()
+
 	// Create a new Record with the message and args
 	r := slog.NewRecord(time.Now(), level, msg, 0)
 	r.Add(args...)

@@ -20,6 +20,7 @@ type fileHandler struct {
 	logfileConfig    *LogfileConfig
 }
 
+// LogfileConfig represents the configuration for the log file output
 type LogfileConfig struct {
 	Dir    string
 	Prefix string
@@ -48,6 +49,7 @@ func (h *fileHandler) NextRotation() time.Time {
 	return h.lastRotation.Add(h.rotationInterval)
 }
 
+// Filename returns the computed filename of the log file with the current timestamp
 func (s *LogfileConfig) Filename() string {
 	return fmt.Sprintf("%s/%s.%s.log", s.Dir, s.Prefix, time.Now().Format(filenameFormat))
 }
