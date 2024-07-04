@@ -30,8 +30,8 @@ func (l *Logger) startRotation() {
 // nextRotation returns the earliest next rotation time
 // of all rotatable handlers
 func (l *Logger) nextRotation() time.Time {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
 	var earliest time.Time
 	for _, h := range l.handler.handlers {
@@ -47,8 +47,8 @@ func (l *Logger) nextRotation() time.Time {
 
 // rotate rotates
 func (l *Logger) rotate() {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
 	now := time.Now()
 	for _, h := range l.handler.handlers {
