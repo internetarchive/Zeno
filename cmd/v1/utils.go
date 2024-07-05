@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -22,9 +23,11 @@ import (
 func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	var c = new(crawl.Crawl)
 
-	// Logger
+	// Craft Elastic Search configuration
 	var elasticSearchConfig *log.ElasticsearchConfig
+
 	elasticSearchURLs := strings.Split(flags.ElasticSearchURLs, ",")
+
 	if elasticSearchURLs[0] == "" {
 		elasticSearchConfig = nil
 	} else {
@@ -37,12 +40,18 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		}
 	}
 
-	logFileOutput := &log.Logfile{
-		Dir:    strings.TrimRight(flags.LogFileOutputDir, "/"),
-		Prefix: "zeno",
+	// Ensure that the log file output directory is well parsed
+	logfileOutputDir := filepath.Dir(flags.LogFileOutputDir)
+	if logfileOutputDir == "." && flags.LogFileOutputDir != "." {
+		logfileOutputDir = filepath.Dir(flags.LogFileOutputDir + "/")
 	}
+
+	// Craft custom logger
 	customLogger, err := log.New(log.Config{
-		FileOutput:               logFileOutput,
+		FileConfig: &log.LogfileConfig{
+			Dir:    logfileOutputDir,
+			Prefix: "zeno",
+		},
 		FileLevel:                slog.LevelDebug,
 		StdoutLevel:              slog.LevelInfo,
 		RotateLogFile:            true,
