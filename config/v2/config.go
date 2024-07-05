@@ -16,36 +16,36 @@ type Config struct {
 	LogLevel string `mapstructure:"log-level"`
 
 	// Get flags (crawling flags)
-	UserAgent              string   `mapstructure:"user-agent"`
-	Job                    string   `mapstructure:"job"`
-	WorkersCount           int      `mapstructure:"workers"`
-	MaxConCurrentAssets    int      `mapstructure:"max-concurrent-assets"`
-	MaxHops                uint     `mapstructure:"max-hops"`
-	Cookies                string   `mapstructure:"cookies"`
-	KeepCookies            bool     `mapstructure:"keep-cookies"`
-	Headless               bool     `mapstructure:"headless"`
-	LocalSeenCheck         bool     `mapstructure:"local-seencheck"`
-	JSON                   bool     `mapstructure:"json"`
-	Debug                  bool     `mapstructure:"debug"`
-	LiveStats              bool     `mapstructure:"live-stats"`
-	API                    bool     `mapstructure:"api"`
-	APIPort                string   `mapstructure:"api-port"`
-	Prometheus             bool     `mapstructure:"prometheus"`
-	PrometheusPrefix       string   `mapstructure:"prometheus-prefix"`
-	MaxRedirect            int      `mapstructure:"max-redirect"`
-	MaxRetry               int      `mapstructure:"max-retry"`
-	HTTPTimeout            int      `mapstructure:"http-timeout"`
-	DomainsCrawl           bool     `mapstructure:"domains-crawl"`
-	DisableHTMLTag         []string `mapstructure:"disable-html-tag"`
-	CaptureAlternatePages  bool     `mapstructure:"capture-alternate-pages"`
-	ExcludeHosts           []string `mapstructure:"exclude-host"`
-	IncludeHosts           []string `mapstructure:"include-host"`
-	MaxConcurrentPerDomain int      `mapstructure:"max-concurrent-per-domain"`
-	ConcurrentSleepLength  int      `mapstructure:"concurrent-sleep-length"`
-	CrawlTimeLimit         int      `mapstructure:"crawl-time-limit"`
-	CrawlMaxTimeLimit      int      `mapstructure:"crawl-max-time-limit"`
-	ExcludeString          []string `mapstructure:"exclude-string"`
-	RandomLocalIP          bool     `mapstructure:"random-local-ip"`
+	UserAgent                      string   `mapstructure:"user-agent"`
+	Job                            string   `mapstructure:"job"`
+	WorkersCount                   int      `mapstructure:"workers"`
+	MaxConcurrentAssets            int      `mapstructure:"max-concurrent-assets"`
+	MaxHops                        uint     `mapstructure:"max-hops"`
+	Cookies                        string   `mapstructure:"cookies"`
+	KeepCookies                    bool     `mapstructure:"keep-cookies"`
+	Headless                       bool     `mapstructure:"headless"`
+	LocalSeencheck                 bool     `mapstructure:"local-seencheck"`
+	JSON                           bool     `mapstructure:"json"`
+	Debug                          bool     `mapstructure:"debug"`
+	LiveStats                      bool     `mapstructure:"live-stats"`
+	API                            bool     `mapstructure:"api"`
+	APIPort                        string   `mapstructure:"api-port"`
+	Prometheus                     bool     `mapstructure:"prometheus"`
+	PrometheusPrefix               string   `mapstructure:"prometheus-prefix"`
+	MaxRedirect                    int      `mapstructure:"max-redirect"`
+	MaxRetry                       int      `mapstructure:"max-retry"`
+	HTTPTimeout                    int      `mapstructure:"http-timeout"`
+	DomainsCrawl                   bool     `mapstructure:"domains-crawl"`
+	DisableHTMLTag                 []string `mapstructure:"disable-html-tag"`
+	CaptureAlternatePages          bool     `mapstructure:"capture-alternate-pages"`
+	ExcludeHosts                   []string `mapstructure:"exclude-host"`
+	IncludeHosts                   []string `mapstructure:"include-host"`
+	MaxConcurrentRequestsPerDomain int      `mapstructure:"max-concurrent-per-domain"`
+	ConcurrentSleepLength          int      `mapstructure:"concurrent-sleep-length"`
+	CrawlTimeLimit                 int      `mapstructure:"crawl-time-limit"`
+	CrawlMaxTimeLimit              int      `mapstructure:"crawl-max-time-limit"`
+	ExcludeString                  []string `mapstructure:"exclude-string"`
+	RandomLocalIP                  bool     `mapstructure:"random-local-ip"`
 
 	// Get flags (Proxy flags)
 	Proxy              string   `mapstructure:"proxy"`
@@ -76,15 +76,15 @@ type Config struct {
 	HQRateLimitSendBack bool   `mapstructure:"hq-rate-limiting-send-back"`
 
 	// Get flags (Logging flags)
-	LogFileOutputDir         string `mapstructure:"log-file-output-dir"`
-	ElasticSearchURL         string `mapstructure:"es-url"`
-	ElasticSearchUser        string `mapstructure:"es-user"`
-	ElasticSearchPassword    string `mapstructure:"es-password"`
-	ElasticSearchIndexPrefix string `mapstructure:"es-index-prefix"`
+	LogFileOutputDir         string   `mapstructure:"log-file-output-dir"`
+	ElasticSearchURLs        []string `mapstructure:"es-url"`
+	ElasticSearchUsername    string   `mapstructure:"es-user"`
+	ElasticSearchPassword    string   `mapstructure:"es-password"`
+	ElasticSearchIndexPrefix string   `mapstructure:"es-index-prefix"`
 }
 
 var (
-	config Config
+	config *Config
 	once   sync.Once
 )
 
@@ -92,6 +92,8 @@ var (
 func InitConfig() error {
 	var err error
 	once.Do(func() {
+		config = &Config{}
+
 		// Check if a config file is provided via flag
 		if configFile := viper.GetString("config"); configFile != "" {
 			viper.SetConfigFile(configFile)
@@ -117,7 +119,7 @@ func InitConfig() error {
 		}
 
 		// Unmarshal the config into the Config struct
-		err = viper.Unmarshal(&config)
+		err = viper.Unmarshal(config)
 	})
 	return err
 }
@@ -133,5 +135,9 @@ func BindFlags(flagSet *pflag.FlagSet) {
 
 // GetConfig returns the config struct
 func GetConfig() *Config {
-	return &config
+	cfg := config
+	if cfg == nil {
+		panic("Config not initialized. Call InitConfig() before accessing the config.")
+	}
+	return cfg
 }

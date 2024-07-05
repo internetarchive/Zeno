@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/internetarchive/Zeno/config/v2"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl"
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func addGetCMDs(rootCmd *cobra.Command) {
+func getCMDs() *cobra.Command {
 	getCmd := &cobra.Command{
 		Use:   "get",
 		Short: "Archive the web!",
@@ -78,24 +77,23 @@ func addGetCMDs(rootCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("hq-project", "", "Crawl HQ project.")
 	getCmd.PersistentFlags().Int64("hq-batch-size", 0, "Crawl HQ feeding batch size.")
 	getCmd.PersistentFlags().Bool("hq-continuous-pull", false, "If turned on, the crawler will pull URLs from Crawl HQ continuously.")
-	getCmd.PersistentFlags().String("hq-strategy", "Crawl HQ feeding strategy.", "lifo")
+	getCmd.PersistentFlags().String("hq-strategy", "lifo", "Crawl HQ feeding strategy.")
 	getCmd.PersistentFlags().Bool("hq-rate-limiting-send-back", false, "If turned on, the crawler will send back URLs that hit a rate limit to crawl HQ.")
 
 	// Logging flags
-	getCmd.PersistentFlags().String("log-file-output-dir", "Directory to write log files to.", "jobs")
+	getCmd.PersistentFlags().String("log-file-output-dir", "./jobs/", "Directory to write log files to.")
 	getCmd.PersistentFlags().String("es-url", "", "comma-separated ElasticSearch URL to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-user", "", "ElasticSearch username to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-password", "", "ElasticSearch password to use for indexing crawl logs.")
-	getCmd.PersistentFlags().String("es-index-prefix", "ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno`, without `-`", "zeno")
+	getCmd.PersistentFlags().String("es-index-prefix", "zeno", "ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno`, without `-`")
 
-	config.BindFlags(getCmd.Flags())
+	getURLCmd := getURLCmd()
+	getCmd.AddCommand(getURLCmd)
 
-	getURLCmd(getCmd)
-
-	rootCmd.AddCommand(getCmd)
+	return getCmd
 }
 
-func getURLCmd(rootCmd *cobra.Command) {
+func getURLCmd() *cobra.Command {
 	getURLCmd := &cobra.Command{
 		Use:   "url [URL...]",
 		Short: "Archive given URLs",
@@ -148,5 +146,5 @@ func getURLCmd(rootCmd *cobra.Command) {
 		},
 	}
 
-	rootCmd.AddCommand(getURLCmd)
+	return getURLCmd
 }

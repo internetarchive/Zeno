@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/internetarchive/Zeno/config/v2"
 	"github.com/spf13/cobra"
@@ -21,14 +20,15 @@ Authors:
   Jake LaFountain <jakelf@archive.org>
   Thomas Foubert <thomas@archive.org>
 `,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Initialize config here, after cobra has parsed command line flags
+		config.BindFlags(cmd.Flags())
 		if err := config.InitConfig(); err != nil {
-			fmt.Printf("error initializing config: %s", err)
-			os.Exit(1)
+			return fmt.Errorf("error initializing config: %s", err)
 		}
 
 		cfg = config.GetConfig()
+		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
@@ -43,10 +43,9 @@ func Run() error {
 	rootCmd.PersistentFlags().String("log-level", "info", "stdout log level (debug, info, warn, error)")
 	rootCmd.PersistentFlags().String("config", "", "config file (default is $HOME/zeno-config.yaml)")
 
-	// Bind flags to viper
-	config.BindFlags(rootCmd.Flags())
-
-	addGetCMDs(rootCmd)
+	// Add get subcommands
+	getCmd := getCMDs()
+	rootCmd.AddCommand(getCmd)
 
 	return rootCmd.Execute()
 }
