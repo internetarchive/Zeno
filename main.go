@@ -1,3 +1,11 @@
+// Zeno is a web crawler designed to operate wide crawls or to simply archive one web page.
+// Zeno's key concepts are: portability, performance, simplicity ; with an emphasis on performance.
+
+// Authors:
+//
+//	Corentin Barreau <corentin@archive.org>
+//	Jake LaFountain <jakelf@archive.org>
+//	Thomas Foubert <thomas@archive.org>
 package main
 
 import (
@@ -6,7 +14,7 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/internetarchive/Zeno/cmd/v2"
+	"github.com/internetarchive/Zeno/cmd"
 )
 
 func main() {

@@ -11,7 +11,7 @@ import (
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
 	"github.com/google/uuid"
-	"github.com/internetarchive/Zeno/config/v2"
+	"github.com/internetarchive/Zeno/config"
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
