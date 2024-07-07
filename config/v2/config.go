@@ -65,7 +65,7 @@ type Config struct {
 	CDXCookie            string `mapstructure:"cdx-cookie"`
 
 	// Get flags (Crawl HQ flags)
-	HQ                  bool   `mapstructure:"hq"`
+	HQ                  bool   // Special field to check if HQ is enabled depending on the command called
 	HQAddress           string `mapstructure:"hq-address"`
 	HQKey               string `mapstructure:"hq-key"`
 	HQSecret            string `mapstructure:"hq-secret"`
