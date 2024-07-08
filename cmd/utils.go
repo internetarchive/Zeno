@@ -161,6 +161,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		c.UserAgent = "Mozilla/5.0 (compatible; archive.org_bot +http://archive.org/details/archive.org_bot) Zeno/" + version.Version[:7] + " warc/" + version.WarcVersion
 	}
 	c.Headless = flags.Headless
+	c.MinSpaceRequired = flags.MinSpaceRequired
 
 	c.CookieFile = flags.CookieFile
 	c.KeepCookies = flags.KeepCookies

@@ -72,6 +72,7 @@ type Crawl struct {
 	Seencheck                      bool
 	Workers                        int
 	RandomLocalIP                  bool
+	MinSpaceRequired               int
 
 	// Cookie-related settings
 	CookieFile  string
