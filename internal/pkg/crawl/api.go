@@ -8,6 +8,7 @@ import (
 	"time"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"net/http"
 	_ "net/http/pprof"
 
@@ -16,6 +17,11 @@ import (
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 >>>>>>> e5c3f71 (Bump warc lib to 0.8.40 (#76))
+=======
+	"net/http"
+	_ "net/http/pprof"
+
+>>>>>>> 1dd291d (Remove Gin dependency)
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -42,6 +48,7 @@ func (crawl *Crawl) startAPI() {
 		crawledAssets := crawl.CrawledAssets.Value()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -53,6 +60,8 @@ func (crawl *Crawl) startAPI() {
 			"queued":        crawl.Frontier.QueueCount.Value(),
 			"uptime":        time.Since(crawl.StartTime).String(),
 =======
+=======
+>>>>>>> 1dd291d (Remove Gin dependency)
 		c.JSON(200, gin.H{
 			"rate":                crawl.URIsPerSecond.Rate(),
 			"crawled":             crawledSeeds + crawledAssets,
@@ -75,7 +84,22 @@ func (crawl *Crawl) startAPI() {
 		if err != nil {
 			crawl.Log.Warn("Unable to retrieve hostname of machine")
 			hostname = "unknown"
+<<<<<<< HEAD
 >>>>>>> e5c3f71 (Bump warc lib to 0.8.40 (#76))
+=======
+=======
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		response := map[string]interface{}{
+			"rate":          crawl.URIsPerSecond.Rate(),
+			"crawled":       crawledSeeds + crawledAssets,
+			"crawledSeeds":  crawledSeeds,
+			"crawledAssets": crawledAssets,
+			"queued":        crawl.Frontier.QueueCount.Value(),
+			"uptime":        time.Since(crawl.StartTime).String(),
+>>>>>>> 890c394 (Remove Gin dependency)
+>>>>>>> 1dd291d (Remove Gin dependency)
 		}
 
 		json.NewEncoder(w).Encode(response)
