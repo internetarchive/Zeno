@@ -36,9 +36,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 	)
 
 	defer func() {
-		if c.Prometheus {
-			c.PrometheusMetrics.DownloadedURI.Inc()
-		}
+		c.PrometheusMetrics.DownloadedURI.Inc()
 
 		c.URIsPerSecond.Incr(1)
 

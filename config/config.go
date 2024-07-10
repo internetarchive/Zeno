@@ -37,7 +37,6 @@ type Flags struct {
 
 	API              bool
 	APIPort          string
-	Prometheus       bool
 	PrometheusPrefix string
 
 	WARCPrefix       string
