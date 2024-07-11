@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/CorentinB/warc"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -44,12 +45,15 @@ func (crawl *Crawl) startAPI() {
 		crawledAssets := crawl.CrawledAssets.Value()
 
 		c.JSON(200, gin.H{
-			"rate":          crawl.URIsPerSecond.Rate(),
-			"crawled":       crawledSeeds + crawledAssets,
-			"crawledSeeds":  crawledSeeds,
-			"crawledAssets": crawledAssets,
-			"queued":        crawl.Frontier.QueueCount.Value(),
-			"uptime":        time.Since(crawl.StartTime).String(),
+			"rate":                crawl.URIsPerSecond.Rate(),
+			"crawled":             crawledSeeds + crawledAssets,
+			"crawled_seeds":       crawledSeeds,
+			"crawled_assets":      crawledAssets,
+			"queued":              crawl.Frontier.QueueCount.Value(),
+			"data_written":        warc.DataTotal.Value(),
+			"data_deduped_remote": warc.RemoteDedupeTotal.Value(),
+			"data_deduped_local":  warc.LocalDedupeTotal.Value(),
+			"uptime":              time.Since(crawl.StartTime).String(),
 		})
 	})
 
