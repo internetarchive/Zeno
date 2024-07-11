@@ -7,9 +7,15 @@ import (
 	"strings"
 	"time"
 
+<<<<<<< HEAD
 	"net/http"
 	_ "net/http/pprof"
 
+=======
+	"github.com/CorentinB/warc"
+	"github.com/gin-contrib/pprof"
+	"github.com/gin-gonic/gin"
+>>>>>>> e5c3f71 (Bump warc lib to 0.8.40 (#76))
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -35,6 +41,7 @@ func (crawl *Crawl) startAPI() {
 		crawledSeeds := crawl.CrawledSeeds.Value()
 		crawledAssets := crawl.CrawledAssets.Value()
 
+<<<<<<< HEAD
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -45,6 +52,30 @@ func (crawl *Crawl) startAPI() {
 			"crawledAssets": crawledAssets,
 			"queued":        crawl.Frontier.QueueCount.Value(),
 			"uptime":        time.Since(crawl.StartTime).String(),
+=======
+		c.JSON(200, gin.H{
+			"rate":                crawl.URIsPerSecond.Rate(),
+			"crawled":             crawledSeeds + crawledAssets,
+			"crawled_seeds":       crawledSeeds,
+			"crawled_assets":      crawledAssets,
+			"queued":              crawl.Frontier.QueueCount.Value(),
+			"data_written":        warc.DataTotal.Value(),
+			"data_deduped_remote": warc.RemoteDedupeTotal.Value(),
+			"data_deduped_local":  warc.LocalDedupeTotal.Value(),
+			"uptime":              time.Since(crawl.StartTime).String(),
+		})
+	})
+
+	// Handle Prometheus export
+	if crawl.Prometheus {
+		labels := make(map[string]string)
+
+		labels["crawljob"] = crawl.Job
+		hostname, err := os.Hostname()
+		if err != nil {
+			crawl.Log.Warn("Unable to retrieve hostname of machine")
+			hostname = "unknown"
+>>>>>>> e5c3f71 (Bump warc lib to 0.8.40 (#76))
 		}
 
 		json.NewEncoder(w).Encode(response)

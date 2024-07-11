@@ -43,7 +43,16 @@ func (c *Crawl) printLiveStats() {
 		stats.AddRow("  - Crawled seeds:", crawledSeeds)
 		stats.AddRow("  - Crawled assets:", crawledAssets)
 		stats.AddRow("  - WARC writing queue:", c.Client.WaitGroup.Size())
-		stats.AddRow("  - Data:", humanize.Bytes(uint64(warc.DataTotal.Value())))
+		stats.AddRow("  - Data written:", humanize.Bytes(uint64(warc.DataTotal.Value())))
+
+		if !c.DisableLocalDedupe {
+			stats.AddRow("  - Deduped (local):", humanize.Bytes(uint64(warc.LocalDedupeTotal.Value())))
+		}
+
+		if c.CDXDedupeServer != "" {
+			stats.AddRow("  - Deduped (via CDX):", humanize.Bytes(uint64(warc.RemoteDedupeTotal.Value())))
+		}
+
 		stats.AddRow("", "")
 		stats.AddRow("  - Elapsed time:", time.Since(c.StartTime).String())
 		stats.AddRow("  - Allocated (heap):", bToMb(m.Alloc))
