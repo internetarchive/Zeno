@@ -1,15 +1,15 @@
 package crawl
 
 import (
-	"fmt"
-	"log/slog"
+	"encoding/json"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/CorentinB/warc"
-	"github.com/gin-contrib/pprof"
-	"github.com/gin-gonic/gin"
+	"net/http"
+	_ "net/http/pprof"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -29,66 +29,40 @@ type APIWorkerState struct {
 	Locked    bool   `json:"locked"`
 }
 
-// startAPI starts the API server for the crawl.
+// startAPI starts the API server for the crawl
 func (crawl *Crawl) startAPI() {
-	gin.SetMode(gin.ReleaseMode)
-	gin.DefaultWriter = crawl.Log.Writer(slog.LevelInfo)
-	gin.DefaultErrorWriter = crawl.Log.Writer(slog.LevelError)
-
-	r := gin.Default()
-
-	pprof.Register(r)
-
-	crawl.Log.Info("Starting API")
-	r.GET("/", func(c *gin.Context) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		crawledSeeds := crawl.CrawledSeeds.Value()
 		crawledAssets := crawl.CrawledAssets.Value()
 
-		c.JSON(200, gin.H{
-			"rate":                crawl.URIsPerSecond.Rate(),
-			"crawled":             crawledSeeds + crawledAssets,
-			"crawled_seeds":       crawledSeeds,
-			"crawled_assets":      crawledAssets,
-			"queued":              crawl.Frontier.QueueCount.Value(),
-			"data_written":        warc.DataTotal.Value(),
-			"data_deduped_remote": warc.RemoteDedupeTotal.Value(),
-			"data_deduped_local":  warc.LocalDedupeTotal.Value(),
-			"uptime":              time.Since(crawl.StartTime).String(),
-		})
-	})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 
-	// Handle Prometheus export
-	if crawl.Prometheus {
-		labels := make(map[string]string)
-
-		labels["crawljob"] = crawl.Job
-		hostname, err := os.Hostname()
-		if err != nil {
-			crawl.Log.Warn("Unable to retrieve hostname of machine")
-			hostname = "unknown"
+		response := map[string]interface{}{
+			"rate":          crawl.URIsPerSecond.Rate(),
+			"crawled":       crawledSeeds + crawledAssets,
+			"crawledSeeds":  crawledSeeds,
+			"crawledAssets": crawledAssets,
+			"queued":        crawl.Frontier.QueueCount.Value(),
+			"uptime":        time.Since(crawl.StartTime).String(),
 		}
-		labels["host"] = hostname + ":" + crawl.APIPort
 
-		crawl.PrometheusMetrics.DownloadedURI = promauto.NewCounter(prometheus.CounterOpts{
-			Name:        crawl.PrometheusMetrics.Prefix + "downloaded_uri_count_total",
-			ConstLabels: labels,
-			Help:        "The total number of crawled URI",
-		})
-
-		crawl.Log.Info("Starting Prometheus export")
-		r.GET("/metrics", gin.WrapH(promhttp.Handler()))
-	}
-
-	r.GET("/workers", func(c *gin.Context) {
-		workersState := crawl.GetWorkerState(-1)
-		c.JSON(200, workersState)
+		json.NewEncoder(w).Encode(response)
 	})
 
-	r.GET("/worker/:worker_id", func(c *gin.Context) {
-		workerID := c.Param("worker_id")
+	http.HandleFunc("/metrics", setupPrometheus(crawl).ServeHTTP)
+
+	http.HandleFunc("/workers", func(w http.ResponseWriter, r *http.Request) {
+		workersState := crawl.GetWorkerState(-1)
+		json.NewEncoder(w).Encode(workersState)
+	})
+
+	http.HandleFunc("/worker/", func(w http.ResponseWriter, r *http.Request) {
+		workerID := strings.TrimPrefix(r.URL.Path, "/worker/")
 		workerIDInt, err := strconv.Atoi(workerID)
 		if err != nil {
-			c.JSON(400, gin.H{
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
 				"error": "Unsupported worker ID",
 			})
 			return
@@ -96,17 +70,40 @@ func (crawl *Crawl) startAPI() {
 
 		workersState := crawl.GetWorkerState(workerIDInt)
 		if workersState == nil {
-			c.JSON(404, gin.H{
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]interface{}{
 				"error": "Worker not found",
 			})
 			return
 		}
 
-		c.JSON(200, workersState)
+		json.NewEncoder(w).Encode(workersState)
 	})
 
-	err := r.Run(fmt.Sprintf(":%s", crawl.APIPort))
+	err := http.ListenAndServe(":"+crawl.APIPort, nil)
 	if err != nil {
 		crawl.Log.Fatal("unable to start API", "error", err.Error())
 	}
+}
+
+func setupPrometheus(crawl *Crawl) http.Handler {
+	labels := make(map[string]string)
+
+	labels["crawljob"] = crawl.Job
+	hostname, err := os.Hostname()
+	if err != nil {
+		crawl.Log.Warn("Unable to retrieve hostname of machine")
+		hostname = "unknown"
+	}
+	labels["host"] = hostname + ":" + crawl.APIPort
+
+	crawl.PrometheusMetrics.DownloadedURI = promauto.NewCounter(prometheus.CounterOpts{
+		Name:        crawl.PrometheusMetrics.Prefix + "downloaded_uri_count_total",
+		ConstLabels: labels,
+		Help:        "The total number of crawled URI",
+	})
+
+	crawl.Log.Info("starting Prometheus export")
+
+	return promhttp.Handler()
 }

@@ -86,7 +86,6 @@ type Crawl struct {
 	// API settings
 	API               bool
 	APIPort           string
-	Prometheus        bool
 	PrometheusMetrics *PrometheusMetrics
 
 	// Real time statistics
