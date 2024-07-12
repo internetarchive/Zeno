@@ -2,6 +2,8 @@ package queue
 
 import (
 	"net/url"
+	"os"
+	"path"
 	"testing"
 )
 
@@ -89,5 +91,137 @@ func TestNewItem(t *testing.T) {
 				t.Error("Expected non-zero Hash")
 			}
 		})
+	}
+}
+
+func TestNewPersistentGroupedQueue(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "queue_test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	queuePath := path.Join(tempDir, "test_queue")
+	loggingChan := make(chan *LogMessage, 100)
+
+	q, err := NewPersistentGroupedQueue(queuePath, loggingChan)
+	if err != nil {
+		t.Fatalf("Failed to create new queue: %v", err)
+	}
+	defer q.Close()
+
+	// Check if queue is properly initialized
+	if q.Paused == nil {
+		t.Error("Paused field not initialized")
+	}
+	if q.LoggingChan != loggingChan {
+		t.Error("LoggingChan not set correctly")
+	}
+	if q.queueFile == nil {
+		t.Error("queueFile not initialized")
+	}
+	if q.metadataFile == nil {
+		t.Error("metadataFile not initialized")
+	}
+	if q.queueEncoder == nil {
+		t.Error("queueEncoder not initialized")
+	}
+	if q.queueDecoder == nil {
+		t.Error("queueDecoder not initialized")
+	}
+	if q.metadataEncoder == nil {
+		t.Error("metadataEncoder not initialized")
+	}
+	if q.metadataDecoder == nil {
+		t.Error("metadataDecoder not initialized")
+	}
+	if len(q.hostIndex) != 0 {
+		t.Error("hostIndex not initialized as empty")
+	}
+	if len(q.hostOrder) != 0 {
+		t.Error("hostOrder not initialized as empty")
+	}
+	if q.currentHost != 0 {
+		t.Error("currentHost not initialized to 0")
+	}
+	if cap(q.enqueueChan) != 1000 {
+		t.Error("enqueueChan not initialized with correct capacity")
+	}
+	if cap(q.dequeueChan) != 1000 {
+		t.Error("dequeueChan not initialized with correct capacity")
+	}
+
+	// Test error case: invalid directory
+	_, err = NewPersistentGroupedQueue("/invalid/path", loggingChan)
+	if err == nil {
+		t.Error("Expected error for invalid directory, got nil")
+	}
+}
+
+// In internal/pkg/queue/queue_test.go
+
+func TestPersistentGroupedQueue_Close(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "queue_test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	queuePath := path.Join(tempDir, "test_queue")
+	loggingChan := make(chan *LogMessage, 100)
+
+	q, err := NewPersistentGroupedQueue(queuePath, loggingChan)
+	if err != nil {
+		t.Fatalf("Failed to create new queue: %v", err)
+	}
+
+	// Test normal close
+	err = q.Close()
+	if err != nil {
+		t.Errorf("Failed to close queue: %v", err)
+	}
+
+	// Check if channels are closed
+	select {
+	case _, ok := <-q.enqueueChan:
+		if ok {
+			t.Error("enqueueChan not closed after Close()")
+		}
+	default:
+		t.Error("enqueueChan should be closed and empty")
+	}
+
+	select {
+	case _, ok := <-q.dequeueChan:
+		if ok {
+			t.Error("dequeueChan not closed after Close()")
+		}
+	default:
+		t.Error("dequeueChan should be closed and empty")
+	}
+
+	// Check if files are closed
+	if err := q.queueFile.Close(); err == nil {
+		t.Error("queueFile not closed after Close()")
+	}
+	if err := q.metadataFile.Close(); err == nil {
+		t.Error("metadataFile not closed after Close()")
+	}
+
+	// Test double close
+	err = q.Close()
+	if err != nil {
+		t.Errorf("Second Close() should not return error, got: %v", err)
+	}
+
+	// Test operations after close
+	_, err = q.Dequeue()
+	if err != ErrQueueClosed {
+		t.Errorf("Expected ErrQueueClosed on Dequeue after Close, got: %v", err)
+	}
+
+	err = q.Enqueue(&Item{})
+	if err != ErrQueueClosed {
+		t.Errorf("Expected ErrQueueClosed on Enqueue after Close, got: %v", err)
 	}
 }

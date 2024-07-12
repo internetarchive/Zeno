@@ -42,58 +42,63 @@ func (q *PersistentGroupedQueue) dequeue() (*Item, error) {
 		return nil, ErrQueueEmpty
 	}
 
-	host := q.hostOrder[q.currentHost]
-	positions := q.hostIndex[host]
+	// Loop through hosts until we find one with items or we've checked all hosts
+	hostsChecked := 0
+	for hostsChecked < len(q.hostOrder) {
+		host := q.hostOrder[q.currentHost]
+		positions := q.hostIndex[host]
 
-	if len(positions) == 0 {
-		// Remove this host from the order and index
-		q.hostOrder = append(q.hostOrder[:q.currentHost], q.hostOrder[q.currentHost+1:]...)
-		delete(q.hostIndex, host)
-		if len(q.hostOrder) > 0 {
+		if len(positions) == 0 {
+			// Remove this host from the order and index
+			q.hostOrder = append(q.hostOrder[:q.currentHost], q.hostOrder[q.currentHost+1:]...)
+			delete(q.hostIndex, host)
+			if len(q.hostOrder) == 0 {
+				q.currentHost = 0
+				return nil, ErrQueueEmpty
+			}
 			q.currentHost = q.currentHost % len(q.hostOrder)
-		} else {
-			q.currentHost = 0
+			hostsChecked++
+			continue
 		}
-		return q.dequeue()
-	}
 
-	position := positions[0]
-	q.hostIndex[host] = positions[1:]
+		// We found a host with items, dequeue from here
+		position := positions[0]
+		q.hostIndex[host] = positions[1:]
 
-	// Seek to position and decode item
-	_, err := q.queueFile.Seek(int64(position), io.SeekStart)
-	if err != nil {
-		return nil, fmt.Errorf("failed to seek to item position: %w", err)
-	}
-	var item Item
-	err = q.queueDecoder.Decode(&item)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode item: %w", err)
-	}
+		// Seek to position and decode item
+		_, err := q.queueFile.Seek(int64(position), io.SeekStart)
+		if err != nil {
+			return nil, fmt.Errorf("failed to seek to item position: %w", err)
+		}
+		var item Item
+		err = q.queueDecoder.Decode(&item)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode item: %w", err)
+		}
 
-	// Move to next host
-	if len(q.hostOrder) > 0 {
+		// Move to next host
 		q.currentHost = (q.currentHost + 1) % len(q.hostOrder)
-	} else {
-		q.currentHost = 0
+
+		// Update stats
+		q.statsMutex.Lock()
+		q.stats.TotalElements--
+		q.stats.ElementsPerHost[host]--
+		if q.stats.DequeueCount == 0 {
+			q.stats.FirstDequeueTime = time.Now()
+		}
+		q.stats.DequeueCount++
+		q.stats.LastDequeueTime = time.Now()
+		if q.stats.ElementsPerHost[host] == 0 {
+			delete(q.stats.ElementsPerHost, host)
+			q.stats.UniqueHosts--
+		}
+		q.statsMutex.Unlock()
+
+		return &item, q.saveMetadata()
 	}
 
-	// Update stats
-	q.statsMutex.Lock()
-	q.stats.TotalElements--
-	q.stats.ElementsPerHost[host]--
-	if q.stats.DequeueCount == 0 {
-		q.stats.FirstDequeueTime = time.Now()
-	}
-	q.stats.DequeueCount++
-	q.stats.LastDequeueTime = time.Now()
-	if q.stats.ElementsPerHost[host] == 0 {
-		delete(q.stats.ElementsPerHost, host)
-		q.stats.UniqueHosts--
-	}
-	q.statsMutex.Unlock()
-
-	return &item, q.saveMetadata()
+	// If we've checked all hosts and found no items, the queue is empty
+	return nil, ErrQueueEmpty
 }
 
 func (q *PersistentGroupedQueue) dequeueWorker() {
