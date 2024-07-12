@@ -3,7 +3,6 @@ package queue
 import (
 	"fmt"
 	"io"
-	"log"
 	"time"
 )
 
@@ -11,11 +10,7 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	if q.closed {
 		return ErrQueueClosed
 	}
-	q.enqueueChan <- item
-	return nil
-}
 
-func (q *PersistentGroupedQueue) enqueue(item *Item) error {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -53,27 +48,8 @@ func (q *PersistentGroupedQueue) enqueue(item *Item) error {
 	}
 	q.statsMutex.Unlock()
 
-	return q.saveMetadata()
-}
+	// Signal that a new item is available
+	q.cond.Signal()
 
-func (q *PersistentGroupedQueue) enqueueWorker() {
-	defer q.wg.Done()
-	for {
-		select {
-		case item, ok := <-q.enqueueChan:
-			if !ok {
-				return
-			}
-			if q.closed {
-				log.Printf("Cannot enqueue item: queue is closed")
-				continue
-			}
-			err := q.enqueue(item)
-			if err != nil {
-				log.Printf("Error enqueueing item: %v", err)
-			}
-		case <-q.done:
-			return
-		}
-	}
+	return q.saveMetadata()
 }

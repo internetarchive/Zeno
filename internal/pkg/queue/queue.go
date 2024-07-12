@@ -44,11 +44,8 @@ type PersistentGroupedQueue struct {
 	mutex           sync.RWMutex
 	hostMutex       sync.Mutex
 	statsMutex      sync.RWMutex
-	enqueueChan     chan *Item
-	dequeueChan     chan chan *Item
 	stats           QueueStats
-	wg              sync.WaitGroup
-	done            chan struct{}
+	cond            *sync.Cond
 	closed          bool
 }
 
@@ -94,23 +91,18 @@ func NewPersistentGroupedQueue(queueDirPath string, loggingChan chan *LogMessage
 		hostIndex:       make(map[string][]uint64),
 		hostOrder:       []string{},
 		currentHost:     0,
-		enqueueChan:     make(chan *Item, 1000),
-		dequeueChan:     make(chan chan *Item, 1000),
 		stats: QueueStats{
 			ElementsPerHost:  make(map[string]int),
 			HostDistribution: make(map[string]float64),
 		},
-		done: make(chan struct{}),
 	}
+
+	q.cond = sync.NewCond(&q.mutex)
 
 	if err = q.loadMetadata(); err != nil {
 		q.Close()
 		return nil, fmt.Errorf("load queue metadata: %w", err)
 	}
-
-	q.wg.Add(2)
-	go q.enqueueWorker()
-	go q.dequeueWorker()
 
 	return q, nil
 }
@@ -122,16 +114,6 @@ func (q *PersistentGroupedQueue) Close() error {
 	if q.closed {
 		return nil // Already closed
 	}
-
-	// Signal the worker goroutines to stop
-	close(q.done)
-
-	// Wait for worker goroutines to finish
-	q.wg.Wait()
-
-	// Now it's safe to close the channels
-	close(q.enqueueChan)
-	close(q.dequeueChan)
 
 	q.closed = true
 

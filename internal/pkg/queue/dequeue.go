@@ -3,7 +3,6 @@ package queue
 import (
 	"fmt"
 	"io"
-	"log"
 	"time"
 )
 
@@ -12,48 +11,29 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		return nil, ErrQueueClosed
 	}
 
-	resultChan := make(chan *Item, 1)
-	errChan := make(chan error, 1)
+	timeout := 5 * time.Second
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 
-	go func() {
-		item, err := q.dequeue()
-		if err != nil {
-			errChan <- err
-		} else {
-			resultChan <- item
-		}
-	}()
-
-	select {
-	case item := <-resultChan:
-		return item, nil
-	case err := <-errChan:
-		if err == ErrQueueEmpty {
-			// If the queue is empty, wait for the timeout
-			select {
-			case <-time.After(5 * time.Second):
-				return nil, ErrQueueTimeout
-			case <-q.done:
-				return nil, ErrQueueClosed
-			}
-		}
-		return nil, err
-	case <-time.After(5 * time.Second):
-		return nil, ErrQueueTimeout
-	case <-q.done:
-		return nil, ErrQueueClosed
-	}
-}
-
-func (q *PersistentGroupedQueue) dequeue() (*Item, error) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	q.hostMutex.Lock()
-	defer q.hostMutex.Unlock()
+	for len(q.hostOrder) == 0 {
+		// Queue is empty, wait for new items or timeout
+		waitChan := make(chan struct{})
+		go func() {
+			q.cond.Wait()
+			close(waitChan)
+		}()
 
-	if len(q.hostOrder) == 0 {
-		return nil, ErrQueueEmpty
+		q.mutex.Unlock()
+		select {
+		case <-timer.C:
+			q.mutex.Lock()
+			return nil, ErrQueueTimeout
+		case <-waitChan:
+			q.mutex.Lock()
+		}
 	}
 
 	// Loop through hosts until we find one with items or we've checked all hosts
@@ -68,7 +48,7 @@ func (q *PersistentGroupedQueue) dequeue() (*Item, error) {
 			delete(q.hostIndex, host)
 			if len(q.hostOrder) == 0 {
 				q.currentHost = 0
-				return nil, ErrQueueEmpty
+				continue // This will cause the outer loop to check again
 			}
 			q.currentHost = q.currentHost % len(q.hostOrder)
 			hostsChecked++
@@ -108,39 +88,14 @@ func (q *PersistentGroupedQueue) dequeue() (*Item, error) {
 		}
 		q.statsMutex.Unlock()
 
-		return &item, q.saveMetadata()
-	}
-
-	// If we've checked all hosts and found no items, the queue is empty
-	return nil, ErrQueueEmpty
-}
-
-func (q *PersistentGroupedQueue) dequeueWorker() {
-	defer q.wg.Done()
-	for {
-		select {
-		case resultChan, ok := <-q.dequeueChan:
-			if !ok {
-				return
-			}
-			if q.closed {
-				resultChan <- nil
-				continue
-			}
-			item, err := q.dequeue()
-			if err != nil {
-				if err == ErrQueueEmpty {
-					resultChan <- nil
-				} else {
-					log.Printf("Error dequeueing item: %v", err)
-					resultChan <- nil
-				}
-			} else {
-				resultChan <- item
-			}
-		case <-q.done:
-			return
+		err = q.saveMetadata()
+		if err != nil {
+			return nil, fmt.Errorf("failed to save metadata: %w", err)
 		}
+
+		return &item, nil
 	}
 
+	// If we've checked all hosts and found no items, loop back to wait again
+	return q.Dequeue()
 }
