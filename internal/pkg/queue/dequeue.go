@@ -11,29 +11,11 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		return nil, ErrQueueClosed
 	}
 
-	timeout := 5 * time.Second
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
-
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
 	for len(q.hostOrder) == 0 {
-		// Queue is empty, wait for new items or timeout
-		waitChan := make(chan struct{})
-		go func() {
-			q.cond.Wait()
-			close(waitChan)
-		}()
-
-		q.mutex.Unlock()
-		select {
-		case <-timer.C:
-			q.mutex.Lock()
-			return nil, ErrQueueTimeout
-		case <-waitChan:
-			q.mutex.Lock()
-		}
+		q.cond.Wait() // This unlocks the mutex while waiting
 	}
 
 	// Loop through hosts until we find one with items or we've checked all hosts

@@ -22,12 +22,6 @@ func TestDequeue(t *testing.T) {
 	}
 	defer q.Close()
 
-	// Test dequeue on empty queue
-	_, err = q.Dequeue()
-	if err != ErrQueueTimeout {
-		t.Errorf("Expected ErrQueueTimeout, got %v", err)
-	}
-
 	// Enqueue some items
 	url1, _ := url.Parse("http://example1.com")
 	url2, _ := url.Parse("http://example2.com")
@@ -66,12 +60,6 @@ func TestDequeue(t *testing.T) {
 		if !found {
 			t.Errorf("Dequeued unexpected item: %v", dequeued)
 		}
-	}
-
-	// Test dequeue on empty queue again
-	_, err = q.Dequeue()
-	if err != ErrQueueTimeout {
-		t.Errorf("Expected ErrQueueTimeout, got %v", err)
 	}
 
 	// Test dequeue on closed queue
