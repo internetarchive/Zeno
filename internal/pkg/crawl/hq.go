@@ -38,10 +38,11 @@ func (c *Crawl) HQWebsocket() {
 			GoVersion: utils.GetVersion().GoVersion,
 		})
 		if err != nil {
-			logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error sending identify payload to crawl HQ, trying to reconnect..")
+			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{})).Error("error sending identify payload to crawl HQ, trying to reconnect..")
+
 			err = c.HQClient.InitWebsocketConn()
 			if err != nil {
-				logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error initializing websocket connection to crawl HQ")
+				c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{})).Error("error initializing websocket connection to crawl HQ")
 			}
 		}
 
@@ -72,7 +73,7 @@ func (c *Crawl) HQProducer() {
 					for {
 						_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
 						if err != nil {
-							logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
+							c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{})).Error("error sending payload to crawl HQ, waiting 1s then retrying..")
 							time.Sleep(time.Second)
 							continue
 						}
@@ -87,7 +88,7 @@ func (c *Crawl) HQProducer() {
 					for {
 						_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
 						if err != nil {
-							logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
+							c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{})).Error("error sending payload to crawl HQ, waiting 1s then retrying..")
 							time.Sleep(time.Second)
 							continue
 						}
@@ -125,7 +126,9 @@ func (c *Crawl) HQProducer() {
 			for {
 				_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "seed", true, false)
 				if err != nil {
-					logrus.WithFields(c.genLogFields(err, nil, nil)).Errorln("error sending payload to crawl HQ, waiting 1s then retrying..")
+					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+						"bypassSeencheck": discoveredItem.BypassSeencheck,
+					})).Error("error sending payload to crawl HQ, waiting 1s then retrying..")
 					time.Sleep(time.Second)
 					continue
 				}
@@ -177,6 +180,10 @@ func (c *Crawl) HQConsumer() {
 		// get batch from crawl HQ
 		batch, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
 		if err != nil {
+			if strings.Contains(err.Error(), "feed is empty") {
+				time.Sleep(time.Second)
+			}
+
 			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
 			})).Error("error getting new URLs from crawl HQ")
