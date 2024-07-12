@@ -13,17 +13,31 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	}
 
 	resultChan := make(chan *Item, 1)
+	errChan := make(chan error, 1)
 
 	go func() {
-		q.dequeueChan <- resultChan
+		item, err := q.dequeue()
+		if err != nil {
+			errChan <- err
+		} else {
+			resultChan <- item
+		}
 	}()
 
 	select {
 	case item := <-resultChan:
-		if item == nil {
-			return nil, ErrQueueEmpty
-		}
 		return item, nil
+	case err := <-errChan:
+		if err == ErrQueueEmpty {
+			// If the queue is empty, wait for the timeout
+			select {
+			case <-time.After(5 * time.Second):
+				return nil, ErrQueueTimeout
+			case <-q.done:
+				return nil, ErrQueueClosed
+			}
+		}
+		return nil, err
 	case <-time.After(5 * time.Second):
 		return nil, ErrQueueTimeout
 	case <-q.done:
