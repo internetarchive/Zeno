@@ -7,8 +7,8 @@ import (
 	"hash/fnv"
 	"net/url"
 	"os"
+	"path"
 	"sync"
-	"syscall"
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -32,24 +32,24 @@ type PersistentGroupedQueue struct {
 	Paused      *utils.TAtomBool
 	LoggingChan chan *LogMessage
 
-	file        *os.File
-	data        []byte
-	size        uint64
-	metadata    *os.File
-	hostIndex   map[string][]uint64
-	hostOrder   []string
-	currentHost int
-	mutex       sync.RWMutex
-	hostMutex   sync.Mutex
-	statsMutex  sync.RWMutex
-	enqueueChan chan *Item
-	dequeueChan chan chan *Item
-	stats       QueueStats
-	encoder     *gob.Encoder
-	decoder     *gob.Decoder
-	wg          sync.WaitGroup
-	done        chan struct{}
-	closed      bool
+	queueEncoder    *gob.Encoder
+	queueDecoder    *gob.Decoder
+	queueFile       *os.File
+	metadataFile    *os.File
+	metadataEncoder *gob.Encoder
+	metadataDecoder *gob.Decoder
+	hostIndex       map[string][]uint64
+	hostOrder       []string
+	currentHost     int
+	mutex           sync.RWMutex
+	hostMutex       sync.Mutex
+	statsMutex      sync.RWMutex
+	enqueueChan     chan *Item
+	dequeueChan     chan chan *Item
+	stats           QueueStats
+	wg              sync.WaitGroup
+	done            chan struct{}
+	closed          bool
 }
 
 type Item struct {
@@ -65,29 +65,19 @@ type Item struct {
 	BypassSeencheck string
 }
 
-func NewPersistentGroupedQueue(filename string, loggingChan chan *LogMessage, size uint64) (*PersistentGroupedQueue, error) {
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
+func NewPersistentGroupedQueue(queueDirPath string, loggingChan chan *LogMessage) (*PersistentGroupedQueue, error) {
+	err := os.MkdirAll(queueDirPath, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.OpenFile(path.Join(queueDirPath, "queue"), os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("open queue file: %w", err)
 	}
-	defer func() {
-		if err != nil {
-			file.Close()
-		}
-	}()
 
-	if err = file.Truncate(int64(size)); err != nil {
-		return nil, fmt.Errorf("set queue file size: %w", err)
-	}
-
-	data, err := syscall.Mmap(int(file.Fd()), 0, int(size), syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
+	metafile, err := os.OpenFile(path.Join(queueDirPath, "queue.meta"), os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		return nil, fmt.Errorf("memory-map queue file: %w", err)
-	}
-
-	metafile, err := os.OpenFile(filename+".meta", os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		syscall.Munmap(data)
 		return nil, fmt.Errorf("open metadata file: %w", err)
 	}
 
@@ -95,23 +85,22 @@ func NewPersistentGroupedQueue(filename string, loggingChan chan *LogMessage, si
 		Paused:      new(utils.TAtomBool),
 		LoggingChan: loggingChan,
 
-		file:        file,
-		data:        data,
-		size:        size,
-		metadata:    metafile,
-		hostIndex:   make(map[string][]uint64),
-		hostOrder:   []string{},
-		currentHost: 0,
-		enqueueChan: make(chan *Item, 1000),
-		dequeueChan: make(chan chan *Item, 1000),
+		queueFile:       file,
+		queueEncoder:    gob.NewEncoder(file),
+		queueDecoder:    gob.NewDecoder(file),
+		metadataFile:    metafile,
+		metadataEncoder: gob.NewEncoder(metafile),
+		metadataDecoder: gob.NewDecoder(metafile),
+		hostIndex:       make(map[string][]uint64),
+		hostOrder:       []string{},
+		currentHost:     0,
+		enqueueChan:     make(chan *Item, 1000),
+		dequeueChan:     make(chan chan *Item, 1000),
 		stats: QueueStats{
 			ElementsPerHost:  make(map[string]int),
 			HostDistribution: make(map[string]float64),
-			TotalSize:        size,
 		},
-		encoder: gob.NewEncoder(metafile),
-		decoder: gob.NewDecoder(metafile),
-		done:    make(chan struct{}),
+		done: make(chan struct{}),
 	}
 
 	if err = q.loadMetadata(); err != nil {
@@ -152,20 +141,14 @@ func (q *PersistentGroupedQueue) Close() error {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}
 
-	// Unmap the memory-mapped file
-	err = syscall.Munmap(q.data)
-	if err != nil {
-		return fmt.Errorf("failed to unmap queue data: %w", err)
-	}
-
 	// Close the main queue file
-	err = q.file.Close()
+	err = q.queueFile.Close()
 	if err != nil {
 		return fmt.Errorf("failed to close queue file: %w", err)
 	}
 
 	// Close the metadata file
-	err = q.metadata.Close()
+	err = q.metadataFile.Close()
 	if err != nil {
 		return fmt.Errorf("failed to close metadata file: %w", err)
 	}

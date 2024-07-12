@@ -20,22 +20,16 @@ func (q *PersistentGroupedQueue) enqueue(item *Item) error {
 	defer q.mutex.Unlock()
 
 	// Find free position
-	startPos, err := q.file.Seek(0, io.SeekEnd)
+	startPos, err := q.queueFile.Seek(0, io.SeekEnd)
 	if err != nil {
 		return fmt.Errorf("failed to seek to end of file: %w", err)
 	}
 
 	// Encode and write item
-	err = q.encoder.Encode(item)
+	err = q.queueEncoder.Encode(item)
 	if err != nil {
 		return fmt.Errorf("failed to encode item: %w", err)
 	}
-
-	endPos, err := q.file.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return fmt.Errorf("failed to get current position: %w", err)
-	}
-	itemSize := endPos - startPos
 
 	// Update host index and order
 	q.hostMutex.Lock()
@@ -48,7 +42,6 @@ func (q *PersistentGroupedQueue) enqueue(item *Item) error {
 	// Update stats
 	q.statsMutex.Lock()
 	q.stats.TotalElements++
-	q.stats.UsedSize += uint64(itemSize)
 	q.stats.ElementsPerHost[item.Host]++
 	if q.stats.EnqueueCount == 0 {
 		q.stats.FirstEnqueueTime = time.Now()

@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 )
@@ -10,20 +9,19 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	_, err := q.metadata.Seek(0, 0)
+	_, err := q.metadataFile.Seek(0, 0)
 	if err != nil {
 		return fmt.Errorf("failed to seek to start of metadata file: %w", err)
 	}
 
-	decoder := json.NewDecoder(q.metadata)
 	var metadata struct {
-		HostIndex   map[string][]uint64 `json:"host_index"`
-		HostOrder   []string            `json:"host_order"`
-		CurrentHost int                 `json:"current_host"`
-		Stats       QueueStats          `json:"stats"`
+		HostIndex   map[string][]uint64
+		HostOrder   []string
+		CurrentHost int
+		Stats       QueueStats
 	}
 
-	err = decoder.Decode(&metadata)
+	err = q.metadataDecoder.Decode(&metadata)
 	if err != nil {
 		if err == io.EOF {
 			// No metadata yet, this might be a new queue
@@ -52,22 +50,21 @@ func (q *PersistentGroupedQueue) saveMetadata() error {
 	q.statsMutex.RLock()
 	defer q.statsMutex.RUnlock()
 
-	_, err := q.metadata.Seek(0, 0)
+	_, err := q.metadataFile.Seek(0, 0)
 	if err != nil {
 		return fmt.Errorf("failed to seek to start of metadata file: %w", err)
 	}
 
-	err = q.metadata.Truncate(0)
+	err = q.metadataFile.Truncate(0)
 	if err != nil {
 		return fmt.Errorf("failed to truncate metadata file: %w", err)
 	}
 
-	encoder := json.NewEncoder(q.metadata)
 	metadata := struct {
-		HostIndex   map[string][]uint64 `json:"host_index"`
-		HostOrder   []string            `json:"host_order"`
-		CurrentHost int                 `json:"current_host"`
-		Stats       QueueStats          `json:"stats"`
+		HostIndex   map[string][]uint64
+		HostOrder   []string
+		CurrentHost int
+		Stats       QueueStats
 	}{
 		HostIndex:   q.hostIndex,
 		HostOrder:   q.hostOrder,
@@ -75,7 +72,7 @@ func (q *PersistentGroupedQueue) saveMetadata() error {
 		Stats:       q.stats,
 	}
 
-	err = encoder.Encode(metadata)
+	err = q.metadataEncoder.Encode(metadata)
 	if err != nil {
 		return fmt.Errorf("failed to encode metadata: %w", err)
 	}

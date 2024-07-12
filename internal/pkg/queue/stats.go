@@ -9,9 +9,6 @@ type QueueStats struct {
 	TotalElements              int                `json:"total_elements"`
 	UniqueHosts                int                `json:"unique_hosts"`
 	ElementsPerHost            map[string]int     `json:"elements_per_host"`
-	TotalSize                  uint64             `json:"total_size"`
-	UsedSize                   uint64             `json:"used_size"`
-	FreeSize                   uint64             `json:"free_size"`
 	Utilization                float64            `json:"utilization"`
 	EnqueueCount               int                `json:"enqueue_count"`
 	DequeueCount               int                `json:"dequeue_count"`
@@ -64,12 +61,6 @@ func (q *PersistentGroupedQueue) GetStats() QueueStats {
 	}
 
 	// Calculate additional stats
-	stats.FreeSize = stats.TotalSize - stats.UsedSize
-	if stats.TotalSize > 0 {
-		stats.Utilization = float64(stats.UsedSize) / float64(stats.TotalSize)
-	} else {
-		stats.Utilization = 0
-	}
 	if stats.UniqueHosts > 0 {
 		stats.AverageElementsPerHost = float64(stats.TotalElements) / float64(stats.UniqueHosts)
 	} else {

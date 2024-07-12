@@ -61,12 +61,12 @@ func (q *PersistentGroupedQueue) dequeue() (*Item, error) {
 	q.hostIndex[host] = positions[1:]
 
 	// Seek to position and decode item
-	_, err := q.file.Seek(int64(position), io.SeekStart)
+	_, err := q.queueFile.Seek(int64(position), io.SeekStart)
 	if err != nil {
 		return nil, fmt.Errorf("failed to seek to item position: %w", err)
 	}
 	var item Item
-	err = q.decoder.Decode(&item)
+	err = q.queueDecoder.Decode(&item)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode item: %w", err)
 	}
@@ -81,8 +81,6 @@ func (q *PersistentGroupedQueue) dequeue() (*Item, error) {
 	// Update stats
 	q.statsMutex.Lock()
 	q.stats.TotalElements--
-	currentPos, _ := q.file.Seek(0, io.SeekCurrent)
-	q.stats.UsedSize -= uint64(currentPos - int64(position))
 	q.stats.ElementsPerHost[host]--
 	if q.stats.DequeueCount == 0 {
 		q.stats.FirstDequeueTime = time.Now()
@@ -125,4 +123,5 @@ func (q *PersistentGroupedQueue) dequeueWorker() {
 			return
 		}
 	}
+
 }

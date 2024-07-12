@@ -165,7 +165,7 @@ func (c *Crawl) Start() (err error) {
 		}
 	}()
 
-	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"), frontierLoggingChan, 1024*1024*1024)
+	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"), frontierLoggingChan)
 	if err != nil {
 		c.Log.Fatal("unable to init queue", "error", err)
 	}
