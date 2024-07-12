@@ -43,7 +43,7 @@ func (crawl *Crawl) startAPI() {
 			"crawled":       crawledSeeds + crawledAssets,
 			"crawledSeeds":  crawledSeeds,
 			"crawledAssets": crawledAssets,
-			"queued":        crawl.Frontier.QueueCount.Value(),
+			"queued":        crawl.Queue.GetStats().TotalElements,
 			"uptime":        time.Since(crawl.StartTime).String(),
 		}
 
@@ -51,6 +51,10 @@ func (crawl *Crawl) startAPI() {
 	})
 
 	http.HandleFunc("/metrics", setupPrometheus(crawl).ServeHTTP)
+
+	http.HandleFunc("/queue", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(crawl.Queue.GetStats())
+	})
 
 	http.HandleFunc("/workers", func(w http.ResponseWriter, r *http.Request) {
 		workersState := crawl.GetWorkerState(-1)

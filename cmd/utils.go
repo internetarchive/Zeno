@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/config"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
@@ -73,10 +72,6 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 
 	c.LiveStats = flags.LiveStats
 
-	// Frontier
-	c.Frontier = new(frontier.Frontier)
-	c.Frontier.Log = c.Log
-
 	// If the job name isn't specified, we generate a random name
 	if flags.Job == "" {
 		if flags.HQProject != "" {
@@ -101,7 +96,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 	c.MaxConcurrentAssets = flags.MaxConcurrentAssets
 	c.WorkerStopSignal = make(chan bool)
 
-	c.Seencheck = flags.Seencheck
+	c.UseSeencheck = flags.Seencheck
 	c.HTTPTimeout = flags.HTTPTimeout
 	c.MaxConcurrentRequestsPerDomain = flags.MaxConcurrentRequestsPerDomain
 	c.RateLimitDelay = flags.RateLimitDelay

@@ -3,7 +3,6 @@ package get
 import (
 	"github.com/internetarchive/Zeno/cmd"
 	"github.com/internetarchive/Zeno/config"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -30,7 +29,7 @@ func cmdGetList(c *cli.Context) error {
 	crawl := cmd.InitCrawlWithCMD(config.App.Flags)
 
 	// Initialize initial seed list
-	crawl.SeedList, err = frontier.IsSeedList(c.Args().Get(0))
+	crawl.SeedList, err = isSeedList(c.Args().Get(0))
 	if err != nil || len(crawl.SeedList) <= 0 {
 		logrus.WithFields(logrus.Fields{
 			"input": c.Args().Get(0),

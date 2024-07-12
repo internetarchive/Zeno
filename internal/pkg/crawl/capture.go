@@ -20,17 +20,16 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/vk"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/tomnomnom/linkheader"
-
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 )
 
-func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection bool) (resp *http.Response, err error) {
+func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bool) (resp *http.Response, err error) {
 	var (
 		executionStart = time.Now()
-		newItem        *frontier.Item
+		newItem        *queue.Item
 		newReq         *http.Request
 		URL            *url.URL
 	)
@@ -52,17 +51,17 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 		time.Sleep(time.Second)
 	}
 
+	// TODO: re-implement host limitation
 	// Temporarily pause crawls for individual hosts if they are over our configured maximum concurrent requests per domain.
 	// If the request is a redirection, we do not pause the crawl because we want to follow the redirection.
-	if !isRedirection {
-		for c.shouldPause(item.Host) {
-			time.Sleep(time.Millisecond * time.Duration(c.RateLimitDelay))
-		}
+	// if !isRedirection {
+	// for c.shouldPause(item.Host) {
+	// 	time.Sleep(time.Millisecond * time.Duration(c.RateLimitDelay))
+	// }
 
-		c.Frontier.IncrHostActive(item.Host)
-
-		defer c.Frontier.DecrHostActive(item.Host)
-	}
+	// c.Queue.IncrHostActive(item.Host)
+	// defer c.Frontier.DecrHostActive(item.Host)
+	//}
 
 	// Retry on 429 error
 	for retry := 0; retry < c.MaxRetry; retry++ {
@@ -149,7 +148,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 		}
 
 		// Seencheck the URL
-		if c.Seencheck {
+		if c.UseSeencheck {
 			found := c.seencheckURL(utils.URLToString(URL), "seed")
 			if found {
 				return nil, errors.New("URL from redirection has already been seen")
@@ -165,7 +164,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 			}
 		}
 
-		newItem = frontier.NewItem(URL, item, item.Type, item.Hop, item.ID, false)
+		newItem = queue.NewItem(URL, item, item.Type, item.Hop, item.ID, false)
 		newItem.Redirect = item.Redirect + 1
 
 		// Prepare GET request
@@ -184,7 +183,7 @@ func (c *Crawl) executeGET(item *frontier.Item, req *http.Request, isRedirection
 	return resp, nil
 }
 
-func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error {
+func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie) error {
 	var resp *http.Response
 
 	// Prepare GET request
@@ -216,13 +215,13 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 }
 
 // Capture capture the URL and return the outlinks
-func (c *Crawl) Capture(item *frontier.Item) error {
+func (c *Crawl) Capture(item *queue.Item) error {
 	var (
 		resp      *http.Response
 		waitGroup sync.WaitGroup
 	)
 
-	defer func(i *frontier.Item) {
+	defer func(i *queue.Item) {
 		waitGroup.Wait()
 
 		if c.UseHQ && i.ID != "" {
@@ -254,7 +253,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
 			} else {
 				// Then we create an item
-				apiItem := frontier.NewItem(apiURL, item, item.Type, item.Hop, item.ID, false)
+				apiItem := queue.NewItem(apiURL, item, item.Type, item.Hop, item.ID, false)
 
 				// And capture it
 				c.Capture(apiItem)
@@ -267,7 +266,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 			} else {
 				for _, embedURL := range embedURLs {
 					// Create the embed item
-					embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
+					embedItem := queue.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
 
 					// Capture the embed item
 					c.Capture(embedItem)
@@ -284,7 +283,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating Facebook embed URL")
 			} else {
 				// Create the embed item
-				embedItem := frontier.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
+				embedItem := queue.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
 
 				// Capture the embed item
 				err = c.Capture(embedItem)
@@ -302,7 +301,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 			if highwindsURL == nil {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating libsyn URL")
 			} else {
-				c.Capture(frontier.NewItem(highwindsURL, item, item.Type, item.Hop, item.ID, false))
+				c.Capture(queue.NewItem(highwindsURL, item, item.Type, item.Hop, item.ID, false))
 			}
 		}
 	} else if tiktok.IsTikTokURL(utils.URLToString(item.URL)) {
@@ -312,7 +311,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		telegram.TransformURL(item.URL)
 
 		// Then we create an item
-		embedItem := frontier.NewItem(item.URL, item, item.Type, item.Hop, item.ID, false)
+		embedItem := queue.NewItem(item.URL, item, item.Type, item.Hop, item.ID, false)
 
 		// And capture it
 		c.Capture(embedItem)
@@ -325,7 +324,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return err
 	} else if err != nil && err.Error() == "URL is being rate limited, sending back to HQ" {
-		c.HQProducerChannel <- frontier.NewItem(item.URL, item.ParentItem, item.Type, item.Hop, "", true)
+		c.HQProducerChannel <- queue.NewItem(item.URL, item.ParentItem, item.Type, item.Hop, "", true)
 		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("URL is being rate limited, sending back to HQ")
 		return err
 	} else if err != nil {
@@ -428,7 +427,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		// Seencheck the URLs we captured, we ignore the returned value here
 		// because we already archived the URLs, we just want them to be added
 		// to the seencheck table.
-		if c.Seencheck {
+		if c.UseSeencheck {
 			for _, cfstreamURL := range cfstreamURLs {
 				c.seencheckURL(cfstreamURL, "asset")
 			}
@@ -505,7 +504,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 	// If --local-seencheck is enabled, then we check if the assets are in the
 	// seencheck DB. If they are, then they are skipped.
 	// Else, if we use HQ, then we use HQ's seencheck.
-	if c.Seencheck {
+	if c.UseSeencheck {
 		seencheckedBatch := []*url.URL{}
 
 		for _, URL := range assets {
@@ -541,12 +540,16 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		}
 	}
 
-	c.Frontier.QueueCount.Incr(int64(len(assets)))
+	// TODO: implement a counter for the number of assets
+	// currently being processed
+	// c.Frontier.QueueCount.Incr(int64(len(assets)))
 	swg := sizedwaitgroup.New(c.MaxConcurrentAssets)
 	excluded := false
 
 	for _, asset := range assets {
-		c.Frontier.QueueCount.Incr(-1)
+		// TODO: implement a counter for the number of assets
+		// currently being processed
+		// c.Frontier.QueueCount.Incr(-1)
 
 		// Just making sure we do not over archive by archiving the original URL
 		if utils.URLToString(item.URL) == utils.URLToString(asset) {
@@ -579,7 +582,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 			defer swg.Done()
 
 			// Create the asset's item
-			newAsset := frontier.NewItem(asset, item, "asset", item.Hop, "", false)
+			newAsset := queue.NewItem(asset, item, "asset", item.Hop, "", false)
 
 			// Capture the asset
 			err = c.captureAsset(newAsset, resp.Cookies())

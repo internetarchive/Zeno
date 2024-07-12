@@ -7,11 +7,11 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
-func (c *Crawl) extractAssets(base *url.URL, item *frontier.Item, doc *goquery.Document) (assets []*url.URL, err error) {
+func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Document) (assets []*url.URL, err error) {
 	var rawAssets []string
 
 	// Execute plugins on the response

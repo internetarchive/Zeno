@@ -4,13 +4,15 @@ package crawl
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"sync"
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
+	"github.com/internetarchive/Zeno/internal/pkg/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/prometheus/client_golang/prometheus"
@@ -29,7 +31,7 @@ type PrometheusMetrics struct {
 type Crawl struct {
 	*sync.Mutex
 	StartTime time.Time
-	SeedList  []frontier.Item
+	SeedList  []queue.Item
 	Paused    *utils.TAtomBool
 	Finished  *utils.TAtomBool
 	LiveStats bool
@@ -38,7 +40,9 @@ type Crawl struct {
 	Log *log.Logger
 
 	// Frontier
-	Frontier *frontier.Frontier
+	Queue        *queue.PersistentGroupedQueue
+	Seencheck    *seencheck.Seencheck
+	UseSeencheck bool
 
 	// Worker pool
 	WorkerMutex       sync.RWMutex
@@ -69,7 +73,6 @@ type Crawl struct {
 	CaptureAlternatePages          bool
 	DomainsCrawl                   bool
 	Headless                       bool
-	Seencheck                      bool
 	Workers                        int
 	RandomLocalIP                  bool
 	MinSpaceRequired               int
@@ -118,8 +121,8 @@ type Crawl struct {
 	HQBatchSize            int
 	HQContinuousPull       bool
 	HQClient               *gocrawlhq.Client
-	HQFinishedChannel      chan *frontier.Item
-	HQProducerChannel      chan *frontier.Item
+	HQFinishedChannel      chan *queue.Item
+	HQProducerChannel      chan *queue.Item
 	HQChannelsWg           *sync.WaitGroup
 	HQRateLimitingSendBack bool
 }
@@ -147,8 +150,8 @@ func (c *Crawl) Start() (err error) {
 	// to exit Zeno, like CTRL+C
 	go c.setupCloseHandler()
 
-	// Initialize the frontier
-	frontierLoggingChan := make(chan *frontier.FrontierLogMessage, 10)
+	// Initialize the frontier components
+	frontierLoggingChan := make(chan *queue.LogMessage, 10)
 	go func() {
 		for log := range frontierLoggingChan {
 			switch log.Level {
@@ -162,19 +165,19 @@ func (c *Crawl) Start() (err error) {
 		}
 	}()
 
-	c.Frontier.Init(c.JobPath, frontierLoggingChan, c.Workers, c.Seencheck)
-	c.Frontier.Load()
-	c.Frontier.Start()
+	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"), frontierLoggingChan, 1024*1024*1024)
+	if err != nil {
+		c.Log.Fatal("unable to init queue", "error", err)
+	}
+
+	c.Seencheck, err = seencheck.New(c.JobPath)
+	if err != nil {
+		c.Log.Fatal("unable to init seencheck", "error", err)
+	}
 
 	// Start the background process that will periodically check if the disk
 	// have enough free space, and potentially pause the crawl if it doesn't
 	go c.handleCrawlPause()
-
-	// Function responsible for writing to disk the frontier's hosts pool
-	// and other stats needed to resume the crawl. The process happen every minute.
-	// The actual queue used during the crawl and seencheck aren't included in this,
-	// because they are written to disk in real-time.
-	go c.writeFrontierToDisk()
 
 	// Initialize WARC writer
 	c.Log.Info("Initializing WARC writer..")
@@ -231,9 +234,10 @@ func (c *Crawl) Start() (err error) {
 
 	c.Log.Info("WARC writer initialized")
 
+	// TODO: re-implement host limitation
 	// Process responsible for slowing or pausing the crawl
 	// when the WARC writing queue gets too big
-	go c.crawlSpeedLimiter()
+	// go c.crawlSpeedLimiter()
 
 	if c.API {
 		go c.startAPI()
@@ -270,8 +274,8 @@ func (c *Crawl) Start() (err error) {
 			logrus.Panic(err)
 		}
 
-		c.HQProducerChannel = make(chan *frontier.Item, c.Workers)
-		c.HQFinishedChannel = make(chan *frontier.Item, c.Workers)
+		c.HQProducerChannel = make(chan *queue.Item, c.Workers)
+		c.HQFinishedChannel = make(chan *queue.Item, c.Workers)
 
 		c.HQChannelsWg.Add(2)
 		go c.HQConsumer()
@@ -283,7 +287,7 @@ func (c *Crawl) Start() (err error) {
 		c.Log.Info("Pushing seeds in the local queue..")
 		for _, item := range c.SeedList {
 			item := item
-			c.Frontier.PushChan <- &item
+			c.Queue.Enqueue(&item)
 		}
 		c.SeedList = nil
 		c.Log.Info("All seeds are now in queue, crawling will start")

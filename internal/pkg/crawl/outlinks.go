@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
@@ -55,7 +55,7 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL,
 	return utils.DedupeURLs(outlinks), nil
 }
 
-func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *frontier.Item, wg *sync.WaitGroup) {
+func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	var excluded bool
@@ -84,18 +84,18 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *frontier.Item, wg *sync
 		}
 
 		if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
-			newItem := frontier.NewItem(outlink, item, "seed", 0, "", false)
+			newItem := queue.NewItem(outlink, item, "seed", 0, "", false)
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
-				c.Frontier.PushChan <- newItem
+				c.Queue.Enqueue(newItem)
 			}
 		} else if c.MaxHops >= item.Hop+1 {
-			newItem := frontier.NewItem(outlink, item, "seed", item.Hop+1, "", false)
+			newItem := queue.NewItem(outlink, item, "seed", item.Hop+1, "", false)
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
-				c.Frontier.PushChan <- newItem
+				c.Queue.Enqueue(newItem)
 			}
 		}
 	}

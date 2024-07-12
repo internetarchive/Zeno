@@ -1,21 +1,18 @@
-package frontier
+package get
 
 import (
 	"bufio"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
-	"sync"
 
 	"github.com/gosuri/uilive"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/sirupsen/logrus"
 )
 
-// IsSeedList validates if the path is a seed list, and return an array of
-// frontier.Item made of the seeds if it can
-func IsSeedList(path string) (seeds []Item, err error) {
+func isSeedList(path string) (seeds []queue.Item, err error) {
 	var totalCount, validCount int
 	writer := uilive.New()
 	writer.Start()
@@ -51,7 +48,7 @@ func IsSeedList(path string) (seeds []Item, err error) {
 			continue
 		}
 
-		item := NewItem(URL, nil, "seed", 0, "", false)
+		item := queue.NewItem(URL, nil, "seed", 0, "", false)
 		seeds = append(seeds, *item)
 		validCount++
 		fmt.Fprintf(writer, "\t   Reading input list.. Found %d valid URLs out of %d URLs read.\n", validCount, totalCount)
@@ -68,41 +65,4 @@ func IsSeedList(path string) (seeds []Item, err error) {
 	}
 
 	return seeds, nil
-}
-
-type Pair struct {
-	Key, Value interface{}
-}
-
-func SyncMapEncode(m *sync.Map, file *os.File) error {
-	var pairs []Pair
-
-	m.Range(func(key, value interface{}) bool {
-		pairs = append(pairs, Pair{key, value})
-		return true
-	})
-
-	gob.Register(PoolItem{})
-
-	enc := gob.NewEncoder(file)
-	err := enc.Encode(pairs)
-
-	return err
-}
-
-func SyncMapDecode(m *sync.Map, file *os.File) error {
-	var pairs []Pair
-	gob.Register(PoolItem{})
-	dec := gob.NewDecoder(file)
-	err := dec.Decode(&pairs)
-
-	if err != nil {
-		return err
-	}
-
-	for _, p := range pairs {
-		m.Store(p.Key, p.Value.(PoolItem))
-	}
-
-	return nil
 }

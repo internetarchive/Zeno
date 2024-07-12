@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -200,7 +200,7 @@ func (c *Crawl) HQConsumer() {
 					continue
 				}
 
-				c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, false)
+				c.Queue.Enqueue(queue.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, false))
 			}
 		}
 	}

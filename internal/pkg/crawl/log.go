@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/warc"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -16,7 +16,7 @@ var constants sync.Map
 func (c *Crawl) genLogFields(err interface{}, URL interface{}, additionalFields map[string]interface{}) (fields logrus.Fields) {
 	fields = logrus.Fields{}
 
-	fields["queued"] = c.Frontier.QueueCount.Value()
+	fields["queued"] = c.Queue.GetStats().TotalElements
 	fields["crawled"] = c.CrawledSeeds.Value() + c.CrawledAssets.Value()
 	fields["rate"] = c.URIsPerSecond.Rate()
 	fields["activeWorkers"] = c.ActiveWorkers.Value()
@@ -78,7 +78,7 @@ func (c *Crawl) genLogFields(err interface{}, URL interface{}, additionalFields 
 	return fields
 }
 
-func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *frontier.Item) {
+func (c *Crawl) logCrawlSuccess(executionStart time.Time, statusCode int, item *queue.Item) {
 	fields := c.genLogFields(nil, item.URL, nil)
 
 	fields["statusCode"] = statusCode

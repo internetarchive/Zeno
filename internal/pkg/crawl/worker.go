@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
@@ -37,8 +37,8 @@ func (s status) String() string {
 }
 
 type workerState struct {
-	currentItem  *frontier.Item
-	previousItem *frontier.Item
+	currentItem  *queue.Item
+	previousItem *queue.Item
 	status       status
 	lastError    error
 	lastSeen     time.Time
@@ -57,8 +57,13 @@ type Worker struct {
 // and eventually push newly discovered URLs back in the frontier.
 func (w *Worker) Run() {
 	// Start archiving the URLs!
-	for item := range w.crawlParameters.Frontier.PullChan {
-		item := item
+	for {
+		item, err := w.crawlParameters.Queue.Dequeue()
+		if err != nil {
+			// Log the error too?
+			w.PushLastError(err)
+			continue
+		}
 
 		// Check if the crawl is paused or needs to be stopped
 		select {
@@ -88,7 +93,7 @@ func (w *Worker) Run() {
 	}
 }
 
-func (w *Worker) Capture(item *frontier.Item) {
+func (w *Worker) Capture(item *queue.Item) {
 	// Locks the worker
 	w.Lock()
 	defer w.Unlock()
