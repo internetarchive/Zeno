@@ -161,6 +161,8 @@ func (c *Crawl) Start() (err error) {
 				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Warn(log.Message)
 			case logrus.InfoLevel:
 				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Info(log.Message)
+			case logrus.DebugLevel:
+				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Debug(log.Message)
 			}
 		}
 	}()

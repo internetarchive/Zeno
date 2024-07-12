@@ -62,6 +62,10 @@ type Item struct {
 	BypassSeencheck string
 }
 
+func init() {
+	gob.Register(Item{})
+}
+
 func NewPersistentGroupedQueue(queueDirPath string, loggingChan chan *LogMessage) (*PersistentGroupedQueue, error) {
 	err := os.MkdirAll(queueDirPath, 0755)
 	if err != nil {

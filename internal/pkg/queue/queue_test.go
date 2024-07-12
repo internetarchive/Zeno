@@ -1,10 +1,12 @@
 package queue
 
 import (
+	"fmt"
 	"net/url"
 	"os"
 	"path"
 	"testing"
+	"time"
 )
 
 func TestNewItem(t *testing.T) {
@@ -191,4 +193,64 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 	if err != ErrQueueClosed {
 		t.Errorf("Expected ErrQueueClosed on Enqueue after Close, got: %v", err)
 	}
+}
+
+func TestLargeScaleEnqueueDequeue(t *testing.T) {
+	// Increase test timeout
+	t.Parallel()
+
+	tempDir, err := os.MkdirTemp("", "queue_test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	queuePath := path.Join(tempDir, "test_queue")
+	loggingChan := make(chan *LogMessage, 10000)
+
+	q, err := NewPersistentGroupedQueue(queuePath, loggingChan)
+	if err != nil {
+		t.Fatalf("Failed to create new queue: %v", err)
+	}
+	defer q.Close()
+
+	numItems := 1000
+	hosts := []string{"example.com", "test.org", "sample.net", "demo.io"}
+
+	// Enqueue items
+	startEnqueue := time.Now()
+	for i := 0; i < numItems; i++ {
+		host := hosts[i%len(hosts)]
+		u, _ := url.Parse(fmt.Sprintf("https://%s/page%d", host, i))
+		item := NewItem(u, nil, "page", 1, fmt.Sprintf("id-%d", i), false)
+		err := q.Enqueue(item)
+		if err != nil {
+			t.Fatalf("Failed to enqueue item %d: %v", i, err)
+		}
+	}
+	enqueueTime := time.Since(startEnqueue)
+	t.Logf("Enqueue time for %d items: %v", numItems, enqueueTime)
+
+	// Dequeue items
+	startDequeue := time.Now()
+	dequeuedItems := make(map[string]bool)
+	for i := 0; i < numItems; i++ {
+		item, err := q.Dequeue()
+		if err != nil {
+			t.Fatalf("Failed to dequeue item %d: %v", i, err)
+		}
+		if item == nil {
+			t.Fatalf("Dequeued nil item at position %d", i)
+		}
+		if dequeuedItems[item.ID] {
+			t.Errorf("Item with ID %s dequeued more than once", item.ID)
+		}
+
+		dequeuedItems[item.ID] = true
+	}
+	dequeueTime := time.Since(startDequeue)
+
+	t.Logf("Dequeue time for %d items: %v", numItems, dequeueTime)
+	t.Logf("Average enqueue time per item: %v", enqueueTime/time.Duration(numItems))
+	t.Logf("Average dequeue time per item: %v", dequeueTime/time.Duration(numItems))
 }

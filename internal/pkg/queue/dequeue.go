@@ -3,6 +3,8 @@ package queue
 import (
 	"fmt"
 	"io"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Dequeue removes and returns the next item from the queue
@@ -16,14 +18,22 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	defer q.mutex.Unlock()
 
 	for len(q.hostOrder) == 0 {
-		q.cond.Wait() // This unlocks the mutex while waiting
+		q.LoggingChan <- &LogMessage{
+			Message: "Waiting for items to be enqueued",
+			Level:   logrus.DebugLevel,
+		}
+		q.cond.Wait()
 	}
 
-	// Loop through hosts until we find one with items or we've checked all hosts
 	hostsChecked := 0
 	for hostsChecked < len(q.hostOrder) {
 		host := q.hostOrder[q.currentHost]
 		positions := q.hostIndex[host]
+
+		q.LoggingChan <- &LogMessage{
+			Message: fmt.Sprintf("Checking host %s, positions: %d", host, len(positions)),
+			Level:   logrus.DebugLevel,
+		}
 
 		if len(positions) == 0 {
 			// Remove this host from the order and index
@@ -31,7 +41,7 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 			delete(q.hostIndex, host)
 			if len(q.hostOrder) == 0 {
 				q.currentHost = 0
-				continue // This will cause the outer loop to check again
+				continue
 			}
 			q.currentHost = q.currentHost % len(q.hostOrder)
 			hostsChecked++
@@ -42,18 +52,22 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		position := positions[0]
 		q.hostIndex[host] = positions[1:]
 
-		// Seek to position and decode item
+		q.LoggingChan <- &LogMessage{
+			Message: fmt.Sprintf("Dequeuing item at position %d for host %s", position, host),
+			Level:   logrus.DebugLevel,
+		}
+
 		_, err := q.queueFile.Seek(int64(position), io.SeekStart)
 		if err != nil {
 			return nil, fmt.Errorf("failed to seek to item position: %w", err)
 		}
+
 		var item Item
 		err = q.queueDecoder.Decode(&item)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode item: %w", err)
 		}
 
-		// Move to next host
 		q.currentHost = (q.currentHost + 1) % len(q.hostOrder)
 
 		// Update stats
@@ -66,6 +80,8 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 
 		return &item, nil
 	}
+
+	fmt.Println("After Loop")
 
 	// If we've checked all hosts and found no items, loop back to wait again
 	return q.Dequeue()
