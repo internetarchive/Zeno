@@ -57,6 +57,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 		RotateLogFile:            true,
 		RotateElasticSearchIndex: true,
 		ElasticsearchConfig:      elasticSearchConfig,
+		LiveStats:                flags.LiveStats,
 	})
 	if err != nil {
 		fmt.Println(err)

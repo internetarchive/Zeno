@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 
@@ -14,12 +16,12 @@ func URLToString(u *url.URL) string {
 	u.RawQuery = q.Encode()
 	u.Host, err = idna.ToASCII(u.Host)
 	if err != nil {
-		LogWarning.Warningf("could not IDNA encode URL: %s", err)
+		slog.Warn(fmt.Sprintf("could not IDNA encode URL: %s", err))
 	}
 
 	tempHost, err := idna.ToASCII(u.Hostname())
 	if err != nil {
-		LogWarning.Warningf("could not IDNA encode URL: %s", err)
+		slog.Warn(fmt.Sprintf("could not IDNA encode URL: %s", err))
 		tempHost = u.Hostname()
 	}
 
