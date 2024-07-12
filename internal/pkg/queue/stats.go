@@ -9,7 +9,6 @@ type QueueStats struct {
 	TotalElements              int                `json:"total_elements"`
 	UniqueHosts                int                `json:"unique_hosts"`
 	ElementsPerHost            map[string]int     `json:"elements_per_host"`
-	Utilization                float64            `json:"utilization"`
 	EnqueueCount               int                `json:"enqueue_count"`
 	DequeueCount               int                `json:"dequeue_count"`
 	FirstEnqueueTime           time.Time          `json:"first_enqueue_time"`
