@@ -3,7 +3,6 @@ package queue
 import (
 	"fmt"
 	"io"
-	"time"
 )
 
 func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
@@ -56,19 +55,7 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		q.currentHost = (q.currentHost + 1) % len(q.hostOrder)
 
 		// Update stats
-		q.statsMutex.Lock()
-		q.stats.TotalElements--
-		q.stats.ElementsPerHost[host]--
-		if q.stats.DequeueCount == 0 {
-			q.stats.FirstDequeueTime = time.Now()
-		}
-		q.stats.DequeueCount++
-		q.stats.LastDequeueTime = time.Now()
-		if q.stats.ElementsPerHost[host] == 0 {
-			delete(q.stats.ElementsPerHost, host)
-			q.stats.UniqueHosts--
-		}
-		q.statsMutex.Unlock()
+		updateDequeueStats(q, host)
 
 		err = q.saveMetadata()
 		if err != nil {

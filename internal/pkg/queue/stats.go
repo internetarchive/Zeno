@@ -75,3 +75,36 @@ func (q *PersistentGroupedQueue) GetStats() QueueStats {
 
 	return stats
 }
+
+func updateDequeueStats(q *PersistentGroupedQueue, host string) {
+	q.statsMutex.Lock()
+	defer q.statsMutex.Unlock()
+
+	q.stats.TotalElements--
+	q.stats.ElementsPerHost[host]--
+	if q.stats.DequeueCount == 0 {
+		q.stats.FirstDequeueTime = time.Now()
+	}
+	q.stats.DequeueCount++
+	q.stats.LastDequeueTime = time.Now()
+	if q.stats.ElementsPerHost[host] == 0 {
+		delete(q.stats.ElementsPerHost, host)
+		q.stats.UniqueHosts--
+	}
+}
+
+func updateEnqueueStats(q *PersistentGroupedQueue, item *Item) {
+	q.statsMutex.Lock()
+	defer q.statsMutex.Unlock()
+
+	q.stats.TotalElements++
+	q.stats.ElementsPerHost[item.Host]++
+	if q.stats.EnqueueCount == 0 {
+		q.stats.FirstEnqueueTime = time.Now()
+	}
+	q.stats.EnqueueCount++
+	q.stats.LastEnqueueTime = time.Now()
+	if q.stats.ElementsPerHost[item.Host] == 1 {
+		q.stats.UniqueHosts++
+	}
+}

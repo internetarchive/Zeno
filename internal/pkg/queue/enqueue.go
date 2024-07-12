@@ -3,7 +3,6 @@ package queue
 import (
 	"fmt"
 	"io"
-	"time"
 )
 
 func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
@@ -35,18 +34,7 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	q.hostMutex.Unlock()
 
 	// Update stats
-	q.statsMutex.Lock()
-	q.stats.TotalElements++
-	q.stats.ElementsPerHost[item.Host]++
-	if q.stats.EnqueueCount == 0 {
-		q.stats.FirstEnqueueTime = time.Now()
-	}
-	q.stats.EnqueueCount++
-	q.stats.LastEnqueueTime = time.Now()
-	if q.stats.ElementsPerHost[item.Host] == 1 {
-		q.stats.UniqueHosts++
-	}
-	q.statsMutex.Unlock()
+	updateEnqueueStats(q, item)
 
 	// Signal that a new item is available
 	q.cond.Signal()
