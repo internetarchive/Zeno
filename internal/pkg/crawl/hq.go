@@ -189,7 +189,7 @@ func (c *Crawl) HQConsumer() {
 			})).Error("error getting new URLs from crawl HQ")
 		}
 
-		// send all URLs received in the batch to the frontier
+		// send all URLs received in the batch to the queue
 		if len(batch.URLs) > 0 {
 			for _, URL := range batch.URLs {
 				newURL, err := url.Parse(URL.Value)

@@ -62,9 +62,9 @@ func (crawl *Crawl) finish() {
 
 	crawl.Log.Warn("[WARC] Writer(s) closed")
 
-	// Closing the local queue used by the frontier
+	// Closing the queue
 	crawl.Queue.Close()
-	crawl.Log.Warn("[FRONTIER] Queue closed")
+	crawl.Log.Warn("[QUEUE] Queue closed")
 
 	// Closing the seencheck database
 	if crawl.UseSeencheck {

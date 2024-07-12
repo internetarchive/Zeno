@@ -54,7 +54,7 @@ type Worker struct {
 
 // Run is the key component of a crawl, it's a background processed dispatched
 // when the crawl starts, it listens on a channel to get new URLs to archive,
-// and eventually push newly discovered URLs back in the frontier.
+// and eventually push newly discovered URLs back in the queue.
 func (w *Worker) Run() {
 	// Start archiving the URLs!
 	for {

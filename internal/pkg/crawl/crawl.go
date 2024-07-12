@@ -150,10 +150,10 @@ func (c *Crawl) Start() (err error) {
 	// to exit Zeno, like CTRL+C
 	go c.setupCloseHandler()
 
-	// Initialize the frontier components
-	frontierLoggingChan := make(chan *queue.LogMessage, 10)
+	// Initialize the queue & seencheck
+	queueLoggingChan := make(chan *queue.LogMessage, 10)
 	go func() {
-		for log := range frontierLoggingChan {
+		for log := range queueLoggingChan {
 			switch log.Level {
 			case logrus.ErrorLevel:
 				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Error(log.Message)
@@ -165,7 +165,7 @@ func (c *Crawl) Start() (err error) {
 		}
 	}()
 
-	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"), frontierLoggingChan)
+	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"), queueLoggingChan)
 	if err != nil {
 		c.Log.Fatal("unable to init queue", "error", err)
 	}
