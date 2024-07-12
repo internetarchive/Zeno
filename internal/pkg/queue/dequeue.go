@@ -5,6 +5,8 @@ import (
 	"io"
 )
 
+// Dequeue removes and returns the next item from the queue
+// It blocks until an item is available
 func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	if q.closed {
 		return nil, ErrQueueClosed

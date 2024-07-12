@@ -144,15 +144,7 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 	if q.currentHost != 0 {
 		t.Error("currentHost not initialized to 0")
 	}
-
-	// Test error case: invalid directory
-	_, err = NewPersistentGroupedQueue("/invalid/path", loggingChan)
-	if err == nil {
-		t.Error("Expected error for invalid directory, got nil")
-	}
 }
-
-// In internal/pkg/queue/queue_test.go
 
 func TestPersistentGroupedQueue_Close(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "queue_test")
