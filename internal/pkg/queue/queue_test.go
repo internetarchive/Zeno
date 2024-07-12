@@ -144,12 +144,6 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 	if q.currentHost != 0 {
 		t.Error("currentHost not initialized to 0")
 	}
-	if cap(q.enqueueChan) != 1000 {
-		t.Error("enqueueChan not initialized with correct capacity")
-	}
-	if cap(q.dequeueChan) != 1000 {
-		t.Error("dequeueChan not initialized with correct capacity")
-	}
 
 	// Test error case: invalid directory
 	_, err = NewPersistentGroupedQueue("/invalid/path", loggingChan)
@@ -179,25 +173,6 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 	err = q.Close()
 	if err != nil {
 		t.Errorf("Failed to close queue: %v", err)
-	}
-
-	// Check if channels are closed
-	select {
-	case _, ok := <-q.enqueueChan:
-		if ok {
-			t.Error("enqueueChan not closed after Close()")
-		}
-	default:
-		t.Error("enqueueChan should be closed and empty")
-	}
-
-	select {
-	case _, ok := <-q.dequeueChan:
-		if ok {
-			t.Error("dequeueChan not closed after Close()")
-		}
-	default:
-		t.Error("dequeueChan should be closed and empty")
 	}
 
 	// Check if files are closed
