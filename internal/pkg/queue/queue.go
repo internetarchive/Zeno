@@ -39,27 +39,27 @@ type PersistentGroupedQueue struct {
 	metadataEncoder *gob.Encoder
 	metadataDecoder *gob.Decoder
 	hostIndex       map[string][]uint64
+	cond            *sync.Cond
+	stats           QueueStats
 	hostOrder       []string
 	currentHost     int
 	mutex           sync.RWMutex
-	hostMutex       sync.Mutex
 	statsMutex      sync.RWMutex
-	stats           QueueStats
-	cond            *sync.Cond
+	hostMutex       sync.Mutex
 	closed          bool
 }
 
 type Item struct {
-	ID              string
-	Hash            uint64
-	Hop             uint8
-	Host            string
-	Type            string
-	Redirect        int
 	URL             *url.URL
 	ParentItem      *Item
-	LocallyCrawled  uint64
+	ID              string
+	Host            string
+	Type            string
 	BypassSeencheck string
+	Hash            uint64
+	Redirect        int
+	LocallyCrawled  uint64
+	Hop             uint8
 }
 
 func init() {

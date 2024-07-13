@@ -6,19 +6,19 @@ import (
 )
 
 type QueueStats struct {
-	TotalElements              int                `json:"total_elements"`
-	UniqueHosts                int                `json:"unique_hosts"`
-	ElementsPerHost            map[string]int     `json:"elements_per_host"`
-	EnqueueCount               int                `json:"enqueue_count"`
-	DequeueCount               int                `json:"dequeue_count"`
 	FirstEnqueueTime           time.Time          `json:"first_enqueue_time"`
 	LastEnqueueTime            time.Time          `json:"last_enqueue_time"`
 	FirstDequeueTime           time.Time          `json:"first_dequeue_time"`
 	LastDequeueTime            time.Time          `json:"last_dequeue_time"`
+	ElementsPerHost            map[string]int     `json:"elements_per_host"`
+	HostDistribution           map[string]float64 `json:"host_distribution"`
+	TopHosts                   []HostStat         `json:"top_hosts"`
+	TotalElements              int                `json:"total_elements"`
+	UniqueHosts                int                `json:"unique_hosts"`
+	EnqueueCount               int                `json:"enqueue_count"`
+	DequeueCount               int                `json:"dequeue_count"`
 	AverageTimeBetweenEnqueues time.Duration      `json:"average_time_between_enqueues"`
 	AverageTimeBetweenDequeues time.Duration      `json:"average_time_between_dequeues"`
-	TopHosts                   []HostStat         `json:"top_hosts"`
-	HostDistribution           map[string]float64 `json:"host_distribution"`
 	AverageElementsPerHost     float64            `json:"average_elements_per_host"`
 }
 

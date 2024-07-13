@@ -16,9 +16,9 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 
 	var metadata struct {
 		HostIndex   map[string][]uint64
+		Stats       QueueStats
 		HostOrder   []string
 		CurrentHost int
-		Stats       QueueStats
 	}
 
 	err = q.metadataDecoder.Decode(&metadata)
@@ -62,9 +62,9 @@ func (q *PersistentGroupedQueue) saveMetadata() error {
 
 	metadata := struct {
 		HostIndex   map[string][]uint64
+		Stats       QueueStats
 		HostOrder   []string
 		CurrentHost int
-		Stats       QueueStats
 	}{
 		HostIndex:   q.hostIndex,
 		HostOrder:   q.hostOrder,
