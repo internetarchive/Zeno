@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -89,13 +91,15 @@ var (
 )
 
 // InitConfig initializes the configuration
+// Flags -> Env -> Config file -> Consul config
+// Latest has precedence over the rest
 func InitConfig() error {
 	var err error
 	once.Do(func() {
 		config = &Config{}
 
 		// Check if a config file is provided via flag
-		if configFile := viper.GetString("config"); configFile != "" {
+		if configFile := viper.GetString("config-file"); configFile != "" {
 			viper.SetConfigFile(configFile)
 		} else {
 			home, err := os.UserHomeDir()
@@ -116,6 +120,23 @@ func InitConfig() error {
 
 		if err = viper.ReadInConfig(); err == nil {
 			fmt.Println("Using config file:", viper.ConfigFileUsed())
+		}
+
+		if viper.GetBool("consul-config") && viper.GetString("consul-address") != "" {
+			var consulAddress *url.URL
+			consulAddress, err = url.Parse(viper.GetString("consul-address"))
+			if err != nil {
+				return
+			}
+
+			consulPath, consulFile := filepath.Split(viper.GetString("consul-path"))
+			viper.AddRemoteProvider("consul", consulAddress.String(), consulPath)
+			viper.SetConfigType(filepath.Ext(consulFile))
+			viper.SetConfigName(strings.TrimSuffix(consulFile, filepath.Ext(consulFile)))
+
+			if err = viper.ReadInConfig(); err == nil {
+				fmt.Println("Using config file:", viper.ConfigFileUsed())
+			}
 		}
 
 		// Unmarshal the config into the Config struct
