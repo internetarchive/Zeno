@@ -7,7 +7,7 @@ import (
 
 // Dequeue removes and returns the next item from the queue
 // It blocks until an item is available
-func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
+func (q *PersistentGroupedQueue) Dequeue() (item *Item, err error) {
 	if q.closed {
 		return nil, ErrQueueClosed
 	}
@@ -43,11 +43,10 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		q.hostIndex[host] = positions[1:]
 
 		// Seek to position and decode item
-		_, err := q.queueFile.Seek(int64(position), io.SeekStart)
+		_, err = q.queueFile.Seek(int64(position), io.SeekStart)
 		if err != nil {
 			return nil, fmt.Errorf("failed to seek to item position: %w", err)
 		}
-		var item Item
 		err = q.queueDecoder.Decode(&item)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode item: %w", err)
@@ -64,9 +63,9 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 			return nil, fmt.Errorf("failed to save metadata: %w", err)
 		}
 
-		return &item, nil
+		break
 	}
 
 	// If we've checked all hosts and found no items, loop back to wait again
-	return q.Dequeue()
+	return
 }
