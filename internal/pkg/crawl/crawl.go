@@ -312,8 +312,9 @@ func (c *Crawl) WorkerWatcher() {
 
 		// Stop the workers when requested
 		case <-c.WorkerStopSignal:
-			for _, worker := range c.WorkerPool {
-				worker.doneSignal <- true
+			for i, worker := range c.WorkerPool {
+				worker.Stop()
+				c.Log.Info("Stopping worker", "worker", i)
 			}
 			toEnd = true
 
@@ -324,13 +325,20 @@ func (c *Crawl) WorkerWatcher() {
 			for i, worker := range c.WorkerPool {
 				if worker.state.status == completed {
 					// Remove the worker from the pool
+					c.Log.Info("Removing worker from pool", "worker", i)
 					c.WorkerPool = append(c.WorkerPool[:i], c.WorkerPool[i+1:]...)
+					c.Log.Info("Worker pool size reduced", "size", len(c.WorkerPool))
+				} else {
+					worker.Lock()
+					worker.id = uint(i)
+					worker.Unlock()
 				}
-				worker.id = uint(i)
 			}
 
 			if toEnd && len(c.WorkerPool) == 0 {
 				c.WorkerMutex.Unlock()
+				c.Log.Info("All workers are completed, crawl/crawl.go:WorkerWatcher() is stopping")
+				close(c.WorkerStopSignal)
 				return // All workers are completed
 			}
 			c.WorkerMutex.Unlock()

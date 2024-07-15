@@ -32,7 +32,6 @@ func (crawl *Crawl) catchFinish() {
 }
 
 func (crawl *Crawl) finish() {
-	crawl.WorkerStopSignal <- true
 	crawl.Finished.Set(true)
 
 	// First we wait for the queue reader to finish its current work,
@@ -46,6 +45,7 @@ func (crawl *Crawl) finish() {
 	close(crawl.Frontier.PullChan)
 
 	crawl.Log.Warn("[WORKERS] Waiting for workers to finish")
+	crawl.WorkerStopSignal <- true
 	crawl.EnsureWorkersFinished()
 	crawl.Log.Warn("[WORKERS] All workers finished")
 

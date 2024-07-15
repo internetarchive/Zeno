@@ -4,3 +4,4 @@ Zeno
 *.txt
 *.sh
 zeno.log
+.vscode/

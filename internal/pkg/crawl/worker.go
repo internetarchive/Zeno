@@ -57,41 +57,49 @@ type Worker struct {
 // and eventually push newly discovered URLs back in the frontier.
 func (w *Worker) Run() {
 	// Start archiving the URLs!
-	for item := range w.crawlParameters.Frontier.PullChan {
-		item := item
-
-		// Check if the crawl is paused or needs to be stopped
+	for {
 		select {
 		case <-w.doneSignal:
 			w.Lock()
 			w.state.currentItem = nil
 			w.state.status = completed
+			w.crawlParameters.Log.Info("Worker stopped", "worker", w.id)
 			return
-		default:
-			for w.crawlParameters.Paused.Get() {
+		case item := <-w.crawlParameters.Frontier.PullChan:
+			locked := w.TryLock()
+			if !locked {
+				continue
+			}
+
+			// If the crawl is paused, we wait until it's resumed
+			for w.crawlParameters.Paused.Get() || w.crawlParameters.Frontier.Paused.Get() {
 				time.Sleep(time.Second)
 			}
-		}
 
-		// If the host of the item is in the host exclusion list, we skip it
-		if utils.StringInSlice(item.Host, w.crawlParameters.ExcludedHosts) || !w.crawlParameters.checkIncludedHosts(item.Host) {
-			if w.crawlParameters.UseHQ {
-				// If we are using the HQ, we want to mark the item as done
-				w.crawlParameters.HQFinishedChannel <- item
+			// If the host of the item is in the host exclusion list, we skip it
+			if item != nil && (utils.StringInSlice(item.Host, w.crawlParameters.ExcludedHosts) || !w.crawlParameters.checkIncludedHosts(item.Host)) {
+				if w.crawlParameters.UseHQ {
+					// If we are using the HQ, we want to mark the item as done
+					w.crawlParameters.HQFinishedChannel <- item
+				}
+
+				continue
 			}
 
-			continue
+			// Launches the capture of the given item
+			w.unsafeCapture(item)
+			if locked {
+				w.Unlock()
+			}
 		}
-
-		// Launches the capture of the given item
-		w.Capture(item)
 	}
 }
 
-func (w *Worker) Capture(item *frontier.Item) {
-	// Locks the worker
-	w.Lock()
-	defer w.Unlock()
+// unsafeCapture is named like so because it should only be called when the worker is locked
+func (w *Worker) unsafeCapture(item *frontier.Item) {
+	if item == nil {
+		return
+	}
 
 	// Signals that the worker is processing an item
 	w.crawlParameters.ActiveWorkers.Incr(1)
@@ -101,7 +109,7 @@ func (w *Worker) Capture(item *frontier.Item) {
 	// Capture the item
 	err := w.crawlParameters.Capture(item)
 	if err != nil {
-		w.PushLastError(err)
+		w.unsafePushLastError(err)
 	}
 
 	// Signals that the worker has finished processing the item
@@ -116,10 +124,9 @@ func (w *Worker) Stop() {
 	w.doneSignal <- true
 }
 
-func (w *Worker) PushLastError(err error) {
-	w.Lock()
+// unsafePushLastError is named like so because it should only be called when the worker is locked
+func (w *Worker) unsafePushLastError(err error) {
 	w.state.lastError = err
-	w.Unlock()
 }
 
 func newWorker(crawlParameters *Crawl, id uint) *Worker {
