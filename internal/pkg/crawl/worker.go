@@ -66,10 +66,11 @@ func (w *Worker) Run() {
 			w.crawlParameters.Log.Info("Worker stopped", "worker", w.id)
 			return
 		case item := <-w.crawlParameters.Frontier.PullChan:
-			locked := w.TryLock()
-			if !locked {
+			// Can it happen? I don't think so but let's be safe
+			if item == nil {
 				continue
 			}
+			w.Lock()
 
 			// If the crawl is paused, we wait until it's resumed
 			for w.crawlParameters.Paused.Get() || w.crawlParameters.Frontier.Paused.Get() {
@@ -77,20 +78,18 @@ func (w *Worker) Run() {
 			}
 
 			// If the host of the item is in the host exclusion list, we skip it
-			if item != nil && (utils.StringInSlice(item.Host, w.crawlParameters.ExcludedHosts) || !w.crawlParameters.checkIncludedHosts(item.Host)) {
+			if utils.StringInSlice(item.Host, w.crawlParameters.ExcludedHosts) || !w.crawlParameters.checkIncludedHosts(item.Host) {
 				if w.crawlParameters.UseHQ {
 					// If we are using the HQ, we want to mark the item as done
 					w.crawlParameters.HQFinishedChannel <- item
 				}
-
+				w.Unlock()
 				continue
 			}
 
 			// Launches the capture of the given item
 			w.unsafeCapture(item)
-			if locked {
-				w.Unlock()
-			}
+			w.Unlock()
 		}
 	}
 }
@@ -138,7 +137,7 @@ func newWorker(crawlParameters *Crawl, id uint) *Worker {
 			currentItem:  nil,
 			lastError:    nil,
 		},
-		doneSignal:      make(chan bool),
+		doneSignal:      make(chan bool, 1),
 		crawlParameters: crawlParameters,
 	}
 }
