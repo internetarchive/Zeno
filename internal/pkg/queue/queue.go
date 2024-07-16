@@ -145,7 +145,10 @@ func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint64, ID str
 
 	var parentItemBytes []byte
 	if parentItem != nil {
-		parentItemBytes, _ = proto.Marshal(parentItem.ProtoItem)
+		parentItemBytes, err = proto.Marshal(parentItem.ProtoItem)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	protoItem := &ProtoItem{

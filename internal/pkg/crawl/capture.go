@@ -166,13 +166,17 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 			}
 		}
 
-		newItem = queue.NewItem(URL, item, item.Type, item.Hop, item.ID, false)
+		newItem, err = queue.NewItem(URL, item, item.Type, item.Hop, item.ID, false)
+		if err != nil {
+			return nil, err
+		}
+
 		newItem.Redirect = item.Redirect + 1
 
 		// Prepare GET request
 		newReq, err = http.NewRequest("GET", utils.URLToString(URL), nil)
 		if err != nil {
-			return resp, err
+			return nil, err
 		}
 
 		// Set new request headers on the new request :(
@@ -247,18 +251,23 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	// Execute site-specific code on the request, before sending it
 	if truthsocial.IsTruthSocialURL(utils.URLToString(item.URL)) {
 		// Get the API URL from the URL
-		apiURL, err := truthsocial.GenerateAPIURL(utils.URLToString(item.URL))
+		APIURL, err := truthsocial.GenerateAPIURL(utils.URLToString(item.URL))
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
 		} else {
-			if apiURL == nil {
+			if APIURL == nil {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
 			} else {
 				// Then we create an item
-				apiItem := queue.NewItem(apiURL, item, item.Type, item.Hop, item.ID, false)
-
-				// And capture it
-				c.Capture(apiItem)
+				APIItem, err := queue.NewItem(APIURL, item, item.Type, item.Hop, item.ID, false)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating TruthSocial API item")
+				} else {
+					err = c.Capture(APIItem)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing TruthSocial API URL")
+					}
+				}
 			}
 
 			// Grab few embeds that are needed for the playback
@@ -268,10 +277,15 @@ func (c *Crawl) Capture(item *queue.Item) error {
 			} else {
 				for _, embedURL := range embedURLs {
 					// Create the embed item
-					embedItem := queue.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
-
-					// Capture the embed item
-					c.Capture(embedItem)
+					embedItem, err := queue.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating TruthSocial embed item")
+					} else {
+						err = c.Capture(embedItem)
+						if err != nil {
+							c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing TruthSocial embed URL")
+						}
+					}
 				}
 			}
 		}
@@ -285,12 +299,14 @@ func (c *Crawl) Capture(item *queue.Item) error {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating Facebook embed URL")
 			} else {
 				// Create the embed item
-				embedItem := queue.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
-
-				// Capture the embed item
-				err = c.Capture(embedItem)
+				embedItem, err := queue.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
 				if err != nil {
-					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing Facebook embed URL")
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating Facebook embed item")
+				} else {
+					err = c.Capture(embedItem)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing Facebook embed URL")
+					}
 				}
 			}
 		}
@@ -303,7 +319,15 @@ func (c *Crawl) Capture(item *queue.Item) error {
 			if highwindsURL == nil {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating libsyn URL")
 			} else {
-				c.Capture(queue.NewItem(highwindsURL, item, item.Type, item.Hop, item.ID, false))
+				highwindsItem, err := queue.NewItem(highwindsURL, item, item.Type, item.Hop, item.ID, false)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating libsyn highwinds item")
+				} else {
+					err = c.Capture(highwindsItem)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing libsyn highwinds URL")
+					}
+				}
 			}
 		}
 	} else if tiktok.IsTikTokURL(utils.URLToString(item.URL)) {
@@ -313,10 +337,16 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		telegram.TransformURL(item.URL)
 
 		// Then we create an item
-		embedItem := queue.NewItem(item.URL, item, item.Type, item.Hop, item.ID, false)
-
-		// And capture it
-		c.Capture(embedItem)
+		embedItem, err := queue.NewItem(item.URL, item, item.Type, item.Hop, item.ID, false)
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating Telegram embed item")
+		} else {
+			// And capture it
+			err = c.Capture(embedItem)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing Telegram embed URL")
+			}
+		}
 	} else if vk.IsVKURL(utils.URLToString(item.URL)) {
 		vk.AddHeaders(req)
 	}
@@ -326,7 +356,13 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return err
 	} else if err != nil && err.Error() == "URL is being rate limited, sending back to HQ" {
-		c.HQProducerChannel <- queue.NewItem(item.URL, item.Parent, item.Type, item.Hop, "", true)
+		newItem, err := queue.NewItem(item.URL, item.Parent, item.Type, item.Hop, "", true)
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating new item")
+			return err
+		}
+
+		c.HQProducerChannel <- newItem
 		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("URL is being rate limited, sending back to HQ")
 		return err
 	} else if err != nil {
@@ -584,7 +620,15 @@ func (c *Crawl) Capture(item *queue.Item) error {
 			defer swg.Done()
 
 			// Create the asset's item
-			newAsset := queue.NewItem(asset, item, "asset", item.Hop, "", false)
+			newAsset, err := queue.NewItem(asset, item, "asset", item.Hop, "", false)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, asset, map[string]interface{}{
+					"parentHop": item.Hop,
+					"parentUrl": utils.URLToString(item.URL),
+					"type":      "asset",
+				})).Error("error while creating asset item")
+				return
+			}
 
 			// Capture the asset
 			err = c.captureAsset(newAsset, resp.Cookies())

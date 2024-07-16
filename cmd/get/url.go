@@ -40,7 +40,16 @@ func cmdGetURL(c *cli.Context) error {
 		return err
 	}
 
-	crawl.SeedList = append(crawl.SeedList, *queue.NewItem(input, nil, "seed", 0, "", false))
+	item, err := queue.NewItem(input, nil, "seed", 0, "", false)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"input": c.Args().Get(0),
+			"err":   err.Error(),
+		}).Error("Failed to create new item")
+		return err
+	}
+
+	crawl.SeedList = append(crawl.SeedList, *item)
 
 	// Start crawl
 	err = crawl.Start()

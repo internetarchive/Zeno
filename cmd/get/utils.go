@@ -48,7 +48,15 @@ func isSeedList(path string) (seeds []queue.Item, err error) {
 			continue
 		}
 
-		item := queue.NewItem(URL, nil, "seed", 0, "", false)
+		item, err := queue.NewItem(URL, nil, "seed", 0, "", false)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"url": scanner.Text(),
+				"err": err.Error(),
+			}).Debug("Failed to create new item")
+			continue
+		}
+
 		seeds = append(seeds, *item)
 		validCount++
 		fmt.Fprintf(writer, "\t   Reading input list.. Found %d valid URLs out of %d URLs read.\n", validCount, totalCount)

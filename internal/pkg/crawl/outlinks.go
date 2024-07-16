@@ -84,18 +84,36 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 		}
 
 		if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
-			newItem := queue.NewItem(outlink, item, "seed", 0, "", false)
+			newItem, err := queue.NewItem(outlink, item, "seed", 0, "", false)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to create new item from outlink, discarding")
+				continue
+			}
+
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
-				c.Queue.Enqueue(newItem)
+				err = c.Queue.Enqueue(newItem)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to enqueue outlink, discarding")
+					continue
+				}
 			}
 		} else if c.MaxHops >= item.Hop+1 {
-			newItem := queue.NewItem(outlink, item, "seed", item.Hop+1, "", false)
+			newItem, err := queue.NewItem(outlink, item, "seed", item.Hop+1, "", false)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to create new item from outlink, discarding")
+				continue
+			}
+
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
-				c.Queue.Enqueue(newItem)
+				err = c.Queue.Enqueue(newItem)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to enqueue outlink, discarding")
+					continue
+				}
 			}
 		}
 	}

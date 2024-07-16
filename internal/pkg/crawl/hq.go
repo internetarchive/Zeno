@@ -186,7 +186,9 @@ func (c *Crawl) HQConsumer() {
 
 			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
+				"err":       err,
 			})).Error("error getting new URLs from crawl HQ")
+			continue
 		}
 
 		// send all URLs received in the batch to the queue
@@ -195,12 +197,32 @@ func (c *Crawl) HQConsumer() {
 				newURL, err := url.Parse(URL.Value)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+						"url":       URL.Value,
 						"batchSize": HQBatchSize,
+						"err":       err,
 					})).Error("unable to parse URL received from crawl HQ, discarding")
 					continue
 				}
 
-				c.Queue.Enqueue(queue.NewItem(newURL, nil, "seed", uint64(strings.Count(URL.Path, "L")), URL.ID, false))
+				newItem, err := queue.NewItem(newURL, nil, "seed", uint64(strings.Count(URL.Path, "L")), URL.ID, false)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, newURL, map[string]interface{}{
+						"url":       URL.Value,
+						"batchSize": HQBatchSize,
+						"err":       err,
+					})).Error("unable to create new item from URL received from crawl HQ, discarding")
+					continue
+				}
+
+				err = c.Queue.Enqueue(newItem)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, newURL, map[string]interface{}{
+						"url":       URL.Value,
+						"batchSize": HQBatchSize,
+						"err":       err,
+					})).Error("unable to enqueue URL received from crawl HQ, discarding")
+					continue
+				}
 			}
 		}
 	}
