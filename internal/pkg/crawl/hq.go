@@ -107,8 +107,8 @@ func (c *Crawl) HQProducer() {
 	for discoveredItem := range c.HQProducerChannel {
 		var via string
 
-		if discoveredItem.ParentItem != nil {
-			via = utils.URLToString(discoveredItem.Parent.URL)
+		if discoveredItem.ParentURL != nil {
+			via = utils.URLToString(discoveredItem.ParentURL)
 		}
 
 		discoveredURL := gocrawlhq.URL{

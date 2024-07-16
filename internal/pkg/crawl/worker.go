@@ -79,7 +79,7 @@ func (w *Worker) Run() {
 		}
 
 		// If the host of the item is in the host exclusion list, we skip it
-		if utils.StringInSlice(item.Host, w.crawlParameters.ExcludedHosts) || !w.crawlParameters.checkIncludedHosts(item.Host) {
+		if utils.StringInSlice(item.URL.Host, w.crawlParameters.ExcludedHosts) || !w.crawlParameters.checkIncludedHosts(item.URL.Host) {
 			if w.crawlParameters.UseHQ {
 				// If we are using the HQ, we want to mark the item as done
 				w.crawlParameters.HQFinishedChannel <- item

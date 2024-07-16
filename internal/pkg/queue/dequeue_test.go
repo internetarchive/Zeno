@@ -134,8 +134,8 @@ func TestDequeueHostOrder(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to dequeue item: %v", err)
 		}
-		if dequeued.Host != expectedHost {
-			t.Errorf("Expected host %s for dequeue %d, got %s", expectedHost, i, dequeued.Host)
+		if dequeued.URL.Host != expectedHost {
+			t.Errorf("Expected host %s for dequeue %d, got %s", expectedHost, i, dequeued.URL.Host)
 		}
 	}
 }

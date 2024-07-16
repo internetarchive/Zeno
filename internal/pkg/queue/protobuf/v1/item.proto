@@ -5,13 +5,12 @@ option go_package = "github.com/internetarchive/Zeno/internal/pkg/queue/protobuf
 
 message ProtoItem {
   bytes url = 1;
-  string ID = 2;
-  string host = 3;
+  bytes parentUrl = 2;
+  string ID = 3;
   uint64 hop = 4;
   uint64 hash = 5;
   string type = 6;
   bool bypass_seencheck = 7;
-  bytes parent_item = 8;
   uint64 redirect = 9;
   uint64 locally_crawled = 10;
 }

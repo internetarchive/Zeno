@@ -83,8 +83,8 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 			continue
 		}
 
-		if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
-			newItem, err := queue.NewItem(outlink, item, "seed", 0, "", false)
+		if c.DomainsCrawl && strings.Contains(item.URL.Host, outlink.Host) && item.Hop == 0 {
+			newItem, err := queue.NewItem(outlink, item.URL, "seed", 0, "", false)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to create new item from outlink, discarding")
 				continue
@@ -100,7 +100,7 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 				}
 			}
 		} else if c.MaxHops >= item.Hop+1 {
-			newItem, err := queue.NewItem(outlink, item, "seed", item.Hop+1, "", false)
+			newItem, err := queue.NewItem(outlink, item.URL, "seed", item.Hop+1, "", false)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to create new item from outlink, discarding")
 				continue

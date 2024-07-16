@@ -98,13 +98,13 @@ func updateEnqueueStats(q *PersistentGroupedQueue, item *Item) {
 	defer q.statsMutex.Unlock()
 
 	q.stats.TotalElements++
-	q.stats.ElementsPerHost[item.Host]++
+	q.stats.ElementsPerHost[item.URL.Host]++
 	if q.stats.EnqueueCount == 0 {
 		q.stats.FirstEnqueueTime = time.Now()
 	}
 	q.stats.EnqueueCount++
 	q.stats.LastEnqueueTime = time.Now()
-	if q.stats.ElementsPerHost[item.Host] == 1 {
+	if q.stats.ElementsPerHost[item.URL.Host] == 1 {
 		q.stats.UniqueHosts++
 	}
 }

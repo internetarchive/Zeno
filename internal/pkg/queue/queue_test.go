@@ -8,6 +8,8 @@ import (
 	sync "sync"
 	"testing"
 	"time"
+
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
 func TestNewItem(t *testing.T) {
@@ -15,7 +17,7 @@ func TestNewItem(t *testing.T) {
 	testCases := []struct {
 		name             string
 		url              string
-		parent           *Item
+		parentURL        string
 		itemType         string
 		hop              uint64
 		id               string
@@ -25,7 +27,7 @@ func TestNewItem(t *testing.T) {
 		{
 			name:             "Basic URL",
 			url:              "https://example.com/page",
-			parent:           nil,
+			parentURL:        "",
 			itemType:         "page",
 			hop:              1,
 			id:               "",
@@ -35,7 +37,7 @@ func TestNewItem(t *testing.T) {
 		{
 			name:             "URL with ID and BypassSeencheck",
 			url:              "https://test.org/resource",
-			parent:           &Item{URL: &url.URL{Host: "parent.com"}},
+			parentURL:        "parent.com",
 			itemType:         "resource",
 			hop:              2,
 			id:               "custom-id",
@@ -53,7 +55,12 @@ func TestNewItem(t *testing.T) {
 			}
 
 			// Create new item
-			item, err := NewItem(parsedURL, tc.parent, tc.itemType, tc.hop, tc.id, tc.bypassSeencheck)
+			parentURL, err := url.Parse(tc.parentURL)
+			if err != nil {
+				t.Fatalf("Failed to parse parent URL: %v", err)
+			}
+
+			item, err := NewItem(parsedURL, parentURL, tc.itemType, tc.hop, tc.id, tc.bypassSeencheck)
 			if err != nil {
 				t.Fatalf("Failed to create new item: %v", err)
 			}
@@ -62,14 +69,11 @@ func TestNewItem(t *testing.T) {
 			if item.URL != parsedURL {
 				t.Errorf("Expected URL %v, got %v", parsedURL, item.URL)
 			}
-			if item.Host != tc.expectedHostname {
-				t.Errorf("Expected host %s, got %s", tc.expectedHostname, item.Host)
-			}
 			if item.Hop != tc.hop {
 				t.Errorf("Expected hop %d, got %d", tc.hop, item.Hop)
 			}
-			if item.Parent != tc.parent {
-				t.Errorf("Expected parent item %v, got %v", tc.parent, item.ParentItem)
+			if utils.URLToString(item.ParentURL) != tc.parentURL {
+				t.Errorf("Expected parent item %v, got %v", tc.parentURL, item.ParentURL)
 			}
 			if item.Type != tc.itemType {
 				t.Errorf("Expected item type %s, got %s", tc.itemType, item.Type)

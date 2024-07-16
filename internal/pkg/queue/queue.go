@@ -9,7 +9,6 @@ import (
 	"path"
 	"sync"
 
-	protobufv1 "github.com/internetarchive/Zeno/internal/pkg/queue/protobuf/v1"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -48,13 +47,14 @@ type PersistentGroupedQueue struct {
 }
 
 type Item struct {
-	*protobufv1.ProtoItem
-	URL    *url.URL
-	Parent *Item
-}
-
-func init() {
-	gob.Register(Item{})
+	URL             *url.URL
+	ParentURL       *url.URL
+	Hop             uint64
+	Type            string
+	ID              string
+	BypassSeencheck bool
+	Hash            uint64
+	LocallyCrawled  uint64
 }
 
 func NewPersistentGroupedQueue(queueDirPath string, loggingChan chan *LogMessage) (*PersistentGroupedQueue, error) {

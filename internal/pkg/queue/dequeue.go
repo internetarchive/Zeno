@@ -1,12 +1,7 @@
 package queue
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/url"
-
-	protobufv1 "github.com/internetarchive/Zeno/internal/pkg/queue/protobuf/v1"
-	"google.golang.org/protobuf/proto"
 )
 
 // Dequeue removes and returns the next item from the queue
@@ -56,29 +51,12 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 			return nil, fmt.Errorf("failed to read item at position %d: %w", positions[0], err)
 		}
 
-		protoItem := &protobufv1.ProtoItem{}
-		err = proto.Unmarshal(itemBytes, protoItem)
+		item, err := decodeProtoItem(itemBytes)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal item: %w", err)
 		}
 
-		var parsedURL url.URL
-		err = json.Unmarshal(protoItem.Url, &parsedURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal URL: %w", err)
-		}
-
-		item := &Item{
-			ProtoItem: protoItem,
-			URL:       &parsedURL,
-		}
-
-		err = item.UnmarshalParent()
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal parent item: %w", err)
-		}
-
-		updateDequeueStats(q, item.Host)
+		updateDequeueStats(q, item.URL.Host)
 
 		return item, nil
 	}

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-
-	"google.golang.org/protobuf/proto"
 )
 
 func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
@@ -27,7 +25,7 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	}
 
 	// Encode and write item
-	itemBytes, err := proto.Marshal(item.ProtoItem)
+	itemBytes, err := encodeItem(item)
 	if err != nil {
 		return fmt.Errorf("failed to marshal item: %w", err)
 	}
@@ -39,12 +37,12 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 
 	// Update host index and order
 	q.hostMutex.Lock()
-	if _, exists := q.hostIndex[item.Host]; !exists {
-		q.hostOrder = append(q.hostOrder, item.Host)
+	if _, exists := q.hostIndex[item.URL.Host]; !exists {
+		q.hostOrder = append(q.hostOrder, item.URL.Host)
 	}
 
-	q.hostIndex[item.Host] = append(q.hostIndex[item.Host], uint64(startPos))
-	q.hostIndex[item.Host] = append(q.hostIndex[item.Host], uint64(len(itemBytes)))
+	q.hostIndex[item.URL.Host] = append(q.hostIndex[item.URL.Host], uint64(startPos))
+	q.hostIndex[item.URL.Host] = append(q.hostIndex[item.URL.Host], uint64(len(itemBytes)))
 	q.hostMutex.Unlock()
 
 	// Update stats
