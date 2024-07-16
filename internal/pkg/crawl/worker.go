@@ -169,8 +169,9 @@ func (w *Worker) WatchHang() {
 		time.Sleep(5 * time.Second)
 		for !w.TryLock() {
 			if tryLockCounter > 10 && w.state.status != completed {
-				w.logger.Error("Worker is hanging")
+				w.logger.Error("Worker is deadlocked, trying to stop it")
 				spew.Fprint(w.pool.Crawl.Log.Writer(slog.LevelError), w) // This will dump the worker state to the log, this is NOT a good idea in production but it's useful for debugging
+				w.Stop()
 				return
 			}
 			tryLockCounter++
@@ -178,7 +179,10 @@ func (w *Worker) WatchHang() {
 		}
 		if w.state.status != idle && time.Since(w.state.lastSeen) > 10*time.Second {
 			w.logger.Warn("Worker is hanging, stopping it")
+			spew.Fprint(w.pool.Crawl.Log.Writer(slog.LevelError), w) // This will dump the worker state to the log, this is NOT a good idea in production but it's useful for debugging
+			w.Unlock()
 			w.Stop()
+			return
 		}
 		w.Unlock()
 	}
