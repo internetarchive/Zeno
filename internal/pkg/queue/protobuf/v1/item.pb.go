@@ -4,7 +4,7 @@
 // 	protoc        v3.19.6
 // source: internal/pkg/queue/item.proto
 
-package queue
+package protobufv1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

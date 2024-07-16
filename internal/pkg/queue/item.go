@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/url"
 
+	protobufv1 "github.com/internetarchive/Zeno/internal/pkg/queue/protobuf/v1"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -24,7 +25,7 @@ func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint64, ID str
 		}
 	}
 
-	protoItem := &ProtoItem{
+	protoItem := &protobufv1.ProtoItem{
 		Url:             urlJSON,
 		ID:              ID,
 		Host:            URL.Host,
@@ -67,7 +68,7 @@ func (i *Item) UnmarshalParent() error {
 		return nil
 	}
 
-	parentProtoItem := &ProtoItem{}
+	parentProtoItem := &protobufv1.ProtoItem{}
 	err := proto.Unmarshal(i.ParentItem, parentProtoItem)
 	if err != nil {
 		return err

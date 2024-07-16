@@ -9,6 +9,7 @@ import (
 	"path"
 	"sync"
 
+	protobufv1 "github.com/internetarchive/Zeno/internal/pkg/queue/protobuf/v1"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -47,7 +48,7 @@ type PersistentGroupedQueue struct {
 }
 
 type Item struct {
-	*ProtoItem
+	*protobufv1.ProtoItem
 	URL    *url.URL
 	Parent *Item
 }

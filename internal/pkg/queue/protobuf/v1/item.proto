@@ -1,7 +1,7 @@
 syntax = "proto3";
 package queue;
 
-option go_package = "github.com/CorentinB/Zeno/internal/pkg/queue;queue";
+option go_package = "github.com/internetarchive/Zeno/internal/pkg/queue/protobuf/v1;protobufv1";
 
 message ProtoItem {
   bytes url = 1;

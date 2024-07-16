@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
+	protobufv1 "github.com/internetarchive/Zeno/internal/pkg/queue/protobuf/v1"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -57,7 +58,7 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 			return nil, fmt.Errorf("failed to read item at position %d: %w", positions[0], err)
 		}
 
-		protoItem := &ProtoItem{}
+		protoItem := &protobufv1.ProtoItem{}
 		err = proto.Unmarshal(itemBytes, protoItem)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal item: %w", err)
