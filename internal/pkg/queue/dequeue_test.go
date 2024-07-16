@@ -93,7 +93,7 @@ func TestDequeueHostOrder(t *testing.T) {
 	// Create a new queue
 	q, err := NewPersistentGroupedQueue(tempDir, nil)
 	if err != nil {
-		t.Fatalf("Failed to create queue:	 %v", err)
+		t.Fatalf("Failed to create queue: %v", err)
 	}
 	defer q.Close()
 

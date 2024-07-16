@@ -35,18 +35,17 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		if len(positions) == 0 {
 			delete(q.hostIndex, host)
 			q.hostOrder = q.hostOrder[1:]
-			fmt.Printf("Dequeue: Removed empty host %s, new hostOrder: %v\n", host, q.hostOrder)
 			q.hostMutex.Unlock()
 			continue
 		}
 
-		position := positions[0]
-		q.hostIndex[host] = positions[1:]
+		// Remove the 2 elements we are going to use
+		// (position and size of the item)
+		q.hostIndex[host] = positions[2:]
 
 		if len(q.hostIndex[host]) == 0 {
 			delete(q.hostIndex, host)
 			q.hostOrder = q.hostOrder[1:]
-			fmt.Printf("Dequeue: No more items for host %s, removed from hostOrder\n", host)
 		} else {
 			q.hostOrder = append(q.hostOrder[1:], host)
 		}
@@ -54,12 +53,10 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		q.hostMutex.Unlock()
 
 		// Read and unmarshal the item
-		itemBytes, err := q.ReadItemAt(position, positions[1])
+		itemBytes, err := q.ReadItemAt(positions[0], positions[1])
 		if err != nil {
-			return nil, fmt.Errorf("failed to read item at position %d: %w", position, err)
+			return nil, fmt.Errorf("failed to read item at position %d: %w", positions[0], err)
 		}
-
-		fmt.Printf("Bytes at position %d: %v\n", position, itemBytes)
 
 		protoItem := &ProtoItem{}
 		err = proto.Unmarshal(itemBytes, protoItem)
@@ -85,7 +82,6 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 
 		updateDequeueStats(q, item.Host)
 
-		fmt.Printf("Dequeue: Returning item from host %s\n", item.Host)
 		return item, nil
 	}
 }

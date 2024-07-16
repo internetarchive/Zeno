@@ -136,6 +136,7 @@ func (q *PersistentGroupedQueue) Close() error {
 
 	return nil
 }
+
 func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint64, ID string, bypassSeencheck bool) (*Item, error) {
 	urlJSON, err := json.Marshal(URL)
 	if err != nil {
