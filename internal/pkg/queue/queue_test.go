@@ -128,12 +128,6 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 	if q.metadataFile == nil {
 		t.Error("metadataFile not initialized")
 	}
-	if q.queueEncoder == nil {
-		t.Error("queueEncoder not initialized")
-	}
-	if q.queueDecoder == nil {
-		t.Error("queueDecoder not initialized")
-	}
 	if q.metadataEncoder == nil {
 		t.Error("metadataEncoder not initialized")
 	}
@@ -209,7 +203,7 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	queuePath := path.Join(tempDir, "test_queue")
-	loggingChan := make(chan *LogMessage, 10000)
+	loggingChan := make(chan *LogMessage, 1000000)
 
 	q, err := NewPersistentGroupedQueue(queuePath, loggingChan)
 	if err != nil {
@@ -217,7 +211,7 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 	}
 	defer q.Close()
 
-	numItems := 1000
+	numItems := 50000
 	hosts := []string{"example.com", "test.org", "sample.net", "demo.io"}
 
 	// Enqueue items
@@ -235,6 +229,20 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 			t.Fatalf("Failed to enqueue item %d: %v", i, err)
 		}
 	}
+
+	// Print queue file size
+	queueFile, err := os.OpenFile(path.Join(queuePath, "queue"), os.O_RDONLY, 0644)
+	if err != nil {
+		t.Fatalf("Failed to open queue file: %v", err)
+	}
+
+	queueFileInfo, err := queueFile.Stat()
+	if err != nil {
+		t.Fatalf("Failed to get queue file info: %v", err)
+	}
+
+	t.Logf("Queue file size (megabytes): %d", queueFileInfo.Size()/1024/1024)
+
 	enqueueTime := time.Since(startEnqueue)
 	t.Logf("Enqueue time for %d items: %v", numItems, enqueueTime)
 

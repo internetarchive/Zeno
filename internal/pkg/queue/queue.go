@@ -34,8 +34,6 @@ type PersistentGroupedQueue struct {
 	Paused      *utils.TAtomBool
 	LoggingChan chan *LogMessage
 
-	queueEncoder    *gob.Encoder
-	queueDecoder    *gob.Decoder
 	queueFile       *os.File
 	metadataFile    *os.File
 	metadataEncoder *gob.Encoder
@@ -82,8 +80,6 @@ func NewPersistentGroupedQueue(queueDirPath string, loggingChan chan *LogMessage
 		LoggingChan: loggingChan,
 
 		queueFile:       file,
-		queueEncoder:    gob.NewEncoder(file),
-		queueDecoder:    gob.NewDecoder(file),
 		metadataFile:    metafile,
 		metadataEncoder: gob.NewEncoder(metafile),
 		metadataDecoder: gob.NewDecoder(metafile),

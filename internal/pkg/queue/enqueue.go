@@ -37,6 +37,7 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	if _, exists := q.hostIndex[item.Host]; !exists {
 		q.hostOrder = append(q.hostOrder, item.Host)
 	}
+
 	q.hostIndex[item.Host] = append(q.hostIndex[item.Host], uint64(startPos))
 	q.hostIndex[item.Host] = append(q.hostIndex[item.Host], uint64(len(itemBytes)))
 	q.hostMutex.Unlock()
