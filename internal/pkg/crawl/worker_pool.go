@@ -33,6 +33,7 @@ func (wp *WorkerPool) Start() {
 		worker := wp.NewWorker(wp.Crawl)
 		wp.Crawl.Log.Info("Starting worker", "worker", worker.ID)
 		go worker.Run()
+		go worker.WatchHang()
 	}
 	go wp.WorkerWatcher()
 }
