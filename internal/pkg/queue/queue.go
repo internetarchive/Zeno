@@ -2,10 +2,8 @@ package queue
 
 import (
 	"encoding/gob"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"net/url"
 	"os"
 	"path"
@@ -13,7 +11,6 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -131,64 +128,4 @@ func (q *PersistentGroupedQueue) Close() error {
 	}
 
 	return nil
-}
-
-func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint64, ID string, bypassSeencheck bool) (*Item, error) {
-	urlJSON, err := json.Marshal(URL)
-	if err != nil {
-		return nil, err
-	}
-
-	var parentItemBytes []byte
-	if parentItem != nil {
-		parentItemBytes, err = proto.Marshal(parentItem.ProtoItem)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	protoItem := &ProtoItem{
-		Url:             urlJSON,
-		ID:              ID,
-		Host:            URL.Host,
-		Hop:             hop,
-		Type:            itemType,
-		BypassSeencheck: bypassSeencheck,
-		ParentItem:      parentItemBytes,
-	}
-
-	h := fnv.New64a()
-	h.Write([]byte(URL.String()))
-	protoItem.Hash = h.Sum64()
-
-	return &Item{
-		ProtoItem: protoItem,
-		URL:       URL,
-		Parent:    parentItem,
-	}, nil
-}
-
-func (i *Item) UnmarshalParent() error {
-	if i.ParentItem == nil || len(i.ParentItem) == 0 {
-		return nil
-	}
-
-	parentProtoItem := &ProtoItem{}
-	err := proto.Unmarshal(i.ParentItem, parentProtoItem)
-	if err != nil {
-		return err
-	}
-
-	var parentURL url.URL
-	err = json.Unmarshal(parentProtoItem.Url, &parentURL)
-	if err != nil {
-		return err
-	}
-
-	i.Parent = &Item{
-		ProtoItem: parentProtoItem,
-		URL:       &parentURL,
-	}
-
-	return i.Parent.UnmarshalParent()
 }

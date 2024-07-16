@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	sync "sync"
 	"testing"
 	"time"
 )
@@ -268,4 +269,79 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 	t.Logf("Dequeue time for %d items: %v", numItems, dequeueTime)
 	t.Logf("Average enqueue time per item: %v", enqueueTime/time.Duration(numItems))
 	t.Logf("Average dequeue time per item: %v", dequeueTime/time.Duration(numItems))
+}
+
+func TestParallelEnqueueDequeue(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "queue_test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	queuePath := path.Join(tempDir, "test_queue")
+	loggingChan := make(chan *LogMessage, 100)
+
+	q, err := NewPersistentGroupedQueue(queuePath, loggingChan)
+	if err != nil {
+		t.Fatalf("Failed to create new queue: %v", err)
+	}
+	defer q.Close()
+
+	const (
+		numWorkers = 10
+		numItems   = 1000
+	)
+
+	var wg sync.WaitGroup
+	wg.Add(numWorkers * 2) // For both enqueuers and dequeuers
+
+	// Start enqueuers
+	for i := 0; i < numWorkers; i++ {
+		go func(workerID int) {
+			defer wg.Done()
+			for j := 0; j < numItems; j++ {
+				urlStr := fmt.Sprintf("http://example.com/%d/%d", workerID, j)
+				u, err := url.Parse(urlStr)
+				if err != nil {
+					t.Errorf("Failed to parse URL: %v", err)
+					continue
+				}
+				item := &Item{URL: u}
+				err = q.Enqueue(item)
+				if err != nil {
+					t.Errorf("Failed to enqueue item: %v", err)
+				}
+			}
+		}(i)
+	}
+
+	// Start dequeuers
+	dequeued := make(chan *Item, numWorkers*numItems)
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			defer wg.Done()
+			for {
+				item, err := q.Dequeue()
+				if err == ErrQueueEmpty {
+					time.Sleep(10 * time.Millisecond)
+					continue
+				}
+				if err != nil {
+					t.Errorf("Failed to dequeue item: %v", err)
+					return
+				}
+				dequeued <- item
+				if len(dequeued) == numWorkers*numItems {
+					return
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(dequeued)
+
+	if len(dequeued) != numWorkers*numItems {
+		t.Errorf("Expected %d items, got %d", numWorkers*numItems, len(dequeued))
+	}
 }
