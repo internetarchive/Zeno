@@ -22,21 +22,21 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Job name to use, will determine the path for the persistent queue, seencheck database, and WARC files.",
 		Destination: &config.App.Flags.Job,
 	},
-	&cli.IntFlag{
+	&cli.Uint64Flag{
 		Name:        "workers",
 		Aliases:     []string{"w"},
 		Value:       1,
 		Usage:       "Number of concurrent workers to run.",
 		Destination: &config.App.Flags.Workers,
 	},
-	&cli.IntFlag{
+	&cli.Uint64Flag{
 		Name:        "max-concurrent-assets",
 		Aliases:     []string{"ca"},
 		Value:       8,
 		Usage:       "Max number of concurrent assets to fetch PER worker. E.g. if you have 100 workers and this setting at 8, Zeno could do up to 800 concurrent requests at any time.",
 		Destination: &config.App.Flags.MaxConcurrentAssets,
 	},
-	&cli.UintFlag{
+	&cli.Uint64Flag{
 		Name:        "max-hops",
 		Aliases:     []string{"hops"},
 		Value:       0,
@@ -95,19 +95,19 @@ var GlobalFlags = []cli.Flag{
 		Value:       "zeno:",
 	},
 
-	&cli.IntFlag{
+	&cli.Uint64Flag{
 		Name:        "max-redirect",
 		Value:       20,
 		Usage:       "Specifies the maximum number of redirections to follow for a resource.",
 		Destination: &config.App.Flags.MaxRedirect,
 	},
-	&cli.IntFlag{
+	&cli.Uint64Flag{
 		Name:        "max-retry",
 		Value:       20,
 		Usage:       "Number of retry if error happen when executing HTTP request.",
 		Destination: &config.App.Flags.MaxRetry,
 	},
-	&cli.IntFlag{
+	&cli.Uint64Flag{
 		Name:        "http-timeout",
 		Value:       30,
 		Usage:       "Number of seconds to wait before timing out a request.",
@@ -139,33 +139,33 @@ var GlobalFlags = []cli.Flag{
 		Usage:       "Only crawl specific hosts, note that it will not include the domain if it is encountered as an asset for another web page.",
 		Destination: &config.App.Flags.IncludedHosts,
 	},
-	&cli.IntFlag{
+	&cli.Uint64Flag{
 		Name:        "max-concurrent-per-domain",
 		Value:       16,
 		Usage:       "Maximum number of concurrent requests per domain.",
 		Destination: &config.App.Flags.MaxConcurrentRequestsPerDomain,
 	},
-	&cli.IntFlag{
+	&cli.Uint64Flag{
 		Name:        "concurrent-sleep-length",
 		Value:       500,
 		Usage:       "Number of milliseconds to sleep when max concurrency per domain is reached.",
 		Destination: &config.App.Flags.RateLimitDelay,
 	},
 
-	&cli.IntFlag{
+	&cli.Uint64Flag{
 		Name:        "crawl-time-limit",
 		Value:       0,
 		Usage:       "Number of seconds until the crawl will automatically set itself into the finished state.",
 		Destination: &config.App.Flags.CrawlTimeLimit,
 	},
 
-	&cli.IntFlag{
+	&cli.Uint64Flag{
 		Name:        "crawl-max-time-limit",
 		Value:       0,
 		Usage:       "Number of seconds until the crawl will automatically panic itself. Default to crawl-time-limit + (crawl-time-limit / 10)",
 		Destination: &config.App.Flags.MaxCrawlTimeLimit,
 	},
-	&cli.IntFlag{
+	&cli.Uint64Flag{
 		Name:        "min-space-required",
 		Aliases:     []string{"msr"},
 		Value:       20,

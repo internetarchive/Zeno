@@ -108,7 +108,7 @@ func (c *Crawl) HQProducer() {
 		var via string
 
 		if discoveredItem.ParentItem != nil {
-			via = utils.URLToString(discoveredItem.ParentItem.URL)
+			via = utils.URLToString(discoveredItem.Parent.URL)
 		}
 
 		discoveredURL := gocrawlhq.URL{
@@ -116,13 +116,13 @@ func (c *Crawl) HQProducer() {
 			Via:   via,
 		}
 
-		for i := 0; uint8(i) < discoveredItem.Hop; i++ {
+		for i := uint64(0); i < discoveredItem.Hop; i++ {
 			discoveredURL.Path += "L"
 		}
 
 		// The reason we are using a string instead of a bool is because
 		// gob's encode/decode doesn't properly support booleans
-		if discoveredItem.BypassSeencheck == "true" {
+		if discoveredItem.BypassSeencheck == true {
 			for {
 				_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "seed", true, false)
 				if err != nil {
@@ -200,7 +200,7 @@ func (c *Crawl) HQConsumer() {
 					continue
 				}
 
-				c.Queue.Enqueue(queue.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, false))
+				c.Queue.Enqueue(queue.NewItem(newURL, nil, "seed", uint64(strings.Count(URL.Path, "L")), URL.ID, false))
 			}
 		}
 	}

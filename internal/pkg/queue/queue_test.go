@@ -14,9 +14,9 @@ func TestNewItem(t *testing.T) {
 	testCases := []struct {
 		name             string
 		url              string
-		parentItem       *Item
+		parent           *Item
 		itemType         string
-		hop              uint8
+		hop              uint64
 		id               string
 		bypassSeencheck  bool
 		expectedHostname string
@@ -24,7 +24,7 @@ func TestNewItem(t *testing.T) {
 		{
 			name:             "Basic URL",
 			url:              "https://example.com/page",
-			parentItem:       nil,
+			parent:           nil,
 			itemType:         "page",
 			hop:              1,
 			id:               "",
@@ -34,7 +34,7 @@ func TestNewItem(t *testing.T) {
 		{
 			name:             "URL with ID and BypassSeencheck",
 			url:              "https://test.org/resource",
-			parentItem:       &Item{URL: &url.URL{Host: "parent.com"}},
+			parent:           &Item{URL: &url.URL{Host: "parent.com"}},
 			itemType:         "resource",
 			hop:              2,
 			id:               "custom-id",
@@ -52,7 +52,10 @@ func TestNewItem(t *testing.T) {
 			}
 
 			// Create new item
-			item := NewItem(parsedURL, tc.parentItem, tc.itemType, tc.hop, tc.id, tc.bypassSeencheck)
+			item, err := NewItem(parsedURL, tc.parent, tc.itemType, tc.hop, tc.id, tc.bypassSeencheck)
+			if err != nil {
+				t.Fatalf("Failed to create new item: %v", err)
+			}
 
 			// Assertions
 			if item.URL != parsedURL {
@@ -64,8 +67,8 @@ func TestNewItem(t *testing.T) {
 			if item.Hop != tc.hop {
 				t.Errorf("Expected hop %d, got %d", tc.hop, item.Hop)
 			}
-			if item.ParentItem != tc.parentItem {
-				t.Errorf("Expected parent item %v, got %v", tc.parentItem, item.ParentItem)
+			if item.Parent != tc.parent {
+				t.Errorf("Expected parent item %v, got %v", tc.parent, item.ParentItem)
 			}
 			if item.Type != tc.itemType {
 				t.Errorf("Expected item type %s, got %s", tc.itemType, item.Type)
@@ -80,12 +83,12 @@ func TestNewItem(t *testing.T) {
 				}
 			}
 
-			expectedBypassSeencheck := "false"
+			expectedBypassSeencheck := false
 			if tc.bypassSeencheck {
-				expectedBypassSeencheck = "true"
+				expectedBypassSeencheck = true
 			}
 			if item.BypassSeencheck != expectedBypassSeencheck {
-				t.Errorf("Expected BypassSeencheck %s, got %s", expectedBypassSeencheck, item.BypassSeencheck)
+				t.Errorf("Expected BypassSeencheck %t, got %t", expectedBypassSeencheck, item.BypassSeencheck)
 			}
 
 			// Check that Hash is not empty (we can't predict its exact value)
@@ -222,8 +225,12 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 	for i := 0; i < numItems; i++ {
 		host := hosts[i%len(hosts)]
 		u, _ := url.Parse(fmt.Sprintf("https://%s/page%d", host, i))
-		item := NewItem(u, nil, "page", 1, fmt.Sprintf("id-%d", i), false)
-		err := q.Enqueue(item)
+		item, err := NewItem(u, nil, "page", 1, fmt.Sprintf("id-%d", i), false)
+		if err != nil {
+			t.Fatalf("Failed to create item %d: %v", i, err)
+		}
+
+		err = q.Enqueue(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item %d: %v", i, err)
 		}

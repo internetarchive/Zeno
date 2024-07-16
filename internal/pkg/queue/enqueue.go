@@ -3,6 +3,8 @@ package queue
 import (
 	"fmt"
 	"io"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
@@ -20,9 +22,14 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	}
 
 	// Encode and write item
-	err = q.queueEncoder.Encode(item)
+	itemBytes, err := proto.Marshal(item.ProtoItem)
 	if err != nil {
-		return fmt.Errorf("failed to encode item: %w", err)
+		return fmt.Errorf("failed to marshal item: %w", err)
+	}
+
+	_, err = q.queueFile.Write(itemBytes)
+	if err != nil {
+		return fmt.Errorf("failed to write item: %w", err)
 	}
 
 	// Update host index and order
@@ -31,6 +38,7 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 		q.hostOrder = append(q.hostOrder, item.Host)
 	}
 	q.hostIndex[item.Host] = append(q.hostIndex[item.Host], uint64(startPos))
+	q.hostIndex[item.Host] = append(q.hostIndex[item.Host], uint64(len(itemBytes)))
 	q.hostMutex.Unlock()
 
 	// Update stats

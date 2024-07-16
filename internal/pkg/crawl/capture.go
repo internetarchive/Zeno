@@ -66,7 +66,7 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 	//}
 
 	// Retry on 429 error
-	for retry := 0; retry < c.MaxRetry; retry++ {
+	for retry := uint64(0); retry < c.MaxRetry; retry++ {
 		// Execute GET request
 		if c.ClientProxied == nil || utils.StringContainsSliceElements(req.URL.Host, c.BypassProxy) {
 			resp, err = c.Client.Do(req)
@@ -177,7 +177,7 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 
 		// Set new request headers on the new request :(
 		newReq.Header.Set("User-Agent", c.UserAgent)
-		newReq.Header.Set("Referer", utils.URLToString(newItem.ParentItem.URL))
+		newReq.Header.Set("Referer", utils.URLToString(newItem.Parent.URL))
 
 		return c.executeGET(newItem, newReq, true)
 	}
@@ -194,7 +194,7 @@ func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie) error {
 		return err
 	}
 
-	req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
+	req.Header.Set("Referer", utils.URLToString(item.Parent.URL))
 	req.Header.Set("User-Agent", c.UserAgent)
 
 	// Apply cookies obtained from the original URL captured
@@ -239,7 +239,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	}
 
 	if item.Hop > 0 && item.ParentItem != nil {
-		req.Header.Set("Referer", utils.URLToString(item.ParentItem.URL))
+		req.Header.Set("Referer", utils.URLToString(item.Parent.URL))
 	}
 
 	req.Header.Set("User-Agent", c.UserAgent)
@@ -326,7 +326,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return err
 	} else if err != nil && err.Error() == "URL is being rate limited, sending back to HQ" {
-		c.HQProducerChannel <- queue.NewItem(item.URL, item.ParentItem, item.Type, item.Hop, "", true)
+		c.HQProducerChannel <- queue.NewItem(item.URL, item.Parent, item.Type, item.Hop, "", true)
 		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("URL is being rate limited, sending back to HQ")
 		return err
 	} else if err != nil {
@@ -545,7 +545,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	// TODO: implement a counter for the number of assets
 	// currently being processed
 	// c.Frontier.QueueCount.Incr(int64(len(assets)))
-	swg := sizedwaitgroup.New(c.MaxConcurrentAssets)
+	swg := sizedwaitgroup.New(int(c.MaxConcurrentAssets))
 	excluded := false
 
 	for _, asset := range assets {

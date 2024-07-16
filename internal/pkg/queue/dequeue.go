@@ -1,13 +1,17 @@
 package queue
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // Dequeue removes and returns the next item from the queue
 // It blocks until an item is available
-func (q *PersistentGroupedQueue) Dequeue() (item *Item, err error) {
+func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	if q.closed {
 		return nil, ErrQueueClosed
 	}
@@ -15,57 +19,90 @@ func (q *PersistentGroupedQueue) Dequeue() (item *Item, err error) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	for len(q.hostOrder) == 0 {
-		q.cond.Wait() // This unlocks the mutex while waiting
-	}
-
-	// Loop through hosts until we find one with items or we've checked all hosts
-	hostsChecked := 0
-	for hostsChecked < len(q.hostOrder) {
-		host := q.hostOrder[q.currentHost]
-		positions := q.hostIndex[host]
-
-		if len(positions) == 0 {
-			// Remove this host from the order and index
-			q.hostOrder = append(q.hostOrder[:q.currentHost], q.hostOrder[q.currentHost+1:]...)
-			delete(q.hostIndex, host)
-			if len(q.hostOrder) == 0 {
-				q.currentHost = 0
-				continue // This will cause the outer loop to check again
-			}
-			q.currentHost = q.currentHost % len(q.hostOrder)
-			hostsChecked++
+	for {
+		q.hostMutex.Lock()
+		if len(q.hostOrder) == 0 {
+			q.hostMutex.Unlock()
+			q.mutex.Unlock()
+			q.cond.Wait()
+			q.mutex.Lock()
 			continue
 		}
 
-		// We found a host with items, dequeue from here
+		host := q.hostOrder[0]
+		positions := q.hostIndex[host]
+
+		if len(positions) == 0 {
+			delete(q.hostIndex, host)
+			q.hostOrder = q.hostOrder[1:]
+			fmt.Printf("Dequeue: Removed empty host %s, new hostOrder: %v\n", host, q.hostOrder)
+			q.hostMutex.Unlock()
+			continue
+		}
+
 		position := positions[0]
 		q.hostIndex[host] = positions[1:]
 
-		// Seek to position and decode item
-		_, err = q.queueFile.Seek(int64(position), io.SeekStart)
-		if err != nil {
-			return nil, fmt.Errorf("failed to seek to item position: %w", err)
-		}
-		err = q.queueDecoder.Decode(&item)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode item: %w", err)
+		if len(q.hostIndex[host]) == 0 {
+			delete(q.hostIndex, host)
+			q.hostOrder = q.hostOrder[1:]
+			fmt.Printf("Dequeue: No more items for host %s, removed from hostOrder\n", host)
+		} else {
+			q.hostOrder = append(q.hostOrder[1:], host)
 		}
 
-		// Move to next host
-		q.currentHost = (q.currentHost + 1) % len(q.hostOrder)
+		q.hostMutex.Unlock()
 
-		// Update stats
-		updateDequeueStats(q, host)
-
-		err = q.saveMetadata()
+		// Read and unmarshal the item
+		itemBytes, err := q.ReadItemAt(position, positions[1])
 		if err != nil {
-			return nil, fmt.Errorf("failed to save metadata: %w", err)
+			return nil, fmt.Errorf("failed to read item at position %d: %w", position, err)
 		}
 
-		break
+		fmt.Printf("Bytes at position %d: %v\n", position, itemBytes)
+
+		protoItem := &ProtoItem{}
+		err = proto.Unmarshal(itemBytes, protoItem)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal item: %w", err)
+		}
+
+		var parsedURL url.URL
+		err = json.Unmarshal(protoItem.Url, &parsedURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal URL: %w", err)
+		}
+
+		item := &Item{
+			ProtoItem: protoItem,
+			URL:       &parsedURL,
+		}
+
+		err = item.UnmarshalParent()
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal parent item: %w", err)
+		}
+
+		updateDequeueStats(q, item.Host)
+
+		fmt.Printf("Dequeue: Returning item from host %s\n", item.Host)
+		return item, nil
+	}
+}
+
+func (q *PersistentGroupedQueue) ReadItemAt(position uint64, itemSize uint64) ([]byte, error) {
+	// Ensure the file pointer is at the correct position
+	_, err := q.queueFile.Seek(int64(position), io.SeekStart)
+	if err != nil {
+		return nil, fmt.Errorf("failed to seek to item position: %w", err)
 	}
 
-	// If we've checked all hosts and found no items, loop back to wait again
-	return
+	// Read the specific number of bytes for the item
+	itemBytes := make([]byte, itemSize)
+	_, err = io.ReadFull(q.queueFile, itemBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read item bytes: %w", err)
+	}
+
+	return itemBytes, nil
 }

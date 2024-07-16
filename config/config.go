@@ -5,28 +5,28 @@ import "github.com/urfave/cli/v2"
 type Flags struct {
 	UserAgent           string
 	Job                 string
-	Workers             int
-	MaxConcurrentAssets int
-	MaxHops             uint
+	Workers             uint64
+	MaxConcurrentAssets uint64
+	MaxHops             uint64
 	Headless            bool
 	Seencheck           bool
 	JSON                bool
 	LiveStats           bool
 	Debug               bool
-	MinSpaceRequired    int
+	MinSpaceRequired    uint64
 
 	DisabledHTMLTags               cli.StringSlice
 	ExcludedHosts                  cli.StringSlice
 	IncludedHosts                  cli.StringSlice
 	DomainsCrawl                   bool
 	CaptureAlternatePages          bool
-	HTTPTimeout                    int
-	MaxRedirect                    int
-	MaxRetry                       int
-	MaxConcurrentRequestsPerDomain int
-	RateLimitDelay                 int
-	CrawlTimeLimit                 int
-	MaxCrawlTimeLimit              int
+	HTTPTimeout                    uint64
+	MaxRedirect                    uint64
+	MaxRetry                       uint64
+	MaxConcurrentRequestsPerDomain uint64
+	RateLimitDelay                 uint64
+	CrawlTimeLimit                 uint64
+	MaxCrawlTimeLimit              uint64
 	RandomLocalIP                  bool
 
 	Proxy       string

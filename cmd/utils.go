@@ -111,7 +111,7 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 
 	c.MaxRetry = flags.MaxRetry
 	c.MaxRedirect = flags.MaxRedirect
-	c.MaxHops = uint8(flags.MaxHops)
+	c.MaxHops = flags.MaxHops
 	c.DomainsCrawl = flags.DomainsCrawl
 	c.DisableAssetsCapture = flags.DisableAssetsCapture
 	c.DisabledHTMLTags = flags.DisabledHTMLTags.Value()

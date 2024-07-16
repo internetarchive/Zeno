@@ -23,8 +23,12 @@ func TestEnqueue(t *testing.T) {
 
 	t.Run("Enqueue single item", func(t *testing.T) {
 		url, _ := url.Parse("http://example.com")
-		item := NewItem(url, nil, "test", 0, "", false)
-		err := q.Enqueue(item)
+		item, err := NewItem(url, nil, "test", 0, "", false)
+		if err != nil {
+			t.Fatalf("Failed to create item: %v", err)
+		}
+
+		err = q.Enqueue(item)
 		if err != nil {
 			t.Errorf("Failed to enqueue item: %v", err)
 		}
@@ -44,8 +48,12 @@ func TestEnqueue(t *testing.T) {
 		hosts := []string{"example.org", "example.net", "example.com"}
 		for _, host := range hosts {
 			url, _ := url.Parse("http://" + host)
-			item := NewItem(url, nil, "test", 0, "", false)
-			err := q.Enqueue(item)
+			item, err := NewItem(url, nil, "test", 0, "", false)
+			if err != nil {
+				t.Fatalf("Failed to create item for host %s: %v", host, err)
+			}
+
+			err = q.Enqueue(item)
 			if err != nil {
 				t.Errorf("Failed to enqueue item for host %s: %v", host, err)
 			}
@@ -65,8 +73,12 @@ func TestEnqueue(t *testing.T) {
 	t.Run("Enqueue to closed queue", func(t *testing.T) {
 		q.Close()
 		url, _ := url.Parse("http://closed.com")
-		item := NewItem(url, nil, "test", 0, "", false)
-		err := q.Enqueue(item)
+		item, err := NewItem(url, nil, "test", 0, "", false)
+		if err != nil {
+			t.Fatalf("Failed to create item: %v", err)
+		}
+
+		err = q.Enqueue(item)
 		if err != ErrQueueClosed {
 			t.Errorf("Expected ErrQueueClosed, got: %v", err)
 		}
@@ -77,8 +89,15 @@ func TestEnqueue(t *testing.T) {
 		defer q.Close()
 
 		url, _ := url.Parse("http://timetest.com")
-		item := NewItem(url, nil, "test", 0, "", false)
-		q.Enqueue(item)
+		item, err := NewItem(url, nil, "test", 0, "", false)
+		if err != nil {
+			t.Fatalf("Failed to create item: %v", err)
+		}
+
+		err = q.Enqueue(item)
+		if err != nil {
+			t.Errorf("Failed to enqueue item: %v", err)
+		}
 
 		if q.stats.FirstEnqueueTime.IsZero() {
 			t.Error("FirstEnqueueTime should not be zero")
@@ -91,7 +110,10 @@ func TestEnqueue(t *testing.T) {
 		}
 
 		time.Sleep(10 * time.Millisecond)
-		q.Enqueue(item)
+		err = q.Enqueue(item)
+		if err != nil {
+			t.Errorf("Failed to enqueue item: %v", err)
+		}
 
 		if !q.stats.LastEnqueueTime.After(q.stats.FirstEnqueueTime) {
 			t.Error("LastEnqueueTime should be after FirstEnqueueTime")
@@ -109,8 +131,16 @@ func TestEnqueue(t *testing.T) {
 		hosts := []string{"first.com", "second.com", "third.com"}
 		for _, host := range hosts {
 			url, _ := url.Parse("http://" + host)
-			item := NewItem(url, nil, "test", 0, "", false)
-			q.Enqueue(item)
+			item, err := NewItem(url, nil, "test", 0, "", false)
+			if err != nil {
+				t.Fatalf("Failed to create item: %v", err)
+			}
+
+			err = q.Enqueue(item)
+			if err != nil {
+				t.Errorf("Failed to enqueue item: %v", err)
+			}
+
 		}
 
 		if len(q.hostOrder) != 3 {

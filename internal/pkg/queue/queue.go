@@ -2,6 +2,7 @@ package queue
 
 import (
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -50,16 +52,9 @@ type PersistentGroupedQueue struct {
 }
 
 type Item struct {
-	URL             *url.URL
-	ParentItem      *Item
-	ID              string
-	Host            string
-	Type            string
-	BypassSeencheck string
-	Hash            uint64
-	Redirect        int
-	LocallyCrawled  uint64
-	Hop             uint8
+	*ProtoItem
+	URL    *url.URL
+	Parent *Item
 }
 
 func init() {
@@ -141,32 +136,59 @@ func (q *PersistentGroupedQueue) Close() error {
 
 	return nil
 }
-
-// NewItem initialize an *Item
-func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint8, ID string, bypassSeencheck bool) *Item {
-	item := new(Item)
-
-	item.URL = URL
-	if ID != "" {
-		item.ID = ID
+func NewItem(URL *url.URL, parentItem *Item, itemType string, hop uint64, ID string, bypassSeencheck bool) (*Item, error) {
+	urlJSON, err := json.Marshal(URL)
+	if err != nil {
+		return nil, err
 	}
-	item.Host = URL.Host
-	item.Hop = hop
-	item.ParentItem = parentItem
+
+	var parentItemBytes []byte
+	if parentItem != nil {
+		parentItemBytes, _ = proto.Marshal(parentItem.ProtoItem)
+	}
+
+	protoItem := &ProtoItem{
+		Url:             urlJSON,
+		ID:              ID,
+		Host:            URL.Host,
+		Hop:             hop,
+		Type:            itemType,
+		BypassSeencheck: bypassSeencheck,
+		ParentItem:      parentItemBytes,
+	}
 
 	h := fnv.New64a()
-	h.Write([]byte(utils.URLToString(URL)))
-	item.Hash = h.Sum64()
+	h.Write([]byte(URL.String()))
+	protoItem.Hash = h.Sum64()
 
-	item.Type = itemType
+	return &Item{
+		ProtoItem: protoItem,
+		URL:       URL,
+		Parent:    parentItem,
+	}, nil
+}
 
-	// The reason we are using a string instead of a bool is because
-	// gob's encode/decode doesn't properly support booleans
-	if bypassSeencheck {
-		item.BypassSeencheck = "true"
-	} else {
-		item.BypassSeencheck = "false"
+func (i *Item) UnmarshalParent() error {
+	if i.ParentItem == nil || len(i.ParentItem) == 0 {
+		return nil
 	}
 
-	return item
+	parentProtoItem := &ProtoItem{}
+	err := proto.Unmarshal(i.ParentItem, parentProtoItem)
+	if err != nil {
+		return err
+	}
+
+	var parentURL url.URL
+	err = json.Unmarshal(parentProtoItem.Url, &parentURL)
+	if err != nil {
+		return err
+	}
+
+	i.Parent = &Item{
+		ProtoItem: parentProtoItem,
+		URL:       &parentURL,
+	}
+
+	return i.Parent.UnmarshalParent()
 }

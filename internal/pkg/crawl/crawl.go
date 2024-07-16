@@ -51,7 +51,7 @@ type Crawl struct {
 	WorkerStopTimeout time.Duration
 
 	// Crawl settings
-	MaxConcurrentAssets            int
+	MaxConcurrentAssets            uint64
 	Client                         *warc.CustomHTTPClient
 	ClientProxied                  *warc.CustomHTTPClient
 	DisabledHTMLTags               []string
@@ -61,21 +61,21 @@ type Crawl struct {
 	UserAgent                      string
 	Job                            string
 	JobPath                        string
-	MaxHops                        uint8
-	MaxRetry                       int
-	MaxRedirect                    int
-	HTTPTimeout                    int
-	MaxConcurrentRequestsPerDomain int
-	RateLimitDelay                 int
-	CrawlTimeLimit                 int
-	MaxCrawlTimeLimit              int
+	MaxHops                        uint64
+	MaxRetry                       uint64
+	MaxRedirect                    uint64
+	HTTPTimeout                    uint64
+	MaxConcurrentRequestsPerDomain uint64
+	RateLimitDelay                 uint64
+	CrawlTimeLimit                 uint64
+	MaxCrawlTimeLimit              uint64
 	DisableAssetsCapture           bool
 	CaptureAlternatePages          bool
 	DomainsCrawl                   bool
 	Headless                       bool
-	Workers                        int
+	Workers                        uint64
 	RandomLocalIP                  bool
-	MinSpaceRequired               int
+	MinSpaceRequired               uint64
 
 	// Cookie-related settings
 	CookieFile  string
