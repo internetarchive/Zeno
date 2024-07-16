@@ -23,9 +23,7 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		q.hostMutex.Lock()
 		if len(q.hostOrder) == 0 {
 			q.hostMutex.Unlock()
-			q.mutex.Unlock()
 			q.cond.Wait()
-			q.mutex.Lock()
 			continue
 		}
 

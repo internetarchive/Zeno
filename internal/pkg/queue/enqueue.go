@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -8,6 +9,10 @@ import (
 )
 
 func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
+	if item == nil {
+		return errors.New("cannot enqueue nil item")
+	}
+
 	if q.closed {
 		return ErrQueueClosed
 	}
