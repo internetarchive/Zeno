@@ -55,6 +55,7 @@ type Item struct {
 	BypassSeencheck bool
 	Hash            uint64
 	LocallyCrawled  uint64
+	Redirect        uint64
 }
 
 func NewPersistentGroupedQueue(queueDirPath string, loggingChan chan *LogMessage) (*PersistentGroupedQueue, error) {

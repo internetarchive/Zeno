@@ -28,8 +28,8 @@ func encodeItem(item *Item) ([]byte, error) {
 		Type:            item.Type,
 		BypassSeencheck: item.BypassSeencheck,
 		Hash:            item.Hash,
-		// Redirect:        item.Redirect,
-		LocallyCrawled: item.LocallyCrawled,
+		Redirect:        item.Redirect,
+		LocallyCrawled:  item.LocallyCrawled,
 	}
 
 	return proto.Marshal(protoItem)
@@ -62,7 +62,7 @@ func decodeProtoItem(itemBytes []byte) (*Item, error) {
 		ID:              protoItem.GetID(),
 		BypassSeencheck: protoItem.GetBypassSeencheck(),
 		Hash:            protoItem.GetHash(),
-		// Redirect:        protoItem.GetRedirect(),
-		LocallyCrawled: protoItem.GetLocallyCrawled(),
+		Redirect:        protoItem.GetRedirect(),
+		LocallyCrawled:  protoItem.GetLocallyCrawled(),
 	}, nil
 }

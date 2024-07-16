@@ -166,7 +166,7 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 			}
 		}
 
-		newItem, err = queue.NewItem(URL, item, item.Type, item.Hop, item.ID, false)
+		newItem, err = queue.NewItem(URL, item.URL, item.Type, item.Hop, item.ID, false)
 		if err != nil {
 			return nil, err
 		}
@@ -181,7 +181,7 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 
 		// Set new request headers on the new request :(
 		newReq.Header.Set("User-Agent", c.UserAgent)
-		newReq.Header.Set("Referer", utils.URLToString(newItem.Parent.URL))
+		newReq.Header.Set("Referer", utils.URLToString(newItem.ParentURL))
 
 		return c.executeGET(newItem, newReq, true)
 	}
@@ -198,7 +198,7 @@ func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie) error {
 		return err
 	}
 
-	req.Header.Set("Referer", utils.URLToString(item.Parent.URL))
+	req.Header.Set("Referer", utils.URLToString(item.ParentURL))
 	req.Header.Set("User-Agent", c.UserAgent)
 
 	// Apply cookies obtained from the original URL captured
@@ -242,8 +242,8 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		return err
 	}
 
-	if item.Hop > 0 && item.ParentItem != nil {
-		req.Header.Set("Referer", utils.URLToString(item.Parent.URL))
+	if item.Hop > 0 && item.ParentURL != nil {
+		req.Header.Set("Referer", utils.URLToString(item.ParentURL))
 	}
 
 	req.Header.Set("User-Agent", c.UserAgent)
@@ -259,7 +259,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating API URL")
 			} else {
 				// Then we create an item
-				APIItem, err := queue.NewItem(APIURL, item, item.Type, item.Hop, item.ID, false)
+				APIItem, err := queue.NewItem(APIURL, item.URL, item.Type, item.Hop, item.ID, false)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating TruthSocial API item")
 				} else {
@@ -277,7 +277,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 			} else {
 				for _, embedURL := range embedURLs {
 					// Create the embed item
-					embedItem, err := queue.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
+					embedItem, err := queue.NewItem(embedURL, item.URL, item.Type, item.Hop, item.ID, false)
 					if err != nil {
 						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating TruthSocial embed item")
 					} else {
@@ -299,7 +299,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating Facebook embed URL")
 			} else {
 				// Create the embed item
-				embedItem, err := queue.NewItem(embedURL, item, item.Type, item.Hop, item.ID, false)
+				embedItem, err := queue.NewItem(embedURL, item.URL, item.Type, item.Hop, item.ID, false)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating Facebook embed item")
 				} else {
@@ -319,7 +319,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 			if highwindsURL == nil {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while generating libsyn URL")
 			} else {
-				highwindsItem, err := queue.NewItem(highwindsURL, item, item.Type, item.Hop, item.ID, false)
+				highwindsItem, err := queue.NewItem(highwindsURL, item.URL, item.Type, item.Hop, item.ID, false)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating libsyn highwinds item")
 				} else {
@@ -337,7 +337,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		telegram.TransformURL(item.URL)
 
 		// Then we create an item
-		embedItem, err := queue.NewItem(item.URL, item, item.Type, item.Hop, item.ID, false)
+		embedItem, err := queue.NewItem(item.URL, item.URL, item.Type, item.Hop, item.ID, false)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating Telegram embed item")
 		} else {
@@ -356,7 +356,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	if err != nil && err.Error() == "URL from redirection has already been seen" {
 		return err
 	} else if err != nil && err.Error() == "URL is being rate limited, sending back to HQ" {
-		newItem, err := queue.NewItem(item.URL, item.Parent, item.Type, item.Hop, "", true)
+		newItem, err := queue.NewItem(item.URL, item.ParentURL, item.Type, item.Hop, "", true)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating new item")
 			return err
@@ -596,7 +596,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 		// We ban googlevideo.com URLs because they are heavily rate limited by default, and
 		// we don't want the crawler to spend an innapropriate amount of time archiving them
-		if strings.Contains(item.Host, "googlevideo.com") {
+		if strings.Contains(item.URL.Host, "googlevideo.com") {
 			continue
 		}
 
@@ -620,7 +620,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 			defer swg.Done()
 
 			// Create the asset's item
-			newAsset, err := queue.NewItem(asset, item, "asset", item.Hop, "", false)
+			newAsset, err := queue.NewItem(asset, item.URL, "asset", item.Hop, "", false)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, asset, map[string]interface{}{
 					"parentHop": item.Hop,
