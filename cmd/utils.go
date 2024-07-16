@@ -95,11 +95,9 @@ func InitCrawlWithCMD(flags config.Flags) *crawl.Crawl {
 
 	c.JobPath = path.Join("jobs", flags.Job)
 
-	c.Workers = flags.Workers
-	c.WorkerPool = make([]*crawl.Worker, 0)
-	c.WorkerStopTimeout = time.Second * 60 // Placeholder for WorkerStopTimeout
+	c.Workers = crawl.NewPool(uint(flags.Workers), time.Second*60, c)
+
 	c.MaxConcurrentAssets = flags.MaxConcurrentAssets
-	c.WorkerStopSignal = make(chan bool)
 
 	c.Seencheck = flags.Seencheck
 	c.HTTPTimeout = flags.HTTPTimeout

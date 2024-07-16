@@ -4,7 +4,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
@@ -46,10 +48,11 @@ type workerState struct {
 
 type Worker struct {
 	sync.Mutex
-	id              uint
-	state           *workerState
-	doneSignal      chan bool
-	crawlParameters *Crawl
+	ID         uuid.UUID
+	state      *workerState
+	doneSignal chan bool
+	pool       *WorkerPool
+	logger     *log.Entry
 }
 
 // Run is the key component of a crawl, it's a background processed dispatched
@@ -63,9 +66,9 @@ func (w *Worker) Run() {
 			w.Lock()
 			w.state.currentItem = nil
 			w.state.status = completed
-			w.crawlParameters.Log.Info("Worker stopped", "worker", w.id)
+			w.logger.Info("Worker stopped")
 			return
-		case item := <-w.crawlParameters.Frontier.PullChan:
+		case item := <-w.pool.Crawl.Frontier.PullChan:
 			// Can it happen? I don't think so but let's be safe
 			if item == nil {
 				continue
@@ -73,15 +76,15 @@ func (w *Worker) Run() {
 			w.Lock()
 
 			// If the crawl is paused, we wait until it's resumed
-			for w.crawlParameters.Paused.Get() || w.crawlParameters.Frontier.Paused.Get() {
+			for w.pool.Crawl.Paused.Get() || w.pool.Crawl.Frontier.Paused.Get() {
 				time.Sleep(time.Second)
 			}
 
 			// If the host of the item is in the host exclusion list, we skip it
-			if utils.StringInSlice(item.Host, w.crawlParameters.ExcludedHosts) || !w.crawlParameters.checkIncludedHosts(item.Host) {
-				if w.crawlParameters.UseHQ {
+			if utils.StringInSlice(item.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.checkIncludedHosts(item.Host) {
+				if w.pool.Crawl.UseHQ {
 					// If we are using the HQ, we want to mark the item as done
-					w.crawlParameters.HQFinishedChannel <- item
+					w.pool.Crawl.HQFinishedChannel <- item
 				}
 				w.Unlock()
 				continue
@@ -101,12 +104,12 @@ func (w *Worker) unsafeCapture(item *frontier.Item) {
 	}
 
 	// Signals that the worker is processing an item
-	w.crawlParameters.ActiveWorkers.Incr(1)
+	w.pool.Crawl.ActiveWorkers.Incr(1)
 	w.state.currentItem = item
 	w.state.status = processing
 
 	// Capture the item
-	err := w.crawlParameters.Capture(item)
+	err := w.pool.Crawl.Capture(item)
 	if err != nil {
 		w.unsafePushLastError(err)
 	}
@@ -115,12 +118,15 @@ func (w *Worker) unsafeCapture(item *frontier.Item) {
 	w.state.status = idle
 	w.state.currentItem = nil
 	w.state.previousItem = item
-	w.crawlParameters.ActiveWorkers.Incr(-1)
+	w.pool.Crawl.ActiveWorkers.Incr(-1)
 	w.state.lastSeen = time.Now()
 }
 
 func (w *Worker) Stop() {
 	w.doneSignal <- true
+	for w.state.status != completed {
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 // unsafePushLastError is named like so because it should only be called when the worker is locked
@@ -128,16 +134,27 @@ func (w *Worker) unsafePushLastError(err error) {
 	w.state.lastError = err
 }
 
-func newWorker(crawlParameters *Crawl, id uint) *Worker {
-	return &Worker{
-		id: id,
+func (wp *WorkerPool) NewWorker(crawlParameters *Crawl) *Worker {
+	UUID := uuid.New()
+	worker := &Worker{
+		ID: UUID,
+		logger: crawlParameters.Log.WithFields(map[string]interface{}{
+			"worker": UUID,
+		}), // This is a bit weird but it provides every worker with a logger that has the worker UUID
 		state: &workerState{
 			status:       idle,
 			previousItem: nil,
 			currentItem:  nil,
 			lastError:    nil,
 		},
-		doneSignal:      make(chan bool, 1),
-		crawlParameters: crawlParameters,
+		doneSignal: make(chan bool, 1),
+		pool:       wp,
 	}
+
+	_, loaded := wp.Workers.LoadOrStore(UUID, worker)
+	if loaded {
+		panic("Worker UUID already exists, wtf?")
+	}
+
+	return worker
 }
