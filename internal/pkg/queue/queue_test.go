@@ -301,12 +301,19 @@ func TestParallelEnqueueDequeue(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < numItems; j++ {
 				urlStr := fmt.Sprintf("http://example.com/%d/%d", workerID, j)
+
 				u, err := url.Parse(urlStr)
 				if err != nil {
 					t.Errorf("Failed to parse URL: %v", err)
 					continue
 				}
-				item := &Item{URL: u}
+
+				item, err := NewItem(u, nil, "page", 1, fmt.Sprintf("id-%d", i), false)
+				if err != nil {
+					t.Errorf("Failed to create item %d: %v", i, err)
+					continue
+				}
+
 				err = q.Enqueue(item)
 				if err != nil {
 					t.Errorf("Failed to enqueue item: %v", err)
