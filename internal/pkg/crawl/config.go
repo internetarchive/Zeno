@@ -65,6 +65,7 @@ type Crawl struct {
 	Seencheck                      bool
 	Workers                        int
 	RandomLocalIP                  bool
+	MinSpaceRequired               int
 
 	// Cookie-related settings
 	CookieFile  string
@@ -214,6 +215,8 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.IncludedHosts = config.IncludeHosts
 	c.CaptureAlternatePages = config.CaptureAlternatePages
 	c.ExcludedStrings = config.ExcludeString
+
+	c.MinSpaceRequired = config.MinSpaceRequired
 
 	// WARC settings
 	c.WARCPrefix = config.WARCPrefix

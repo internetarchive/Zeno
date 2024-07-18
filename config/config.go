@@ -48,6 +48,7 @@ type Config struct {
 	CrawlMaxTimeLimit              int      `mapstructure:"crawl-max-time-limit"`
 	ExcludeString                  []string `mapstructure:"exclude-string"`
 	RandomLocalIP                  bool     `mapstructure:"random-local-ip"`
+	MinSpaceRequired               int      `mapstructure:"min-space-required"`
 
 	// Get flags (Proxy flags)
 	Proxy              string   `mapstructure:"proxy"`
