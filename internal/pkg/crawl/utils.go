@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"fmt"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -52,8 +53,10 @@ func (c *Crawl) checkIncludedHosts(host string) bool {
 
 func (c *Crawl) handleCrawlPause() {
 	for {
-		if float64(utils.GetFreeDiskSpace(c.JobPath).Avail)/float64(GB) <= 20 {
-			logrus.Errorln("Not enough disk space. Please free some space and restart the crawler.")
+		spaceLeft := float64(utils.GetFreeDiskSpace(c.JobPath).Avail) / float64(GB)
+		if spaceLeft <= float64(c.MinSpaceRequired) {
+			logrus.Errorln(fmt.Sprintf("Not enough disk space: %d GB required, %f GB available. "+
+				"Please free some space for the crawler to resume.", c.MinSpaceRequired, spaceLeft))
 			c.Paused.Set(true)
 			c.Frontier.Paused.Set(true)
 		} else {

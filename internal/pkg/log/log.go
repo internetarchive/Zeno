@@ -44,6 +44,7 @@ type Config struct {
 	RotateLogFile            bool
 	ElasticsearchConfig      *ElasticsearchConfig
 	RotateElasticSearchIndex bool
+	LiveStats                bool
 }
 
 // New creates a new Logger instance with the given configuration.
@@ -60,10 +61,12 @@ func New(cfg Config) (*Logger, error) {
 	var handlers []slog.Handler
 
 	// Create stdout handler
-	stdoutHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: cfg.StdoutLevel,
-	})
-	handlers = append(handlers, stdoutHandler)
+	if !cfg.LiveStats {
+		stdoutHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: cfg.StdoutLevel,
+		})
+		handlers = append(handlers, stdoutHandler)
+	}
 
 	// Create file handler if FileOutput is specified
 	if cfg.FileConfig != nil {
