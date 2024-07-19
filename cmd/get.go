@@ -1,12 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"net/url"
-
-	"github.com/internetarchive/Zeno/internal/pkg/crawl"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +27,7 @@ func getCMDs() *cobra.Command {
 func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("user-agent", "Zeno", "User agent to use when requesting URLs.")
 	getCmd.PersistentFlags().String("job", "", "Job name to use, will determine the path for the persistent queue, seencheck database, and WARC files.")
-	getCmd.PersistentFlags().Int("workers", 1, "Number of concurrent workers to run.")
+	getCmd.PersistentFlags().IntP("workers", "w", 1, "Number of concurrent workers to run.")
 	getCmd.PersistentFlags().Int("max-concurrent-assets", 8, "Max number of concurrent assets to fetch PER worker. E.g. if you have 100 workers and this setting at 8, Zeno could do up to 800 concurrent requests at any time.")
 	getCmd.PersistentFlags().Uint("max-hops", 0, "Maximum number of hops to execute.")
 	getCmd.PersistentFlags().String("cookies", "", "File containing cookies that will be used for requests.")
@@ -42,7 +36,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("local-seencheck", false, "Simple local seencheck to avoid re-crawling of URIs.")
 	getCmd.PersistentFlags().Bool("json", false, "Output logs in JSON")
 	getCmd.PersistentFlags().Bool("debug", false, "")
-	getCmd.PersistentFlags().Bool("api", false, "")
+	getCmd.PersistentFlags().Bool("api", false, "Enable API")
 	getCmd.PersistentFlags().String("api-port", "9443", "Port to listen on for the API.")
 	getCmd.PersistentFlags().Bool("prometheus", false, "Export metrics in Prometheus format. (implies --api)")
 	getCmd.PersistentFlags().String("prometheus-prefix", "zeno:", "String used as a prefix for the exported Prometheus metrics.")
@@ -86,157 +80,22 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("es-user", "", "ElasticSearch username to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-password", "", "ElasticSearch password to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-index-prefix", "zeno", "ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno`, without `-`")
-}
 
-var getURLCmd = &cobra.Command{
-	Use:   "url [URL...]",
-	Short: "Archive given URLs",
-	Args:  cobra.MinimumNArgs(1),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cfg == nil {
-			return fmt.Errorf("viper config is nil")
-		}
-		return nil
-	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Init crawl using the flags provided
-		crawl, err := crawl.GenerateCrawlConfig(cfg)
-		if err != nil {
-			if crawl != nil && crawl.Log != nil {
-				crawl.Log.WithFields(logrus.Fields{
-					"crawl": crawl,
-					"err":   err.Error(),
-				}).Error("'get url' exited due to error")
-			}
-			return err
-		}
+	// Alias support
+	// As cobra doesn't support aliases natively (couldn't find a way to do it), we have to do it manually
+	// This is a workaround to allow users to use `--hops` instead of `--max-hops` for example
+	// Aliases shouldn't be used as proper flags nor declared in the config struct
+	// Aliases should be marked as deprecated to inform the user base
+	// Aliases values should be copied to the proper flag in the config/config.go:handleFlagsAliases() function
+	getCmd.PersistentFlags().Uint("hops", 0, "Maximum number of hops to execute.")
+	getCmd.PersistentFlags().MarkDeprecated("hops", "use --max-hops instead")
+	getCmd.PersistentFlags().MarkHidden("hops")
 
-		// Initialize initial seed list
-		for _, arg := range args {
-			input, err := url.Parse(arg)
-			if err != nil {
-				crawl.Log.WithFields(logrus.Fields{
-					"input_url": arg,
-					"err":       err.Error(),
-				}).Error("given URL is not a valid input")
-				return err
-			}
+	getCmd.PersistentFlags().Uint("ca", 8, "Max number of concurrent assets to fetch PER worker. E.g. if you have 100 workers and this setting at 8, Zeno could do up to 800 concurrent requests at any time.")
+	getCmd.PersistentFlags().MarkDeprecated("ca", "use --max-concurrent-assets")
+	getCmd.PersistentFlags().MarkHidden("ca")
 
-			crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, "seed", 0, "", false))
-		}
-
-		// Start crawl
-		err = crawl.Start()
-		if err != nil {
-			crawl.Log.WithFields(logrus.Fields{
-				"crawl": crawl,
-				"err":   err.Error(),
-			}).Error("'get url' Crawl() exited due to error")
-			return err
-		}
-
-		crawl.Log.Info("Crawl finished")
-		return err
-	},
-}
-
-var getHQCmd = &cobra.Command{
-	Use:   "hq",
-	Short: "Start crawling with the crawl HQ connector.",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cfg == nil {
-			return fmt.Errorf("viper config is nil")
-		}
-		cfg.HQ = true
-		return nil
-	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Init crawl using the flags provided
-		crawl, err := crawl.GenerateCrawlConfig(cfg)
-		if err != nil {
-			if crawl != nil && crawl.Log != nil {
-				crawl.Log.WithFields(logrus.Fields{
-					"crawl": crawl,
-					"err":   err.Error(),
-				}).Error("'get hq' exited due to error")
-			}
-			return err
-		}
-
-		// start crawl
-		err = crawl.Start()
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"crawl": crawl,
-				"err":   err.Error(),
-			}).Error("'get hq' Crawl() exited due to error")
-			return err
-		}
-
-		return nil
-	},
-}
-
-func getHQCmdFlags(getHQCmd *cobra.Command) {
-	// Crawl HQ flags
-	getHQCmd.PersistentFlags().String("hq-address", "", "Crawl HQ address.")
-	getHQCmd.PersistentFlags().String("hq-key", "", "Crawl HQ key.")
-	getHQCmd.PersistentFlags().String("hq-secret", "", "Crawl HQ secret.")
-	getHQCmd.PersistentFlags().String("hq-project", "", "Crawl HQ project.")
-	getHQCmd.PersistentFlags().Int64("hq-batch-size", 0, "Crawl HQ feeding batch size.")
-	getHQCmd.PersistentFlags().Bool("hq-continuous-pull", false, "If turned on, the crawler will pull URLs from Crawl HQ continuously.")
-	getHQCmd.PersistentFlags().String("hq-strategy", "lifo", "Crawl HQ feeding strategy.")
-	getHQCmd.PersistentFlags().Bool("hq-rate-limiting-send-back", false, "If turned on, the crawler will send back URLs that hit a rate limit to crawl HQ.")
-}
-
-var getListCmd = &cobra.Command{
-	Use:   "list [FILE]",
-	Short: "Start crawling with a seed list",
-	Args:  cobra.ExactArgs(1),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cfg == nil {
-			return fmt.Errorf("viper config is nil")
-		}
-		return nil
-	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Init crawl using the flags provided
-		crawl, err := crawl.GenerateCrawlConfig(cfg)
-		if err != nil {
-			if crawl != nil && crawl.Log != nil {
-				crawl.Log.WithFields(logrus.Fields{
-					"crawl": crawl,
-					"err":   err.Error(),
-				}).Error("'get hq' exited due to error")
-			}
-			return err
-		}
-
-		// Initialize initial seed list
-		crawl.SeedList, err = frontier.IsSeedList(args[0])
-		if err != nil || len(crawl.SeedList) <= 0 {
-			logrus.WithFields(logrus.Fields{
-				"input": args[0],
-				"err":   err.Error(),
-			}).Error("This is not a valid input")
-			return err
-		}
-
-		logrus.WithFields(logrus.Fields{
-			"input":      args[0],
-			"seedsCount": len(crawl.SeedList),
-		}).Print("Seed list loaded")
-
-		// Start crawl
-		err = crawl.Start()
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"crawl": crawl,
-				"err":   err.Error(),
-			}).Error("Crawl exited due to error")
-			return err
-		}
-
-		return nil
-	},
+	getCmd.PersistentFlags().Int("msr", 20, "Minimum space required in GB to continue the crawl.")
+	getCmd.PersistentFlags().MarkDeprecated("msr", "use --min-space-required instead")
+	getCmd.PersistentFlags().MarkHidden("msr")
 }

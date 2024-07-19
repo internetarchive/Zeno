@@ -133,6 +133,9 @@ func InitConfig() error {
 		// This function is used to bring logic to the flags when needed (e.g. live-stats)
 		handleFlagsEdgeCases()
 
+		// This function is used to handle flags aliases (e.g. hops -> max-hops)
+		handleFlagsAliases()
+
 		// Unmarshal the config into the Config struct
 		err = viper.Unmarshal(config)
 	})
@@ -166,5 +169,22 @@ func handleFlagsEdgeCases() {
 	if viper.GetBool("prometheus") {
 		// If prometheus is true, set no-stdout-log to true
 		viper.Set("api", true)
+	}
+}
+
+func handleFlagsAliases() {
+	// For each flag we want to alias, we check if the original flag is at default and if the alias is not
+	// If so, we set the original flag to the value of the alias
+
+	if viper.GetUint("hops") != 0 && viper.GetUint("max-hops") == 0 {
+		viper.Set("max-hops", viper.GetUint("hops"))
+	}
+
+	if viper.GetInt("ca") != 8 && viper.GetInt("max-concurrent-assets") == 8 {
+		viper.Set("max-concurrent-assets", viper.GetInt("ca"))
+	}
+
+	if viper.GetInt("msr") != 20 && viper.GetInt("min-space-required") == 20 {
+		viper.Set("min-space-required", viper.GetInt("msr"))
 	}
 }
