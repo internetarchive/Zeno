@@ -122,7 +122,7 @@ func (c *Crawl) HQProducer() {
 
 		// The reason we are using a string instead of a bool is because
 		// gob's encode/decode doesn't properly support booleans
-		if discoveredItem.BypassSeencheck == true {
+		if discoveredItem.BypassSeencheck {
 			for {
 				_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "seed", true, false)
 				if err != nil {
