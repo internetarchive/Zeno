@@ -134,6 +134,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 			Prefix: "zeno",
 		},
 		FileLevel:                slog.LevelDebug,
+		StdoutEnabled:            !config.NoStdoutLogging,
 		StdoutLevel:              slog.LevelInfo,
 		RotateLogFile:            true,
 		RotateElasticSearchIndex: true,
@@ -244,7 +245,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.Prometheus = config.Prometheus
 	if c.Prometheus {
 		c.API = true
-		c.PrometheusMetrics = new(PrometheusMetrics)
+		c.PrometheusMetrics = &PrometheusMetrics{}
 		c.PrometheusMetrics.Prefix = config.PrometheusPrefix
 	}
 

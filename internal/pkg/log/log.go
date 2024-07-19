@@ -40,11 +40,11 @@ type Logger struct {
 type Config struct {
 	FileConfig               *LogfileConfig
 	FileLevel                slog.Level
+	StdoutEnabled            bool
 	StdoutLevel              slog.Level
 	RotateLogFile            bool
 	ElasticsearchConfig      *ElasticsearchConfig
 	RotateElasticSearchIndex bool
-	LiveStats                bool
 }
 
 // New creates a new Logger instance with the given configuration.
@@ -61,7 +61,7 @@ func New(cfg Config) (*Logger, error) {
 	var handlers []slog.Handler
 
 	// Create stdout handler
-	if !cfg.LiveStats {
+	if cfg.StdoutEnabled {
 		stdoutHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: cfg.StdoutLevel,
 		})

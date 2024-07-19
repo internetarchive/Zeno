@@ -79,6 +79,7 @@ type Config struct {
 	HQRateLimitSendBack bool   `mapstructure:"hq-rate-limiting-send-back"`
 
 	// Get flags (Logging flags)
+	NoStdoutLogging          bool     `mapstructure:"no-stdout-log"`
 	LogFileOutputDir         string   `mapstructure:"log-file-output-dir"`
 	ElasticSearchURLs        []string `mapstructure:"es-url"`
 	ElasticSearchUsername    string   `mapstructure:"es-user"`
@@ -140,6 +141,9 @@ func InitConfig() error {
 			}
 		}
 
+		// This function is used to bring logic to the flags when needed (e.g. live-stats)
+		handleFlagsEdgeCases()
+
 		// Unmarshal the config into the Config struct
 		err = viper.Unmarshal(config)
 	})
@@ -162,4 +166,16 @@ func GetConfig() *Config {
 		panic("Config not initialized. Call InitConfig() before accessing the config.")
 	}
 	return cfg
+}
+
+func handleFlagsEdgeCases() {
+	if viper.GetBool("live-stats") {
+		// If live-stats is true, set no-stdout-log to true
+		viper.Set("no-stdout-log", true)
+	}
+
+	if viper.GetBool("prometheus") {
+		// If prometheus is true, set no-stdout-log to true
+		viper.Set("api", true)
+	}
 }

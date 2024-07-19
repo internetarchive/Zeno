@@ -42,11 +42,10 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("local-seencheck", false, "Simple local seencheck to avoid re-crawling of URIs.")
 	getCmd.PersistentFlags().Bool("json", false, "Output logs in JSON")
 	getCmd.PersistentFlags().Bool("debug", false, "")
-	getCmd.PersistentFlags().Bool("live-stats", false, "")
 	getCmd.PersistentFlags().Bool("api", false, "")
 	getCmd.PersistentFlags().String("api-port", "9443", "Port to listen on for the API.")
-	getCmd.PersistentFlags().Bool("prometheus", false, "Export metrics in Prometheus format, using this setting imply --api.")
-	getCmd.PersistentFlags().String("prometheus-prefix", "String used as a prefix for the exported Prometheus metrics.", "zeno:")
+	getCmd.PersistentFlags().Bool("prometheus", false, "Export metrics in Prometheus format. (implies --api)")
+	getCmd.PersistentFlags().String("prometheus-prefix", "zeno:", "String used as a prefix for the exported Prometheus metrics.")
 	getCmd.PersistentFlags().Int("max-redirect", 20, "Specifies the maximum number of redirections to follow for a resource.")
 	getCmd.PersistentFlags().Int("max-retry", 20, "Number of retry if error happen when executing HTTP request.")
 	getCmd.PersistentFlags().Int("http-timeout", 30, "Number of seconds to wait before timing out a request.")
@@ -81,6 +80,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("cdx-cookie", "", "Pass custom cookie during CDX requests. Example: 'cdx_auth_token=test_value'")
 
 	// Logging flags
+	getCmd.PersistentFlags().Bool("live-stats", false, "Enable live stats but disable logging. (implies --no-stdout-log)")
 	getCmd.PersistentFlags().String("log-file-output-dir", "./jobs/", "Directory to write log files to.")
 	getCmd.PersistentFlags().String("es-url", "", "comma-separated ElasticSearch URL to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-user", "", "ElasticSearch username to use for indexing crawl logs.")
