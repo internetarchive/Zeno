@@ -1,37 +1,25 @@
+// Zeno is a web crawler designed to operate wide crawls or to simply archive one web page.
+// Zeno's key concepts are: portability, performance, simplicity ; with an emphasis on performance.
+
+// Authors:
+//
+//	Corentin Barreau <corentin@archive.org>
+//	Jake LaFountain <jakelf@archive.org>
+//	Thomas Foubert <thomas@archive.org>
 package main
 
 import (
+	"fmt"
 	"os"
 
 	_ "net/http/pprof"
 
 	"github.com/internetarchive/Zeno/cmd"
-	_ "github.com/internetarchive/Zeno/cmd/all"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 )
 
 func main() {
-	app := cli.NewApp()
-	app.Name = "Zeno"
-	app.Version = utils.GetVersion().Version
-	app.Authors = append(app.Authors, &cli.Author{Name: "Corentin Barreau", Email: "corentin@archive.org"})
-	app.Usage = ""
-
-	app.Flags = cmd.GlobalFlags
-	app.Commands = cmd.Commands
-	app.CommandNotFound = cmd.CommandNotFound
-	app.Before = func(context *cli.Context) error {
-		return nil
-	}
-
-	app.After = func(context *cli.Context) error {
-		return nil
-	}
-
-	err := app.Run(os.Args)
-	if err != nil {
-		logrus.Panic(err)
+	if err := cmd.Run(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
