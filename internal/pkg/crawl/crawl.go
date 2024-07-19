@@ -3,18 +3,13 @@ package crawl
 
 import (
 	"fmt"
-	"net/http"
-	"path"
 	"sync"
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/queue"
-	"github.com/internetarchive/Zeno/internal/pkg/seencheck"
+	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/paulbellamy/ratecounter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"github.com/telanflow/cookiejar"
@@ -25,106 +20,6 @@ import (
 type PrometheusMetrics struct {
 	Prefix        string
 	DownloadedURI prometheus.Counter
-}
-
-// Crawl define the parameters of a crawl process
-type Crawl struct {
-	*sync.Mutex
-	StartTime time.Time
-	SeedList  []queue.Item
-	Paused    *utils.TAtomBool
-	Finished  *utils.TAtomBool
-	LiveStats bool
-
-	// Logger
-	Log *log.Logger
-
-	// Frontier
-	Queue        *queue.PersistentGroupedQueue
-	Seencheck    *seencheck.Seencheck
-	UseSeencheck bool
-
-	// Worker pool
-	WorkerMutex       sync.RWMutex
-	WorkerPool        []*Worker
-	WorkerStopSignal  chan bool
-	WorkerStopTimeout time.Duration
-
-	// Crawl settings
-	MaxConcurrentAssets            uint64
-	Client                         *warc.CustomHTTPClient
-	ClientProxied                  *warc.CustomHTTPClient
-	DisabledHTMLTags               []string
-	ExcludedHosts                  []string
-	IncludedHosts                  []string
-	ExcludedStrings                []string
-	UserAgent                      string
-	Job                            string
-	JobPath                        string
-	MaxHops                        uint64
-	MaxRetry                       uint64
-	MaxRedirect                    uint64
-	HTTPTimeout                    uint64
-	MaxConcurrentRequestsPerDomain uint64
-	RateLimitDelay                 uint64
-	CrawlTimeLimit                 uint64
-	MaxCrawlTimeLimit              uint64
-	DisableAssetsCapture           bool
-	CaptureAlternatePages          bool
-	DomainsCrawl                   bool
-	Headless                       bool
-	Workers                        uint64
-	RandomLocalIP                  bool
-	MinSpaceRequired               uint64
-
-	// Cookie-related settings
-	CookieFile  string
-	KeepCookies bool
-	CookieJar   http.CookieJar
-
-	// proxy settings
-	Proxy       string
-	BypassProxy []string
-
-	// API settings
-	API               bool
-	APIPort           string
-	PrometheusMetrics *PrometheusMetrics
-
-	// Real time statistics
-	URIsPerSecond *ratecounter.RateCounter
-	ActiveWorkers *ratecounter.Counter
-	CrawledSeeds  *ratecounter.Counter
-	CrawledAssets *ratecounter.Counter
-
-	// WARC settings
-	WARCPrefix         string
-	WARCOperator       string
-	WARCWriter         chan *warc.RecordBatch
-	WARCWriterFinish   chan bool
-	WARCTempDir        string
-	CDXDedupeServer    string
-	WARCFullOnDisk     bool
-	WARCPoolSize       int
-	WARCDedupSize      int
-	DisableLocalDedupe bool
-	CertValidation     bool
-	WARCCustomCookie   string
-
-	// Crawl HQ settings
-	UseHQ                  bool
-	HQAddress              string
-	HQProject              string
-	HQKey                  string
-	HQSecret               string
-	HQStrategy             string
-	HQBatchSize            int
-	HQContinuousPull       bool
-	HQClient               *gocrawlhq.Client
-	HQFinishedChannel      chan *queue.Item
-	HQProducerChannel      chan *queue.Item
-	HQChannelsWg           *sync.WaitGroup
-	HQRateLimitingSendBack bool
 }
 
 // Start fire up the crawling process
