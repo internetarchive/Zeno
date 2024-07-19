@@ -99,7 +99,7 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 					continue
 				}
 			}
-		} else if c.MaxHops >= item.Hop+1 {
+		} else if uint64(c.MaxHops) >= item.Hop+1 {
 			newItem, err := queue.NewItem(outlink, item.URL, "seed", item.Hop+1, "", false)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to create new item from outlink, discarding")

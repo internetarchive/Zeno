@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	"github.com/internetarchive/Zeno/internal/pkg/crawl"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +43,15 @@ var getURLCmd = &cobra.Command{
 				return err
 			}
 
-			crawl.SeedList = append(crawl.SeedList, *frontier.NewItem(input, nil, "seed", 0, "", false))
+			item, err := queue.NewItem(input, nil, "seed", 0, "", false)
+			if err != nil {
+				crawl.Log.WithFields(map[string]interface{}{
+					"input_url": arg,
+					"err":       err.Error(),
+				}).Error("Failed to create new item")
+				return err
+			}
+			crawl.SeedList = append(crawl.SeedList, *item)
 		}
 
 		// Start crawl

@@ -66,7 +66,7 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 	//}
 
 	// Retry on 429 error
-	for retry := uint64(0); retry < c.MaxRetry; retry++ {
+	for retry := uint8(0); retry < c.MaxRetry; retry++ {
 		// Execute GET request
 		if c.ClientProxied == nil || utils.StringContainsSliceElements(req.URL.Host, c.BypassProxy) {
 			resp, err = c.Client.Do(req)
@@ -129,7 +129,7 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 
 	// If a redirection is catched, then we execute the redirection
 	if isStatusCodeRedirect(resp.StatusCode) {
-		if resp.Header.Get("location") == utils.URLToString(req.URL) || item.Redirect >= c.MaxRedirect {
+		if resp.Header.Get("location") == utils.URLToString(req.URL) || item.Redirect >= uint64(c.MaxRedirect) {
 			return resp, nil
 		}
 		defer resp.Body.Close()
@@ -436,7 +436,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 	// If the response isn't a text/*, we do not scrape it.
 	// We also aren't going to scrape if assets and outlinks are turned off.
-	if !strings.Contains(resp.Header.Get("Content-Type"), "text/") || (c.DisableAssetsCapture && !c.DomainsCrawl && (c.MaxHops <= item.Hop)) {
+	if !strings.Contains(resp.Header.Get("Content-Type"), "text/") || (c.DisableAssetsCapture && !c.DomainsCrawl && (uint64(c.MaxHops) <= item.Hop)) {
 		// Enforce reading all data from the response for WARC writing
 		_, err := io.Copy(io.Discard, resp.Body)
 		if err != nil {

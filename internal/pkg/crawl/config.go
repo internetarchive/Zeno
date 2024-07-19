@@ -12,8 +12,9 @@ import (
 	"github.com/CorentinB/warc"
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/config"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
+	"github.com/internetarchive/Zeno/internal/pkg/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/paulbellamy/ratecounter"
 )
@@ -22,7 +23,7 @@ import (
 type Crawl struct {
 	*sync.Mutex
 	StartTime time.Time
-	SeedList  []frontier.Item
+	SeedList  []queue.Item
 	Paused    *utils.TAtomBool
 	Finished  *utils.TAtomBool
 	LiveStats bool
@@ -30,8 +31,10 @@ type Crawl struct {
 	// Logger
 	Log *log.Logger
 
-	// Frontier
-	Frontier *frontier.Frontier
+	// Queue (ex-frontier)
+	Queue        *queue.PersistentGroupedQueue
+	Seencheck    *seencheck.Seencheck
+	UseSeencheck bool
 
 	// Worker pool
 	WorkerMutex       sync.RWMutex
@@ -51,8 +54,8 @@ type Crawl struct {
 	Job                            string
 	JobPath                        string
 	MaxHops                        uint8
-	MaxRetry                       int
-	MaxRedirect                    int
+	MaxRetry                       uint8
+	MaxRedirect                    uint8
 	HTTPTimeout                    int
 	MaxConcurrentRequestsPerDomain int
 	RateLimitDelay                 int
@@ -62,7 +65,6 @@ type Crawl struct {
 	CaptureAlternatePages          bool
 	DomainsCrawl                   bool
 	Headless                       bool
-	Seencheck                      bool
 	Workers                        int
 	RandomLocalIP                  bool
 	MinSpaceRequired               int
@@ -112,8 +114,8 @@ type Crawl struct {
 	HQBatchSize            int
 	HQContinuousPull       bool
 	HQClient               *gocrawlhq.Client
-	HQFinishedChannel      chan *frontier.Item
-	HQProducerChannel      chan *frontier.Item
+	HQFinishedChannel      chan *queue.Item
+	HQProducerChannel      chan *queue.Item
 	HQChannelsWg           *sync.WaitGroup
 	HQRateLimitingSendBack bool
 }
@@ -164,10 +166,6 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 
 	c.LiveStats = config.LiveStats
 
-	// Frontier
-	c.Frontier = new(frontier.Frontier)
-	c.Frontier.Log = c.Log
-
 	// If the job name isn't specified, we generate a random name
 	if config.Job == "" {
 		if config.HQProject != "" {
@@ -193,7 +191,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.MaxConcurrentAssets = config.MaxConcurrentAssets
 	c.WorkerStopSignal = make(chan bool)
 
-	c.Seencheck = config.LocalSeencheck
+	c.UseSeencheck = config.LocalSeencheck
 	c.HTTPTimeout = config.HTTPTimeout
 	c.MaxConcurrentRequestsPerDomain = config.MaxConcurrentRequestsPerDomain
 	c.RateLimitDelay = config.ConcurrentSleepLength
@@ -208,7 +206,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 
 	c.MaxRetry = config.MaxRetry
 	c.MaxRedirect = config.MaxRedirect
-	c.MaxHops = uint8(config.MaxHops)
+	c.MaxHops = config.MaxHops
 	c.DomainsCrawl = config.DomainsCrawl
 	c.DisableAssetsCapture = config.DisableAssetsCapture
 	c.DisabledHTMLTags = config.DisableHTMLTag

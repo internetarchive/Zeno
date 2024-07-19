@@ -43,9 +43,9 @@ type Config struct {
 	ElasticSearchURLs              []string `mapstructure:"es-url"`
 	WorkersCount                   int      `mapstructure:"workers"`
 	MaxConcurrentAssets            int      `mapstructure:"max-concurrent-assets"`
-	MaxHops                        uint     `mapstructure:"max-hops"`
-	MaxRedirect                    int      `mapstructure:"max-redirect"`
-	MaxRetry                       int      `mapstructure:"max-retry"`
+	MaxHops                        uint8    `mapstructure:"max-hops"`
+	MaxRedirect                    uint8    `mapstructure:"max-redirect"`
+	MaxRetry                       uint8    `mapstructure:"max-retry"`
 	HTTPTimeout                    int      `mapstructure:"http-timeout"`
 	MaxConcurrentRequestsPerDomain int      `mapstructure:"max-concurrent-per-domain"`
 	ConcurrentSleepLength          int      `mapstructure:"concurrent-sleep-length"`

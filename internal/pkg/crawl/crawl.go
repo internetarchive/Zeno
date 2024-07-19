@@ -3,12 +3,14 @@ package crawl
 
 import (
 	"fmt"
+	"path"
 	"sync"
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
+	"github.com/internetarchive/Zeno/internal/pkg/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"

@@ -29,7 +29,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("job", "", "Job name to use, will determine the path for the persistent queue, seencheck database, and WARC files.")
 	getCmd.PersistentFlags().IntP("workers", "w", 1, "Number of concurrent workers to run.")
 	getCmd.PersistentFlags().Int("max-concurrent-assets", 8, "Max number of concurrent assets to fetch PER worker. E.g. if you have 100 workers and this setting at 8, Zeno could do up to 800 concurrent requests at any time.")
-	getCmd.PersistentFlags().Uint("max-hops", 0, "Maximum number of hops to execute.")
+	getCmd.PersistentFlags().Uint8("max-hops", 0, "Maximum number of hops to execute.")
 	getCmd.PersistentFlags().String("cookies", "", "File containing cookies that will be used for requests.")
 	getCmd.PersistentFlags().Bool("keep-cookies", false, "Keep a global cookie jar")
 	getCmd.PersistentFlags().Bool("headless", false, "Use headless browsers instead of standard GET requests.")
@@ -40,8 +40,8 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("api-port", "9443", "Port to listen on for the API.")
 	getCmd.PersistentFlags().Bool("prometheus", false, "Export metrics in Prometheus format. (implies --api)")
 	getCmd.PersistentFlags().String("prometheus-prefix", "zeno:", "String used as a prefix for the exported Prometheus metrics.")
-	getCmd.PersistentFlags().Int("max-redirect", 20, "Specifies the maximum number of redirections to follow for a resource.")
-	getCmd.PersistentFlags().Int("max-retry", 20, "Number of retry if error happen when executing HTTP request.")
+	getCmd.PersistentFlags().Uint8("max-redirect", 20, "Specifies the maximum number of redirections to follow for a resource.")
+	getCmd.PersistentFlags().Uint8("max-retry", 20, "Number of retry if error happen when executing HTTP request.")
 	getCmd.PersistentFlags().Int("http-timeout", 30, "Number of seconds to wait before timing out a request.")
 	getCmd.PersistentFlags().Bool("domains-crawl", false, "If this is turned on, seeds will be treated as domains to crawl, therefore same-domain outlinks will be added to the queue as hop=0.")
 	getCmd.PersistentFlags().StringSlice("disable-html-tag", []string{}, "Specify HTML tag to not extract assets from")
@@ -87,7 +87,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	// Aliases shouldn't be used as proper flags nor declared in the config struct
 	// Aliases should be marked as deprecated to inform the user base
 	// Aliases values should be copied to the proper flag in the config/config.go:handleFlagsAliases() function
-	getCmd.PersistentFlags().Uint("hops", 0, "Maximum number of hops to execute.")
+	getCmd.PersistentFlags().Uint8("hops", 0, "Maximum number of hops to execute.")
 	getCmd.PersistentFlags().MarkDeprecated("hops", "use --max-hops instead")
 	getCmd.PersistentFlags().MarkHidden("hops")
 
