@@ -50,7 +50,9 @@ func (crawl *Crawl) startAPI() {
 		json.NewEncoder(w).Encode(response)
 	})
 
-	http.HandleFunc("/metrics", setupPrometheus(crawl).ServeHTTP)
+	if crawl.Prometheus {
+		http.HandleFunc("/metrics", setupPrometheus(crawl).ServeHTTP)
+	}
 
 	http.HandleFunc("/workers", func(w http.ResponseWriter, r *http.Request) {
 		workersState := crawl.GetWorkerState(-1)
