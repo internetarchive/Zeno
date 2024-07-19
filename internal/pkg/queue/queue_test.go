@@ -297,7 +297,7 @@ func TestParallelEnqueueDequeue(t *testing.T) {
 	)
 
 	var wg sync.WaitGroup
-	wg.Add(numWorkers * 2) // For both enqueuers and dequeuers
+	wg.Add(numWorkers + 1)
 
 	// Start enqueuers
 	for i := 0; i < numWorkers; i++ {
