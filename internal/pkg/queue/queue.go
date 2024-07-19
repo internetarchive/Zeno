@@ -28,8 +28,7 @@ type LogMessage struct {
 
 type PersistentGroupedQueue struct {
 	// Exported fields
-	Paused      *utils.TAtomBool
-	LoggingChan chan *LogMessage
+	Paused *utils.TAtomBool
 
 	queueFile       *os.File
 	metadataFile    *os.File
@@ -58,7 +57,7 @@ type Item struct {
 	Redirect        uint64
 }
 
-func NewPersistentGroupedQueue(queueDirPath string, loggingChan chan *LogMessage) (*PersistentGroupedQueue, error) {
+func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, error) {
 	err := os.MkdirAll(queueDirPath, 0755)
 	if err != nil {
 		return nil, err
@@ -75,8 +74,7 @@ func NewPersistentGroupedQueue(queueDirPath string, loggingChan chan *LogMessage
 	}
 
 	q := &PersistentGroupedQueue{
-		Paused:      new(utils.TAtomBool),
-		LoggingChan: loggingChan,
+		Paused: new(utils.TAtomBool),
 
 		queueFile:       file,
 		metadataFile:    metafile,

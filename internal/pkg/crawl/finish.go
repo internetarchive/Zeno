@@ -5,9 +5,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/internetarchive/Zeno/internal/pkg/queue"
-	"github.com/sirupsen/logrus"
 )
 
 // catchFinish is running in the background and detect when the crawl need to be terminated
@@ -20,11 +17,7 @@ func (crawl *Crawl) catchFinish() {
 	for {
 		time.Sleep(time.Second * 5)
 		if !crawl.UseHQ && crawl.ActiveWorkers.Value() == 0 && crawl.Queue.GetStats().TotalElements == 0 && !crawl.Finished.Get() && (crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() > 0) {
-			crawl.Queue.LoggingChan <- &queue.LogMessage{
-				Fields:  logrus.Fields{},
-				Message: "no more work to do, finishing",
-				Level:   logrus.WarnLevel,
-			}
+			crawl.Log.Warn("No more items to crawl, finishing..")
 			crawl.finish()
 		}
 	}

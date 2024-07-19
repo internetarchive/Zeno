@@ -112,9 +112,8 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	queuePath := path.Join(tempDir, "test_queue")
-	loggingChan := make(chan *LogMessage, 100)
 
-	q, err := NewPersistentGroupedQueue(queuePath, loggingChan)
+	q, err := NewPersistentGroupedQueue(queuePath)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -123,9 +122,6 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 	// Check if queue is properly initialized
 	if q.Paused == nil {
 		t.Error("Paused field not initialized")
-	}
-	if q.LoggingChan != loggingChan {
-		t.Error("LoggingChan not set correctly")
 	}
 	if q.queueFile == nil {
 		t.Error("queueFile not initialized")
@@ -158,9 +154,8 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	queuePath := path.Join(tempDir, "test_queue")
-	loggingChan := make(chan *LogMessage, 100)
 
-	q, err := NewPersistentGroupedQueue(queuePath, loggingChan)
+	q, err := NewPersistentGroupedQueue(queuePath)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -208,9 +203,8 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	queuePath := path.Join(tempDir, "test_queue")
-	loggingChan := make(chan *LogMessage, 1000000)
 
-	q, err := NewPersistentGroupedQueue(queuePath, loggingChan)
+	q, err := NewPersistentGroupedQueue(queuePath)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -283,9 +277,8 @@ func TestParallelEnqueueDequeue(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	queuePath := path.Join(tempDir, "test_queue")
-	loggingChan := make(chan *LogMessage, 100)
 
-	q, err := NewPersistentGroupedQueue(queuePath, loggingChan)
+	q, err := NewPersistentGroupedQueue(queuePath)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}

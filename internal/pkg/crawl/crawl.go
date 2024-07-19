@@ -13,7 +13,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 	"github.com/telanflow/cookiejar"
 	"mvdan.cc/xurls/v2"
 )
@@ -48,23 +47,8 @@ func (c *Crawl) Start() (err error) {
 	go c.setupCloseHandler()
 
 	// Initialize the queue & seencheck
-	queueLoggingChan := make(chan *queue.LogMessage, 10)
-	go func() {
-		for log := range queueLoggingChan {
-			switch log.Level {
-			case logrus.ErrorLevel:
-				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Error(log.Message)
-			case logrus.WarnLevel:
-				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Warn(log.Message)
-			case logrus.InfoLevel:
-				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Info(log.Message)
-			case logrus.DebugLevel:
-				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Debug(log.Message)
-			}
-		}
-	}()
-
-	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"), queueLoggingChan)
+	c.Log.Info("Initializing queue and seencheck..")
+	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"))
 	if err != nil {
 		c.Log.Fatal("unable to init queue", "error", err)
 	}
@@ -170,7 +154,7 @@ func (c *Crawl) Start() (err error) {
 	if c.UseHQ {
 		c.HQClient, err = gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
 		if err != nil {
-			logrus.Panic(err)
+			c.Log.Fatal("unable to init crawl HQ client", "error", err)
 		}
 
 		c.HQProducerChannel = make(chan *queue.Item, c.Workers)
