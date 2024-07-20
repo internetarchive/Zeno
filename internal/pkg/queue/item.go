@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/gosuri/uilive"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -17,6 +18,10 @@ import (
 func NewItem(URL *url.URL, parentURL *url.URL, itemType string, hop uint64, ID string, bypassSeencheck bool) (*Item, error) {
 	h := fnv.New64a()
 	h.Write([]byte(utils.URLToString(URL)))
+
+	if ID == "" {
+		ID = uuid.New().String()
+	}
 
 	return &Item{
 		URL:             URL,

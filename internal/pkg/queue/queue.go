@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -19,12 +18,6 @@ var (
 	ErrQueueClosed  = errors.New("queue is closed")
 	ErrQueueTimeout = errors.New("queue operation timed out")
 )
-
-type LogMessage struct {
-	Fields  map[string]interface{}
-	Message string
-	Level   logrus.Level
-}
 
 type PersistentGroupedQueue struct {
 	// Exported fields
@@ -35,7 +28,6 @@ type PersistentGroupedQueue struct {
 	metadataEncoder *gob.Encoder
 	metadataDecoder *gob.Decoder
 	hostIndex       map[string][]uint64
-	cond            *sync.Cond
 	stats           QueueStats
 	hostOrder       []string
 	currentHost     int
@@ -88,8 +80,6 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 			HostDistribution: make(map[string]float64),
 		},
 	}
-
-	q.cond = sync.NewCond(&q.mutex)
 
 	if err = q.loadMetadata(); err != nil {
 		q.Close()

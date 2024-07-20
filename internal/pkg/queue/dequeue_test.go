@@ -64,7 +64,6 @@ func TestDequeue(t *testing.T) {
 		found := false
 		for _, item := range items {
 			if dequeued.ID == item.ID {
-				t.Logf("Dequeued item: %v", dequeued)
 				found = true
 				break
 			}

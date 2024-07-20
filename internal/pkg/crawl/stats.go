@@ -12,10 +12,6 @@ import (
 	"github.com/gosuri/uitable"
 )
 
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
-}
-
 func (c *Crawl) printLiveStats() {
 	var stats *uitable.Table
 	var m runtime.MemStats
@@ -75,4 +71,8 @@ func (c *Crawl) getCrawlState() (state string) {
 	}
 
 	return "running"
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }

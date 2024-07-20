@@ -48,8 +48,5 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	// Update stats
 	updateEnqueueStats(q, item)
 
-	// Signal that a new item is available
-	q.cond.Signal()
-
 	return q.saveMetadata()
 }

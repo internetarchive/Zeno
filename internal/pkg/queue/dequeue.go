@@ -17,9 +17,9 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	for {
 		q.hostMutex.Lock()
 		if len(q.hostOrder) == 0 {
+			// Maybe should be a more specific error?
 			q.hostMutex.Unlock()
-			q.cond.Wait()
-			continue
+			return nil, ErrQueueEmpty
 		}
 
 		host := q.hostOrder[0]

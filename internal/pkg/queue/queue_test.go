@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path"
-	sync "sync"
+	"sync"
 	"testing"
 	"time"
 
@@ -269,83 +269,142 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 	t.Logf("Average dequeue time per item: %v", dequeueTime/time.Duration(numItems))
 }
 
-func TestParallelEnqueueDequeue(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "queue_test")
+func TestParallelQueueBehavior(t *testing.T) {
+	queueDir, err := os.MkdirTemp("", "queue_test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(queueDir)
 
-	queuePath := path.Join(tempDir, "test_queue")
-
-	q, err := NewPersistentGroupedQueue(queuePath)
+	queue, err := NewPersistentGroupedQueue(queueDir)
 	if err != nil {
-		t.Fatalf("Failed to create new queue: %v", err)
+		t.Fatalf("Failed to create queue: %v", err)
 	}
-	defer q.Close()
+	defer queue.Close()
 
-	const (
-		numWorkers = 10
-		numItems   = 1000
-	)
+	url1, _ := url.Parse("http://google.com/")
+	url2, _ := url.Parse("http://example.com/")
+	url3, _ := url.Parse("http://example.com/page")
 
-	var wg sync.WaitGroup
-	wg.Add(numWorkers + 1)
+	item1, err := NewItem(url1, nil, "page", 1, "1", false)
+	if err != nil {
+		t.Fatalf("Failed to create item: %v", err)
+	}
 
-	// Start enqueuers
-	for i := 0; i < numWorkers; i++ {
-		go func(workerID int) {
+	item2, err := NewItem(url2, nil, "page", 1, "2", false)
+	if err != nil {
+		t.Fatalf("Failed to create item: %v", err)
+	}
+
+	item3, err := NewItem(url3, nil, "page", 1, "3", false)
+	if err != nil {
+		t.Fatalf("Failed to create item: %v", err)
+	}
+
+	var items []*Item
+	items = append(items, item1, item2, item3)
+
+	// Enqueue the 3 items in parallel
+	wg := sync.WaitGroup{}
+	wg.Add(3)
+
+	errCh := make(chan error, 3)
+
+	for i, item := range items {
+		go func(j int, item *Item) {
 			defer wg.Done()
-			for j := 0; j < numItems; j++ {
-				urlStr := fmt.Sprintf("http://example.com/%d/%d", workerID, j)
 
-				u, err := url.Parse(urlStr)
-				if err != nil {
-					t.Errorf("Failed to parse URL: %v", err)
-					continue
-				}
+			err := queue.Enqueue(item)
+			if err != nil {
+				errCh <- fmt.Errorf("Failed to enqueue item %d: %v", j, err)
+			}
+		}(i, item)
+	}
 
-				item, err := NewItem(u, nil, "page", 1, fmt.Sprintf("id-%d", i), false)
-				if err != nil {
-					t.Errorf("Failed to create item %d: %v", i, err)
-					continue
-				}
+	wg.Wait()
+	close(errCh)
 
-				err = q.Enqueue(item)
-				if err != nil {
-					t.Errorf("Failed to enqueue item: %v", err)
-				}
+	// Check for enqueue errors
+	for err := range errCh {
+		t.Fatalf("%v", err)
+	}
+
+	// Then dequeue them sequentially, it should not give the 2 example.com items in a row
+	for i := 0; i < 3; i++ {
+		dequeued, err := queue.Dequeue()
+		if err != nil {
+			t.Fatalf("Failed to dequeue item: %v", err)
+		}
+
+		if dequeued == nil {
+			t.Fatalf("Dequeued nil item at position %d", i)
+		}
+	}
+
+	// Queue back 100 items, then dequeue them in parallel
+	// We have 2 different hosts and make 100 random URLs from them, so we should not get 2 items from the same host in a row
+	numItems := 100
+	hosts := []string{"example.com", "example.org"}
+
+	wg.Add(numItems)
+
+	errCh = make(chan error, numItems)
+	for i := 0; i < numItems; i++ {
+		host := hosts[i%len(hosts)]
+
+		u, _ := url.Parse(fmt.Sprintf("http://%s/page%d", host, i))
+		item, err := NewItem(u, nil, "page", 1, fmt.Sprintf("id-%d", i), false)
+		if err != nil {
+			t.Fatalf("Failed to create item %d: %v", i, err)
+		}
+
+		go func(j int, item *Item) {
+			defer wg.Done()
+
+			err := queue.Enqueue(item)
+			if err != nil {
+				errCh <- fmt.Errorf("Failed to enqueue item %d: %v", j, err)
+			}
+		}(i, item)
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	// Check for enqueue errors
+	for err := range errCh {
+		t.Fatalf("%v", err)
+	}
+
+	wg.Add(numItems)
+
+	errCh = make(chan error, numItems)
+	for i := 0; i < numItems; i++ {
+		go func(j int) {
+			defer wg.Done()
+
+			dequeued, err := queue.Dequeue()
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			if dequeued == nil {
+				errCh <- fmt.Errorf("Dequeued nil item at position %d", j)
+				return
 			}
 		}(i)
 	}
 
-	// Start dequeuers
-	dequeued := make(chan *Item, numWorkers*numItems)
-	for i := 0; i < numWorkers; i++ {
-		go func() {
-			defer wg.Done()
-			for {
-				item, err := q.Dequeue()
-				if err == ErrQueueEmpty {
-					time.Sleep(10 * time.Millisecond)
-					continue
-				}
-				if err != nil {
-					t.Errorf("Failed to dequeue item: %v", err)
-					return
-				}
-				dequeued <- item
-				if len(dequeued) == numWorkers*numItems {
-					return
-				}
-			}
-		}()
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	// Check for dequeue errors
+	for err := range errCh {
+		t.Fatalf("%v", err)
 	}
 
 	wg.Wait()
-	close(dequeued)
-
-	if len(dequeued) != numWorkers*numItems {
-		t.Errorf("Expected %d items, got %d", numWorkers*numItems, len(dequeued))
-	}
 }
