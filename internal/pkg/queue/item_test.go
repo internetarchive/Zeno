@@ -79,7 +79,7 @@ func TestNewItem(t *testing.T) {
 				}
 			} else {
 				if item.ID == "" {
-					t.Errorf("Expecter random ID, got %s", item.ID)
+					t.Errorf("Expected random ID, got %s", item.ID)
 				}
 			}
 
