@@ -1,11 +1,9 @@
 package crawl
 
 import (
-	"log/slog"
 	"sync"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -44,6 +42,7 @@ type workerState struct {
 	currentItem  *frontier.Item
 	previousItem *frontier.Item
 	status       status
+	lastAction   string
 	lastError    error
 	lastSeen     time.Time
 }
@@ -76,15 +75,18 @@ func (w *Worker) Run() {
 				continue
 			}
 			w.Lock()
+			w.state.lastAction = "got item"
 
 			// If the crawl is paused, we wait until it's resumed
 			for w.pool.Crawl.Paused.Get() || w.pool.Crawl.Frontier.Paused.Get() {
+				w.state.lastAction = "waiting for crawl to resume"
 				time.Sleep(time.Second)
 			}
 
 			// If the host of the item is in the host exclusion list, we skip it
 			if utils.StringInSlice(item.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.checkIncludedHosts(item.Host) {
 				if w.pool.Crawl.UseHQ {
+					w.state.lastAction = "skipping item because of host exclusion"
 					// If we are using the HQ, we want to mark the item as done
 					w.pool.Crawl.HQFinishedChannel <- item
 				}
@@ -93,6 +95,7 @@ func (w *Worker) Run() {
 			}
 
 			// Launches the capture of the given item
+			w.state.lastAction = "starting capture"
 			w.unsafeCapture(item)
 			w.Unlock()
 		}
@@ -111,12 +114,11 @@ func (w *Worker) unsafeCapture(item *frontier.Item) {
 	w.state.status = processing
 
 	// Capture the item
-	err := w.pool.Crawl.Capture(item)
-	if err != nil {
-		w.unsafePushLastError(err)
-	}
+	w.state.lastAction = "capturing item"
+	w.state.lastError = w.pool.Crawl.Capture(item)
 
 	// Signals that the worker has finished processing the item
+	w.state.lastAction = "finished capturing"
 	w.state.status = idle
 	w.state.currentItem = nil
 	w.state.previousItem = item
@@ -129,11 +131,6 @@ func (w *Worker) Stop() {
 	for w.state.status != completed {
 		time.Sleep(5 * time.Millisecond)
 	}
-}
-
-// unsafePushLastError is named like so because it should only be called when the worker is locked
-func (w *Worker) unsafePushLastError(err error) {
-	w.state.lastError = err
 }
 
 func (wp *WorkerPool) NewWorker(crawlParameters *Crawl) *Worker {
@@ -163,27 +160,29 @@ func (wp *WorkerPool) NewWorker(crawlParameters *Crawl) *Worker {
 
 // WatchHang is a function that checks if a worker is hanging based on the last time it was seen
 func (w *Worker) WatchHang() {
-	w.logger.Info("Starting worker hang watcher")
+	w.logger.Info("Starting worker deadlock watcher")
 	for {
 		tryLockCounter := 0
 		time.Sleep(5 * time.Second)
 		for !w.TryLock() {
-			if tryLockCounter > 10 && w.state.status != completed {
-				w.logger.Error("Worker is deadlocked, trying to stop it")
-				spew.Fprint(w.pool.Crawl.Log.Writer(slog.LevelError), w) // This will dump the worker state to the log, this is NOT a good idea in production but it's useful for debugging
+			time.Sleep(1 * time.Second)
+			if tryLockCounter > 10 && w.state.status != completed && w.state.status != processing {
+				w.logger.Error("Worker is deadlocked, trying to stop it", "status", w.state.status, "last_seen", w.state.lastSeen, "last_action", w.state.lastAction)
 				w.Stop()
 				return
+			} else if w.state.status != completed && w.state.status != processing {
+				tryLockCounter++
+			} else {
+				tryLockCounter = 0
 			}
-			tryLockCounter++
-			time.Sleep(1 * time.Second)
 		}
-		if w.state.status != idle && time.Since(w.state.lastSeen) > 10*time.Second {
-			w.logger.Warn("Worker is hanging, stopping it")
-			spew.Fprint(w.pool.Crawl.Log.Writer(slog.LevelError), w) // This will dump the worker state to the log, this is NOT a good idea in production but it's useful for debugging
-			w.Unlock()
-			w.Stop()
-			return
-		}
+		// This is commented out because it's not working as expected
+		// if w.state.status != idle && time.Since(w.state.lastSeen) > 10*time.Second {
+		// 	w.logger.Warn("Worker is hanging, stopping it")
+		// 	w.Unlock()
+		// 	w.Stop()
+		// 	return
+		// }
 		w.Unlock()
 	}
 }
