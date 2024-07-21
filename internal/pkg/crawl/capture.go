@@ -92,7 +92,7 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 				return nil, err
 			}
 
-			c.Log.WithFields(c.genLogFields(err, req.URL, nil)).Error("error while executing GET request, retrying")
+			c.Log.WithFields(c.genLogFields(err, req.URL, nil)).Error("error while executing GET request, retrying", "retries", retry)
 
 			time.Sleep(sleepTime)
 

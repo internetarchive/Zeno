@@ -84,7 +84,7 @@ func (c *Crawl) HQProducer() {
 				return
 			default:
 				mutex.Lock()
-				if (len(discoveredArray) >= int(math.Ceil(float64(c.Workers)/2)) || time.Since(HQLastSent) >= time.Second*10) && len(discoveredArray) > 0 {
+				if (len(discoveredArray) >= int(math.Ceil(float64(c.Workers.Count)/2)) || time.Since(HQLastSent) >= time.Second*10) && len(discoveredArray) > 0 {
 					for {
 						_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
 						if err != nil {
@@ -152,7 +152,7 @@ func (c *Crawl) HQConsumer() {
 		// This is on purpose evaluated every time,
 		// because the value of workers will maybe change
 		// during the crawl in the future (to be implemented)
-		var HQBatchSize = int(math.Ceil(float64(c.Workers) / 2))
+		var HQBatchSize = int(math.Ceil(float64(c.Workers.Count) / 2))
 
 		if c.Finished.Get() {
 			c.Log.Error("crawl finished, stopping HQ consumer")
@@ -166,7 +166,7 @@ func (c *Crawl) HQConsumer() {
 		// If HQContinuousPull is set to true, we will pull URLs from HQ
 		// continuously, otherwise we will only pull URLs when needed
 		if !c.HQContinuousPull {
-			if c.ActiveWorkers.Value() >= int64(c.Workers-(c.Workers/10)) {
+			if c.ActiveWorkers.Value() >= int64(c.Workers.Count-(c.Workers.Count/10)) {
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
@@ -245,7 +245,7 @@ func (c *Crawl) HQFinisher() {
 		locallyCrawledTotal += int(finishedItem.LocallyCrawled)
 		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedItem.ID, Value: utils.URLToString(finishedItem.URL)})
 
-		if len(finishedArray) == int(math.Ceil(float64(c.Workers)/2)) {
+		if len(finishedArray) == int(math.Ceil(float64(c.Workers.Count)/2)) {
 			for {
 				_, err := c.HQClient.Finished(finishedArray, locallyCrawledTotal)
 				if err != nil {

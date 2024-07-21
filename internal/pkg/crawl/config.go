@@ -37,10 +37,7 @@ type Crawl struct {
 	UseSeencheck bool
 
 	// Worker pool
-	WorkerMutex       sync.RWMutex
-	WorkerPool        []*Worker
-	WorkerStopSignal  chan bool
-	WorkerStopTimeout time.Duration
+	Workers *WorkerPool
 
 	// Crawl settings
 	MaxConcurrentAssets            int
@@ -65,7 +62,6 @@ type Crawl struct {
 	CaptureAlternatePages          bool
 	DomainsCrawl                   bool
 	Headless                       bool
-	Workers                        int
 	RandomLocalIP                  bool
 	MinSpaceRequired               int
 
@@ -185,11 +181,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 
 	c.JobPath = path.Join("jobs", config.Job)
 
-	c.Workers = config.WorkersCount
-	c.WorkerPool = make([]*Worker, 0)
-	c.WorkerStopTimeout = time.Second * 60 // Placeholder for WorkerStopTimeout
-	c.MaxConcurrentAssets = config.MaxConcurrentAssets
-	c.WorkerStopSignal = make(chan bool)
+	c.Workers = NewPool(uint(config.WorkersCount), time.Second*60, c)
 
 	c.UseSeencheck = config.LocalSeencheck
 	c.HTTPTimeout = config.HTTPTimeout

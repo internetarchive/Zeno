@@ -32,7 +32,7 @@ func (c *Crawl) printLiveStats() {
 		stats.AddRow("", "")
 		stats.AddRow("  - Job:", c.Job)
 		stats.AddRow("  - State:", c.getCrawlState())
-		stats.AddRow("  - Active workers:", strconv.Itoa(int(c.ActiveWorkers.Value()))+"/"+strconv.Itoa(int(c.Workers)))
+		stats.AddRow("  - Active workers:", strconv.Itoa(int(c.ActiveWorkers.Value()))+"/"+strconv.Itoa(c.Workers.wpLen()))
 		stats.AddRow("  - URI/s:", c.URIsPerSecond.Rate())
 		stats.AddRow("  - Queued:", c.Queue.GetStats().TotalElements)
 		stats.AddRow("  - Crawled total:", crawledSeeds+crawledAssets)
