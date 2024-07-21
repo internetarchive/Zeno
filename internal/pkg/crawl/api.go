@@ -3,7 +3,6 @@ package crawl
 import (
 	"encoding/json"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -22,7 +21,7 @@ type APIWorkersState struct {
 
 // APIWorkerState represents the state of an API worker.
 type APIWorkerState struct {
-	WorkerID  uint   `json:"worker_id"`
+	WorkerID  string `json:"worker_id"`
 	Status    string `json:"status"`
 	LastError string `json:"last_error"`
 	LastSeen  string `json:"last_seen"`
@@ -55,22 +54,13 @@ func (crawl *Crawl) startAPI() {
 	}
 
 	http.HandleFunc("/workers", func(w http.ResponseWriter, r *http.Request) {
-		workersState := crawl.GetWorkerState(-1)
+		workersState := crawl.Workers.GetWorkerStateFromPool("")
 		json.NewEncoder(w).Encode(workersState)
 	})
 
 	http.HandleFunc("/worker/", func(w http.ResponseWriter, r *http.Request) {
 		workerID := strings.TrimPrefix(r.URL.Path, "/worker/")
-		workerIDInt, err := strconv.Atoi(workerID)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"error": "Unsupported worker ID",
-			})
-			return
-		}
-
-		workersState := crawl.GetWorkerState(workerIDInt)
+		workersState := crawl.Workers.GetWorkerStateFromPool(workerID)
 		if workersState == nil {
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(map[string]interface{}{

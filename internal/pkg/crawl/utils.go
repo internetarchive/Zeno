@@ -25,10 +25,10 @@ func (c *Crawl) crawlSpeedLimiter() {
 	maxConcurrentAssets := c.MaxConcurrentAssets
 
 	for {
-		if c.Client.WaitGroup.Size() > c.Workers*8 {
+		if c.Client.WaitGroup.Size() > int(c.Workers.Count)*8 {
 			c.Paused.Set(true)
 			c.Frontier.Paused.Set(true)
-		} else if c.Client.WaitGroup.Size() > c.Workers*4 {
+		} else if c.Client.WaitGroup.Size() > int(c.Workers.Count)*4 {
 			c.MaxConcurrentAssets = 1
 			c.Paused.Set(false)
 			c.Frontier.Paused.Set(false)
