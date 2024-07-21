@@ -62,10 +62,10 @@ type Worker struct {
 func (w *Worker) Run() {
 	// Start archiving the URLs!
 	for {
-		item, err := w.crawlParameters.Queue.Dequeue()
+		item, err := w.pool.Crawl.Queue.Dequeue()
 		if err != nil {
 			// Log the error too?
-			w.PushLastError(err)
+			w.state.lastError = err
 			continue
 		}
 
@@ -78,7 +78,7 @@ func (w *Worker) Run() {
 			w.logger.Info("Worker stopped")
 			return
 		default:
-			for w.crawlParameters.Paused.Get() {
+			for w.pool.Crawl.Paused.Get() {
 				time.Sleep(time.Second)
 			}
 		}
@@ -97,7 +97,7 @@ func (w *Worker) Run() {
 		}
 
 		// If the host of the item is in the host exclusion list, we skip it
-		if utils.StringInSlice(item.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.checkIncludedHosts(item.URL.Host) {
+		if utils.StringInSlice(item.URL.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.checkIncludedHosts(item.URL.Host) {
 			if w.pool.Crawl.UseHQ {
 				w.state.lastAction = "skipping item because of host exclusion"
 				// If we are using the HQ, we want to mark the item as done
