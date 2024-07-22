@@ -19,7 +19,7 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 
 	queuePath := path.Join(tempDir, "test_queue")
 
-	q, err := NewPersistentGroupedQueue(queuePath)
+	q, err := NewPersistentGroupedQueue(queuePath, nil)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -41,10 +41,10 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 	if q.metadataDecoder == nil {
 		t.Error("metadataDecoder not initialized")
 	}
-	if len(q.hostIndex) != 0 {
-		t.Error("hostIndex not initialized as empty")
+	if q.index.IsEmpty() == false {
+		t.Error("index not initialized as empty")
 	}
-	if len(q.hostIndex.orderedHosts) != 0 {
+	if len(q.index.GetHosts()) != 0 {
 		t.Error("hostOrder not initialized as empty")
 	}
 	if q.currentHost != 0 {
@@ -61,7 +61,7 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 
 	queuePath := path.Join(tempDir, "test_queue")
 
-	q, err := NewPersistentGroupedQueue(queuePath)
+	q, err := NewPersistentGroupedQueue(queuePath, nil)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -82,8 +82,8 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 
 	// Test double close
 	err = q.Close()
-	if err != nil {
-		t.Errorf("Second Close() should not return error, got: %v", err)
+	if err != ErrQueueAlreadyClosed {
+		t.Errorf("Second Close() should return ErrQueueAlreadyClosed , got: %v", err)
 	}
 
 	// Test operations after close
@@ -110,7 +110,7 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 
 	queuePath := path.Join(tempDir, "test_queue")
 
-	q, err := NewPersistentGroupedQueue(queuePath)
+	q, err := NewPersistentGroupedQueue(queuePath, nil)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestParallelQueueBehavior(t *testing.T) {
 	}
 	defer os.RemoveAll(queueDir)
 
-	queue, err := NewPersistentGroupedQueue(queueDir)
+	queue, err := NewPersistentGroupedQueue(queueDir, nil)
 	if err != nil {
 		t.Fatalf("Failed to create queue: %v", err)
 	}
