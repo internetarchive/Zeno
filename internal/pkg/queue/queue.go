@@ -9,6 +9,7 @@ import (
 	"path"
 	"sync"
 
+	"github.com/internetarchive/Zeno/internal/pkg/queue/index"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
@@ -27,13 +28,11 @@ type PersistentGroupedQueue struct {
 	metadataFile    *os.File
 	metadataEncoder *gob.Encoder
 	metadataDecoder *gob.Decoder
-	hostIndex       map[string][]uint64
+	hostIndex       *index.Index
 	stats           QueueStats
-	hostOrder       []string
 	currentHost     int
 	mutex           sync.RWMutex
 	statsMutex      sync.RWMutex
-	hostMutex       sync.Mutex
 	closed          bool
 }
 
@@ -72,8 +71,7 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 		metadataFile:    metafile,
 		metadataEncoder: gob.NewEncoder(metafile),
 		metadataDecoder: gob.NewDecoder(metafile),
-		hostIndex:       make(map[string][]uint64),
-		hostOrder:       []string{},
+		hostIndex:       newIndex(),
 		currentHost:     0,
 		stats: QueueStats{
 			ElementsPerHost:  make(map[string]int),
