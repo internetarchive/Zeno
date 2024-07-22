@@ -31,7 +31,7 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 	}
 
 	q.hostIndex = metadata.HostIndex
-	q.hostOrder = metadata.HostOrder
+	q.hostIndex.orderedHosts = metadata.HostOrder
 	q.currentHost = metadata.CurrentHost
 	q.stats = metadata.Stats
 
@@ -67,7 +67,7 @@ func (q *PersistentGroupedQueue) saveMetadata() error {
 		CurrentHost int
 	}{
 		HostIndex:   q.hostIndex,
-		HostOrder:   q.hostOrder,
+		HostOrder:   q.hostIndex.orderedHosts,
 		CurrentHost: q.currentHost,
 		Stats:       q.stats,
 	}
