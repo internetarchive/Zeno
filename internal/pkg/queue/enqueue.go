@@ -36,7 +36,10 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	}
 
 	// Update host index and order
-	q.hostIndex.Add(item.URL.Host, uint64(startPos), uint64(len(itemBytes)))
+	err = q.index.Add(item.URL.Host, item.ID, uint64(startPos), uint64(len(itemBytes)))
+	if err != nil {
+		return fmt.Errorf("failed to update index: %w", err)
+	}
 
 	// Update stats
 	updateEnqueueStats(q, item)

@@ -22,17 +22,17 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	if len(q.hostIndex.GetHosts()) == 0 {
+	if len(q.index.GetHosts()) == 0 {
 		// Maybe should be a more specific error?
 		return nil, ErrQueueEmpty
 	}
 
-	hosts := q.hostIndex.GetHosts()
+	hosts := q.index.GetHosts()
 	for _, host := range hosts {
 		if len(hosts) == 0 {
 			return nil, ErrQueueEmpty
 		}
-		position, size, err = q.hostIndex.Pop(host)
+		_, position, size, err = q.index.Pop(host)
 		if err != nil {
 			if err == index.ErrHostEmpty {
 				continue

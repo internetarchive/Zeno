@@ -15,7 +15,7 @@ func TestEnqueue(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+	q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), nil)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check enqueue times", func(t *testing.T) {
-		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "time_test_queue"))
+		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "time_test_queue"), nil)
 		defer q.Close()
 
 		url, _ := url.Parse("http://timetest.com")
@@ -125,7 +125,7 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check host order", func(t *testing.T) {
-		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "order_test_queue"))
+		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "order_test_queue"), nil)
 		defer q.Close()
 
 		hosts := []string{"first.com", "second.com", "third.com"}
@@ -143,13 +143,13 @@ func TestEnqueue(t *testing.T) {
 
 		}
 
-		if len(q.hostIndex.GetHosts()) != 3 {
-			t.Errorf("Expected hostOrder length to be 3, got %d", len(q.hostIndex.GetHosts()))
+		if len(q.index.GetHosts()) != 3 {
+			t.Errorf("Expected hostOrder length to be 3, got %d", len(q.index.GetHosts()))
 		}
 		for i, host := range hosts {
-			if i < len(q.hostIndex.GetHosts()) {
-				if q.hostIndex.GetHosts()[i] != host {
-					t.Errorf("Expected hostOrder[%d] to be %s, got %s", i, host, q.hostIndex.GetHosts()[i])
+			if i < len(q.index.GetHosts()) {
+				if q.index.GetHosts()[i] != host {
+					t.Errorf("Expected hostOrder[%d] to be %s, got %s", i, host, q.index.GetHosts()[i])
 				}
 			} else {
 				t.Errorf("hostOrder is shorter than expected, missing %s", host)
