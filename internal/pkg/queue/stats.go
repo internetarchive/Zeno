@@ -117,7 +117,7 @@ func (q *PersistentGroupedQueue) saveStatsToFile(path string) error {
 	defer f.Close()
 
 	// Encode the stats
-	err = json.NewEncoder(f).Encode(q.stats)
+	err = json.NewEncoder(f).Encode(q.GetStats())
 	if err != nil {
 		return err
 	}
