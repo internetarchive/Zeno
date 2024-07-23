@@ -11,4 +11,7 @@ var (
 
 	// ErrIDEmpty is returned when the given ID is empty
 	ErrIDEmpty = errors.New("id cannot be empty")
+
+	// ErrNoWALEntriesReplayed is returned when no WAL entries were replayed
+	ErrNoWALEntriesReplayed = errors.New("no WAL entries replayed")
 )

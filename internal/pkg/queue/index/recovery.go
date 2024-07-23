@@ -19,7 +19,7 @@ func (im *IndexManager) RecoverFromCrash() error {
 
 	// Step 2: Replay the WAL
 	var replayedEntries int
-	if err := im.replayWAL(&replayedEntries); err != nil {
+	if err := im.replayWAL(&replayedEntries); err != nil && err != ErrNoWALEntriesReplayed {
 		return fmt.Errorf("failed to replay WAL during recovery: %w", err)
 	}
 
