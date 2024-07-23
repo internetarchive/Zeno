@@ -42,8 +42,10 @@ func (im *IndexManager) performDump() error {
 	}
 
 	// Remove any previous backup index file
-	if err := os.Remove(im.indexFile.Name() + ".old"); err != nil {
-		return fmt.Errorf("failed to remove old index file: %w", err)
+	if _, err := os.Stat(im.indexFile.Name() + ".old"); err == nil {
+		if err := os.Remove(im.indexFile.Name() + ".old"); err != nil {
+			return fmt.Errorf("failed to remove old index file: %w", err)
+		}
 	}
 
 	// Backup the current index file by renaming it
