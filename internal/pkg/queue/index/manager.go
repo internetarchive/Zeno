@@ -3,6 +3,7 @@ package index
 import (
 	"encoding/gob"
 	"fmt"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
@@ -87,6 +88,7 @@ func NewIndexManager(walPath, indexPath string) (*IndexManager, error) {
 		}
 	}
 
+	// Start the periodic dump goroutine
 	periodicDumpStopChan := make(chan struct{})
 	periodicDumpErrChan := make(chan error)
 	go func(im *IndexManager, errChan chan error, stopChan chan struct{}) {
@@ -94,9 +96,10 @@ func NewIndexManager(walPath, indexPath string) (*IndexManager, error) {
 			select {
 			case stop := <-im.stopChan:
 				periodicDumpStopChan <- stop
+				return
 			case err := <-errChan:
 				if err != nil {
-					fmt.Printf("Periodic dump failed: %v", err) // No better way to log this, will wait for https://github.com/internetarchive/Zeno/issues/92
+					slog.Error("Periodic dump failed", "error", err) // No better way to log this, will wait for https://github.com/internetarchive/Zeno/issues/92
 				}
 			}
 		}
