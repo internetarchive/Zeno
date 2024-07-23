@@ -1,53 +1,17 @@
 package index
 
 import (
-	"encoding/gob"
 	"os"
-	"path"
 	"testing"
-	"time"
 )
 
-func provideTestIndexManager(t *testing.T) *IndexManager {
-	queueDir, err := os.MkdirTemp("", "index_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(queueDir)
-
-	walPath := path.Join(queueDir, "/index_wal")
-	indexPath := path.Join(queueDir, "/index")
-
-	walFile, err := os.OpenFile(walPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		t.Fatalf("failed to open WAL file: %v", err)
-	}
-
-	indexFile, err := os.OpenFile(indexPath, os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		walFile.Close()
-		t.Fatalf("failed to open index file: %v", err)
-	}
-
-	im := &IndexManager{
-		hostIndex:    newIndex(),
-		walFile:      walFile,
-		indexFile:    indexFile,
-		walEncoder:   gob.NewEncoder(walFile),
-		walDecoder:   gob.NewDecoder(walFile),
-		indexEncoder: gob.NewEncoder(indexFile),
-		indexDecoder: gob.NewDecoder(indexFile),
-		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
-		lastDumpTime: time.Now(),
-	}
-
-	return im
-}
-
 func Test_isWALEmpty(t *testing.T) {
-	im := provideTestIndexManager(t)
+	im, tempDir := provideTestIndexManager(t)
+	defer os.RemoveAll(tempDir)
+	im.Lock()
+	defer im.Unlock()
 
-	isEmpty, err := im.isWALEmpty()
+	isEmpty, err := im.unsafeIsWALEmpty()
 	if err != nil {
 		t.Fatalf("Failed to check if WAL is empty: %v", err)
 	}
@@ -56,12 +20,12 @@ func Test_isWALEmpty(t *testing.T) {
 	}
 
 	// Write to WAL
-	err = im.writeToWAL(OpAdd, "example.com", "id", 0, 0)
+	err = im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 0)
 	if err != nil {
 		t.Fatalf("Failed to write to WAL: %v", err)
 	}
 
-	isEmpty, err = im.isWALEmpty()
+	isEmpty, err = im.unsafeIsWALEmpty()
 	if err != nil {
 		t.Fatalf("Failed to check if WAL is empty: %v", err)
 	}
@@ -70,19 +34,22 @@ func Test_isWALEmpty(t *testing.T) {
 	}
 }
 
-func Test_replayWAL(t *testing.T) {
-	im := provideTestIndexManager(t)
+func Test_writeToWAL_Then_replayWAL(t *testing.T) {
+	im, tempDir := provideTestIndexManager(t)
+	defer os.RemoveAll(tempDir)
+	im.Lock()
+	defer im.Unlock()
 
 	var replayedEntries int
 
 	// Write to WAL
-	err := im.writeToWAL(OpAdd, "example.com", "id", 0, 200)
+	err := im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200)
 	if err != nil {
 		t.Fatalf("Failed to write to WAL: %v", err)
 	}
 
 	// Replay WAL
-	err = im.replayWAL(&replayedEntries)
+	err = im.unsafeReplayWAL(&replayedEntries)
 	if err != nil {
 		t.Fatalf("Failed to replay WAL: %v", err)
 	}
@@ -93,13 +60,16 @@ func Test_replayWAL(t *testing.T) {
 }
 
 func Test_bigreplayWAL(t *testing.T) {
-	im := provideTestIndexManager(t)
+	im, tempDir := provideTestIndexManager(t)
+	defer os.RemoveAll(tempDir)
+	im.Lock()
+	defer im.Unlock()
 
 	numEntries := 1000
 
 	// Write to WAL
 	for i := 0; i < numEntries; i++ {
-		err := im.writeToWAL(OpAdd, "example.com", "id", 0, 200)
+		err := im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200)
 		if err != nil {
 			t.Fatalf("Failed to write to WAL: %v", err)
 		}
@@ -107,12 +77,202 @@ func Test_bigreplayWAL(t *testing.T) {
 
 	// Replay WAL
 	var replayedEntries int
-	err := im.replayWAL(&replayedEntries)
+	err := im.unsafeReplayWAL(&replayedEntries)
 	if err != nil {
 		t.Fatalf("Failed to replay WAL: %v", err)
 	}
 
 	if replayedEntries != numEntries {
 		t.Errorf("Expected %d entries to be replayed, got: %d", numEntries, replayedEntries)
+	}
+}
+
+func Test_writeToWAL_Then_truncateWAL(t *testing.T) {
+	im, tempDir := provideTestIndexManager(t)
+	defer os.RemoveAll(tempDir)
+	im.Lock()
+	defer im.Unlock()
+
+	// Write to WAL
+	err := im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200)
+	if err != nil {
+		t.Fatalf("Failed to write to WAL: %v", err)
+	}
+
+	// Truncate WAL
+	err = im.unsafeTruncateWAL()
+	if err != nil {
+		t.Fatalf("Failed to truncate WAL: %v", err)
+	}
+
+	// Check if WAL is empty
+	isEmpty, err := im.unsafeIsWALEmpty()
+	if err != nil {
+		t.Fatalf("Failed to check if WAL is empty: %v", err)
+	}
+	if !isEmpty {
+		t.Error("Expected WAL to be empty after truncation")
+	}
+}
+
+// Test_WAL_combined tests the combined functionality of writing, replaying, and truncating the WAL.
+// It writes a number of entries to the WAL, replays it, truncates it, replays it, writes more entries, replays it again.
+func Test_WAL_combined(t *testing.T) {
+	im, tempDir := provideTestIndexManager(t)
+	defer os.RemoveAll(tempDir)
+	im.Lock()
+	defer im.Unlock()
+
+	numEntries := 1000
+
+	// Write to WAL
+	for i := 0; i < numEntries; i++ {
+		err := im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200+uint64(i))
+		if err != nil {
+			t.Fatalf("Failed to write to WAL: %v", err)
+		}
+	}
+
+	// Replay WAL
+	var replayedEntries int
+	err := im.unsafeReplayWAL(&replayedEntries)
+	if err != nil && err != ErrNoWALEntriesReplayed {
+		t.Fatalf("Failed to replay WAL: %v", err)
+	}
+
+	if replayedEntries != numEntries {
+		t.Errorf("Expected 0 entries to be replayed, got: %d", replayedEntries)
+	}
+
+	replayedEntries = 0
+
+	// Truncate WAL
+	err = im.unsafeTruncateWAL()
+	if err != nil {
+		t.Fatalf("Failed to truncate WAL: %v", err)
+	}
+
+	// Check if WAL is empty
+	isEmpty, err := im.unsafeIsWALEmpty()
+	if err != nil {
+		t.Fatalf("Failed to check if WAL is empty: %v", err)
+	}
+	if !isEmpty {
+		t.Error("Expected WAL to be empty after truncation")
+	}
+
+	// Replay WAL
+	err = im.unsafeReplayWAL(&replayedEntries)
+	if err != nil && err != ErrNoWALEntriesReplayed {
+		t.Fatalf("Failed to replay WAL: %v", err)
+	}
+
+	if replayedEntries != 0 {
+		t.Errorf("Expected 0 entries to be replayed, got: %d", replayedEntries)
+	}
+
+	replayedEntries = 0
+
+	// Write to WAL again
+	for i := 0; i < numEntries; i++ {
+		err := im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200+uint64(i))
+		if err != nil {
+			t.Fatalf("Failed to write to WAL: %v", err)
+		}
+	}
+
+	// Check if WAL is empty
+	isEmpty, err = im.unsafeIsWALEmpty()
+	if err != nil {
+		t.Fatalf("Failed to check if WAL is empty: %v", err)
+	}
+	if isEmpty {
+		t.Error("Expected WAL to be non-empty after writing")
+	}
+
+	// Replay WAL
+	err = im.unsafeReplayWAL(&replayedEntries)
+	if err != nil {
+		t.Fatalf("Failed to replay WAL: %v", err)
+	}
+
+	if replayedEntries != numEntries {
+		t.Errorf("Expected %d entries to be replayed, got: %d", numEntries, replayedEntries)
+	}
+
+	// Check if WAL is empty
+	isEmpty, err = im.unsafeIsWALEmpty()
+	if err != nil {
+		t.Fatalf("Failed to check if WAL is empty: %v", err)
+	}
+	if isEmpty {
+		t.Error("Expected WAL to be non-empty after replaying")
+	}
+}
+
+func Test_WAL_WriteAfterNonZeroReplay(t *testing.T) {
+	im, tempDir := provideTestIndexManager(t)
+	defer os.RemoveAll(tempDir)
+	im.Lock()
+	defer im.Unlock()
+
+	numEntries := 1000
+
+	// Write to WAL
+	for i := 0; i < numEntries; i++ {
+		err := im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200+uint64(i))
+		if err != nil {
+			t.Fatalf("Failed to write to WAL: %v", err)
+		}
+	}
+
+	// Replay WAL
+	var replayedEntries int
+	err := im.unsafeReplayWAL(&replayedEntries)
+	if err != nil {
+		t.Fatalf("Failed to replay WAL: %v", err)
+	}
+
+	if replayedEntries != numEntries {
+		t.Errorf("Expected %d entries to be replayed, got: %d", numEntries, replayedEntries)
+	}
+
+	// Write to WAL again
+	err = im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200)
+	if err != nil {
+		t.Fatalf("Failed to write to WAL: %v", err)
+	}
+
+	// Replay WAL
+	replayedEntries = 0
+	err = im.unsafeReplayWAL(&replayedEntries)
+	if err == nil {
+		t.Fatalf("Expected to fail replaying WAL after writing")
+	}
+}
+
+func Test_replayWAL_error(t *testing.T) {
+	im, tempDir := provideTestIndexManager(t)
+	defer os.RemoveAll(tempDir)
+	im.Lock()
+	defer im.Unlock()
+
+	// Write to WAL
+	err := im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200)
+	if err != nil {
+		t.Fatalf("Failed to write to WAL: %v", err)
+	}
+
+	// Corrupt the WAL
+	_, err = im.walFile.Write([]byte("corruption"))
+	if err != nil {
+		t.Fatalf("Failed to write to WAL: %v", err)
+	}
+
+	// Replay WAL
+	var replayedEntries int
+	err = im.unsafeReplayWAL(&replayedEntries)
+	if err == nil {
+		t.Fatal("Expected replayWAL to fail")
 	}
 }

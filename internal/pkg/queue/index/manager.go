@@ -61,7 +61,7 @@ func NewIndexManager(walPath, indexPath string, logger *log.Entry) (*IndexManage
 	}
 
 	im := &IndexManager{
-		hostIndex:    nil,
+		hostIndex:    newIndex(),
 		walFile:      walFile,
 		indexFile:    indexFile,
 		walEncoder:   gob.NewEncoder(walFile),
@@ -89,7 +89,7 @@ func (im *IndexManager) Add(host string, id string, position uint64, size uint64
 	defer im.Unlock()
 
 	// Write to WAL
-	err := im.writeToWAL(OpAdd, host, id, position, size)
+	err := im.unsafeWriteToWAL(OpAdd, host, id, position, size)
 	if err != nil {
 		return fmt.Errorf("failed to write to WAL: %w", err)
 	}
@@ -116,7 +116,7 @@ func (im *IndexManager) Pop(host string) (id string, position uint64, size uint6
 	go func() {
 		// Write to WAL
 		blob := <-getChan
-		err := im.writeToWAL(OpPop, host, blob.id, blob.position, blob.size)
+		err := im.unsafeWriteToWAL(OpPop, host, blob.id, blob.position, blob.size)
 		if err != nil {
 			im.logger.Error("failed to write to WAL", "error", err)
 			panic(err)

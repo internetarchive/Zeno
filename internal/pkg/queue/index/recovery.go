@@ -19,7 +19,7 @@ func (im *IndexManager) RecoverFromCrash() error {
 
 	// Step 2: Replay the WAL
 	var replayedEntries int
-	if err := im.replayWAL(&replayedEntries); err != nil && err != ErrNoWALEntriesReplayed {
+	if err := im.unsafeReplayWAL(&replayedEntries); err != nil && err != ErrNoWALEntriesReplayed {
 		return fmt.Errorf("failed to replay WAL during recovery: %w", err)
 	}
 
@@ -52,7 +52,7 @@ func (im *IndexManager) RecoverFromCrash() error {
 	}
 
 	// Step 6: Truncate and reset WAL
-	if err := im.truncateWAL(); err != nil {
+	if err := im.unsafeTruncateWAL(); err != nil {
 		return fmt.Errorf("failed to truncate WAL during recovery: %w", err)
 	}
 
