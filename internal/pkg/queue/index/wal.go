@@ -104,7 +104,8 @@ func (im *IndexManager) unsafeTruncateWAL() error {
 	return nil
 }
 
-// unsafeIsWALEmpty checks if the WAL file is empty. This method is not thread-safe and should be called after acquiring a lock.
+// unsafeIsWALEmpty checks if the WAL file is empty. Returns true if empty.
+// This method is not thread-safe and should be called after acquiring a lock.
 func (im *IndexManager) unsafeIsWALEmpty() (bool, error) {
 	stat, err := im.walFile.Stat()
 	if err != nil {
