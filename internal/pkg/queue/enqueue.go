@@ -36,14 +36,10 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	}
 
 	// Update host index and order
-	q.hostMutex.Lock()
-	if _, exists := q.hostIndex[item.URL.Host]; !exists {
-		q.hostOrder = append(q.hostOrder, item.URL.Host)
+	err = q.index.Add(item.URL.Host, item.ID, uint64(startPos), uint64(len(itemBytes)))
+	if err != nil {
+		return fmt.Errorf("failed to update index: %w", err)
 	}
-
-	q.hostIndex[item.URL.Host] = append(q.hostIndex[item.URL.Host], uint64(startPos))
-	q.hostIndex[item.URL.Host] = append(q.hostIndex[item.URL.Host], uint64(len(itemBytes)))
-	q.hostMutex.Unlock()
 
 	// Update stats
 	q.updateEnqueueStats(item)

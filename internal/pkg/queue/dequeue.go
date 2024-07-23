@@ -2,6 +2,8 @@ package queue
 
 import (
 	"fmt"
+
+	"github.com/internetarchive/Zeno/internal/pkg/queue/index"
 )
 
 // Dequeue removes and returns the next item from the queue
@@ -11,53 +13,46 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		return nil, ErrQueueClosed
 	}
 
+	var (
+		position uint64
+		size     uint64
+		err      error
+	)
+
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	for {
-		q.hostMutex.Lock()
-		if len(q.hostOrder) == 0 {
-			// Maybe should be a more specific error?
-			q.hostMutex.Unlock()
-			return nil, ErrQueueEmpty
-		}
+	hosts := q.index.GetHosts()
 
-		host := q.hostOrder[0]
-		positions := q.hostIndex[host]
-
-		if len(positions) == 0 {
-			delete(q.hostIndex, host)
-			q.hostOrder = q.hostOrder[1:]
-			q.hostMutex.Unlock()
-			continue
-		}
-
-		// Remove the 2 elements we are going to use
-		// (position and size of the item)
-		q.hostIndex[host] = positions[2:]
-
-		if len(q.hostIndex[host]) == 0 {
-			delete(q.hostIndex, host)
-			q.hostOrder = q.hostOrder[1:]
-		} else {
-			q.hostOrder = append(q.hostOrder[1:], host)
-		}
-
-		q.hostMutex.Unlock()
-
-		// Read and unmarshal the item
-		itemBytes, err := q.ReadItemAt(positions[0], positions[1])
-		if err != nil {
-			return nil, fmt.Errorf("failed to read item at position %d: %w", positions[0], err)
-		}
-
-		item, err := decodeProtoItem(itemBytes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal item: %w", err)
-		}
-
-		q.updateDequeueStats(item.URL.Host)
-
-		return item, nil
+	if len(hosts) == 0 {
+		return nil, ErrNoHostInQueue
 	}
+
+	for _, host := range hosts {
+		_, position, size, err = q.index.Pop(host)
+		if err != nil {
+			if err == index.ErrHostEmpty {
+				continue
+			} else if err == index.ErrHostNotFound {
+				return nil, fmt.Errorf("host %s not found in index, this indicates a failure in index package logic", host)
+			}
+			return nil, fmt.Errorf("failed to pop item from host %s: %w", host, err)
+		}
+		break
+	}
+
+	// Read and unmarshal the item
+	itemBytes, err := q.ReadItemAt(position, size)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read item at position %d: %w", position, err)
+	}
+
+	item, err := decodeProtoItem(itemBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal item: %w", err)
+	}
+
+	q.updateDequeueStats(item.URL.Host)
+
+	return item, nil
 }

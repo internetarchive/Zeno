@@ -41,10 +41,10 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 	if q.metadataDecoder == nil {
 		t.Error("metadataDecoder not initialized")
 	}
-	if len(q.hostIndex) != 0 {
-		t.Error("hostIndex not initialized as empty")
+	if q.index.IsEmpty() == false {
+		t.Error("index not initialized as empty")
 	}
-	if len(q.hostOrder) != 0 {
+	if len(q.index.GetHosts()) != 0 {
 		t.Error("hostOrder not initialized as empty")
 	}
 	if q.currentHost != 0 {
@@ -82,8 +82,8 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 
 	// Test double close
 	err = q.Close()
-	if err != nil {
-		t.Errorf("Second Close() should not return error, got: %v", err)
+	if err != ErrQueueAlreadyClosed {
+		t.Errorf("Second Close() should return ErrQueueAlreadyClosed , got: %v", err)
 	}
 
 	// Test operations after close

@@ -143,13 +143,13 @@ func TestEnqueue(t *testing.T) {
 
 		}
 
-		if len(q.hostOrder) != 3 {
-			t.Errorf("Expected hostOrder length to be 3, got %d", len(q.hostOrder))
+		if len(q.index.GetHosts()) != 3 {
+			t.Errorf("Expected hostOrder length to be 3, got %d", len(q.index.GetHosts()))
 		}
 		for i, host := range hosts {
-			if i < len(q.hostOrder) {
-				if q.hostOrder[i] != host {
-					t.Errorf("Expected hostOrder[%d] to be %s, got %s", i, host, q.hostOrder[i])
+			if i < len(q.index.GetHosts()) {
+				if q.index.GetHosts()[i] != host {
+					t.Errorf("Expected hostOrder[%d] to be %s, got %s", i, host, q.index.GetHosts()[i])
 				}
 			} else {
 				t.Errorf("hostOrder is shorter than expected, missing %s", host)

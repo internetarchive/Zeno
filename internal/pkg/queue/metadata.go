@@ -15,9 +15,7 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 	}
 
 	var metadata struct {
-		HostIndex   map[string][]uint64
 		Stats       QueueStats
-		HostOrder   []string
 		CurrentHost int
 	}
 
@@ -30,8 +28,6 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 		return fmt.Errorf("failed to decode metadata: %w", err)
 	}
 
-	q.hostIndex = metadata.HostIndex
-	q.hostOrder = metadata.HostOrder
 	q.currentHost = metadata.CurrentHost
 	q.stats = &metadata.Stats
 

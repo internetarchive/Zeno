@@ -2,21 +2,15 @@ package queue
 
 import (
 	"encoding/gob"
-	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"path"
 	"sync"
 
+	"github.com/internetarchive/Zeno/internal/pkg/queue/index"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
-)
-
-var (
-	ErrQueueFull    = errors.New("queue is full")
-	ErrQueueEmpty   = errors.New("queue is empty")
-	ErrQueueClosed  = errors.New("queue is closed")
-	ErrQueueTimeout = errors.New("queue operation timed out")
 )
 
 type PersistentGroupedQueue struct {
@@ -28,13 +22,14 @@ type PersistentGroupedQueue struct {
 	metadataFile    *os.File
 	metadataEncoder *gob.Encoder
 	metadataDecoder *gob.Decoder
-	hostIndex       map[string][]uint64
+  index           *index.IndexManager
 	stats           *QueueStats
 	hostOrder       []string
 	currentHost     int
 	mutex           sync.RWMutex
-	hostMutex       sync.Mutex
 	closed          bool
+
+	logger *slog.Logger
 }
 
 type Item struct {
@@ -65,6 +60,11 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 		return nil, fmt.Errorf("open metadata file: %w", err)
 	}
 
+	indexManager, err := index.NewIndexManager(path.Join(queueDirPath, "index_wal"), path.Join(queueDirPath, "index"))
+	if err != nil {
+		return nil, fmt.Errorf("create index manager: %w", err)
+	}
+
 	q := &PersistentGroupedQueue{
 		Paused: new(utils.TAtomBool),
 
@@ -73,8 +73,7 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 		metadataFile:    metafile,
 		metadataEncoder: gob.NewEncoder(metafile),
 		metadataDecoder: gob.NewDecoder(metafile),
-		hostIndex:       make(map[string][]uint64),
-		hostOrder:       []string{},
+		index:           indexManager,
 		currentHost:     0,
 		stats: &QueueStats{
 			ElementsPerHost:  make(map[string]int),
@@ -102,7 +101,7 @@ func (q *PersistentGroupedQueue) Close() error {
 	defer q.mutex.Unlock()
 
 	if q.closed {
-		return nil // Already closed
+		return ErrQueueAlreadyClosed
 	}
 
 	q.closed = true
@@ -113,16 +112,22 @@ func (q *PersistentGroupedQueue) Close() error {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}
 
+	// Close the metadata file
+	err = q.metadataFile.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close metadata file: %w", err)
+	}
+
 	// Close the main queue file
 	err = q.queueFile.Close()
 	if err != nil {
 		return fmt.Errorf("failed to close queue file: %w", err)
 	}
 
-	// Close the metadata file
-	err = q.metadataFile.Close()
+	// Close the index manager
+	err = q.index.Close()
 	if err != nil {
-		return fmt.Errorf("failed to close metadata file: %w", err)
+		return fmt.Errorf("failed to close index manager: %w", err)
 	}
 
 	return nil
