@@ -13,7 +13,7 @@ type Version struct {
 
 func GetVersion() (version Version) {
 	// Defaults to "unknown"
-	version.Version = "unknown"
+	version.Version = "unknown_version"
 
 	if info, ok := debug.ReadBuildInfo(); ok {
 		// Determine Zeno's version based on Git data

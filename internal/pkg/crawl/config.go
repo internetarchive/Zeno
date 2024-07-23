@@ -245,6 +245,12 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 		c.UserAgent = config.UserAgent
 	} else {
 		version := utils.GetVersion()
+
+		// If Version is a commit hash, we only take the first 7 characters
+		if len(version.Version) == 40 {
+			version.Version = version.Version[:7]
+		}
+
 		c.UserAgent = "Mozilla/5.0 (compatible; archive.org_bot +http://archive.org/details/archive.org_bot) Zeno/" + version.Version + " warc/" + version.WarcVersion
 	}
 	c.Headless = config.Headless
