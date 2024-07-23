@@ -53,6 +53,10 @@ func (im *IndexManager) replayWAL(entriesReplayed *int) error {
 
 	fmt.Printf("Replayed %d entries from WAL\n", tempEntriesReplayed)
 
+	if tempEntriesReplayed == 0 {
+		return ErrNoWALEntriesReplayed
+	}
+
 	if entriesReplayed != nil {
 		*entriesReplayed = tempEntriesReplayed
 	}
@@ -68,4 +72,12 @@ func (im *IndexManager) truncateWAL() error {
 		return fmt.Errorf("failed to seek WAL file: %w", err)
 	}
 	return nil
+}
+
+func (im *IndexManager) isWALEmpty() (bool, error) {
+	stat, err := im.walFile.Stat()
+	if err != nil {
+		return false, fmt.Errorf("failed to get WAL file info: %w", err)
+	}
+	return stat.Size() == 0, nil
 }

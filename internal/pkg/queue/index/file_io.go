@@ -98,8 +98,5 @@ func (im *IndexManager) loadIndex() error {
 		im.hostIndex = newIndex()
 	}
 
-	// Replay the WAL
-	im.replayWAL(nil)
-
 	return nil
 }

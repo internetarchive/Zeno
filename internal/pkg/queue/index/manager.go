@@ -42,6 +42,7 @@ type IndexManager struct {
 	totalOps     uint64
 }
 
+// NewIndexManager creates a new IndexManager instance and loads the index from the index file.
 func NewIndexManager(walPath, indexPath string, logger *log.Entry) (*IndexManager, error) {
 	if logger == nil {
 		fmt.Printf("logger is nil")
