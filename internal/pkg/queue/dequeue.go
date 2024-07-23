@@ -52,7 +52,7 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		return nil, fmt.Errorf("failed to unmarshal item: %w", err)
 	}
 
-	updateDequeueStats(q, item.URL.Host)
+	q.updateDequeueStats(item.URL.Host)
 
 	return item, nil
 }

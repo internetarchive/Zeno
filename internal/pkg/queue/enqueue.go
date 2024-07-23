@@ -42,7 +42,7 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	}
 
 	// Update stats
-	updateEnqueueStats(q, item)
+	q.updateEnqueueStats(item)
 
-	return q.saveMetadata()
+	return nil
 }
