@@ -12,7 +12,7 @@ import (
 func provideTestIndexManager(t *testing.T) (*IndexManager, string) {
 	queueDir, err := os.MkdirTemp("", "index_test")
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf("failed to create temp dir: %v", err)
 	}
 
 	walPath := path.Join(queueDir, "/index_wal")
@@ -47,7 +47,7 @@ func provideTestIndexManager(t *testing.T) (*IndexManager, string) {
 func Test_badCloseThenReopenIndex(t *testing.T) {
 	queueDir, err := os.MkdirTemp("", "index_test")
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf("failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(queueDir)
 
@@ -56,14 +56,14 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 
 	im, err := NewIndexManager(walPath, indexPath)
 	if err != nil {
-		t.Fatalf("Failed to create index manager: %v", err)
+		t.Fatalf("failed to create index manager: %v", err)
 	}
 
 	// Add entries to the index
 	for i := 0; i < 1000; i++ {
 		err := im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
 		if err != nil {
-			t.Fatalf("Failed to add entry to index: %v", err)
+			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
 
@@ -79,12 +79,12 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 	// Close file descriptors
 	err = im.walFile.Close()
 	if err != nil {
-		t.Fatalf("Failed to close WAL file: %v", err)
+		t.Fatalf("failed to close WAL file: %v", err)
 	}
 
 	err = im.indexFile.Close()
 	if err != nil {
-		t.Fatalf("Failed to close index file: %v", err)
+		t.Fatalf("failed to close index file: %v", err)
 	}
 
 	im.Unlock()
@@ -93,14 +93,14 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 
 	im, err = NewIndexManager(walPath, indexPath)
 	if err != nil {
-		t.Fatalf("Failed to create index manager: %v", err)
+		t.Fatalf("failed to create index manager: %v", err)
 	}
 }
 
 func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 	queueDir, err := os.MkdirTemp("", "index_test")
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf("failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(queueDir)
 
@@ -109,14 +109,14 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 
 	im, err := NewIndexManager(walPath, indexPath)
 	if err != nil {
-		t.Fatalf("Failed to create index manager: %v", err)
+		t.Fatalf("failed to create index manager: %v", err)
 	}
 
 	// Add entries to the index
 	for i := 0; i < 1000; i++ {
 		err := im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
 		if err != nil {
-			t.Fatalf("Failed to add entry to index: %v", err)
+			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
 
@@ -125,6 +125,6 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 
 	im, err = NewIndexManager(walPath, indexPath)
 	if err != nil {
-		t.Fatalf("Failed to create index manager: %v", err)
+		t.Fatalf("failed to create index manager: %v", err)
 	}
 }

@@ -13,7 +13,7 @@ func Test_Recovery(t *testing.T) {
 	queueDir, err := os.MkdirTemp("", "index_test")
 	defer os.RemoveAll(queueDir)
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf("failed to create temp dir: %v", err)
 	}
 
 	walPath := path.Join(queueDir, "/index_wal")
@@ -46,7 +46,7 @@ func Test_Recovery(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		err := im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
 		if err != nil {
-			t.Fatalf("Failed to add entry to index: %v", err)
+			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
 
@@ -62,12 +62,12 @@ func Test_Recovery(t *testing.T) {
 	// Close file descriptors
 	err = im.walFile.Close()
 	if err != nil {
-		t.Fatalf("Failed to close WAL file: %v", err)
+		t.Fatalf("failed to close WAL file: %v", err)
 	}
 
 	err = im.indexFile.Close()
 	if err != nil {
-		t.Fatalf("Failed to close index file: %v", err)
+		t.Fatalf("failed to close index file: %v", err)
 	}
 
 	walFile = nil
@@ -102,6 +102,6 @@ func Test_Recovery(t *testing.T) {
 
 	err = im.RecoverFromCrash()
 	if err != nil {
-		t.Fatalf("Failed to recover from crash: %v", err)
+		t.Fatalf("failed to recover from crash: %v", err)
 	}
 }

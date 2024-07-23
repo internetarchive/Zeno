@@ -56,6 +56,5 @@ func (im *IndexManager) RecoverFromCrash() error {
 		return fmt.Errorf("failed to truncate WAL during recovery: %w", err)
 	}
 
-	fmt.Printf("Crash recovery completed successfully, replayed %d entries from WAL\n", replayedEntries)
 	return nil
 }

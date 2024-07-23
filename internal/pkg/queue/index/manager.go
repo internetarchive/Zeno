@@ -38,6 +38,7 @@ type IndexManager struct {
 	lastDumpTime time.Time
 	opsSinceDump int
 	totalOps     uint64
+	stopChan     chan struct{}
 }
 
 // NewIndexManager creates a new IndexManager instance and loads the index from the index file.
@@ -63,6 +64,7 @@ func NewIndexManager(walPath, indexPath string) (*IndexManager, error) {
 		indexDecoder: gob.NewDecoder(indexFile),
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
+		stopChan:     make(chan struct{}),
 	}
 
 	// Check if WAL file is empty
@@ -85,7 +87,22 @@ func NewIndexManager(walPath, indexPath string) (*IndexManager, error) {
 		}
 	}
 
-	go im.periodicDump()
+	periodicDumpStopChan := make(chan struct{})
+	periodicDumpErrChan := make(chan error)
+	go func(im *IndexManager, errChan chan error, stopChan chan struct{}) {
+		for {
+			select {
+			case stop := <-im.stopChan:
+				periodicDumpStopChan <- stop
+			case err := <-errChan:
+				if err != nil {
+					fmt.Printf("Periodic dump failed: %v", err) // No better way to log this, will wait for https://github.com/internetarchive/Zeno/issues/92
+				}
+			}
+		}
+	}(im, periodicDumpErrChan, periodicDumpStopChan)
+
+	go im.periodicDump(periodicDumpErrChan, periodicDumpStopChan)
 
 	return im, nil
 }
@@ -161,6 +178,7 @@ func (im *IndexManager) Pop(host string) (id string, position uint64, size uint6
 
 func (im *IndexManager) Close() error {
 	im.dumpTicker.Stop()
+	im.stopChan <- struct{}{}
 	if err := im.performDump(); err != nil {
 		return fmt.Errorf("failed to perform final dump: %w", err)
 	}

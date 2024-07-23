@@ -25,7 +25,7 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	hosts := q.index.GetHosts()
 
 	if len(hosts) == 0 {
-		return nil, ErrNoHostsInQueue
+		return nil, ErrNoHostInQueue
 	}
 
 	for _, host := range hosts {
@@ -34,7 +34,7 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 			if err == index.ErrHostEmpty {
 				continue
 			} else if err == index.ErrHostNotFound {
-				panic(fmt.Sprintf("host %s not found in index, this indicates a failure in index package logic", host))
+				return nil, fmt.Errorf("host %s not found in index, this indicates a failure in index package logic", host)
 			}
 			return nil, fmt.Errorf("failed to pop item from host %s: %w", host, err)
 		}
