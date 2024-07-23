@@ -12,7 +12,7 @@ type Version struct {
 }
 
 func GetVersion() (version Version) {
-	// Defaults to "unknown"
+	// Defaults to "unknown_version"
 	version.Version = "unknown_version"
 
 	if info, ok := debug.ReadBuildInfo(); ok {
