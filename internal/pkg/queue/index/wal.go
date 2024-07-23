@@ -1,7 +1,6 @@
 package index
 
 import (
-	"encoding/gob"
 	"fmt"
 	"io"
 )
@@ -25,12 +24,10 @@ func (im *IndexManager) replayWAL(entriesReplayed *int) error {
 		return fmt.Errorf("failed to seek to the beginning of WAL: %w", err)
 	}
 
-	decoder := gob.NewDecoder(im.walFile)
-
 	var tempEntriesReplayed int
 	for {
 		var entry WALEntry
-		if err := decoder.Decode(&entry); err == io.EOF {
+		if err := im.walDecoder.Decode(&entry); err == io.EOF {
 			break
 		} else if err != nil {
 			return fmt.Errorf("failed to decode WAL entry: %w", err)
@@ -47,6 +44,8 @@ func (im *IndexManager) replayWAL(entriesReplayed *int) error {
 			if err != nil {
 				return fmt.Errorf("failed to replay WAL entry: %w", err)
 			}
+		default:
+			return fmt.Errorf("unknown WAL operation: %v", entry.Op)
 		}
 		tempEntriesReplayed++
 	}

@@ -33,6 +33,7 @@ type IndexManager struct {
 	walFile      *os.File
 	indexFile    *os.File
 	walEncoder   *gob.Encoder
+	walDecoder   *gob.Decoder
 	indexEncoder *gob.Encoder
 	indexDecoder *gob.Decoder
 	dumpTicker   *time.Ticker
@@ -48,7 +49,7 @@ func NewIndexManager(walPath, indexPath string, logger *log.Entry) (*IndexManage
 		fmt.Printf("logger is nil")
 	}
 
-	walFile, err := os.OpenFile(walPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	walFile, err := os.OpenFile(walPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open WAL file: %w", err)
 	}
@@ -64,6 +65,7 @@ func NewIndexManager(walPath, indexPath string, logger *log.Entry) (*IndexManage
 		walFile:      walFile,
 		indexFile:    indexFile,
 		walEncoder:   gob.NewEncoder(walFile),
+		walDecoder:   gob.NewDecoder(walFile),
 		indexEncoder: gob.NewEncoder(indexFile),
 		indexDecoder: gob.NewDecoder(indexFile),
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
