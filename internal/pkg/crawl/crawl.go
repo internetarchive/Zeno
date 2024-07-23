@@ -47,7 +47,7 @@ func (c *Crawl) Start() (err error) {
 
 	// Initialize the queue & seencheck
 	c.Log.Info("Initializing queue and seencheck..")
-	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"), c.Log)
+	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"))
 	if err != nil {
 		c.Log.Fatal("unable to init queue", "error", err)
 	}

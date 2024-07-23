@@ -15,7 +15,7 @@ func TestEnqueue(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), nil)
+	q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check enqueue times", func(t *testing.T) {
-		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "time_test_queue"), nil)
+		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "time_test_queue"))
 		defer q.Close()
 
 		url, _ := url.Parse("http://timetest.com")
@@ -125,7 +125,7 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check host order", func(t *testing.T) {
-		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "order_test_queue"), nil)
+		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "order_test_queue"))
 		defer q.Close()
 
 		hosts := []string{"first.com", "second.com", "third.com"}
