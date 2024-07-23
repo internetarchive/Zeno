@@ -12,8 +12,8 @@ type Version struct {
 }
 
 func GetVersion() (version Version) {
-	// Defaults to master
-	version.Version = "master"
+	// Defaults to "unknown_version"
+	version.Version = "unknown_version"
 
 	if info, ok := debug.ReadBuildInfo(); ok {
 		// Determine Zeno's version based on Git data
