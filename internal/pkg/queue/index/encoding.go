@@ -3,6 +3,7 @@ package index
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 )
 
 type serializableIndex struct {
@@ -57,7 +58,7 @@ func (i *Index) GobDecode(data []byte) error {
 	var si serializableIndex
 	err := dec.Decode(&si)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to decode index: %w", err)
 	}
 
 	i.index = make(map[string][]*blob)
