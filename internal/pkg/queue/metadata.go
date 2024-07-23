@@ -33,7 +33,7 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 	q.hostIndex = metadata.HostIndex
 	q.hostOrder = metadata.HostOrder
 	q.currentHost = metadata.CurrentHost
-	q.stats = metadata.Stats
+	q.stats = &metadata.Stats
 
 	// Reinitialize maps if they're nil
 	if q.stats.ElementsPerHost == nil {

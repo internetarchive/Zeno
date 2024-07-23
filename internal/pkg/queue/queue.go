@@ -29,11 +29,10 @@ type PersistentGroupedQueue struct {
 	metadataEncoder *gob.Encoder
 	metadataDecoder *gob.Decoder
 	hostIndex       map[string][]uint64
-	stats           QueueStats
+	stats           *QueueStats
 	hostOrder       []string
 	currentHost     int
 	mutex           sync.RWMutex
-	statsMutex      sync.RWMutex
 	hostMutex       sync.Mutex
 	closed          bool
 }
@@ -77,7 +76,7 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 		hostIndex:       make(map[string][]uint64),
 		hostOrder:       []string{},
 		currentHost:     0,
-		stats: QueueStats{
+		stats: &QueueStats{
 			ElementsPerHost:  make(map[string]int),
 			HostDistribution: make(map[string]float64),
 		},

@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"os"
 	"sort"
+	"sync"
 	"time"
 )
 
 type QueueStats struct {
+	sync.Mutex `json:"-"`
+
 	FirstEnqueueTime           time.Time          `json:"first_enqueue_time"`
 	LastEnqueueTime            time.Time          `json:"last_enqueue_time"`
 	FirstDequeueTime           time.Time          `json:"first_dequeue_time"`
@@ -29,16 +32,19 @@ type HostStat struct {
 	Elements int    `json:"elements"`
 }
 
-func (q *PersistentGroupedQueue) GetStats() QueueStats {
-	q.statsMutex.RLock()
-	defer q.statsMutex.RUnlock()
+func (q *PersistentGroupedQueue) GetStats() *QueueStats {
+	q.genStats()
+	return q.stats
+}
 
-	// Create a copy of the current stats
-	stats := q.stats
+// genStats is not thread-safe and should be called with the statsMutex locked
+func (q *PersistentGroupedQueue) genStats() {
+	q.stats.Lock()
+	defer q.stats.Unlock()
 
 	// Calculate top hosts
 	var topHosts []HostStat
-	for host, count := range stats.ElementsPerHost {
+	for host, count := range q.stats.ElementsPerHost {
 		topHosts = append(topHosts, HostStat{Host: host, Elements: count})
 	}
 
@@ -51,36 +57,34 @@ func (q *PersistentGroupedQueue) GetStats() QueueStats {
 	if len(topHosts) > 10 {
 		topHosts = topHosts[:10]
 	}
-	stats.TopHosts = topHosts
+	q.stats.TopHosts = topHosts
 
 	// Calculate host distribution
-	stats.HostDistribution = make(map[string]float64)
-	if stats.TotalElements > 0 {
-		for host, count := range stats.ElementsPerHost {
-			stats.HostDistribution[host] = float64(count) / float64(stats.TotalElements)
+	q.stats.HostDistribution = make(map[string]float64)
+	if q.stats.TotalElements > 0 {
+		for host, count := range q.stats.ElementsPerHost {
+			q.stats.HostDistribution[host] = float64(count) / float64(q.stats.TotalElements)
 		}
 	}
 
-	// Calculate additional stats
-	if stats.UniqueHosts > 0 {
-		stats.AverageElementsPerHost = float64(stats.TotalElements) / float64(stats.UniqueHosts)
+	// Calculate additional q.Stats
+	if q.stats.UniqueHosts > 0 {
+		q.stats.AverageElementsPerHost = float64(q.stats.TotalElements) / float64(q.stats.UniqueHosts)
 	} else {
-		stats.AverageElementsPerHost = 0
+		q.stats.AverageElementsPerHost = 0
 	}
 
-	if stats.DequeueCount > 0 {
-		stats.AverageTimeBetweenDequeues = time.Since(stats.FirstDequeueTime) / time.Duration(stats.DequeueCount)
+	if q.stats.DequeueCount > 0 {
+		q.stats.AverageTimeBetweenDequeues = time.Since(q.stats.FirstDequeueTime) / time.Duration(q.stats.DequeueCount)
 	}
-	if stats.EnqueueCount > 0 {
-		stats.AverageTimeBetweenEnqueues = time.Since(stats.FirstEnqueueTime) / time.Duration(stats.EnqueueCount)
+	if q.stats.EnqueueCount > 0 {
+		q.stats.AverageTimeBetweenEnqueues = time.Since(q.stats.FirstEnqueueTime) / time.Duration(q.stats.EnqueueCount)
 	}
-
-	return stats
 }
 
 func (q *PersistentGroupedQueue) loadStatsFromFile(path string) error {
-	q.statsMutex.Lock()
-	defer q.statsMutex.Unlock()
+	q.stats.Lock()
+	defer q.stats.Unlock()
 
 	// Load the stats from the file
 	f, err := os.OpenFile(path, os.O_RDONLY, 0644)
@@ -90,7 +94,7 @@ func (q *PersistentGroupedQueue) loadStatsFromFile(path string) error {
 	defer f.Close()
 
 	// Decode the stats
-	err = json.NewDecoder(f).Decode(&q.stats)
+	err = json.NewDecoder(f).Decode(q.stats)
 	if err != nil {
 		return err
 	}
@@ -105,11 +109,7 @@ func (q *PersistentGroupedQueue) loadStatsFromFile(path string) error {
 }
 
 func (q *PersistentGroupedQueue) saveStatsToFile(path string) error {
-	q.statsMutex.RLock()
-	defer q.statsMutex.RUnlock()
-
-	// Save the stats to the file, creating it if it doesn't exist
-	// or truncating it if it does
+	// Save the stats to the file, creating it if it doesn't exist or truncating it if it does
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -126,8 +126,8 @@ func (q *PersistentGroupedQueue) saveStatsToFile(path string) error {
 }
 
 func (q *PersistentGroupedQueue) updateDequeueStats(host string) {
-	q.statsMutex.Lock()
-	defer q.statsMutex.Unlock()
+	q.stats.Lock()
+	defer q.stats.Unlock()
 
 	q.stats.TotalElements--
 	q.stats.ElementsPerHost[host]--
@@ -143,8 +143,8 @@ func (q *PersistentGroupedQueue) updateDequeueStats(host string) {
 }
 
 func (q *PersistentGroupedQueue) updateEnqueueStats(item *Item) {
-	q.statsMutex.Lock()
-	defer q.statsMutex.Unlock()
+	q.stats.Lock()
+	defer q.stats.Unlock()
 
 	q.stats.TotalElements++
 	if q.stats.ElementsPerHost[item.URL.Host] == 0 {

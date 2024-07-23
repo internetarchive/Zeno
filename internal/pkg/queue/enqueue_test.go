@@ -33,14 +33,14 @@ func TestEnqueue(t *testing.T) {
 			t.Errorf("Failed to enqueue item: %v", err)
 		}
 
-		if q.stats.TotalElements != 1 {
-			t.Errorf("Expected TotalElements to be 1, got %d", q.stats.TotalElements)
+		if q.GetStats().TotalElements != 1 {
+			t.Errorf("Expected TotalElements to be 1, got %d", q.GetStats().TotalElements)
 		}
-		if q.stats.UniqueHosts != 1 {
-			t.Errorf("Expected UniqueHosts to be 1, got %d", q.stats.UniqueHosts)
+		if q.GetStats().UniqueHosts != 1 {
+			t.Errorf("Expected UniqueHosts to be 1, got %d", q.GetStats().UniqueHosts)
 		}
-		if q.stats.ElementsPerHost["example.com"] != 1 {
-			t.Errorf("Expected ElementsPerHost[example.com] to be 1, got %d", q.stats.ElementsPerHost["example.com"])
+		if q.GetStats().ElementsPerHost["example.com"] != 1 {
+			t.Errorf("Expected ElementsPerHost[example.com] to be 1, got %d", q.GetStats().ElementsPerHost["example.com"])
 		}
 	})
 
@@ -59,14 +59,14 @@ func TestEnqueue(t *testing.T) {
 			}
 		}
 
-		if q.stats.TotalElements != 4 {
-			t.Errorf("Expected TotalElements to be 4, got %d", q.stats.TotalElements)
+		if q.GetStats().TotalElements != 4 {
+			t.Errorf("Expected TotalElements to be 4, got %d", q.GetStats().TotalElements)
 		}
-		if q.stats.UniqueHosts != 3 {
-			t.Errorf("Expected UniqueHosts to be 3, got %d", q.stats.UniqueHosts)
+		if q.GetStats().UniqueHosts != 3 {
+			t.Errorf("Expected UniqueHosts to be 3, got %d", q.GetStats().UniqueHosts)
 		}
-		if q.stats.ElementsPerHost["example.com"] != 2 {
-			t.Errorf("Expected ElementsPerHost[example.com] to be 2, got %d", q.stats.ElementsPerHost["example.com"])
+		if q.GetStats().ElementsPerHost["example.com"] != 2 {
+			t.Errorf("Expected ElementsPerHost[example.com] to be 2, got %d", q.GetStats().ElementsPerHost["example.com"])
 		}
 	})
 
@@ -99,14 +99,14 @@ func TestEnqueue(t *testing.T) {
 			t.Errorf("Failed to enqueue item: %v", err)
 		}
 
-		if q.stats.FirstEnqueueTime.IsZero() {
+		if q.GetStats().FirstEnqueueTime.IsZero() {
 			t.Error("FirstEnqueueTime should not be zero")
 		}
-		if q.stats.LastEnqueueTime.IsZero() {
+		if q.GetStats().LastEnqueueTime.IsZero() {
 			t.Error("LastEnqueueTime should not be zero")
 		}
-		if q.stats.EnqueueCount != 1 {
-			t.Errorf("Expected EnqueueCount to be 1, got %d", q.stats.EnqueueCount)
+		if q.GetStats().EnqueueCount != 1 {
+			t.Errorf("Expected EnqueueCount to be 1, got %d", q.GetStats().EnqueueCount)
 		}
 
 		time.Sleep(10 * time.Millisecond)
@@ -115,11 +115,11 @@ func TestEnqueue(t *testing.T) {
 			t.Errorf("Failed to enqueue item: %v", err)
 		}
 
-		if !q.stats.LastEnqueueTime.After(q.stats.FirstEnqueueTime) {
+		if !q.GetStats().LastEnqueueTime.After(q.GetStats().FirstEnqueueTime) {
 			t.Error("LastEnqueueTime should be after FirstEnqueueTime")
 		}
-		if q.stats.EnqueueCount != 2 {
-			t.Errorf("Expected EnqueueCount to be 2, got %d", q.stats.EnqueueCount)
+		if q.GetStats().EnqueueCount != 2 {
+			t.Errorf("Expected EnqueueCount to be 2, got %d", q.GetStats().EnqueueCount)
 		}
 
 	})
