@@ -8,12 +8,16 @@ import (
 	"time"
 )
 
-func (im *IndexManager) periodicDump() {
-	for range im.dumpTicker.C {
-		if err := im.performDump(); err != nil {
-			// Log the error and exit
-			fmt.Printf("Error during periodic dump: %v\n", err)
-			os.Exit(1)
+func (im *IndexManager) periodicDump(errChan chan error, stop chan struct{}) {
+	for {
+		select {
+		case <-im.dumpTicker.C:
+			if err := im.performDump(); err != nil {
+				// Log the error and exit
+				errChan <- fmt.Errorf("failed to perform periodic dump: %w", err)
+			}
+		case <-stop:
+			return
 		}
 	}
 }
@@ -38,10 +42,8 @@ func (im *IndexManager) performDump() error {
 	}
 
 	// Remove any previous backup index file
-	if _, err := os.Stat(im.indexFile.Name() + ".old"); err == nil {
-		if err := os.Remove(im.indexFile.Name() + ".old"); err != nil {
-			return fmt.Errorf("failed to remove old index file: %w", err)
-		}
+	if err := os.Remove(im.indexFile.Name() + ".old"); err != nil {
+		return fmt.Errorf("failed to remove old index file: %w", err)
 	}
 
 	// Backup the current index file by renaming it

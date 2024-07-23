@@ -18,6 +18,6 @@ var (
 	// ErrQueueAlreadyClosed is returned when the queue is already closed
 	ErrQueueAlreadyClosed = errors.New("queue is already closed")
 
-	// ErrNoHostsInQueue is returned when there are no hosts in the queue
-	ErrNoHostsInQueue = errors.New("no hosts in queue")
+	// ErrNoHostInQueue is returned when there are no hosts in the queue
+	ErrNoHostInQueue = errors.New("no host in queue")
 )
