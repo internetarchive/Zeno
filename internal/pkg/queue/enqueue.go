@@ -46,7 +46,7 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	q.hostMutex.Unlock()
 
 	// Update stats
-	updateEnqueueStats(q, item)
+	q.updateEnqueueStats(item)
 
-	return q.saveMetadata()
+	return nil
 }

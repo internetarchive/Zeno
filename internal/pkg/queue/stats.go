@@ -1,6 +1,8 @@
 package queue
 
 import (
+	"encoding/json"
+	"os"
 	"sort"
 	"time"
 )
@@ -76,7 +78,54 @@ func (q *PersistentGroupedQueue) GetStats() QueueStats {
 	return stats
 }
 
-func updateDequeueStats(q *PersistentGroupedQueue, host string) {
+func (q *PersistentGroupedQueue) loadStatsFromFile(path string) error {
+	q.statsMutex.Lock()
+	defer q.statsMutex.Unlock()
+
+	// Load the stats from the file
+	f, err := os.OpenFile(path, os.O_RDONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	// Decode the stats
+	err = json.NewDecoder(f).Decode(&q.stats)
+	if err != nil {
+		return err
+	}
+
+	// Delete the file after reading it
+	err = os.Remove(path)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (q *PersistentGroupedQueue) saveStatsToFile(path string) error {
+	q.statsMutex.RLock()
+	defer q.statsMutex.RUnlock()
+
+	// Save the stats to the file, creating it if it doesn't exist
+	// or truncating it if it does
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	// Encode the stats
+	err = json.NewEncoder(f).Encode(q.stats)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (q *PersistentGroupedQueue) updateDequeueStats(host string) {
 	q.statsMutex.Lock()
 	defer q.statsMutex.Unlock()
 
@@ -93,7 +142,7 @@ func updateDequeueStats(q *PersistentGroupedQueue, host string) {
 	}
 }
 
-func updateEnqueueStats(q *PersistentGroupedQueue, item *Item) {
+func (q *PersistentGroupedQueue) updateEnqueueStats(item *Item) {
 	q.statsMutex.Lock()
 	defer q.statsMutex.Unlock()
 

@@ -23,6 +23,7 @@ type PersistentGroupedQueue struct {
 	// Exported fields
 	Paused *utils.TAtomBool
 
+	queueDirPath    string
 	queueFile       *os.File
 	metadataFile    *os.File
 	metadataEncoder *gob.Encoder
@@ -68,6 +69,7 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 	q := &PersistentGroupedQueue{
 		Paused: new(utils.TAtomBool),
 
+		queueDirPath:    queueDirPath,
 		queueFile:       file,
 		metadataFile:    metafile,
 		metadataEncoder: gob.NewEncoder(metafile),
@@ -79,6 +81,13 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 			ElementsPerHost:  make(map[string]int),
 			HostDistribution: make(map[string]float64),
 		},
+	}
+
+	// Loading stats from the disk means deleting the file from disk after having read it
+	if err = q.loadStatsFromFile(path.Join(q.queueDirPath, "queue.stats")); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("load queue stats: %w", err)
+		}
 	}
 
 	if err = q.loadMetadata(); err != nil {
@@ -100,7 +109,7 @@ func (q *PersistentGroupedQueue) Close() error {
 	q.closed = true
 
 	// Save metadata
-	err := q.saveMetadata()
+	err := q.saveStatsToFile(path.Join(q.queueDirPath, "queue.stats"))
 	if err != nil {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}

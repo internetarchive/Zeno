@@ -45,37 +45,3 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 
 	return nil
 }
-
-func (q *PersistentGroupedQueue) saveMetadata() error {
-	q.statsMutex.RLock()
-	defer q.statsMutex.RUnlock()
-
-	_, err := q.metadataFile.Seek(0, 0)
-	if err != nil {
-		return fmt.Errorf("failed to seek to start of metadata file: %w", err)
-	}
-
-	err = q.metadataFile.Truncate(0)
-	if err != nil {
-		return fmt.Errorf("failed to truncate metadata file: %w", err)
-	}
-
-	metadata := struct {
-		HostIndex   map[string][]uint64
-		Stats       QueueStats
-		HostOrder   []string
-		CurrentHost int
-	}{
-		HostIndex:   q.hostIndex,
-		HostOrder:   q.hostOrder,
-		CurrentHost: q.currentHost,
-		Stats:       q.stats,
-	}
-
-	err = q.metadataEncoder.Encode(metadata)
-	if err != nil {
-		return fmt.Errorf("failed to encode metadata: %w", err)
-	}
-
-	return nil
-}
