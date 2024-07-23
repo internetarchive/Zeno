@@ -72,11 +72,24 @@ func NewIndexManager(walPath, indexPath string, logger *log.Entry) (*IndexManage
 		lastDumpTime: time.Now(),
 	}
 
-	err = im.loadIndex()
-	if err != nil {
-		walFile.Close()
-		indexFile.Close()
-		return nil, fmt.Errorf("failed to load index: %w", err)
+	// Check if WAL file is empty
+	im.Lock()
+	empty, err := im.unsafeIsWALEmpty()
+	im.Unlock()
+	if !empty {
+		err := im.RecoverFromCrash()
+		if err != nil {
+			walFile.Close()
+			indexFile.Close()
+			return nil, fmt.Errorf("failed to recover from crash: %w", err)
+		}
+	} else {
+		err = im.loadIndex()
+		if err != nil {
+			walFile.Close()
+			indexFile.Close()
+			return nil, fmt.Errorf("failed to load index: %w", err)
+		}
 	}
 
 	go im.periodicDump()
