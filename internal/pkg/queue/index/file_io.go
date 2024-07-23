@@ -64,10 +64,6 @@ func (im *IndexManager) performDump() error {
 		return fmt.Errorf("failed to seek WAL file: %w", err)
 	}
 
-	// Log the dump operation
-	fmt.Printf("Index dumped. Ops since last dump: %d, Time since last dump: %v\n",
-		im.opsSinceDump, time.Since(im.lastDumpTime))
-
 	im.opsSinceDump = 0
 	im.lastDumpTime = time.Now()
 
