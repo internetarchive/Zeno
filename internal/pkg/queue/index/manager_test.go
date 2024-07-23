@@ -54,7 +54,7 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 	walPath := path.Join(queueDir, "/index_wal")
 	indexPath := path.Join(queueDir, "/index")
 
-	im, err := NewIndexManager(walPath, indexPath, nil)
+	im, err := NewIndexManager(walPath, indexPath)
 	if err != nil {
 		t.Fatalf("Failed to create index manager: %v", err)
 	}
@@ -91,7 +91,7 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 
 	im = nil
 
-	im, err = NewIndexManager(walPath, indexPath, nil)
+	im, err = NewIndexManager(walPath, indexPath)
 	if err != nil {
 		t.Fatalf("Failed to create index manager: %v", err)
 	}
@@ -107,7 +107,7 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 	walPath := path.Join(queueDir, "/index_wal")
 	indexPath := path.Join(queueDir, "/index")
 
-	im, err := NewIndexManager(walPath, indexPath, nil)
+	im, err := NewIndexManager(walPath, indexPath)
 	if err != nil {
 		t.Fatalf("Failed to create index manager: %v", err)
 	}
@@ -123,7 +123,7 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 	im.Close()
 	im = nil
 
-	im, err = NewIndexManager(walPath, indexPath, nil)
+	im, err = NewIndexManager(walPath, indexPath)
 	if err != nil {
 		t.Fatalf("Failed to create index manager: %v", err)
 	}

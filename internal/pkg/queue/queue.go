@@ -2,7 +2,6 @@ package queue
 
 import (
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -10,17 +9,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/queue/index"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
-)
-
-var (
-	ErrQueueFull          = errors.New("queue is full")
-	ErrQueueEmpty         = errors.New("queue is empty")
-	ErrQueueClosed        = errors.New("queue is closed")
-	ErrQueueTimeout       = errors.New("queue operation timed out")
-	ErrQueueAlreadyClosed = errors.New("queue is already closed")
 )
 
 type PersistentGroupedQueue struct {
@@ -37,6 +27,8 @@ type PersistentGroupedQueue struct {
 	mutex           sync.RWMutex
 	statsMutex      sync.RWMutex
 	closed          bool
+
+	logger *slog.Logger
 }
 
 type Item struct {
@@ -51,7 +43,7 @@ type Item struct {
 	Redirect        uint64
 }
 
-func NewPersistentGroupedQueue(queueDirPath string, logger *log.Logger) (*PersistentGroupedQueue, error) {
+func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, error) {
 	err := os.MkdirAll(queueDirPath, 0755)
 	if err != nil {
 		return nil, err
@@ -67,24 +59,7 @@ func NewPersistentGroupedQueue(queueDirPath string, logger *log.Logger) (*Persis
 		return nil, fmt.Errorf("open metadata file: %w", err)
 	}
 
-	if logger == nil {
-		logger, err = log.New(log.Config{
-			FileConfig:               nil,
-			FileLevel:                0,
-			StdoutEnabled:            true,
-			StdoutLevel:              slog.LevelDebug,
-			RotateLogFile:            false,
-			ElasticsearchConfig:      nil,
-			RotateElasticSearchIndex: false,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("create logger: %w", err)
-		}
-	}
-
-	indexLogger := logger.WithFields(map[string]interface{}{"component": "index"})
-
-	indexManager, err := index.NewIndexManager(path.Join(queueDirPath, "index_wal"), path.Join(queueDirPath, "index"), indexLogger)
+	indexManager, err := index.NewIndexManager(path.Join(queueDirPath, "index_wal"), path.Join(queueDirPath, "index"))
 	if err != nil {
 		return nil, fmt.Errorf("create index manager: %w", err)
 	}

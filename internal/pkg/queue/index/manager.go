@@ -6,8 +6,6 @@ import (
 	"os"
 	"sync"
 	"time"
-
-	"github.com/internetarchive/Zeno/internal/pkg/log"
 )
 
 var dumpFrequency = 60 // seconds
@@ -39,16 +37,11 @@ type IndexManager struct {
 	dumpTicker   *time.Ticker
 	lastDumpTime time.Time
 	opsSinceDump int
-	logger       *log.Entry
 	totalOps     uint64
 }
 
 // NewIndexManager creates a new IndexManager instance and loads the index from the index file.
-func NewIndexManager(walPath, indexPath string, logger *log.Entry) (*IndexManager, error) {
-	if logger == nil {
-		fmt.Printf("logger is nil")
-	}
-
+func NewIndexManager(walPath, indexPath string) (*IndexManager, error) {
 	walFile, err := os.OpenFile(walPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open WAL file: %w", err)
@@ -118,36 +111,50 @@ func (im *IndexManager) Add(host string, id string, position uint64, size uint64
 	return nil
 }
 
+// Pop removes the oldest blob from the specified host's queue and returns its ID, position, and size.
+// Pop is responsible for synchronizing the pop of the blob from the in-memory index and writing to the WAL.
+// First it starts a goroutine that waits for the to-be-popped blob infos through blobChan, then writes to the WAL and if successful
+// informs index.pop() through WALSuccessChan to either continue as normal or return an error.
 func (im *IndexManager) Pop(host string) (id string, position uint64, size uint64, err error) {
 	im.Lock()
 	defer im.Unlock()
 
 	// Prepare the channels
-	getChan := make(chan *blob)
-	WALChan := make(chan bool)
+	blobChan := make(chan *blob)
+	WALSuccessChan := make(chan bool)
+	errChan := make(chan error)
 
 	go func() {
 		// Write to WAL
-		blob := <-getChan
+		blob := <-blobChan
 		err := im.unsafeWriteToWAL(OpPop, host, blob.id, blob.position, blob.size)
 		if err != nil {
-			im.logger.Error("failed to write to WAL", "error", err)
-			panic(err)
+			errChan <- fmt.Errorf("failed to write to WAL: %w", err)
+			WALSuccessChan <- false
 		}
 		id = blob.id
 		position = blob.position
 		size = blob.size
-		WALChan <- true
+		WALSuccessChan <- true
+		errChan <- nil
 	}()
 
 	// Pop from in-memory index
-	err = im.hostIndex.pop(host, getChan, WALChan)
+	err = im.hostIndex.pop(host, blobChan, WALSuccessChan)
 	if err != nil {
+		return "", 0, 0, err
+	}
+
+	if err := <-errChan; err != nil {
 		return "", 0, 0, err
 	}
 
 	im.opsSinceDump++
 	im.totalOps++
+
+	close(blobChan)
+	close(WALSuccessChan)
+	close(errChan)
 
 	return
 }

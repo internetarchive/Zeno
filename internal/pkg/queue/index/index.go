@@ -62,7 +62,7 @@ func (i *Index) add(host string, id string, position uint64, size uint64) error 
 
 // pop is a routine safe method to pop a blob to the index
 // It returns the position and size of the blob then removes it from the index
-func (i *Index) pop(host string, getChan chan *blob, WALChan chan bool) error {
+func (i *Index) pop(host string, blobChan chan *blob, WALChan chan bool) error {
 	i.Lock()
 	defer i.Unlock()
 
@@ -77,10 +77,13 @@ func (i *Index) pop(host string, getChan chan *blob, WALChan chan bool) error {
 		return ErrHostEmpty
 	}
 
-	getChan <- i.index[host][0] // send the blob to the getChan
+	blobChan <- i.index[host][0] // send the blob to the getChan
 
 	// wait for the WAL to finish writing the pop operation
-	<-WALChan
+	ok := <-WALChan
+	if !ok {
+		return nil
+	}
 
 	i.index[host] = i.index[host][1:] // remove the blob from the index
 
