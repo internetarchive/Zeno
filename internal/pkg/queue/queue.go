@@ -2,6 +2,7 @@ package queue
 
 import (
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -22,7 +23,7 @@ type PersistentGroupedQueue struct {
 	metadataFile    *os.File
 	metadataEncoder *gob.Encoder
 	metadataDecoder *gob.Decoder
-  index           *index.IndexManager
+	index           *index.IndexManager
 	stats           *QueueStats
 	hostOrder       []string
 	currentHost     int
