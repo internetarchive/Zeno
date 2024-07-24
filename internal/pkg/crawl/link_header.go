@@ -43,6 +43,7 @@ func Parse(link string) []Link {
 	return links
 }
 
+// Parse a single attribute key value pair and return it
 func ParseAttr(attrs string) (key, value string) {
 	attrRegex := regexp.MustCompile(`^(\S+)=\"(\S+)\"$`)
 	match := attrRegex.FindStringSubmatch(attrs)
