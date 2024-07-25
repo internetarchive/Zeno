@@ -25,6 +25,7 @@ func URLToString(u *url.URL) string {
 		tempHost = u.Hostname()
 	}
 
+	// Handle IPv6 Address Formatting
 	if strings.Contains(tempHost, ":") && !(strings.HasPrefix(tempHost, "[") && strings.HasSuffix(tempHost, "]")) {
 		tempHost = "[" + tempHost + "]"
 	}

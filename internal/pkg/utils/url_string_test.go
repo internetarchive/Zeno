@@ -66,6 +66,12 @@ func TestURLToString(t *testing.T) {
 			expectErr: false,
 			expected:  "http://xn--fa-hia.de",
 		},
+		{
+			name:      "URL with IPv6 address",
+			input:     "http://[2001:db8::1]:8080",
+			expectErr: false,
+			expected:  "http://[2001:db8::1]:8080",
+		},
 	}
 
 	for _, tt := range tests {
