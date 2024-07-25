@@ -314,3 +314,95 @@ func TestParallelQueueBehavior(t *testing.T) {
 
 	wg.Wait()
 }
+
+func BenchmarkEnqueueDequeue(b *testing.B) {
+	fmt.Println(`Running benchmarks for Enqueue-Dequeue...
+Notes:
+	- an operation can be either an Enqueue or a Dequeue
+	- ns/op is the average time taken per batch`)
+	b.Run("EnqueueDequeue", func(b *testing.B) {
+
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			b.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		queuePath := path.Join(tempDir, "test_queue")
+
+		q, err := NewPersistentGroupedQueue(queuePath)
+		if err != nil {
+			b.Fatalf("Failed to create new queue: %v", err)
+		}
+		defer q.Close()
+
+		numItems := 50000
+		hosts := []string{"example.com", "tesb.org", "sample.net", "demo.io"}
+
+		// Reset the timer to exclude setup time
+		b.ResetTimer()
+
+		for i := 0; i < b.N; i++ {
+			b.Logf("——————————————————————— RUN %d ———————————————————————", i+1)
+			// Enqueue items
+			startEnqueue := time.Now()
+			for i := 0; i < numItems; i++ {
+				host := hosts[i%len(hosts)]
+				u, _ := url.Parse(fmt.Sprintf("https://%s/page%d", host, i))
+				item, err := NewItem(u, nil, "page", 1, fmt.Sprintf("id-%d", i), false)
+				if err != nil {
+					b.Fatalf("Failed to create item %d: %v", i, err)
+				}
+
+				err = q.Enqueue(item)
+				if err != nil {
+					b.Fatalf("Failed to enqueue item %d: %v", i, err)
+				}
+			}
+
+			// Print queue file size
+			queueFile, err := os.OpenFile(path.Join(queuePath, "queue"), os.O_RDONLY, 0644)
+			if err != nil {
+				b.Fatalf("Failed to open queue file: %v", err)
+			}
+
+			queueFileInfo, err := queueFile.Stat()
+			if err != nil {
+				b.Fatalf("Failed to get queue file info: %v", err)
+			}
+
+			b.Logf("Queue file size (megabytes): %d", queueFileInfo.Size()/1024/1024)
+
+			enqueueTime := time.Since(startEnqueue)
+			b.Logf("Enqueue time for %d items: %v", numItems, enqueueTime)
+
+			// Dequeue items
+			startDequeue := time.Now()
+			dequeuedItems := make(map[string]bool)
+			for i := 0; i < numItems; i++ {
+				item, err := q.Dequeue()
+				if err != nil {
+					b.Fatalf("Failed to dequeue item %d: %v", i, err)
+				}
+				if item == nil {
+					b.Fatalf("Dequeued nil item at position %d", i)
+				}
+				if dequeuedItems[item.ID] {
+					b.Errorf("Item with ID %s dequeued more than once", item.ID)
+				}
+
+				dequeuedItems[item.ID] = true
+			}
+			dequeueTime := time.Since(startDequeue)
+
+			b.Logf("Dequeue time for %d items: %v", numItems, dequeueTime)
+			b.Logf("Average enqueue time per item: %v", enqueueTime/time.Duration(numItems))
+			b.Logf("Average dequeue time per item: %v", dequeueTime/time.Duration(numItems))
+
+			// Report custom metrics
+			b.ReportMetric(float64(b.N), "batches")
+			b.ReportMetric(float64(b.N*numItems*2), "operations")
+			b.ReportMetric(float64(b.N*numItems*2)/b.Elapsed().Seconds(), "ops/s")
+		}
+	})
+}
