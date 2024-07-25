@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"regexp"
 	"strings"
 )
 
@@ -21,17 +20,23 @@ type Link struct {
 func Parse(link string) []Link {
 	var links []Link
 
-	urlRegex := regexp.MustCompile(`^<(\S+)>$`)
-	// var linkRegex = regexp.MustCompile(`^<(\S+)>(; (\S+)=(\S+))*$`)
-
 	for _, link := range strings.Split(link, ", ") {
-		parts := strings.Split(link, "; ")
-		match := urlRegex.FindStringSubmatch(parts[0])
-		url := match[1]
+		parts := strings.Split(link, ";")
+		if len(parts) < 1 {
+			// Malformed input, somehow we didn't get atleast one part
+			continue
+		}
+
+		url := strings.TrimSpace(strings.Trim(parts[0], "<>"))
 		rel := ""
 
 		for _, attrs := range parts[1:] {
 			key, value := ParseAttr(attrs)
+			if key == "" {
+				// Malformed input, somehow the key is nothing
+				continue
+			}
+
 			if key == "rel" {
 				rel = value
 				break
@@ -45,8 +50,14 @@ func Parse(link string) []Link {
 
 // Parse a single attribute key value pair and return it
 func ParseAttr(attrs string) (key, value string) {
-	attrRegex := regexp.MustCompile(`^(\S+)=\"(\S+)\"$`)
-	match := attrRegex.FindStringSubmatch(attrs)
+	kv := strings.SplitN(attrs, "=", 2)
 
-	return match[1], match[2]
+	if len(kv) != 2 {
+		return "", ""
+	}
+
+	key = strings.TrimSpace(kv[0])
+	value = strings.TrimSpace(strings.Trim(kv[1], "\""))
+
+	return key, value
 }
