@@ -90,7 +90,7 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 	walPath := path.Join(queueDir, "/index_wal")
 	indexPath := path.Join(queueDir, "/index")
 
-	im, err := NewIndexManager(walPath, indexPath)
+	im, err := NewIndexManager(walPath, indexPath, queueDir)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
@@ -127,7 +127,7 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 
 	im = nil
 
-	im, err = NewIndexManager(walPath, indexPath)
+	im, err = NewIndexManager(walPath, indexPath, queueDir)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
@@ -143,7 +143,7 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 	walPath := path.Join(queueDir, "/index_wal")
 	indexPath := path.Join(queueDir, "/index")
 
-	im, err := NewIndexManager(walPath, indexPath)
+	im, err := NewIndexManager(walPath, indexPath, queueDir)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
@@ -159,9 +159,19 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 	im.Close()
 	im = nil
 
-	im, err = NewIndexManager(walPath, indexPath)
+	im, err = NewIndexManager(walPath, indexPath, queueDir)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
+	}
+
+	// Check if the index was recovered correctly
+	_, _, _, err = im.Pop("example.com")
+	if err != nil {
+		t.Fatalf("failed to pop entry from index: %v", err)
+	}
+
+	if im.IsEmpty() {
+		t.Fatalf("index should not be empty")
 	}
 }
 

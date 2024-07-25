@@ -61,7 +61,7 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 		return nil, fmt.Errorf("open metadata file: %w", err)
 	}
 
-	indexManager, err := index.NewIndexManager(path.Join(queueDirPath, "index_wal"), path.Join(queueDirPath, "index"))
+	indexManager, err := index.NewIndexManager(path.Join(queueDirPath, "index_wal"), path.Join(queueDirPath, "index"), queueDirPath)
 	if err != nil {
 		return nil, fmt.Errorf("create index manager: %w", err)
 	}

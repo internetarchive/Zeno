@@ -29,8 +29,14 @@ func (im *IndexManager) performDump() error {
 	im.Lock()
 	defer im.Unlock()
 
+	// Create a temporary directory for the index dump
+	queueTempDir, err := os.MkdirTemp(im.queueDirPath, "temp_index_dump_")
+	if err != nil {
+		return fmt.Errorf("failed to create temp dir for index dump: %w", err)
+	}
+
 	// Create a temporary file for the new index dump
-	tempFile, err := os.CreateTemp("", "index_dump_")
+	tempFile, err := os.CreateTemp(queueTempDir, "index_dump_")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file for index dump: %w", err)
 	}
@@ -55,17 +61,29 @@ func (im *IndexManager) performDump() error {
 
 	// Move the temporary file to the actual index file
 	if err := os.Rename(tempFile.Name(), im.indexFile.Name()); err != nil {
-		// Try to rollback if rename fails
+		// Try to rollback backup to current index file if rename of the temp index fails
 		os.Rename(im.indexFile.Name()+".old", im.indexFile.Name())
 		return fmt.Errorf("failed to rename temp file to index file: %w", err)
 	}
 
+	// Close old index file then open the new current index file
+	im.indexFile.Close()
+	newIndexFile, err := os.OpenFile(im.indexFile.Name(), os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open current index file: %w", err)
+	}
+	im.indexFile = newIndexFile
+	im.indexEncoder = gob.NewEncoder(im.indexFile)
+	im.indexDecoder = gob.NewDecoder(im.indexFile)
+
 	// Truncate the WAL file
-	if err := im.walFile.Truncate(0); err != nil {
+	if err := im.unsafeTruncateWAL(); err != nil {
 		return fmt.Errorf("failed to truncate WAL file: %w", err)
 	}
-	if _, err := im.walFile.Seek(0, 0); err != nil {
-		return fmt.Errorf("failed to seek WAL file: %w", err)
+
+	// Remove the temporary directory
+	if err := os.RemoveAll(queueTempDir); err != nil {
+		return fmt.Errorf("failed to remove temp dir: %w", err)
 	}
 
 	im.opsSinceDump = 0

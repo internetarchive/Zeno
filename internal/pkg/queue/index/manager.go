@@ -31,6 +31,7 @@ type IndexManager struct {
 	hostIndex    *Index
 	walFile      *os.File
 	indexFile    *os.File
+	queueDirPath string
 	walEncoder   *gob.Encoder
 	walDecoder   *gob.Decoder
 	indexEncoder *gob.Encoder
@@ -43,7 +44,7 @@ type IndexManager struct {
 }
 
 // NewIndexManager creates a new IndexManager instance and loads the index from the index file.
-func NewIndexManager(walPath, indexPath string) (*IndexManager, error) {
+func NewIndexManager(walPath, indexPath, queueDirPath string) (*IndexManager, error) {
 	walFile, err := os.OpenFile(walPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open WAL file: %w", err)
@@ -59,6 +60,7 @@ func NewIndexManager(walPath, indexPath string) (*IndexManager, error) {
 		hostIndex:    newIndex(),
 		walFile:      walFile,
 		indexFile:    indexFile,
+		queueDirPath: queueDirPath,
 		walEncoder:   gob.NewEncoder(walFile),
 		walDecoder:   gob.NewDecoder(walFile),
 		indexEncoder: gob.NewEncoder(indexFile),
