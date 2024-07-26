@@ -20,40 +20,36 @@ type Window struct {
 }
 
 type OpAverageDuration struct {
-	Minute   time.Duration `json:"minute"`
-	Minute10 time.Duration `json:"minute_10"`
-	Minute30 time.Duration `json:"minute_30"`
-	Hour     time.Duration `json:"hour"`
+	Minute   int64 `json:"minute"`
+	Minute10 int64 `json:"minute_10"`
+	Minute30 int64 `json:"minute_30"`
+	Hour     int64 `json:"hour"`
 }
 
 type QueueStats struct {
 	sync.Mutex `json:"-"`
 
-	FirstEnqueueTime           time.Time          `json:"first_enqueue_time"`
-	LastEnqueueTime            time.Time          `json:"last_enqueue_time"`
-	FirstDequeueTime           time.Time          `json:"first_dequeue_time"`
-	LastDequeueTime            time.Time          `json:"last_dequeue_time"`
-	ElementsPerHost            map[string]int     `json:"elements_per_host"`
-	HostDistribution           map[string]float64 `json:"host_distribution"`
-	TopHosts                   []HostStat         `json:"top_hosts"`
-	TotalElements              int                `json:"total_elements"`
-	UniqueHosts                int                `json:"unique_hosts"`
-	EnqueueCount               int                `json:"enqueue_count"`
-	DequeueCount               int                `json:"dequeue_count"`
-	AverageTimeBetweenEnqueues time.Duration      `json:"average_time_between_enqueues"`
-	AverageTimeBetweenDequeues time.Duration      `json:"average_time_between_dequeues"`
-	AverageElementsPerHost     float64            `json:"average_elements_per_host"`
+	FirstEnqueueTime       time.Time          `json:"first_enqueue_time"`
+	LastEnqueueTime        time.Time          `json:"last_enqueue_time"`
+	FirstDequeueTime       time.Time          `json:"first_dequeue_time"`
+	LastDequeueTime        time.Time          `json:"last_dequeue_time"`
+	ElementsPerHost        map[string]int     `json:"elements_per_host"`
+	HostDistribution       map[string]float64 `json:"host_distribution"`
+	TopHosts               []HostStat         `json:"top_hosts"`
+	TotalElements          int                `json:"total_elements"`
+	UniqueHosts            int                `json:"unique_hosts"`
+	EnqueueCount           int                `json:"enqueue_count"`
+	DequeueCount           int                `json:"dequeue_count"`
+	AverageElementsPerHost float64            `json:"average_elements_per_host"`
 
 	// Sample durations used to calculate average operation durations
-	EnqueueSamples            []Sample `json:"enqueue_samples"`
-	DequeueSamples            []Sample `json:"dequeue_samples"`
-	UpdateEnqueueStatsSamples []Sample `json:"update_enqueue_stats_samples"`
-	UpdateDequeueStatsSamples []Sample `json:"update_dequeue_stats_samples"`
+	EnqueueSamples            []Sample `json:"-"`
+	DequeueSamples            []Sample `json:"-"`
+	UpdateEnqueueStatsSamples []Sample `json:"-"`
+	UpdateDequeueStatsSamples []Sample `json:"-"`
 
-	AverageEnqueueDuration            OpAverageDuration `json:"average_enqueue_duration"`
-	AverageDequeueDuration            OpAverageDuration `json:"average_dequeue_duration"`
-	AverageUpdateEnqueueStatsDuration OpAverageDuration `json:"average_update_enqueue_stats_duration"`
-	AverageUpdateDequeueStatsDuration OpAverageDuration `json:"average_update_dequeue_stats_duration"`
+	AverageEnqueueDuration OpAverageDuration `json:"average_enqueue_duration_ms"`
+	AverageDequeueDuration OpAverageDuration `json:"average_dequeue_duration_ms"`
 }
 
 type HostStat struct {
@@ -66,8 +62,6 @@ type SampleType int
 const (
 	EnqueueSample SampleType = iota
 	DequeueSample
-	UpdateEnqueueStatsSample
-	UpdateDequeueStatsSample
 )
 
 func (q *PersistentGroupedQueue) GetStats() *QueueStats {
@@ -112,18 +106,9 @@ func (q *PersistentGroupedQueue) genStats() {
 		q.stats.AverageElementsPerHost = 0
 	}
 
-	if q.stats.DequeueCount > 0 {
-		q.stats.AverageTimeBetweenDequeues = time.Since(q.stats.FirstDequeueTime) / time.Duration(q.stats.DequeueCount)
-	}
-	if q.stats.EnqueueCount > 0 {
-		q.stats.AverageTimeBetweenEnqueues = time.Since(q.stats.FirstEnqueueTime) / time.Duration(q.stats.EnqueueCount)
-	}
-
 	// Calculate average operation durations
 	q.stats.AverageEnqueueDuration = q.calculateAverageDuration(q.stats.EnqueueSamples)
 	q.stats.AverageDequeueDuration = q.calculateAverageDuration(q.stats.DequeueSamples)
-	q.stats.AverageUpdateEnqueueStatsDuration = q.calculateAverageDuration(q.stats.UpdateEnqueueStatsSamples)
-	q.stats.AverageUpdateDequeueStatsDuration = q.calculateAverageDuration(q.stats.UpdateDequeueStatsSamples)
 }
 
 func (q *PersistentGroupedQueue) calculateAverageDuration(samples []Sample) OpAverageDuration {
@@ -158,16 +143,16 @@ func (q *PersistentGroupedQueue) calculateAverageDuration(samples []Sample) OpAv
 	}
 
 	if countMinute > 0 {
-		opAvgDuration.Minute = totalMinute / time.Duration(countMinute)
+		opAvgDuration.Minute = (totalMinute / time.Duration(countMinute)).Milliseconds()
 	}
 	if countMinute10 > 0 {
-		opAvgDuration.Minute10 = totalMinute10 / time.Duration(countMinute10)
+		opAvgDuration.Minute10 = (totalMinute10 / time.Duration(countMinute10)).Milliseconds()
 	}
 	if countMinute30 > 0 {
-		opAvgDuration.Minute30 = totalMinute30 / time.Duration(countMinute30)
+		opAvgDuration.Minute30 = (totalMinute30 / time.Duration(countMinute30)).Milliseconds()
 	}
 	if countHour > 0 {
-		opAvgDuration.Hour = totalHour / time.Duration(countHour)
+		opAvgDuration.Hour = (totalHour / time.Duration(countHour)).Milliseconds()
 	}
 
 	return opAvgDuration
@@ -184,10 +169,6 @@ func (q *PersistentGroupedQueue) addSample(duration time.Duration, sampleType Sa
 		q.stats.EnqueueSamples = append(q.stats.EnqueueSamples, newSample)
 	case DequeueSample:
 		q.stats.DequeueSamples = append(q.stats.DequeueSamples, newSample)
-	case UpdateEnqueueStatsSample:
-		q.stats.UpdateEnqueueStatsSamples = append(q.stats.UpdateEnqueueStatsSamples, newSample)
-	case UpdateDequeueStatsSample:
-		q.stats.UpdateDequeueStatsSamples = append(q.stats.UpdateDequeueStatsSamples, newSample)
 	}
 
 	// Remove old samples to prevent unbounded growth
@@ -212,10 +193,6 @@ func (q *PersistentGroupedQueue) cleanupSamples(sampleType SampleType) {
 		q.stats.EnqueueSamples = cleanup(q.stats.EnqueueSamples)
 	case DequeueSample:
 		q.stats.DequeueSamples = cleanup(q.stats.DequeueSamples)
-	case UpdateEnqueueStatsSample:
-		q.stats.UpdateEnqueueStatsSamples = cleanup(q.stats.UpdateEnqueueStatsSamples)
-	case UpdateDequeueStatsSample:
-		q.stats.UpdateDequeueStatsSamples = cleanup(q.stats.UpdateDequeueStatsSamples)
 	}
 }
 
@@ -263,8 +240,6 @@ func (q *PersistentGroupedQueue) saveStatsToFile(path string) error {
 }
 
 func (q *PersistentGroupedQueue) updateDequeueStats(host string) {
-	startTime := time.Now()
-
 	q.stats.Lock()
 	defer q.stats.Unlock()
 
@@ -279,13 +254,9 @@ func (q *PersistentGroupedQueue) updateDequeueStats(host string) {
 		delete(q.stats.ElementsPerHost, host)
 		q.stats.UniqueHosts--
 	}
-
-	q.addSample(time.Since(startTime), UpdateDequeueStatsSample)
 }
 
 func (q *PersistentGroupedQueue) updateEnqueueStats(item *Item) {
-	startTime := time.Now()
-
 	q.stats.Lock()
 	defer q.stats.Unlock()
 
@@ -299,6 +270,4 @@ func (q *PersistentGroupedQueue) updateEnqueueStats(item *Item) {
 	}
 	q.stats.EnqueueCount++
 	q.stats.LastEnqueueTime = time.Now()
-
-	q.addSample(time.Since(startTime), UpdateEnqueueStatsSample)
 }
