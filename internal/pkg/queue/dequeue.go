@@ -2,6 +2,7 @@ package queue
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/queue/index"
 )
@@ -9,6 +10,8 @@ import (
 // Dequeue removes and returns the next item from the queue
 // It blocks until an item is available
 func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
+	startTime := time.Now()
+
 	if q.closed {
 		return nil, ErrQueueClosed
 	}
@@ -63,6 +66,9 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	}
 
 	q.updateDequeueStats(item.URL.Host)
+
+	// We only evaluate the average time for the dequeue that succeeded
+	q.addSample(time.Since(startTime), DequeueSample)
 
 	return item, nil
 }

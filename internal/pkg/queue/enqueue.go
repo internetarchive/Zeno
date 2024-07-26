@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 )
 
 func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
+	startTime := time.Now()
+
 	if item == nil {
 		return errors.New("cannot enqueue nil item")
 	}
@@ -46,6 +49,9 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 
 	// Update empty status
 	q.Empty.Set(false)
+
+	// We only evaluate the average time for the dequeue that succeeded
+	q.addSample(time.Since(startTime), EnqueueSample)
 
 	return nil
 }

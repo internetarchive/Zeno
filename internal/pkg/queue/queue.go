@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/url"
 	"os"
 	"path"
@@ -26,12 +25,9 @@ type PersistentGroupedQueue struct {
 	metadataDecoder *gob.Decoder
 	index           *index.IndexManager
 	stats           *QueueStats
-	hostOrder       []string
 	currentHost     int
 	mutex           sync.RWMutex
 	closed          bool
-
-	logger *slog.Logger
 }
 
 type Item struct {
