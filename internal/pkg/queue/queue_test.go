@@ -406,3 +406,54 @@ Notes:
 		}
 	})
 }
+
+func TestQueueEmptyBool(t *testing.T) {
+	queueDir, err := os.MkdirTemp("", "queue_test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(queueDir)
+
+	queue, err := NewPersistentGroupedQueue(queueDir)
+	if err != nil {
+		t.Fatalf("Failed to create queue: %v", err)
+	}
+	defer queue.Close()
+
+	if queue.Empty.Get() == false {
+		t.Error("New queue should be empty")
+	}
+
+	url, _ := url.Parse("http://example.com/")
+	item, err := NewItem(url, nil, "page", 1, "1", false)
+	if err != nil {
+		t.Fatalf("Failed to create item: %v", err)
+	}
+
+	err = queue.Enqueue(item)
+	if err != nil {
+		t.Fatalf("Failed to enqueue item: %v", err)
+	}
+
+	if queue.Empty.Get() == true {
+		t.Error("Queue should not be empty after enqueue")
+	}
+
+	_, err = queue.Dequeue()
+	if err != nil {
+		t.Fatalf("Failed to dequeue item: %v", err)
+	}
+
+	if queue.Empty.Get() != false {
+		t.Error("Queue shouldn't register as not empty after successful dequeue")
+	}
+
+	_, err = queue.Dequeue()
+	if err != ErrQueueEmpty {
+		t.Errorf("Expected ErrQueueEmpty on dequeue from empty queue, got: %v", err)
+	}
+
+	if queue.Empty.Get() == false {
+		t.Error("Queue should register as empty after unsuccessful dequeue with ErrQueueEmpty error")
+	}
+}

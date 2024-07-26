@@ -14,10 +14,14 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	}
 
 	var (
-		position uint64
-		size     uint64
+		position = uint64(0)
+		size     = uint64(0)
 		err      error
 	)
+
+	if q.Empty.Get() {
+		return nil, ErrQueueEmpty
+	}
 
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
@@ -25,7 +29,8 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	hosts := q.index.GetHosts()
 
 	if len(hosts) == 0 {
-		return nil, ErrNoHostInQueue
+		q.Empty.Set(true)
+		return nil, ErrQueueEmpty
 	}
 
 	for _, host := range hosts {
@@ -39,6 +44,11 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 			return nil, fmt.Errorf("failed to pop item from host %s: %w", host, err)
 		}
 		break
+	}
+
+	if position == 0 && size == 0 {
+		q.Empty.Set(true)
+		return nil, ErrQueueEmpty
 	}
 
 	// Read and unmarshal the item

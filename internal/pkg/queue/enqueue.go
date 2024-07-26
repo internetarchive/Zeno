@@ -44,5 +44,8 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	// Update stats
 	q.updateEnqueueStats(item)
 
+	// Update empty status
+	q.Empty.Set(false)
+
 	return nil
 }

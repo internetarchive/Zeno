@@ -17,6 +17,7 @@ import (
 type PersistentGroupedQueue struct {
 	// Exported fields
 	Paused *utils.TAtomBool
+	Empty  *utils.TAtomBool
 
 	queueDirPath    string
 	queueFile       *os.File
@@ -68,6 +69,7 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 
 	q := &PersistentGroupedQueue{
 		Paused: new(utils.TAtomBool),
+		Empty:  new(utils.TAtomBool),
 
 		queueDirPath:    queueDirPath,
 		queueFile:       file,
@@ -81,6 +83,10 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 			HostDistribution: make(map[string]float64),
 		},
 	}
+
+	// Set the queue as empty and not paused
+	q.Empty.Set(true)
+	q.Paused.Set(false)
 
 	// Loading stats from the disk means deleting the file from disk after having read it
 	if err = q.loadStatsFromFile(path.Join(q.queueDirPath, "queue.stats")); err != nil {

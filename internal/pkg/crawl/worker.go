@@ -62,13 +62,6 @@ type Worker struct {
 func (w *Worker) Run() {
 	// Start archiving the URLs!
 	for {
-		item, err := w.pool.Crawl.Queue.Dequeue()
-		if err != nil {
-			// Log the error too?
-			w.state.lastError = err
-			continue
-		}
-
 		// Check if the crawl is paused or needs to be stopped
 		select {
 		case <-w.doneSignal:
@@ -78,9 +71,25 @@ func (w *Worker) Run() {
 			w.logger.Info("Worker stopped")
 			return
 		default:
-			for w.pool.Crawl.Paused.Get() {
+			for w.pool.Crawl.Paused.Get() || w.pool.Crawl.Queue.Empty.Get() {
+				if w.pool.Crawl.Paused.Get() {
+					w.state.lastAction = "waiting for crawl to resume"
+				} else if w.pool.Crawl.Queue.Empty.Get() {
+					w.state.lastAction = "waiting for queue to be filled"
+				}
 				time.Sleep(time.Second)
 			}
+		}
+
+		item, err := w.pool.Crawl.Queue.Dequeue()
+		if err != nil {
+			// Log the error too?
+			w.state.lastError = err
+			if err == queue.ErrNoHostInQueue || err == queue.ErrQueueEmpty {
+				w.state.lastAction = "queue is empty"
+				time.Sleep(5 * time.Second)
+			}
+			continue
 		}
 
 		// Can it happen? I don't think so but let's be safe
