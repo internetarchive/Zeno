@@ -174,9 +174,6 @@ func (q *PersistentGroupedQueue) calculateAverageDuration(samples []Sample) OpAv
 }
 
 func (q *PersistentGroupedQueue) addSample(duration time.Duration, sampleType SampleType) {
-	q.stats.Lock()
-	defer q.stats.Lock()
-
 	newSample := Sample{
 		timestamp: time.Now(),
 		duration:  duration,
