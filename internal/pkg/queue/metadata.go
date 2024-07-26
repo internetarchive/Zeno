@@ -16,7 +16,7 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 
 	var metadata struct {
 		Stats       QueueStats
-		CurrentHost int
+		CurrentHost uint64
 	}
 
 	err = q.metadataDecoder.Decode(&metadata)
@@ -28,7 +28,7 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 		return fmt.Errorf("failed to decode metadata: %w", err)
 	}
 
-	q.currentHost = metadata.CurrentHost
+	q.currentHost.Store(metadata.CurrentHost)
 	q.stats = &metadata.Stats
 
 	// Reinitialize maps if they're nil

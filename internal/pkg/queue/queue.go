@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"sync"
+	"sync/atomic"
 
 	"github.com/internetarchive/Zeno/internal/pkg/queue/index"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -26,10 +27,11 @@ type PersistentGroupedQueue struct {
 	metadataDecoder *gob.Decoder
 	index           *index.IndexManager
 	stats           *QueueStats
-	hostOrder       []string
-	currentHost     int
+	currentHost     *atomic.Uint64
 	mutex           sync.RWMutex
-	closed          bool
+
+	closed    *utils.TAtomBool
+	finishing *utils.TAtomBool
 
 	logger *slog.Logger
 }
@@ -71,22 +73,28 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 		Paused: new(utils.TAtomBool),
 		Empty:  new(utils.TAtomBool),
 
+		closed:    new(utils.TAtomBool),
+		finishing: new(utils.TAtomBool),
+
 		queueDirPath:    queueDirPath,
 		queueFile:       file,
 		metadataFile:    metafile,
 		metadataEncoder: gob.NewEncoder(metafile),
 		metadataDecoder: gob.NewDecoder(metafile),
 		index:           indexManager,
-		currentHost:     0,
+		currentHost:     new(atomic.Uint64),
 		stats: &QueueStats{
 			ElementsPerHost:  make(map[string]int),
 			HostDistribution: make(map[string]float64),
 		},
 	}
 
-	// Set the queue as empty and not paused
+	// Set the queue as empty and not paused and current host to 0
 	q.Empty.Set(true)
 	q.Paused.Set(false)
+	q.closed.Set(false)
+	q.finishing.Set(false)
+	q.currentHost.Store(0)
 
 	// Loading stats from the disk means deleting the file from disk after having read it
 	if err = q.loadStatsFromFile(path.Join(q.queueDirPath, "queue.stats")); err != nil {
@@ -107,11 +115,12 @@ func (q *PersistentGroupedQueue) Close() error {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	if q.closed {
+	if q.closed.Get() {
 		return ErrQueueAlreadyClosed
 	}
 
-	q.closed = true
+	q.finishing.Set(true)
+	q.closed.Set(true)
 
 	// Save metadata
 	err := q.saveStatsToFile(path.Join(q.queueDirPath, "queue.stats"))
@@ -138,4 +147,11 @@ func (q *PersistentGroupedQueue) Close() error {
 	}
 
 	return nil
+}
+
+func (q *PersistentGroupedQueue) FreezeDequeue() {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	q.finishing.Set(true)
 }
