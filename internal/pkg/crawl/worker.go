@@ -89,6 +89,9 @@ func (w *Worker) Run() {
 				w.state.lastAction = "queue is empty"
 				time.Sleep(5 * time.Second)
 			}
+			if err == queue.ErrQueueClosed {
+				w.state.lastAction = "queue is closed"
+			}
 			continue
 		}
 

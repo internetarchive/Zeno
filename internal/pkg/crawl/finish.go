@@ -26,6 +26,9 @@ func (crawl *Crawl) catchFinish() {
 func (crawl *Crawl) finish() {
 	crawl.Finished.Set(true)
 
+	crawl.Log.Warn("[QUEUE] Freezing the dequeue")
+	crawl.Queue.FreezeDequeue()
+
 	crawl.Log.Warn("[WORKERS] Waiting for workers to finish")
 	crawl.Workers.StopSignal <- true
 	crawl.Workers.EnsureFinished()

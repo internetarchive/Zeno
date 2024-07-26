@@ -47,7 +47,7 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 	if len(q.index.GetHosts()) != 0 {
 		t.Error("hostOrder not initialized as empty")
 	}
-	if q.currentHost != 0 {
+	if q.currentHost.Load() != 0 {
 		t.Error("currentHost not initialized to 0")
 	}
 }

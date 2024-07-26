@@ -11,7 +11,7 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 		return errors.New("cannot enqueue nil item")
 	}
 
-	if q.closed {
+	if !q.CanEnqueue() {
 		return ErrQueueClosed
 	}
 

@@ -5,3 +5,4 @@ Zeno
 *.sh
 zeno.log
 .vscode/
+*.py

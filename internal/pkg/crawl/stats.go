@@ -36,6 +36,8 @@ func (c *Crawl) printLiveStats() {
 		stats.AddRow("  - URI/s:", c.URIsPerSecond.Rate())
 		stats.AddRow("  - Queued:", c.Queue.GetStats().TotalElements)
 		stats.AddRow("  - Queue empty bool state:", c.Queue.Empty.Get())
+		stats.AddRow("  - Can Enqueue:", c.Queue.CanEnqueue())
+		stats.AddRow("  - Can Dequeue:", c.Queue.CanDequeue())
 		stats.AddRow("  - Hosts in queue:", c.Queue.GetStats().UniqueHosts)
 		stats.AddRow("  - Crawled total:", crawledSeeds+crawledAssets)
 		stats.AddRow("  - Crawled seeds:", crawledSeeds)
