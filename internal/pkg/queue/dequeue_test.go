@@ -76,8 +76,8 @@ func TestDequeue(t *testing.T) {
 	// Test dequeue on closed queue
 	q.Close()
 	_, err = q.Dequeue()
-	if err != ErrQueueClosed {
-		t.Errorf("Expected ErrQueueClosed, got %v", err)
+	if err != ErrDequeueClosed {
+		t.Errorf("Expected ErrDequeueClosed, got %v", err)
 	}
 }
 
