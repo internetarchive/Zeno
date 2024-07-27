@@ -45,7 +45,7 @@ type IndexManager struct {
 
 // NewIndexManager creates a new IndexManager instance and loads the index from the index file.
 func NewIndexManager(walPath, indexPath, queueDirPath string) (*IndexManager, error) {
-	walFile, err := os.OpenFile(walPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	walFile, err := os.OpenFile(walPath, os.O_APPEND|os.O_SYNC|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open WAL file: %w", err)
 	}

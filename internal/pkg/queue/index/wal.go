@@ -17,11 +17,9 @@ func (im *IndexManager) unsafeWriteToWAL(Op Operation, host, id string, position
 		Position: position,
 		Size:     size,
 	}
+
 	if err := im.walEncoder.Encode(entry); err != nil {
 		return fmt.Errorf("failed to write to WAL: %w", err)
-	}
-	if err := im.walFile.Sync(); err != nil {
-		return fmt.Errorf("failed to sync WAL: %w", err)
 	}
 
 	return nil
@@ -89,7 +87,7 @@ func (im *IndexManager) unsafeTruncateWAL() error {
 	}
 
 	// Reopen the file with O_TRUNC flag to truncate it
-	walFile, err := os.OpenFile(walPath, os.O_TRUNC|os.O_APPEND|os.O_RDWR, 0644)
+	walFile, err := os.OpenFile(walPath, os.O_TRUNC|os.O_SYNC|os.O_APPEND|os.O_RDWR, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to truncate WAL file: %w", err)
 	}
