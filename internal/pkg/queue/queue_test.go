@@ -88,8 +88,8 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 
 	// Test operations after close
 	_, err = q.Dequeue()
-	if err != ErrQueueClosed {
-		t.Errorf("Expected ErrQueueClosed on Dequeue after Close, got: %v", err)
+	if err != ErrDequeueClosed {
+		t.Errorf("Expected ErrDequeueClosed on Dequeue after Close, got: %v", err)
 	}
 
 	err = q.Enqueue(&Item{})
