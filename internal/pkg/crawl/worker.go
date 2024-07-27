@@ -71,13 +71,13 @@ func (w *Worker) Run() {
 			w.logger.Info("Worker stopped")
 			return
 		default:
-			for w.pool.Crawl.Paused.Get() || w.pool.Crawl.Queue.Empty.Get() {
-				if w.pool.Crawl.Paused.Get() {
-					w.state.lastAction = "waiting for crawl to resume"
-				} else if w.pool.Crawl.Queue.Empty.Get() {
-					w.state.lastAction = "waiting for queue to be filled"
-				}
-				time.Sleep(100 * time.Millisecond)
+			if w.pool.Crawl.Paused.Get() {
+				w.state.lastAction = "waiting for crawl to resume"
+			} else if w.pool.Crawl.Queue.Empty.Get() {
+				w.state.lastAction = "waiting for queue to be filled"
+			}
+			for (w.pool.Crawl.Paused.Get() || w.pool.Crawl.Queue.Empty.Get()) && w.pool.Crawl.Queue.CanDequeue() {
+				time.Sleep(1 * time.Millisecond)
 			}
 		}
 
@@ -85,12 +85,15 @@ func (w *Worker) Run() {
 		if err != nil {
 			// Log the error too?
 			w.state.lastError = err
-			if err == queue.ErrNoHostInQueue || err == queue.ErrQueueEmpty {
+			switch err {
+			case queue.ErrQueueEmpty:
 				w.state.lastAction = "queue is empty"
-				time.Sleep(100 * time.Millisecond)
-			}
-			if err == queue.ErrQueueClosed {
+			case queue.ErrQueueClosed:
 				w.state.lastAction = "queue is closed"
+			case queue.ErrDequeueClosed:
+				w.state.lastAction = "dequeue is closed"
+			default:
+				w.state.lastAction = "unhandled dequeue error"
 			}
 			continue
 		}

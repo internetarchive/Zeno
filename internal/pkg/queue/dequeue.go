@@ -2,7 +2,6 @@ package queue
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/queue/index"
 )
@@ -11,7 +10,7 @@ import (
 // It blocks until an item is available
 func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	if !q.CanDequeue() {
-		return nil, ErrQueueClosed
+		return nil, ErrDequeueClosed
 	}
 
 	var (
@@ -22,6 +21,9 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 
 	host, err := q.getNextHost()
 	if err != nil {
+		if err == ErrQueueEmpty || err == ErrDequeueClosed {
+			return nil, err
+		}
 		return nil, fmt.Errorf("failed to get next host: %w", err)
 	}
 
@@ -58,15 +60,15 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 }
 
 // getNextHost returns the next host to dequeue from
-// It blocks until a host is available, allowing other goroutines to enqueue without keeping the queue mutex locked
+// WIP _ NON It blocks until a host is available, allowing other goroutines to enqueue without keeping the queue mutex locked
 func (q *PersistentGroupedQueue) getNextHost() (string, error) {
-	for q.Empty.Get() && q.CanDequeue() {
-		time.Sleep(1 * time.Second)
+	if q.Empty.Get() && q.CanDequeue() {
+		return "", ErrQueueEmpty
 	}
 
-	// If the queue is closed or finishing, we end the wait loop
+	// If the queue is closed or finishing, we return an error
 	if !q.CanDequeue() {
-		return "", ErrQueueClosed
+		return "", ErrDequeueClosed
 	}
 
 	// Get a copy of the hosts
