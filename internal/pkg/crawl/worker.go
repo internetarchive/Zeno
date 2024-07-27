@@ -77,7 +77,7 @@ func (w *Worker) Run() {
 				} else if w.pool.Crawl.Queue.Empty.Get() {
 					w.state.lastAction = "waiting for queue to be filled"
 				}
-				time.Sleep(time.Second)
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 
@@ -87,7 +87,7 @@ func (w *Worker) Run() {
 			w.state.lastError = err
 			if err == queue.ErrNoHostInQueue || err == queue.ErrQueueEmpty {
 				w.state.lastAction = "queue is empty"
-				time.Sleep(5 * time.Second)
+				time.Sleep(100 * time.Millisecond)
 			}
 			if err == queue.ErrQueueClosed {
 				w.state.lastAction = "queue is closed"
