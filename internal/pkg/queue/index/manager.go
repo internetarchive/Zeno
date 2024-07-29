@@ -145,10 +145,17 @@ func (im *IndexManager) Pop(host string) (id string, position uint64, size uint6
 	blobChan := make(chan *blob)
 	WALSuccessChan := make(chan bool)
 	errChan := make(chan error)
+	defer close(blobChan)
+	defer close(WALSuccessChan)
+	defer close(errChan)
 
 	go func() {
 		// Write to WAL
 		blob := <-blobChan
+		// If the blob is nil, it means index.pop() returned an error
+		if blob == nil {
+			return
+		}
 		err := im.unsafeWriteToWAL(OpPop, host, blob.id, blob.position, blob.size)
 		if err != nil {
 			errChan <- fmt.Errorf("failed to write to WAL: %w", err)
@@ -173,10 +180,6 @@ func (im *IndexManager) Pop(host string) (id string, position uint64, size uint6
 
 	im.opsSinceDump++
 	im.totalOps++
-
-	close(blobChan)
-	close(WALSuccessChan)
-	close(errChan)
 
 	return
 }

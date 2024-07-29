@@ -68,12 +68,14 @@ func (i *Index) pop(host string, blobChan chan *blob, WALChan chan bool) error {
 
 	// check if the host is in the index
 	if _, exists := i.index[host]; !exists {
+		blobChan <- nil // send nil to the blobChan to indicate the host is not in the index
 		return ErrHostNotFound
 	}
 
 	// check if the host is empty
 	if len(i.index[host]) == 0 {
 		i.deleteHost(host)
+		blobChan <- nil // send nil to the blobChan to indicate the host is empty
 		return ErrHostEmpty
 	}
 
