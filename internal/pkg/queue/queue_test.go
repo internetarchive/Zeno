@@ -523,8 +523,8 @@ func TestQueueEmptyBool(t *testing.T) {
 	}
 	defer queue.Close()
 
-	if queue.Empty.Get() == false {
-		t.Fatal("New queue should be empty")
+	if queue.Empty.Get() == true {
+		t.Fatal("New queue should not be empty")
 	}
 
 	url, _ := url.Parse("http://example.com/")
