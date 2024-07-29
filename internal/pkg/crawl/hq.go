@@ -159,14 +159,10 @@ func (c *Crawl) HQConsumer() {
 			break
 		}
 
-		if c.Paused.Get() {
-			time.Sleep(time.Second)
-		}
-
-		// If HQContinuousPull is set to true, we will pull URLs from HQ
-		// continuously, otherwise we will only pull URLs when needed
-		for uint64(c.Queue.GetStats().TotalElements) > uint64(c.Workers.Count)*2 && !c.HQContinuousPull {
-			time.Sleep(time.Millisecond)
+		// If HQContinuousPull is set to true, we will pull URLs from HQ continuously,
+		// otherwise we will only pull URLs when needed (and when the crawl is not paused)
+		for (uint64(c.Queue.GetStats().TotalElements) > uint64(c.Workers.Count)*2 && !c.HQContinuousPull) || c.Paused.Get() {
+			time.Sleep(time.Millisecond * 1)
 			continue
 		}
 
