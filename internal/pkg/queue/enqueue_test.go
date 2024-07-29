@@ -85,6 +85,10 @@ func TestEnqueue(t *testing.T) {
 		if q.GetStats().ElementsPerHost["example.fr"] != 2 {
 			t.Fatalf("Expected ElementsPerHost[example.fr] to be 2, got %d", q.GetStats().ElementsPerHost["example.fr"])
 		}
+
+		if q.Empty.Get() {
+			t.Fatal("Expected queue to be non-empty")
+		}
 	})
 
 	t.Run("Enqueue to closed queue", func(t *testing.T) {
@@ -138,10 +142,10 @@ func TestEnqueue(t *testing.T) {
 		}
 
 		if q.GetStats().FirstEnqueueTime.IsZero() {
-			t.Error("FirstEnqueueTime should not be zero")
+			t.Fatal("FirstEnqueueTime should not be zero")
 		}
 		if q.GetStats().LastEnqueueTime.IsZero() {
-			t.Error("LastEnqueueTime should not be zero")
+			t.Fatal("LastEnqueueTime should not be zero")
 		}
 		if q.GetStats().EnqueueCount != 1 {
 			t.Fatalf("Expected EnqueueCount to be 1, got %d", q.GetStats().EnqueueCount)
@@ -154,12 +158,15 @@ func TestEnqueue(t *testing.T) {
 		}
 
 		if !q.GetStats().LastEnqueueTime.After(q.GetStats().FirstEnqueueTime) {
-			t.Error("LastEnqueueTime should be after FirstEnqueueTime")
+			t.Fatal("LastEnqueueTime should be after FirstEnqueueTime")
 		}
 		if q.GetStats().EnqueueCount != 2 {
 			t.Fatalf("Expected EnqueueCount to be 2, got %d", q.GetStats().EnqueueCount)
 		}
 
+		if q.Empty.Get() {
+			t.Fatal("Expected queue to be non-empty")
+		}
 	})
 
 	t.Run("Check host order", func(t *testing.T) {
@@ -225,7 +232,7 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to create item: %v", err)
 		}
 
-		err = q.Enqueue(item)
+		err = q.BatchEnqueue(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -233,11 +240,17 @@ func TestBatchEnqueue(t *testing.T) {
 		if q.GetStats().TotalElements != 1 {
 			t.Fatalf("Expected TotalElements to be 1, got %d", q.GetStats().TotalElements)
 		}
+
 		if q.GetStats().UniqueHosts != 1 {
 			t.Fatalf("Expected UniqueHosts to be 1, got %d", q.GetStats().UniqueHosts)
 		}
+
 		if q.GetStats().ElementsPerHost["example.fr"] != 1 {
 			t.Fatalf("Expected ElementsPerHost[example.fr] to be 1, got %d", q.GetStats().ElementsPerHost["example.fr"])
+		}
+
+		if q.Empty.Get() {
+			t.Fatal("Expected queue to be non-empty")
 		}
 	})
 
@@ -282,6 +295,10 @@ func TestBatchEnqueue(t *testing.T) {
 
 		if q.GetStats().ElementsPerHost["example.fr"] != 2 {
 			t.Fatalf("Expected ElementsPerHost[example.fr] to be 2, got %d", q.GetStats().ElementsPerHost["example.fr"])
+		}
+
+		if q.Empty.Get() {
+			t.Fatal("Expected queue to be non-empty")
 		}
 	})
 
@@ -335,11 +352,13 @@ func TestBatchEnqueue(t *testing.T) {
 		}
 
 		if q.GetStats().FirstEnqueueTime.IsZero() {
-			t.Error("FirstEnqueueTime should not be zero")
+			t.Fatal("FirstEnqueueTime should not be zero")
 		}
+
 		if q.GetStats().LastEnqueueTime.IsZero() {
-			t.Error("LastEnqueueTime should not be zero")
+			t.Fatal("LastEnqueueTime should not be zero")
 		}
+
 		if q.GetStats().EnqueueCount != 1 {
 			t.Fatalf("Expected EnqueueCount to be 1, got %d", q.GetStats().EnqueueCount)
 		}
@@ -351,12 +370,16 @@ func TestBatchEnqueue(t *testing.T) {
 		}
 
 		if !q.GetStats().LastEnqueueTime.After(q.GetStats().FirstEnqueueTime) {
-			t.Error("LastEnqueueTime should be after FirstEnqueueTime")
+			t.Fatal("LastEnqueueTime should be after FirstEnqueueTime")
 		}
+
 		if q.GetStats().EnqueueCount != 2 {
 			t.Fatalf("Expected EnqueueCount to be 2, got %d", q.GetStats().EnqueueCount)
 		}
 
+		if q.Empty.Get() {
+			t.Fatal("Expected queue to be non-empty")
+		}
 	})
 
 	t.Run("Check host order", func(t *testing.T) {
@@ -389,6 +412,7 @@ func TestBatchEnqueue(t *testing.T) {
 		if len(q.index.GetHosts()) != 3 {
 			t.Fatalf("Expected hostOrder length to be 3, got %d", len(q.index.GetHosts()))
 		}
+
 		for i, host := range hosts {
 			if i < len(q.index.GetHosts()) {
 				if q.index.GetHosts()[i] != host {
@@ -397,6 +421,10 @@ func TestBatchEnqueue(t *testing.T) {
 			} else {
 				t.Fatalf("hostOrder is shorter than expected, missing %s", host)
 			}
+		}
+
+		if q.Empty.Get() {
+			t.Fatal("Expected queue to be non-empty")
 		}
 	})
 }

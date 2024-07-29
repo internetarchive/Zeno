@@ -27,28 +27,28 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 
 	// Check if queue is properly initialized
 	if q.Paused == nil {
-		t.Error("Paused field not initialized")
+		t.Fatal("Paused field not initialized")
 	}
 	if q.queueFile == nil {
-		t.Error("queueFile not initialized")
+		t.Fatal("queueFile not initialized")
 	}
 	if q.metadataFile == nil {
-		t.Error("metadataFile not initialized")
+		t.Fatal("metadataFile not initialized")
 	}
 	if q.metadataEncoder == nil {
-		t.Error("metadataEncoder not initialized")
+		t.Fatal("metadataEncoder not initialized")
 	}
 	if q.metadataDecoder == nil {
-		t.Error("metadataDecoder not initialized")
+		t.Fatal("metadataDecoder not initialized")
 	}
 	if q.index.IsEmpty() == false {
-		t.Error("index not initialized as empty")
+		t.Fatal("index not initialized as empty")
 	}
 	if len(q.index.GetHosts()) != 0 {
-		t.Error("hostOrder not initialized as empty")
+		t.Fatal("hostOrder not initialized as empty")
 	}
 	if q.currentHost.Load() != 0 {
-		t.Error("currentHost not initialized to 0")
+		t.Fatal("currentHost not initialized to 0")
 	}
 }
 
@@ -69,32 +69,32 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 	// Test normal close
 	err = q.Close()
 	if err != nil {
-		t.Errorf("Failed to close queue: %v", err)
+		t.Fatalf("Failed to close queue: %v", err)
 	}
 
 	// Check if files are closed
 	if err := q.queueFile.Close(); err == nil {
-		t.Error("queueFile not closed after Close()")
+		t.Fatal("queueFile not closed after Close()")
 	}
 	if err := q.metadataFile.Close(); err == nil {
-		t.Error("metadataFile not closed after Close()")
+		t.Fatal("metadataFile not closed after Close()")
 	}
 
 	// Test double close
 	err = q.Close()
 	if err != ErrQueueAlreadyClosed {
-		t.Errorf("Second Close() should return ErrQueueAlreadyClosed , got: %v", err)
+		t.Fatalf("Second Close() should return ErrQueueAlreadyClosed , got: %v", err)
 	}
 
 	// Test operations after close
 	_, err = q.Dequeue()
 	if err != ErrDequeueClosed {
-		t.Errorf("Expected ErrDequeueClosed on Dequeue after Close, got: %v", err)
+		t.Fatalf("Expected ErrDequeueClosed on Dequeue after Close, got: %v", err)
 	}
 
 	err = q.Enqueue(&Item{})
 	if err != ErrQueueClosed {
-		t.Errorf("Expected ErrQueueClosed on Enqueue after Close, got: %v", err)
+		t.Fatalf("Expected ErrQueueClosed on Enqueue after Close, got: %v", err)
 	}
 }
 
@@ -163,7 +163,7 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 			t.Fatalf("Dequeued nil item at position %d", i)
 		}
 		if dequeuedItems[item.ID] {
-			t.Errorf("Item with ID %s dequeued more than once", item.ID)
+			t.Fatalf("Item with ID %s dequeued more than once", item.ID)
 		}
 
 		dequeuedItems[item.ID] = true
@@ -524,7 +524,7 @@ func TestQueueEmptyBool(t *testing.T) {
 	defer queue.Close()
 
 	if queue.Empty.Get() == false {
-		t.Error("New queue should be empty")
+		t.Fatal("New queue should be empty")
 	}
 
 	url, _ := url.Parse("http://example.com/")
@@ -539,7 +539,7 @@ func TestQueueEmptyBool(t *testing.T) {
 	}
 
 	if queue.Empty.Get() == true {
-		t.Error("Queue should not be empty after enqueue")
+		t.Fatal("Queue should not be empty after enqueue")
 	}
 
 	_, err = queue.Dequeue()
@@ -548,15 +548,15 @@ func TestQueueEmptyBool(t *testing.T) {
 	}
 
 	if queue.Empty.Get() != false {
-		t.Error("Queue shouldn't register as not empty after successful dequeue")
+		t.Fatal("Queue shouldn't register as not empty after successful dequeue")
 	}
 
 	_, err = queue.Dequeue()
 	if err != ErrQueueEmpty {
-		t.Errorf("Expected ErrQueueEmpty on dequeue from empty queue, got: %v", err)
+		t.Fatalf("Expected ErrQueueEmpty on dequeue from empty queue, got: %v", err)
 	}
 
 	if queue.Empty.Get() == false {
-		t.Error("Queue should register as empty after unsuccessful dequeue with ErrQueueEmpty error")
+		t.Fatal("Queue should register as empty after unsuccessful dequeue with ErrQueueEmpty error")
 	}
 }
