@@ -9,19 +9,19 @@ import (
 )
 
 func TestEnqueue(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "queue_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
-	if err != nil {
-		t.Fatalf("Failed to create new queue: %v", err)
-	}
-	defer q.Close()
-
 	t.Run("Enqueue single item", func(t *testing.T) {
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		if err != nil {
+			t.Fatalf("Failed to create new queue: %v", err)
+		}
+		defer q.Close()
+
 		url, _ := url.Parse("http://example.fr")
 		item, err := NewItem(url, nil, "test", 0, "", false)
 		if err != nil {
@@ -47,6 +47,18 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Enqueue multiple items", func(t *testing.T) {
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		if err != nil {
+			t.Fatalf("Failed to create new queue: %v", err)
+		}
+		defer q.Close()
+
 		hosts := []string{"example.org", "example.net", "example.fr", "example.fr"}
 
 		for _, host := range hosts {
@@ -63,7 +75,7 @@ func TestEnqueue(t *testing.T) {
 		}
 
 		if q.GetStats().TotalElements != 4 {
-			t.Fatalf("Expected TotalElements to be 3, got %d", q.GetStats().TotalElements)
+			t.Fatalf("Expected TotalElements to be 4, got %d", q.GetStats().TotalElements)
 		}
 
 		if q.GetStats().UniqueHosts != 3 {
@@ -76,7 +88,19 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Enqueue to closed queue", func(t *testing.T) {
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		if err != nil {
+			t.Fatalf("Failed to create new queue: %v", err)
+		}
+
 		q.Close()
+
 		url, _ := url.Parse("http://closed.com")
 		item, err := NewItem(url, nil, "test", 0, "", false)
 		if err != nil {
@@ -90,7 +114,16 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check enqueue times", func(t *testing.T) {
-		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "time_test_queue"))
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		if err != nil {
+			t.Fatalf("Failed to create new queue: %v", err)
+		}
 		defer q.Close()
 
 		url, _ := url.Parse("http://timetest.com")
@@ -130,7 +163,16 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check host order", func(t *testing.T) {
-		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "order_test_queue"))
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		if err != nil {
+			t.Fatalf("Failed to create new queue: %v", err)
+		}
 		defer q.Close()
 
 		hosts := []string{"first.com", "second.com", "third.com"}
@@ -164,19 +206,19 @@ func TestEnqueue(t *testing.T) {
 }
 
 func TestBatchEnqueue(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "queue_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
-	if err != nil {
-		t.Fatalf("Failed to create new queue: %v", err)
-	}
-	defer q.Close()
-
 	t.Run("Enqueue single item", func(t *testing.T) {
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		if err != nil {
+			t.Fatalf("Failed to create new queue: %v", err)
+		}
+		defer q.Close()
+
 		url, _ := url.Parse("http://example.fr")
 		item, err := NewItem(url, nil, "test", 0, "", false)
 		if err != nil {
@@ -200,6 +242,18 @@ func TestBatchEnqueue(t *testing.T) {
 	})
 
 	t.Run("Enqueue multiple items", func(t *testing.T) {
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		if err != nil {
+			t.Fatalf("Failed to create new queue: %v", err)
+		}
+		defer q.Close()
+
 		hosts := []string{"example.org", "example.net", "example.fr", "example.fr"}
 		items := make([]*Item, 0, len(hosts))
 
@@ -213,7 +267,7 @@ func TestBatchEnqueue(t *testing.T) {
 			items = append(items, item)
 		}
 
-		err := q.BatchEnqueue(items...)
+		err = q.BatchEnqueue(items...)
 		if err != nil {
 			t.Fatalf("Failed to enqueue items: %v", err)
 		}
@@ -232,7 +286,18 @@ func TestBatchEnqueue(t *testing.T) {
 	})
 
 	t.Run("Enqueue to closed queue", func(t *testing.T) {
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		if err != nil {
+			t.Fatalf("Failed to create new queue: %v", err)
+		}
 		q.Close()
+
 		url, _ := url.Parse("http://closed.com")
 		item, err := NewItem(url, nil, "test", 0, "", false)
 		if err != nil {
@@ -246,7 +311,16 @@ func TestBatchEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check enqueue times", func(t *testing.T) {
-		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "time_test_queue"))
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		if err != nil {
+			t.Fatalf("Failed to create new queue: %v", err)
+		}
 		defer q.Close()
 
 		url, _ := url.Parse("http://timetest.com")
@@ -286,7 +360,16 @@ func TestBatchEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check host order", func(t *testing.T) {
-		q, _ := NewPersistentGroupedQueue(path.Join(tempDir, "order_test_queue"))
+		tempDir, err := os.MkdirTemp("", "queue_test")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		if err != nil {
+			t.Fatalf("Failed to create new queue: %v", err)
+		}
 		defer q.Close()
 
 		hosts := []string{"first.com", "second.com", "third.com"}
