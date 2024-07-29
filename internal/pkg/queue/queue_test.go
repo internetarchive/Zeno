@@ -322,7 +322,12 @@ Notes:
 	- ns/op is the average time taken per batch`)
 	b.Run("EnqueueDequeue", func(b *testing.B) {
 
-		tempDir, err := os.MkdirTemp("", "queue_test")
+		var tempDirPath = ""
+		if envTempDirPath := os.Getenv("TEMP_DIR"); envTempDirPath != "" {
+			fmt.Printf("Using TEMP_DIR: %s\n", envTempDirPath)
+			tempDirPath = envTempDirPath
+		}
+		tempDir, err := os.MkdirTemp(tempDirPath, "queue_test")
 		if err != nil {
 			b.Fatalf("Failed to create temp dir: %v", err)
 		}
