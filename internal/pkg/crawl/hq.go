@@ -192,6 +192,7 @@ func (c *Crawl) HQConsumer() {
 		}
 
 		// send all URLs received in the batch to the queue
+		var items = make([]*queue.Item, 0, len(batch.URLs))
 		if len(batch.URLs) > 0 {
 			for _, URL := range batch.URLs {
 				newURL, err := url.Parse(URL.Value)
@@ -214,16 +215,14 @@ func (c *Crawl) HQConsumer() {
 					continue
 				}
 
-				err = c.Queue.Enqueue(newItem)
-				if err != nil {
-					c.Log.WithFields(c.genLogFields(err, newURL, map[string]interface{}{
-						"url":       URL.Value,
-						"batchSize": HQBatchSize,
-						"err":       err,
-					})).Error("unable to enqueue URL received from crawl HQ, discarding")
-					continue
-				}
+				items = append(items, newItem)
 			}
+		}
+
+		err = c.Queue.BatchEnqueue(items...)
+		if err != nil {
+			c.Log.Error("unable to enqueue URL batch received from crawl HQ, discarding", "error", err)
+			continue
 		}
 	}
 }
