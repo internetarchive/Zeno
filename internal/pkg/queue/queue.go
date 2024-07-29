@@ -89,8 +89,9 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 		},
 	}
 
-	// Set the queue as empty and not paused and current host to 0
-	q.Empty.Set(true)
+	// Set the queue as not paused and current host to 0
+	// Set the queue as not empty considering that it might have items at the beginning when resuming, the first dequeue will update it to true if needed
+	q.Empty.Set(false)
 	q.Paused.Set(false)
 	q.closed.Set(false)
 	q.finishing.Set(false)
