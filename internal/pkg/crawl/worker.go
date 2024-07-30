@@ -77,8 +77,9 @@ func (w *Worker) Run() {
 			} else if w.pool.Crawl.Queue.Empty.Get() {
 				w.state.lastAction = "waiting for queue to be filled"
 			}
-			for (w.pool.Crawl.Paused.Get() || w.pool.Crawl.Queue.Empty.Get()) && w.pool.Crawl.Queue.CanDequeue() {
+			if (w.pool.Crawl.Paused.Get() || w.pool.Crawl.Queue.Empty.Get()) && w.pool.Crawl.Queue.CanDequeue() {
 				runtime.Gosched()
+				continue
 			}
 		}
 
@@ -111,12 +112,6 @@ func (w *Worker) Run() {
 		}
 		w.Lock()
 		w.state.lastAction = "got item"
-
-		// If the crawl is paused, we wait until it's resumed
-		for w.pool.Crawl.Paused.Get() {
-			w.state.lastAction = "waiting for crawl to resume"
-			runtime.Gosched()
-		}
 
 		// If the host of the item is in the host exclusion list, we skip it
 		if utils.StringInSlice(item.URL.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.checkIncludedHosts(item.URL.Host) {
@@ -163,7 +158,7 @@ func (w *Worker) unsafeCapture(item *queue.Item) {
 func (w *Worker) Stop() {
 	w.doneSignal <- true
 	for w.state.status != completed {
-		time.Sleep(5 * time.Millisecond)
+		runtime.Gosched()
 	}
 }
 

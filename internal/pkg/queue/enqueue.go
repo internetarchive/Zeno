@@ -79,7 +79,7 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 		}
 	}
 
-	// This close IS necessary to avoid a deadlock in the next loop
+	// This close IS necessary to avoid indefinitely waiting in the next loop
 	close(itemsChan)
 
 	for msg := range itemsChan {
