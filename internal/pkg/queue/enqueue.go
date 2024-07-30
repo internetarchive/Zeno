@@ -35,7 +35,6 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 	}
 
 	itemsChan := make(chan *msg, len(items))
-	defer close(itemsChan)
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(items))
@@ -79,6 +78,9 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 			}
 		}
 	}
+
+	// This close IS necessary to avoid a deadlock in the next loop
+	close(itemsChan)
 
 	for msg := range itemsChan {
 		// Write item to file
