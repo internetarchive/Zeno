@@ -5,26 +5,20 @@ import (
 	"testing"
 )
 
-func TestIsImageURL(t *testing.T) {
+func TestIsNeedDelRefer(t *testing.T) {
 	if !IsNeedDelRefer("http://no.referer.test.zeno.local/ab/c.jpg") {
-		t.Error("IsImageURL failed")
+		t.Error("IsNeedDelRefer failed")
+	}
+
+	if IsNeedDelRefer("https://donot-delete.referer.test.zeno.local/test.jpg") {
+		t.Error("IsNeedDelRefer failed")
 	}
 }
-
 func TestDelRefererHeader(t *testing.T) {
-	client := &http.Client{}
-
-	req, _ := http.NewRequest("GET", "https://oscimg.oschina.net/oscnet/48abeebd67e46fb8861fd7f2fff930b5ec5.jpg", nil)
-
-	req.Header.Set("Referer", "https://fake.anotherwebsite.local/")
+	req, _ := http.NewRequest("GET", "https://no.referer.test.zeno.local/test.jpg", nil)
+	req.Header.Set("Referer", "https://fake1.anotherwebsite.local/")
 	DelReferer(req)
 	if req.Header.Get("Referer") != "" {
-		t.Error("ImageAddHeader failed")
+		t.Error("DelReferer failed")
 	}
-
-	resp1, _ := client.Do(req)
-	if resp1.StatusCode != 200 {
-		t.Error("Status code not 200")
-	}
-	defer resp1.Body.Close()
 }
