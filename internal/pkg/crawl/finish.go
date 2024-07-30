@@ -3,7 +3,6 @@ package crawl
 import (
 	"os"
 	"os/signal"
-	"path"
 	"syscall"
 	"time"
 
@@ -14,25 +13,23 @@ import (
 // catchFinish is running in the background and detect when the crawl need to be terminated
 // because it won't crawl anything more. This doesn't apply for Kafka-powered crawls.
 func (crawl *Crawl) catchFinish() {
-	for crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() <= 0 {
-		time.Sleep(1 * time.Second)
-	}
-
 	for {
-		time.Sleep(time.Second * 5)
-		if !crawl.UseHQ && crawl.ActiveWorkers.Value() == 0 && crawl.Frontier.QueueCount.Value() == 0 && !crawl.Finished.Get() && (crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() > 0) {
+		time.Sleep(time.Second * 1)
+		// fmt.Println("ActiveWorkers: ", crawl.ActiveWorkers.Value(), "QueueCount: ", crawl.Frontier.QueueCount.Value(), "Finished: ", crawl.Finished.Get(), "CrawledSeeds: ", crawl.CrawledSeeds.Value(), "CrawledAssets: ", crawl.CrawledAssets.Value())
+		if !crawl.UseHQ && crawl.Frontier.QueueCount.Value() == 0 && crawl.ActiveWorkers.Value() == 0 && crawl.Frontier.IsHostPoolEmpty() {
 			crawl.Frontier.LoggingChan <- &frontier.FrontierLogMessage{
 				Fields:  logrus.Fields{},
 				Message: "no more work to do, finishing",
 				Level:   logrus.WarnLevel,
 			}
 			crawl.finish()
+			return
 		}
 	}
 }
 
 func (crawl *Crawl) finish() {
-if crawl.Finished.Get() {
+	if crawl.Finished.Get() {
 		return
 	}
 	crawl.Finished.Set(true)
@@ -43,8 +40,10 @@ if crawl.Finished.Get() {
 	// workers to notice the channel is closed, and terminate.
 	crawl.Frontier.FinishingQueueReader.Set(true)
 	for crawl.Frontier.IsQueueReaderActive.Get() {
+		// fmt.Println("waiting for queue reader to finish")
 		time.Sleep(time.Second / 2)
 	}
+	// fmt.Println("closing pullChan !!!!!")
 	close(crawl.Frontier.PullChan)
 
 	crawl.Log.Warn("[WORKERS] Waiting for workers to finish")

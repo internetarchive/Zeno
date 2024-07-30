@@ -13,7 +13,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/clbanning/mxj/v2"
-"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/asset_refer_fixer"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/asset_refer_fixer"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/facebook"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/libsyn"
@@ -556,7 +556,6 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 	excluded := false
 
 	for _, asset := range assets {
-		
 		// Just making sure we do not over archive by archiving the original URL
 		if utils.URLToString(item.URL) == utils.URLToString(asset) {
 			continue

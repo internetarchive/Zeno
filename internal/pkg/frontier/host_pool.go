@@ -15,11 +15,20 @@ func (f *Frontier) IsHostInPool(host string) bool {
 	return false
 }
 
+func (f *Frontier) IsHostPoolEmpty() bool {
+	empty := true
+	f.HostPool.Range(func(host any, count any) bool {
+		empty = false
+		return false
+	})
+	return empty
+}
+
 // Incr increment by 1 the counter of an host in the pool
 func (f *Frontier) IncrHost(host string) {
 	for {
 		v, loaded := f.HostPool.LoadOrStore(host, PoolItem{1, 0})
-if !loaded {
+		if !loaded {
 			return
 		}
 
@@ -47,12 +56,12 @@ if !loaded {
 func (f *Frontier) IncrHostActive(host string) {
 	for {
 		v, loaded := f.HostPool.LoadOrStore(host, PoolItem{TotalCount: 0, ActiveCount: 1})
-if !loaded {
+		if !loaded {
 			return
 		}
 
 		swapped := f.HostPool.CompareAndSwap(host, v, PoolItem{
-			v.(PoolItem).TotalCount + 1,
+			v.(PoolItem).TotalCount,
 			v.(PoolItem).ActiveCount + 1,
 		})
 
@@ -65,7 +74,7 @@ if !loaded {
 				Level:   logrus.ErrorLevel,
 			}
 
-			continue
+			continue // retry
 		}
 
 		return
@@ -77,7 +86,7 @@ func (f *Frontier) DecrHost(host string) {
 	for {
 		v, ok := f.HostPool.Load(host)
 		if !ok {
-			return
+			continue // retry
 		}
 
 		swapped := f.HostPool.CompareAndSwap(host, v, PoolItem{
@@ -96,6 +105,7 @@ func (f *Frontier) DecrHost(host string) {
 
 			continue
 		}
+		f.HostPool.CompareAndDelete(host, PoolItem{0, 0})
 
 		return
 	}
@@ -105,7 +115,7 @@ func (f *Frontier) DecrHostActive(host string) {
 	for {
 		v, ok := f.HostPool.Load(host)
 		if !ok {
-			return
+			continue // retry
 		}
 
 		swapped := f.HostPool.CompareAndSwap(host, v, PoolItem{
@@ -122,7 +132,7 @@ func (f *Frontier) DecrHostActive(host string) {
 				Level:   logrus.ErrorLevel,
 			}
 
-			continue
+			continue // retry
 		}
 
 		f.HostPool.CompareAndDelete(host, PoolItem{0, 0})

@@ -60,7 +60,7 @@ func (c *Crawl) Start() (err error) {
 	}()
 
 	c.Frontier.Init(c.JobPath, frontierLoggingChan, int(c.Workers.Count), c.Seencheck)
-		c.Frontier.Start()
+	c.Frontier.Start()
 
 	// Start the background process that will periodically check if the disk
 	// have enough free space, and potentially pause the crawl if it doesn't
