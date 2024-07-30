@@ -14,13 +14,6 @@ import (
 
 var regexOutlinks *regexp.Regexp
 
-func (c *Crawl) writeFrontierToDisk() {
-	for !c.Finished.Get() {
-		c.Frontier.Save()
-		time.Sleep(time.Minute * 1)
-	}
-}
-
 func (c *Crawl) crawlSpeedLimiter() {
 	maxConcurrentAssets := c.MaxConcurrentAssets
 

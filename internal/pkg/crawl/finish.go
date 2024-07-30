@@ -92,10 +92,6 @@ func (crawl *Crawl) finish() {
 		crawl.Log.Warn("[SEENCHECK] Database closed")
 	}
 
-	// Dumping hosts pool and frontier stats to disk
-	crawl.Log.Warn("[FRONTIER] Dumping hosts pool and frontier stats to " + path.Join(crawl.Frontier.JobPath, "frontier.gob"))
-	crawl.Frontier.Save()
-
 	crawl.Log.Warn("Finished!")
 
 	crawl.Log.Warn("Shutting down the logger, bai bai")
