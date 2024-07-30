@@ -35,7 +35,7 @@ type Frontier struct {
 	QueueCount *ratecounter.Counter
 
 	// HostPool is an struct that contains a map and a Mutex.
-	// the map contains all the different hosts that Zeno crawled,
+	// the map contains all the different hosts that Zeno crawlling,
 	// with a counter for each, going through that map gives us
 	// the prefix to query from the queue
 	HostPool *sync.Map
