@@ -1,12 +1,16 @@
 package queue
 
+import "sync/atomic"
+
 type HandoverChannel struct {
-	ch chan *Item
+	ch    chan *Item
+	count *atomic.Uint64
 }
 
 func NewHandoverChannel() *HandoverChannel {
 	return &HandoverChannel{
-		ch: make(chan *Item, 1), // Buffer of 1 for non-blocking operations
+		ch:    make(chan *Item, 1), // Buffer of 1 for non-blocking operations
+		count: new(atomic.Uint64),
 	}
 }
 
@@ -22,6 +26,7 @@ func (h *HandoverChannel) TryPut(item *Item) bool {
 func (h *HandoverChannel) TryGet() (*Item, bool) {
 	select {
 	case item := <-h.ch:
+		h.count.Add(1)
 		return item, true
 	default:
 		return nil, false
