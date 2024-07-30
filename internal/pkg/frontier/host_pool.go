@@ -18,9 +18,8 @@ func (f *Frontier) IsHostInPool(host string) bool {
 // Incr increment by 1 the counter of an host in the pool
 func (f *Frontier) IncrHost(host string) {
 	for {
-		v, ok := f.HostPool.Load(host)
-		if !ok {
-			f.HostPool.Store(host, PoolItem{1, 0})
+		v, loaded := f.HostPool.LoadOrStore(host, PoolItem{1, 0})
+if !loaded {
 			return
 		}
 
@@ -47,9 +46,8 @@ func (f *Frontier) IncrHost(host string) {
 
 func (f *Frontier) IncrHostActive(host string) {
 	for {
-		v, ok := f.HostPool.Load(host)
-		if !ok {
-			f.HostPool.Store(host, PoolItem{1, 1})
+		v, loaded := f.HostPool.LoadOrStore(host, PoolItem{TotalCount: 0, ActiveCount: 1})
+if !loaded {
 			return
 		}
 
@@ -127,9 +125,7 @@ func (f *Frontier) DecrHostActive(host string) {
 			continue
 		}
 
-		if v.(PoolItem).TotalCount == 0 && v.(PoolItem).ActiveCount == 0 {
-			f.HostPool.Delete(host)
-		}
+		f.HostPool.CompareAndDelete(host, PoolItem{0, 0})
 
 		return
 	}
