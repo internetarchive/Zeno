@@ -65,11 +65,11 @@ func (f *Frontier) writeItemsToQueue() {
 
 func (f *Frontier) readItemsFromQueue() {
 	f.IsQueueReaderActive.Set(true)
-defer f.IsQueueReaderActive.Set(false)
-	
+	defer f.IsQueueReaderActive.Set(false)
+
 	for {
 		if f.FinishingQueueReader.Get() {
-						return
+			return
 		}
 
 		if f.QueueCount.Value() == 0 {
@@ -79,6 +79,8 @@ defer f.IsQueueReaderActive.Set(false)
 		if f.Paused.Get() {
 			time.Sleep(time.Second)
 		}
+
+		time.Sleep(10 * time.Millisecond)
 
 		// We iterate over the copied pool, and dequeue
 		// new URLs to crawl based on that hosts pool
