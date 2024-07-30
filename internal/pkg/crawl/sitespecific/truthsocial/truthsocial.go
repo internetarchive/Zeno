@@ -7,14 +7,12 @@ import (
 	"strings"
 )
 
+const regexPattern = `https?://truthsocial\.com/@[A-Za-z0-9_]+/posts/\d+`
+
+var isTruthSocialURLcompliedRegex = regexp.MustCompile(regexPattern)
+
 func IsTruthSocialURL(URL string) bool {
-	regexPattern := `https?://truthsocial\.com/@[A-Za-z0-9_]+/posts/\d+`
-
-	match, err := regexp.MatchString(regexPattern, URL)
-	if err != nil {
-		return false
-	}
-
+	match := isTruthSocialURLcompliedRegex.MatchString(URL)
 	return match
 }
 
