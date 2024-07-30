@@ -13,6 +13,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/clbanning/mxj/v2"
+"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/asset_refer_fixer"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/facebook"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/libsyn"
@@ -201,6 +202,11 @@ func (c *Crawl) captureAsset(item *frontier.Item, cookies []*http.Cookie) error 
 	// Apply cookies obtained from the original URL captured
 	for i := range cookies {
 		req.AddCookie(cookies[i])
+	}
+
+	// Execute site-specific code on the request, before sending it
+	if asset_refer_fixer.IsNeedDelRefer(utils.URLToString(item.URL)) {
+		asset_refer_fixer.DelReferer(req)
 	}
 
 	resp, err = c.executeGET(item, req, false)
