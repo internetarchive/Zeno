@@ -61,6 +61,7 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 	var excluded bool
 
 	// Send the outlinks to the pool of workers
+	var items = make([]*queue.Item, 0, len(outlinks))
 	for _, outlink := range outlinks {
 		outlink := outlink
 
@@ -93,11 +94,7 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
-				err = c.Queue.Enqueue(newItem)
-				if err != nil {
-					c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to enqueue outlink, discarding")
-					continue
-				}
+				items = append(items, newItem)
 			}
 		} else if uint64(c.MaxHops) >= item.Hop+1 {
 			newItem, err := queue.NewItem(outlink, item.URL, "seed", item.Hop+1, "", false)
@@ -109,12 +106,15 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
-				err = c.Queue.Enqueue(newItem)
-				if err != nil {
-					c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to enqueue outlink, discarding")
-					continue
-				}
+				items = append(items, newItem)
 			}
+		}
+	}
+
+	if !c.UseHQ {
+		err := c.Queue.BatchEnqueue(items...)
+		if err != nil {
+			c.Log.Error("unable to enqueue outlinks, discarding", "error", err)
 		}
 	}
 }
