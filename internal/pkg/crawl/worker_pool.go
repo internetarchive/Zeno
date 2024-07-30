@@ -35,12 +35,12 @@ func (wp *WorkerPool) Start() {
 		go worker.Run()
 		go worker.WatchHang()
 	}
-	go wp.WorkerWatcher()
+	go wp.WorkersWatcher()
 }
 
-// WorkerWatcher is a background process that watches over the workers
+// WorkersWatcher is a background process that watches over the workers
 // and remove them from the pool when they are done
-func (wp *WorkerPool) WorkerWatcher() {
+func (wp *WorkerPool) WorkersWatcher() {
 	for {
 		select {
 

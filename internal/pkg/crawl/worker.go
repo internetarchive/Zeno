@@ -61,7 +61,7 @@ type Worker struct {
 // and eventually push newly discovered URLs back in the frontier.
 func (w *Worker) Run() {
 	// Start archiving the URLs!
-defer func() {
+	defer func() {
 		w.state.currentItem = nil
 		w.state.status = completed
 		w.logger.Info("Worker stopped")
@@ -70,49 +70,50 @@ defer func() {
 	for {
 		select {
 		case <-w.doneSignal:
-						return
+			return
 		case item := <-w.pool.Crawl.Frontier.PullChan:
-						if item == nil {
+			if item == nil {
 				return // PullChan is closed
 			}
-			w.Lock()
-			w.state.lastAction = "got item"
+			func() {
+				w.Lock()
+				defer w.Unlock()
+				w.state.lastAction = "got item"
 
-			// If the crawl is paused, we wait until it's resumed
-			for w.pool.Crawl.Paused.Get() || w.pool.Crawl.Frontier.Paused.Get() {
-				w.state.lastAction = "waiting for crawl to resume"
-				time.Sleep(time.Second)
-			}
-
-			// If the host of the item is in the host exclusion list, we skip it
-			if utils.StringInSlice(item.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.checkIncludedHosts(item.Host) {
-				if w.pool.Crawl.UseHQ {
-					w.state.lastAction = "skipping item because of host exclusion"
-					// If we are using the HQ, we want to mark the item as done
-					w.pool.Crawl.HQFinishedChannel <- item
+				// If the crawl is paused, we wait until it's resumed
+				for w.pool.Crawl.Paused.Get() || w.pool.Crawl.Frontier.Paused.Get() {
+					w.state.lastAction = "waiting for crawl to resume"
+					time.Sleep(time.Second)
 				}
-				w.Unlock()
-				continue
-			}
 
-			// Launches the capture of the given item
-			w.state.lastAction = "starting capture"
-			w.unsafeCapture(item)
-			w.Unlock()
+				// If the host of the item is in the host exclusion list, we skip it
+				if utils.StringInSlice(item.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.checkIncludedHosts(item.Host) {
+					if w.pool.Crawl.UseHQ {
+						w.state.lastAction = "skipping item because of host exclusion"
+						// If we are using the HQ, we want to mark the item as done
+						w.pool.Crawl.HQFinishedChannel <- item
+					}
+					return // continue
+				}
+
+				// Launches the capture of the given item
+				w.state.lastAction = "starting capture"
+				w.unsafeCapture(item)
+			}()
 		}
 	}
 }
 
 // unsafeCapture is named like so because it should only be called when the worker is locked
 func (w *Worker) unsafeCapture(item *frontier.Item) {
-w.pool.Crawl.ActiveWorkers.Incr(1)
+	w.pool.Crawl.ActiveWorkers.Incr(1)
 	defer w.pool.Crawl.ActiveWorkers.Incr(-1)
 	if item == nil {
 		return
 	}
 
 	// Signals that the worker is processing an item
-		w.state.currentItem = item
+	w.state.currentItem = item
 	w.state.status = processing
 
 	// Capture the item
@@ -124,7 +125,7 @@ w.pool.Crawl.ActiveWorkers.Incr(1)
 	w.state.status = idle
 	w.state.currentItem = nil
 	w.state.previousItem = item
-		w.state.lastSeen = time.Now()
+	w.state.lastSeen = time.Now()
 }
 
 func (w *Worker) Stop() {
