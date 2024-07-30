@@ -73,7 +73,7 @@ func (wp *WorkerPool) WorkersWatcher() {
 func (wp *WorkerPool) EnsureFinished() bool {
 	var workerPoolLen int
 	var timer = time.NewTimer(wp.StopTimeout)
-	var sleep = time.Second * 10
+	var sleep = time.Second * 1
 
 	for {
 		workerPoolLen = wp.wpLen()
