@@ -65,15 +65,15 @@ func (f *Frontier) writeItemsToQueue() {
 
 func (f *Frontier) readItemsFromQueue() {
 	f.IsQueueReaderActive.Set(true)
-
-	if f.QueueCount.Value() == 0 {
-		time.Sleep(time.Second)
-	}
-
+defer f.IsQueueReaderActive.Set(false)
+	
 	for {
 		if f.FinishingQueueReader.Get() {
-			f.IsQueueReaderActive.Set(false)
-			return
+						return
+		}
+
+		if f.QueueCount.Value() == 0 {
+			time.Sleep(time.Second)
 		}
 
 		if f.Paused.Get() {
@@ -85,14 +85,14 @@ func (f *Frontier) readItemsFromQueue() {
 		// that allow us to crawl a wide variety of domains
 		// at the same time, maximizing our speed
 		f.HostPool.Range(func(host any, count any) bool {
-			if f.Paused.Get() {
-				time.Sleep(time.Second)
-			}
-
-			//logrus.Infof("host: %s, active: %d, total: %d", host.(string), f.GetActiveHostCount(host.(string)), f.GetHostCount(host.(string)))
+			// logrus.Infof("host: %s, active: %d, total: %d", host.(string), f.GetActiveHostCount(host.(string)), f.GetHostCount(host.(string)))
 
 			if f.GetHostCount(host.(string)) == 0 {
 				return true
+			}
+
+			if f.Paused.Get() {
+				time.Sleep(time.Second)
 			}
 
 			// Dequeue an item from the local queue
@@ -136,11 +136,6 @@ func (f *Frontier) readItemsFromQueue() {
 			f.PullChan <- item
 
 			f.DecrHost(host.(string))
-
-			if f.FinishingQueueReader.Get() {
-				f.IsQueueReaderActive.Set(false)
-				return false
-			}
 
 			return true
 		})

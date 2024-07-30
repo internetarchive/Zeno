@@ -61,18 +61,19 @@ type Worker struct {
 // and eventually push newly discovered URLs back in the frontier.
 func (w *Worker) Run() {
 	// Start archiving the URLs!
+defer func() {
+		w.state.currentItem = nil
+		w.state.status = completed
+		w.logger.Info("Worker stopped")
+	}()
+
 	for {
 		select {
 		case <-w.doneSignal:
-			w.Lock()
-			w.state.currentItem = nil
-			w.state.status = completed
-			w.logger.Info("Worker stopped")
-			return
+						return
 		case item := <-w.pool.Crawl.Frontier.PullChan:
-			// Can it happen? I don't think so but let's be safe
-			if item == nil {
-				continue
+						if item == nil {
+				return // PullChan is closed
 			}
 			w.Lock()
 			w.state.lastAction = "got item"
@@ -104,13 +105,14 @@ func (w *Worker) Run() {
 
 // unsafeCapture is named like so because it should only be called when the worker is locked
 func (w *Worker) unsafeCapture(item *frontier.Item) {
+w.pool.Crawl.ActiveWorkers.Incr(1)
+	defer w.pool.Crawl.ActiveWorkers.Incr(-1)
 	if item == nil {
 		return
 	}
 
 	// Signals that the worker is processing an item
-	w.pool.Crawl.ActiveWorkers.Incr(1)
-	w.state.currentItem = item
+		w.state.currentItem = item
 	w.state.status = processing
 
 	// Capture the item
@@ -122,8 +124,7 @@ func (w *Worker) unsafeCapture(item *frontier.Item) {
 	w.state.status = idle
 	w.state.currentItem = nil
 	w.state.previousItem = item
-	w.pool.Crawl.ActiveWorkers.Incr(-1)
-	w.state.lastSeen = time.Now()
+		w.state.lastSeen = time.Now()
 }
 
 func (w *Worker) Stop() {

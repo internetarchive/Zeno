@@ -32,6 +32,9 @@ func (crawl *Crawl) catchFinish() {
 }
 
 func (crawl *Crawl) finish() {
+if crawl.Finished.Get() {
+		return
+	}
 	crawl.Finished.Set(true)
 
 	// First we wait for the queue reader to finish its current work,

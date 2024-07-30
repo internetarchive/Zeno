@@ -549,13 +549,14 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 		}
 	}
 
-	c.Frontier.QueueCount.Incr(int64(len(assets)))
+	assets_len := int64(len(assets))
+	c.Frontier.QueueCount.Incr(assets_len)
+	defer c.Frontier.QueueCount.Incr(-assets_len)
 	swg := sizedwaitgroup.New(c.MaxConcurrentAssets)
 	excluded := false
 
 	for _, asset := range assets {
-		c.Frontier.QueueCount.Incr(-1)
-
+		
 		// Just making sure we do not over archive by archiving the original URL
 		if utils.URLToString(item.URL) == utils.URLToString(asset) {
 			continue
