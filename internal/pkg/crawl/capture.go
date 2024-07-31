@@ -22,7 +22,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/vk"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/remeh/sizedwaitgroup"
-	"github.com/tomnomnom/linkheader"
 
 	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 )
@@ -338,7 +337,7 @@ func (c *Crawl) Capture(item *frontier.Item) error {
 
 	// Scrape potential URLs from Link HTTP header
 	var (
-		links      = linkheader.Parse(resp.Header.Get("link"))
+		links      = Parse(resp.Header.Get("link"))
 		discovered []string
 	)
 
