@@ -83,13 +83,8 @@ func (w *Worker) Run() {
 			}
 		}
 
-		// Try to get a handover item first
-		var err error
-		item, ok := w.pool.Crawl.Queue.Handover.TryGet()
-		if !ok {
-			// If the handover is empty, we try to get an item from the queue
-			item, err = w.pool.Crawl.Queue.Dequeue()
-		}
+		// Try to get an item from the queue or handover channel
+		item, err := w.pool.Crawl.Queue.Dequeue()
 		if err != nil {
 			// Log the error too?
 			w.state.lastError = err

@@ -11,12 +11,42 @@ import (
 // If multiple items are provided, the order in which they will be enqueued is not guaranteed.
 // It WILL be less efficient than Enqueue for single items.
 func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
-	if items == nil {
-		return errors.New("cannot enqueue nil item")
-	}
-
 	if !q.CanEnqueue() {
 		return ErrQueueClosed
+	}
+
+	batchLen := len(items)
+	if batchLen == 0 {
+		return fmt.Errorf("cannot enqueue empty batch")
+	}
+
+	failedHandoverItems := []*handoverEncodedItem{}
+	var once sync.Once
+	onceSignalQueue := func() { q.handoverCircuitBreaker.Set(true) }
+	if handover := q.handover.TryOpen(batchLen); handover {
+		for _, i := range items {
+			if i == nil {
+				q.logger.Error("cannot enqueue nil item")
+				continue
+			}
+
+			b, err := encodeItem(i)
+			if err != nil {
+				q.logger.Error("failed to encode item", "err", err)
+				continue
+			}
+
+			item := &handoverEncodedItem{
+				bytes: b,
+				item:  i,
+			}
+			if !q.handover.TryPut(item) {
+				q.logger.Error("failed to put item in handover")
+				failedHandoverItems = append(failedHandoverItems, item)
+			}
+
+			once.Do(onceSignalQueue)
+		}
 	}
 
 	q.mutex.Lock()
@@ -26,12 +56,6 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 	startPos, err := q.queueFile.Seek(0, io.SeekEnd)
 	if err != nil {
 		return fmt.Errorf("failed to seek to end of file: %s", err.Error())
-	}
-
-	// Encode all items in parallel
-	type msg struct {
-		bytes []byte
-		item  *Item
 	}
 
 	itemsChan := make(chan *msg, len(items))
@@ -48,7 +72,7 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 		go func(i *Item, wg *sync.WaitGroup) {
 			defer wg.Done()
 
-			if q.Handover.TryPut(i) {
+			if q.handover.TryPut(i) {
 				return
 			}
 
@@ -67,7 +91,7 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 
 	wg.Wait()
 
-	if leftover, exists := q.Handover.TryGet(); exists {
+	if leftover, exists := q.handover.TryGet(); exists {
 		b, err := encodeItem(leftover)
 		if err != nil {
 			q.logger.Error("failed to encode item", "err", err)

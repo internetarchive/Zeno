@@ -83,7 +83,7 @@ func (q *PersistentGroupedQueue) genStats() {
 	}
 
 	// Calculate handover success get count
-	q.stats.HandoverSuccessGetCount = q.Handover.count.Load()
+	q.stats.HandoverSuccessGetCount = q.handover.count.Load()
 }
 
 func (q *PersistentGroupedQueue) loadStatsFromFile(path string) error {

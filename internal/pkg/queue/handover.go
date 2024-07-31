@@ -1,20 +1,50 @@
 package queue
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
 type HandoverChannel struct {
-	ch    chan *Item
+	ch    chan *handoverEncodedItem
 	count *atomic.Uint64
+	open  *atomic.Bool
+}
+
+type handoverEncodedItem struct {
+	bytes []byte
+	item  *Item
 }
 
 func NewHandoverChannel() *HandoverChannel {
-	return &HandoverChannel{
-		ch:    make(chan *Item, 1), // Buffer of 1 for non-blocking operations
+	handover := &HandoverChannel{
+		ch:    make(chan *handoverEncodedItem),
 		count: new(atomic.Uint64),
+		open:  new(atomic.Bool),
 	}
+	handover.open.Store(false)
+	close(handover.ch)
+	return handover
 }
 
-func (h *HandoverChannel) TryPut(item *Item) bool {
+func (h *HandoverChannel) TryOpen(size int) bool {
+	if h.open.Load() {
+		return false
+	}
+	h.ch = make(chan *handoverEncodedItem, size)
+	h.open.Store(true)
+	return true
+}
+
+func (h *HandoverChannel) TryClose() bool {
+	if !h.open.Load() {
+		return false
+	}
+	close(h.ch)
+	h.open.Store(false)
+	return true
+}
+
+func (h *HandoverChannel) TryPut(item *handoverEncodedItem) bool {
 	select {
 	case h.ch <- item:
 		return true
@@ -23,7 +53,7 @@ func (h *HandoverChannel) TryPut(item *Item) bool {
 	}
 }
 
-func (h *HandoverChannel) TryGet() (*Item, bool) {
+func (h *HandoverChannel) TryGet() (*handoverEncodedItem, bool) {
 	select {
 	case item := <-h.ch:
 		h.count.Add(1)
@@ -32,3 +62,5 @@ func (h *HandoverChannel) TryGet() (*Item, bool) {
 		return nil, false
 	}
 }
+
+func (h *HandoverChannel) Drain()

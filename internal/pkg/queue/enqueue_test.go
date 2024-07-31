@@ -16,7 +16,7 @@ func TestEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), 0)
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
