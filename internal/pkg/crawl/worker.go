@@ -133,7 +133,7 @@ func (w *Worker) Run() {
 // unsafeCapture is named like so because it should only be called when the worker is locked
 func (w *Worker) unsafeCapture(item *queue.Item) {
 	if item == nil {
-		panic("Item is nil")
+		return
 	}
 
 	// Signals that the worker is processing an item
