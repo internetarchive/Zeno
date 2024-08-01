@@ -55,15 +55,18 @@ func (crawl *Crawl) startAPI() {
 	}
 
 	http.HandleFunc("/queue", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(crawl.Queue.GetStats())
 	})
 
 	http.HandleFunc("/workers", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		workersState := crawl.Workers.GetWorkerStateFromPool("")
 		json.NewEncoder(w).Encode(workersState)
 	})
 
 	http.HandleFunc("/worker/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		workerID := strings.TrimPrefix(r.URL.Path, "/worker/")
 		workersState := crawl.Workers.GetWorkerStateFromPool(workerID)
 		if workersState == nil {
