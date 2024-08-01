@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"runtime"
 	"sync"
 	"time"
 
@@ -78,7 +77,7 @@ func (w *Worker) Run() {
 				w.state.lastAction = "waiting for queue to be filled"
 			}
 			if (w.pool.Crawl.Paused.Get() || w.pool.Crawl.Queue.Empty.Get()) && w.pool.Crawl.Queue.CanDequeue() {
-				runtime.Gosched()
+				time.Sleep(10 * time.Millisecond)
 				continue
 			}
 		}
@@ -158,7 +157,7 @@ func (w *Worker) unsafeCapture(item *queue.Item) {
 func (w *Worker) Stop() {
 	w.doneSignal <- true
 	for w.state.status != completed {
-		runtime.Gosched()
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
