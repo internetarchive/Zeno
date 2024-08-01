@@ -43,6 +43,9 @@ func (h *HandoverChannel) TryClose() bool {
 }
 
 func (h *HandoverChannel) TryPut(item *handoverEncodedItem) bool {
+	if !h.open.Load() {
+		return false
+	}
 	select {
 	case h.ch <- item:
 		return true
@@ -52,6 +55,9 @@ func (h *HandoverChannel) TryPut(item *handoverEncodedItem) bool {
 }
 
 func (h *HandoverChannel) TryGet() (*handoverEncodedItem, bool) {
+	if !h.open.Load() {
+		return nil, false
+	}
 	select {
 	case item := <-h.ch:
 		return item, true
