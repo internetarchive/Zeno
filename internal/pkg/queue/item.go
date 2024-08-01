@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gosuri/uilive"
@@ -53,7 +54,13 @@ func (q *PersistentGroupedQueue) ReadItemAt(position uint64, itemSize uint64) ([
 
 func FileToItems(path string) (seeds []Item, err error) {
 	var totalCount, validCount int
+
 	writer := uilive.New()
+	// We manual flushing, uilive's auto flushing is not needed
+	// set it to 1s for convenience
+	writer.RefreshInterval = 1 * time.Second
+	writerFlushInterval := 50 * time.Millisecond
+	writerFlushed := time.Now()
 	writer.Start()
 
 	// Verify that the file exist
@@ -98,8 +105,12 @@ func FileToItems(path string) (seeds []Item, err error) {
 
 		seeds = append(seeds, *item)
 		validCount++
-		fmt.Fprintf(writer, "\t   Reading input list.. Found %d valid URLs out of %d URLs read.\n", validCount, totalCount)
-		writer.Flush()
+
+		if time.Since(writerFlushed) > writerFlushInterval {
+			fmt.Fprintf(writer, "\t   Reading input list.. Found %d valid URLs out of %d URLs read...\n", validCount, totalCount)
+			writer.Flush()
+			writerFlushed = time.Now()
+		}
 	}
 	writer.Stop()
 
@@ -110,6 +121,11 @@ func FileToItems(path string) (seeds []Item, err error) {
 	if len(seeds) == 0 {
 		return seeds, errors.New("seed list's content invalid")
 	}
+
+	logrus.WithFields(logrus.Fields{
+		"total": totalCount,
+		"valid": validCount,
+	}).Info("Finished reading input list")
 
 	return seeds, nil
 }
