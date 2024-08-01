@@ -57,7 +57,7 @@ func newHandoverChannel() *handoverChannel {
 		open:                new(atomic.Bool),
 		ready:               new(atomic.Bool),
 		drained:             new(atomic.Bool),
-		signalConsumerDone:  make(chan bool, 1),
+		signalConsumerDone:  make(chan bool),
 		monitorInterval:     new(atomic.Value),
 		activityTrackerSize: 5, // 5 intervals
 	}
@@ -72,7 +72,6 @@ func (h *handoverChannel) tryOpen(size int) bool {
 		return false
 	}
 	h.ch = make(chan *handoverEncodedItem, size)
-	h.open.Store(true)
 	h.ready.Store(true)
 	h.drained.Store(false)
 	h.activityTracker = newActivityTracker(h.activityTrackerSize)
@@ -81,7 +80,7 @@ func (h *handoverChannel) tryOpen(size int) bool {
 }
 
 func (h *handoverChannel) tryClose() bool {
-	if !h.open.CompareAndSwap(true, false) || h.ready.Load() || h.drained.Load() {
+	if !h.open.CompareAndSwap(true, false) || h.ready.Load() || !h.drained.Load() {
 		return false
 	}
 	select {
