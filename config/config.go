@@ -74,7 +74,7 @@ type Config struct {
 	HQContinuousPull               bool     `mapstructure:"hq-continuous-pull"`
 	HQRateLimitSendBack            bool     `mapstructure:"hq-rate-limiting-send-back"`
 	NoStdoutLogging                bool     `mapstructure:"no-stdout-log"`
-	UseHandover                    bool     `mapstructure:"use-handover"`
+	Handover                       bool     `mapstructure:"handover"`
 }
 
 var (
