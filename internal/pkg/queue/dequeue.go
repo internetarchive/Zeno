@@ -13,8 +13,8 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		return nil, ErrDequeueClosed
 	}
 
-	if q.handoverCircuitBreaker.Get() {
-		if item, ok := q.handover.TryGet(); ok {
+	if q.HandoverOpen.Get() {
+		if item, ok := q.handover.tryGet(); ok && item != nil {
 			q.handoverCount.Add(1)
 			return item.item, nil
 		}
@@ -67,7 +67,6 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 }
 
 // getNextHost returns the next host to dequeue from
-// WIP _ NON It blocks until a host is available, allowing other goroutines to enqueue without keeping the queue mutex locked
 func (q *PersistentGroupedQueue) getNextHost() (string, error) {
 	if q.Empty.Get() && q.CanDequeue() {
 		return "", ErrQueueEmpty

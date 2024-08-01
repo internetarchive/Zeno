@@ -22,13 +22,9 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 
 	var (
 		// Global
-		onceOpen   sync.Once
-		onceClose  sync.Once
 		isHandover bool
 
 		// Handover
-		signalOpen          = func() { q.handoverCircuitBreaker.Set(true); q.Empty.Set(false) }
-		signalClose         = func() { q.handoverCircuitBreaker.Set(false) }
 		failedHandoverItems = []*handoverEncodedItem{}
 
 		// No Handover
@@ -36,7 +32,20 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 		wg        = &sync.WaitGroup{}
 	)
 
-	if isHandover = q.handover.TryOpen(batchLen); isHandover {
+	// Update empty status
+	defer q.Empty.Set(false)
+
+	if !q.useHandover {
+		isHandover = false
+	} else {
+		isHandover = q.handover.tryOpen(batchLen)
+		if !isHandover {
+			q.logger.Error("failed to open handover")
+		}
+	}
+
+	if isHandover {
+		q.HandoverOpen.Set(true)
 		for _, i := range items {
 			if i == nil {
 				q.logger.Error("cannot enqueue nil item")
@@ -53,12 +62,10 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 				bytes: b,
 				item:  i,
 			}
-			if !q.handover.TryPut(item) {
+			if !q.handover.tryPut(item) {
 				q.logger.Error("failed to put item in handover")
 				failedHandoverItems = append(failedHandoverItems, item)
 			}
-
-			onceOpen.Do(signalOpen)
 		}
 	} else {
 		wg.Add(len(items))
@@ -84,12 +91,20 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 			}(item, wg)
 		}
 		wg.Wait()
-
 	}
 
 	// This close IS necessary to avoid indefinitely waiting in the next loop
 	// It's also necessary to close the channel if handover was used
 	close(itemsChan)
+
+	// Wait for handover to finish then close for consumption
+	for q.useHandover {
+		done := <-q.handover.signalConsumerDone
+		if done {
+			break
+		}
+	}
+	q.HandoverOpen.Set(false)
 
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
@@ -101,9 +116,20 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 	}
 
 	if isHandover {
-		for item, ok := q.handover.TryGet(); ok; item, ok = q.handover.TryGet() {
-			if err := writeItemToFile(q, item, &startPos); err != nil {
-				return err
+		// for item, ok := q.handover.TryGet(); ok; item, ok = q.handover.TryGet() {
+		// 	if err := writeItemToFile(q, item, &startPos); err != nil {
+		// 		return err
+		// 	}
+		// }
+		itemsDrained, ok := q.handover.tryDrain()
+		if ok {
+			for _, item := range itemsDrained {
+				if item == nil {
+					continue
+				}
+				if err := writeItemToFile(q, item, &startPos); err != nil {
+					return err
+				}
 			}
 		}
 		for _, item := range failedHandoverItems {
@@ -111,8 +137,7 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 				return err
 			}
 		}
-		onceClose.Do(signalClose)
-		if q.handover.TryClose() {
+		if !q.handover.tryClose() {
 			return fmt.Errorf("failed to close handover")
 		}
 	} else {

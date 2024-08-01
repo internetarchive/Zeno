@@ -131,11 +131,12 @@ func _getWorkerState(worker *Worker) *APIWorkerState {
 	}
 
 	return &APIWorkerState{
-		WorkerID:  worker.ID.String(),
-		Status:    worker.state.status.String(),
-		LastSeen:  worker.state.lastSeen.Format(time.RFC3339),
-		LastError: lastErr,
-		Locked:    isLocked,
+		WorkerID:   worker.ID.String(),
+		Status:     worker.state.status.String(),
+		LastSeen:   worker.state.lastSeen.Format(time.RFC3339),
+		LastError:  lastErr,
+		LastAction: worker.state.lastAction,
+		Locked:     isLocked,
 	}
 }
 

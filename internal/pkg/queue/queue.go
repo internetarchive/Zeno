@@ -30,10 +30,11 @@ type PersistentGroupedQueue struct {
 	currentHost     *atomic.Uint64
 	mutex           sync.RWMutex
 
-	handover               *HandoverChannel
-	handoverCircuitBreaker *utils.TAtomBool
-	handoverMutex          sync.Mutex
-	handoverCount          *atomic.Uint64
+	useHandover   bool
+	handover      *handoverChannel
+	HandoverOpen  *utils.TAtomBool
+	handoverMutex sync.Mutex
+	handoverCount *atomic.Uint64
 
 	closed    *utils.TAtomBool
 	finishing *utils.TAtomBool
@@ -53,7 +54,7 @@ type Item struct {
 	Redirect        uint64
 }
 
-func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, error) {
+func NewPersistentGroupedQueue(queueDirPath string, useHandover bool) (*PersistentGroupedQueue, error) {
 	err := os.MkdirAll(queueDirPath, 0755)
 	if err != nil {
 		return nil, err
@@ -81,9 +82,9 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 		closed:    new(utils.TAtomBool),
 		finishing: new(utils.TAtomBool),
 
-		handover:               NewHandoverChannel(),
-		handoverCircuitBreaker: new(utils.TAtomBool),
-		handoverCount:          new(atomic.Uint64),
+		useHandover:   useHandover,
+		HandoverOpen:  new(utils.TAtomBool),
+		handoverCount: new(atomic.Uint64),
 
 		queueDirPath:    queueDirPath,
 		queueFile:       file,
@@ -105,6 +106,13 @@ func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, er
 	q.closed.Set(false)
 	q.finishing.Set(false)
 	q.currentHost.Store(0)
+
+	// Handover
+	q.HandoverOpen.Set(false)
+	q.handoverCount.Store(0)
+	if useHandover {
+		q.handover = newHandoverChannel()
+	}
 
 	// Loading stats from the disk means deleting the file from disk after having read it
 	if err = q.loadStatsFromFile(path.Join(q.queueDirPath, "queue.stats")); err != nil {

@@ -38,7 +38,10 @@ func (c *Crawl) printLiveStats() {
 		stats.AddRow("  - URI/s:", c.URIsPerSecond.Rate())
 		stats.AddRow("  - Items in queue:", queueStats.TotalElements)
 		stats.AddRow("  - Hosts in queue:", queueStats.UniqueHosts)
-		stats.AddRow("  - Handover Get() success:", queueStats.HandoverSuccessGetCount)
+		if c.UseHandover {
+			stats.AddRow("  - Handover open:", c.Queue.HandoverOpen.Get())
+			stats.AddRow("  - Handover Get() success:", queueStats.HandoverSuccessGetCount)
+		}
 		stats.AddRow("  - Queue empty bool state:", c.Queue.Empty.Get())
 		stats.AddRow("  - Can Enqueue:", c.Queue.CanEnqueue())
 		stats.AddRow("  - Can Dequeue:", c.Queue.CanDequeue())
@@ -64,7 +67,7 @@ func (c *Crawl) printLiveStats() {
 
 		fmt.Fprintln(writer, stats.String())
 		writer.Flush()
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 250)
 	}
 }
 
