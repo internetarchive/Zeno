@@ -20,10 +20,23 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 		return fmt.Errorf("cannot enqueue empty batch")
 	}
 
-	failedHandoverItems := []*handoverEncodedItem{}
-	var once sync.Once
-	onceSignalQueue := func() { q.handoverCircuitBreaker.Set(true) }
-	if handover := q.handover.TryOpen(batchLen); handover {
+	var (
+		// Global
+		onceOpen   sync.Once
+		onceClose  sync.Once
+		isHandover bool
+
+		// Handover
+		signalOpen          = func() { q.handoverCircuitBreaker.Set(true); q.Empty.Set(false) }
+		signalClose         = func() { q.handoverCircuitBreaker.Set(false) }
+		failedHandoverItems = []*handoverEncodedItem{}
+
+		// No Handover
+		itemsChan = make(chan *handoverEncodedItem, batchLen)
+		wg        = &sync.WaitGroup{}
+	)
+
+	if isHandover = q.handover.TryOpen(batchLen); isHandover {
 		for _, i := range items {
 			if i == nil {
 				q.logger.Error("cannot enqueue nil item")
@@ -45,9 +58,38 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 				failedHandoverItems = append(failedHandoverItems, item)
 			}
 
-			once.Do(onceSignalQueue)
+			onceOpen.Do(signalOpen)
 		}
+	} else {
+		wg.Add(len(items))
+		for _, item := range items {
+			if item == nil {
+				q.logger.Error("cannot enqueue nil item")
+				continue
+			}
+
+			go func(i *Item, wg *sync.WaitGroup) {
+				defer wg.Done()
+
+				b, err := encodeItem(i)
+				if err != nil {
+					q.logger.Error("failed to encode item", "err", err)
+					return
+				}
+
+				itemsChan <- &handoverEncodedItem{
+					bytes: b,
+					item:  i,
+				}
+			}(item, wg)
+		}
+		wg.Wait()
+
 	}
+
+	// This close IS necessary to avoid indefinitely waiting in the next loop
+	// It's also necessary to close the channel if handover was used
+	close(itemsChan)
 
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
@@ -58,75 +100,28 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 		return fmt.Errorf("failed to seek to end of file: %s", err.Error())
 	}
 
-	itemsChan := make(chan *msg, len(items))
-
-	wg := &sync.WaitGroup{}
-	wg.Add(len(items))
-
-	for _, item := range items {
-		if item == nil {
-			q.logger.Error("cannot enqueue nil item")
-			continue
+	if isHandover {
+		for item, ok := q.handover.TryGet(); ok; item, ok = q.handover.TryGet() {
+			if err := writeItemToFile(q, item, &startPos); err != nil {
+				return err
+			}
 		}
-
-		go func(i *Item, wg *sync.WaitGroup) {
-			defer wg.Done()
-
-			if q.handover.TryPut(i) {
-				return
+		for _, item := range failedHandoverItems {
+			if err := writeItemToFile(q, item, &startPos); err != nil {
+				return err
 			}
-
-			b, err := encodeItem(i)
-			if err != nil {
-				q.logger.Error("failed to encode item", "err", err)
-				return
-			}
-
-			itemsChan <- &msg{
-				bytes: b,
-				item:  i,
-			}
-		}(item, wg)
-	}
-
-	wg.Wait()
-
-	if leftover, exists := q.handover.TryGet(); exists {
-		b, err := encodeItem(leftover)
-		if err != nil {
-			q.logger.Error("failed to encode item", "err", err)
-		} else {
-			itemsChan <- &msg{
-				bytes: b,
-				item:  leftover,
+		}
+		onceClose.Do(signalClose)
+		if q.handover.TryClose() {
+			return fmt.Errorf("failed to close handover")
+		}
+	} else {
+		for item := range itemsChan {
+			if err := writeItemToFile(q, item, &startPos); err != nil {
+				return err
 			}
 		}
 	}
-
-	// This close IS necessary to avoid indefinitely waiting in the next loop
-	close(itemsChan)
-
-	for msg := range itemsChan {
-		// Write item to file
-		written, err := q.queueFile.Write(msg.bytes)
-		if err != nil {
-			return fmt.Errorf("failed to write item: %w", err)
-		}
-
-		// Update host index and order
-		err = q.index.Add(msg.item.URL.Host, msg.item.ID, uint64(startPos), uint64(len(msg.bytes)))
-		if err != nil {
-			return fmt.Errorf("failed to update index: %w", err)
-		}
-
-		startPos += int64(written)
-
-		// Update stats
-		q.updateEnqueueStats(msg.item)
-	}
-
-	// Update empty status
-	q.Empty.Set(false)
 
 	return nil
 }
@@ -171,6 +166,27 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 
 	// Update empty status
 	q.Empty.Set(false)
+
+	return nil
+}
+
+func writeItemToFile(q *PersistentGroupedQueue, item *handoverEncodedItem, startPos *int64) error {
+	// Write item to file
+	written, err := q.queueFile.Write(item.bytes)
+	if err != nil {
+		return fmt.Errorf("failed to write item: %w", err)
+	}
+
+	// Update host index and order
+	err = q.index.Add(item.item.URL.Host, item.item.ID, uint64(*startPos), uint64(len(item.bytes)))
+	if err != nil {
+		return fmt.Errorf("failed to update index: %w", err)
+	}
+
+	*startPos += int64(written)
+
+	// Update stats
+	q.updateEnqueueStats(item.item)
 
 	return nil
 }

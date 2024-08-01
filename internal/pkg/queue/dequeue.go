@@ -13,6 +13,13 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		return nil, ErrDequeueClosed
 	}
 
+	if q.handoverCircuitBreaker.Get() {
+		if item, ok := q.handover.TryGet(); ok {
+			q.handoverCount.Add(1)
+			return item.item, nil
+		}
+	}
+
 	var (
 		position = uint64(0)
 		size     = uint64(0)

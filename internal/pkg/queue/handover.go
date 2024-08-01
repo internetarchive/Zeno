@@ -5,9 +5,8 @@ import (
 )
 
 type HandoverChannel struct {
-	ch    chan *handoverEncodedItem
-	count *atomic.Uint64
-	open  *atomic.Bool
+	ch   chan *handoverEncodedItem // channel for handover
+	open *atomic.Bool              // whether the channel is open or not
 }
 
 type handoverEncodedItem struct {
@@ -17,9 +16,8 @@ type handoverEncodedItem struct {
 
 func NewHandoverChannel() *HandoverChannel {
 	handover := &HandoverChannel{
-		ch:    make(chan *handoverEncodedItem),
-		count: new(atomic.Uint64),
-		open:  new(atomic.Bool),
+		ch:   make(chan *handoverEncodedItem),
+		open: new(atomic.Bool),
 	}
 	handover.open.Store(false)
 	close(handover.ch)
@@ -56,11 +54,8 @@ func (h *HandoverChannel) TryPut(item *handoverEncodedItem) bool {
 func (h *HandoverChannel) TryGet() (*handoverEncodedItem, bool) {
 	select {
 	case item := <-h.ch:
-		h.count.Add(1)
 		return item, true
 	default:
 		return nil, false
 	}
 }
-
-func (h *HandoverChannel) Drain()
