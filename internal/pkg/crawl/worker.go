@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -73,22 +74,22 @@ func (w *Worker) Run() {
 		default:
 			if w.pool.Crawl.Paused.Get() {
 				w.state.lastAction = "waiting for crawl to resume"
-			} else if w.pool.Crawl.Queue.Empty.Get() {
+			} else if w.pool.Crawl.Queue.Empty.Get() && !w.pool.Crawl.Queue.HandoverOpen.Get() {
 				w.state.lastAction = "waiting for queue to be filled"
 			}
-			if (w.pool.Crawl.Paused.Get() || w.pool.Crawl.Queue.Empty.Get()) && w.pool.Crawl.Queue.CanDequeue() {
+			// We wait if :
+			// OR the crawl is paused
+			// OR the queue is empty and the handover circuit breaker is not active
+			// AND the queue can dequeue
+			if (w.pool.Crawl.Paused.Get() || (w.pool.Crawl.Queue.Empty.Get() && !w.pool.Crawl.Queue.HandoverOpen.Get())) && w.pool.Crawl.Queue.CanDequeue() {
+				w.state.lastAction = fmt.Sprintf("waiting for queue to be filled, queue empty: %t, handover open: %t", w.pool.Crawl.Queue.Empty.Get(), w.pool.Crawl.Queue.HandoverOpen.Get())
 				time.Sleep(10 * time.Millisecond)
 				continue
 			}
 		}
 
-		// Try to get a handover item first
-		var err error
-		item, ok := w.pool.Crawl.Queue.Handover.TryGet()
-		if !ok {
-			// If the handover is empty, we try to get an item from the queue
-			item, err = w.pool.Crawl.Queue.Dequeue()
-		}
+		// Try to get an item from the queue or handover channel
+		item, err := w.pool.Crawl.Queue.Dequeue()
 		if err != nil {
 			// Log the error too?
 			w.state.lastError = err

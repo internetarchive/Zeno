@@ -21,11 +21,12 @@ type APIWorkersState struct {
 
 // APIWorkerState represents the state of an API worker.
 type APIWorkerState struct {
-	WorkerID  string `json:"worker_id"`
-	Status    string `json:"status"`
-	LastError string `json:"last_error"`
-	LastSeen  string `json:"last_seen"`
-	Locked    bool   `json:"locked"`
+	WorkerID   string `json:"worker_id"`
+	Status     string `json:"status"`
+	LastError  string `json:"last_error"`
+	LastSeen   string `json:"last_seen"`
+	LastAction string `json:"last_action"`
+	Locked     bool   `json:"locked"`
 }
 
 // startAPI starts the API server for the crawl

@@ -35,6 +35,7 @@ type Crawl struct {
 	Queue        *queue.PersistentGroupedQueue
 	Seencheck    *seencheck.Seencheck
 	UseSeencheck bool
+	UseHandover  bool
 
 	// Worker pool
 	Workers *WorkerPool
@@ -270,6 +271,9 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.HQBatchSize = int(config.HQBatchSize)
 	c.HQContinuousPull = config.HQContinuousPull
 	c.HQRateLimitingSendBack = config.HQRateLimitSendBack
+
+	// Handover mechanism
+	c.UseHandover = config.Handover
 
 	return c, nil
 }

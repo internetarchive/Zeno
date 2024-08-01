@@ -152,7 +152,7 @@ func (c *Crawl) HQConsumer() {
 		// This is on purpose evaluated every time,
 		// because the value of workers will maybe change
 		// during the crawl in the future (to be implemented)
-		var HQBatchSize = int(math.Ceil(float64(c.Workers.Count) * 2))
+		var HQBatchSize = int(math.Ceil(float64(c.Workers.Count) / 2))
 
 		if c.Finished.Get() {
 			c.Log.Error("crawl finished, stopping HQ consumer")
@@ -161,8 +161,8 @@ func (c *Crawl) HQConsumer() {
 
 		// If HQContinuousPull is set to true, we will pull URLs from HQ continuously,
 		// otherwise we will only pull URLs when needed (and when the crawl is not paused)
-		for (uint64(c.Queue.GetStats().TotalElements) > uint64(c.Workers.Count)*2 && !c.HQContinuousPull) || c.Paused.Get() {
-			time.Sleep(time.Millisecond * 1)
+		for (uint64(c.Queue.GetStats().TotalElements) > uint64(HQBatchSize) && !c.HQContinuousPull) || c.Paused.Get() {
+			time.Sleep(time.Millisecond * 10)
 			continue
 		}
 
