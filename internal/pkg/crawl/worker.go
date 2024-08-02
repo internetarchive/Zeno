@@ -72,19 +72,17 @@ func (w *Worker) Run() {
 			w.logger.Info("Worker stopped")
 			return
 		default:
-			if w.pool.Crawl.Paused.Get() {
+			for w.pool.Crawl.Paused.Get() {
 				w.state.lastAction = "waiting for crawl to resume"
-			} else if w.pool.Crawl.Queue.Empty.Get() && !w.pool.Crawl.Queue.HandoverOpen.Get() {
-				w.state.lastAction = "waiting for queue to be filled"
-			}
-			// We wait if :
-			// OR the crawl is paused
-			// OR the queue is empty and the handover circuit breaker is not active
-			// AND the queue can dequeue
-			if (w.pool.Crawl.Paused.Get() || (w.pool.Crawl.Queue.Empty.Get() && !w.pool.Crawl.Queue.HandoverOpen.Get())) && w.pool.Crawl.Queue.CanDequeue() {
-				w.state.lastAction = fmt.Sprintf("waiting for queue to be filled, queue empty: %t, handover open: %t", w.pool.Crawl.Queue.Empty.Get(), w.pool.Crawl.Queue.HandoverOpen.Get())
 				time.Sleep(10 * time.Millisecond)
-				continue
+			}
+			for w.pool.Crawl.Queue.Empty.Get() && !w.pool.Crawl.Queue.HandoverOpen.Get() {
+				w.state.lastAction = fmt.Sprintf("waiting for queue to be filled, queue empty: %t, handover open: %t", w.pool.Crawl.Queue.Empty.Get(), w.pool.Crawl.Queue.HandoverOpen.Get())
+				time.Sleep(5 * time.Millisecond)
+			}
+			for !w.pool.Crawl.Queue.CanDequeue() {
+				w.state.lastAction = "waiting for queue to be dequeuable"
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
 

@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+var defaultMonitorInterval = 20 * time.Millisecond
+
 type handoverChannel struct {
 	ch                  chan *handoverEncodedItem
 	open                *atomic.Bool
@@ -53,17 +55,18 @@ func (at *activityTracker) sum() int64 {
 
 func newHandoverChannel() *handoverChannel {
 	handover := &handoverChannel{
-		ch:                  make(chan *handoverEncodedItem),
-		open:                new(atomic.Bool),
-		ready:               new(atomic.Bool),
-		drained:             new(atomic.Bool),
-		signalConsumerDone:  make(chan bool),
-		monitorInterval:     new(atomic.Value),
-		activityTrackerSize: 5, // 5 intervals
+		ch:                 make(chan *handoverEncodedItem),
+		open:               new(atomic.Bool),
+		ready:              new(atomic.Bool),
+		drained:            new(atomic.Bool),
+		signalConsumerDone: make(chan bool),
+		monitorInterval:    new(atomic.Value),
+		activityTracker:    newActivityTracker(10),
 	}
-	handover.monitorInterval.Store(10 * time.Millisecond)
+	handover.monitorInterval.Store(defaultMonitorInterval)
 	handover.open.Store(false)
 	close(handover.ch)
+	close(handover.signalConsumerDone)
 	return handover
 }
 
@@ -72,9 +75,9 @@ func (h *handoverChannel) tryOpen(size int) bool {
 		return false
 	}
 	h.ch = make(chan *handoverEncodedItem, size)
+	h.signalConsumerDone = make(chan bool)
 	h.ready.Store(true)
 	h.drained.Store(false)
-	h.activityTracker = newActivityTracker(h.activityTrackerSize)
 	go h.monitorActivity()
 	return true
 }
@@ -92,8 +95,7 @@ func (h *handoverChannel) tryClose() bool {
 		break
 	}
 	close(h.ch)
-	h.activityTracker = nil
-	h.monitorInterval.Store(10 * time.Millisecond)
+	close(h.signalConsumerDone)
 	return true
 }
 
@@ -126,7 +128,7 @@ func (h *handoverChannel) tryGet() (*handoverEncodedItem, bool) {
 }
 
 func (h *handoverChannel) tryDrain() ([]*handoverEncodedItem, bool) {
-	if !h.open.Load() {
+	if !h.open.Load() || h.ready.Load() {
 		return nil, false
 	}
 
@@ -156,21 +158,21 @@ func (h *handoverChannel) monitorActivity() {
 		h.activityTracker.record(0)
 
 		if activity == 0 {
-			h.ready.Store(false)
-			// Grace period
-			time.Sleep(20 * time.Millisecond)
+			time.Sleep(interval)
 			if h.activityTracker.sum() == 0 {
 				h.signalConsumerDone <- true
+				h.ready.Store(false)
 				return
 			}
-			h.ready.Store(true)
 		}
 
 		// Adjust monitoring interval based on activity
 		if activity > 10 {
-			h.monitorInterval.Store(20 * time.Millisecond)
-		} else if activity < 2 {
-			h.monitorInterval.Store(5 * time.Millisecond)
+			h.monitorInterval.Store(10 * time.Millisecond)
+		} else if activity <= 10 && activity > 1 {
+			h.monitorInterval.Store(30 * time.Millisecond)
+		} else if activity <= 1 {
+			h.monitorInterval.Store(75 * time.Millisecond)
 		}
 	}
 }

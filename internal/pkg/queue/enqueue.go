@@ -45,26 +45,29 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 	}
 
 	if isHandover {
-		q.HandoverOpen.Set(true)
-		for _, i := range items {
-			if i == nil {
+		for i, item := range items {
+			if item == nil {
 				q.logger.Error("cannot enqueue nil item")
 				continue
 			}
 
-			b, err := encodeItem(i)
+			b, err := encodeItem(item)
 			if err != nil {
 				q.logger.Error("failed to encode item", "err", err)
 				continue
 			}
 
-			item := &handoverEncodedItem{
+			encodedItem := &handoverEncodedItem{
 				bytes: b,
-				item:  i,
+				item:  item,
 			}
-			if !q.handover.tryPut(item) {
+			if !q.handover.tryPut(encodedItem) {
 				q.logger.Error("failed to put item in handover")
-				failedHandoverItems = append(failedHandoverItems, item)
+				failedHandoverItems = append(failedHandoverItems, encodedItem)
+			}
+
+			if i == 0 {
+				q.HandoverOpen.Set(true)
 			}
 		}
 	} else {
@@ -101,10 +104,10 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 	for q.useHandover {
 		done := <-q.handover.signalConsumerDone
 		if done {
+			q.HandoverOpen.Set(false)
 			break
 		}
 	}
-	q.HandoverOpen.Set(false)
 
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
@@ -116,11 +119,6 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 	}
 
 	if isHandover {
-		// for item, ok := q.handover.TryGet(); ok; item, ok = q.handover.TryGet() {
-		// 	if err := writeItemToFile(q, item, &startPos); err != nil {
-		// 		return err
-		// 	}
-		// }
 		itemsDrained, ok := q.handover.tryDrain()
 		if ok {
 			for _, item := range itemsDrained {
