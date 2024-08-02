@@ -27,6 +27,7 @@ type PersistentGroupedQueue struct {
 	metadataDecoder *gob.Decoder
 	index           *index.IndexManager
 	stats           *QueueStats
+	statsMutex      sync.Mutex // Write lock for stats
 	currentHost     *atomic.Uint64
 	mutex           sync.RWMutex
 

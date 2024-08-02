@@ -4,13 +4,10 @@ import (
 	"encoding/json"
 	"os"
 	"sort"
-	"sync"
 	"time"
 )
 
 type QueueStats struct {
-	sync.Mutex `json:"-"`
-
 	FirstEnqueueTime           time.Time          `json:"first_enqueue_time"`
 	LastEnqueueTime            time.Time          `json:"last_enqueue_time"`
 	FirstDequeueTime           time.Time          `json:"first_dequeue_time"`
@@ -33,16 +30,21 @@ type HostStat struct {
 	Elements int    `json:"elements"`
 }
 
-func (q *PersistentGroupedQueue) GetStats() *QueueStats {
+// generate and return the snapshot of the queue stats
+func (q *PersistentGroupedQueue) GetStats() QueueStats {
+	q.statsMutex.Lock()
+	defer q.statsMutex.Unlock()
 	q.genStats()
-	return q.stats
+	var snapshot QueueStats
+	// json.Marshal is used to create a deep copy of the stats
+	data, _ := json.Marshal(q.stats)
+	_ = json.Unmarshal(data, &snapshot)
+
+	return snapshot
 }
 
 // genStats is not thread-safe and should be called with the statsMutex locked
 func (q *PersistentGroupedQueue) genStats() {
-	q.stats.Lock()
-	defer q.stats.Unlock()
-
 	// Calculate top hosts
 	var topHosts []HostStat
 	for host, count := range q.stats.ElementsPerHost {
@@ -89,8 +91,8 @@ func (q *PersistentGroupedQueue) genStats() {
 }
 
 func (q *PersistentGroupedQueue) loadStatsFromFile(path string) error {
-	q.stats.Lock()
-	defer q.stats.Unlock()
+	q.statsMutex.Lock()
+	defer q.statsMutex.Unlock()
 
 	// Load the stats from the file
 	f, err := os.OpenFile(path, os.O_RDONLY, 0644)
@@ -132,8 +134,8 @@ func (q *PersistentGroupedQueue) saveStatsToFile(path string) error {
 }
 
 func (q *PersistentGroupedQueue) updateDequeueStats(host string) {
-	q.stats.Lock()
-	defer q.stats.Unlock()
+	q.statsMutex.Lock()
+	defer q.statsMutex.Unlock()
 
 	q.stats.TotalElements--
 	q.stats.ElementsPerHost[host]--
@@ -149,8 +151,8 @@ func (q *PersistentGroupedQueue) updateDequeueStats(host string) {
 }
 
 func (q *PersistentGroupedQueue) updateEnqueueStats(item *Item) {
-	q.stats.Lock()
-	defer q.stats.Unlock()
+	q.statsMutex.Lock()
+	defer q.statsMutex.Unlock()
 
 	q.stats.TotalElements++
 	if q.stats.ElementsPerHost[item.URL.Host] == 0 {
