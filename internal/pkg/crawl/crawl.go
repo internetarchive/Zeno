@@ -163,11 +163,13 @@ func (c *Crawl) Start() (err error) {
 	} else {
 		// Push the seed list to the queue
 		c.Log.Info("Pushing seeds in the local queue..")
+		var seedPointers []*queue.Item
 		for _, item := range c.SeedList {
-			item := item
-			c.Queue.Enqueue(&item)
+			seedPointers = append(seedPointers, &item)
 		}
+		c.Queue.BatchEnqueueUntilCommited(seedPointers...) // TODO: chunk
 		c.SeedList = nil
+		seedPointers = nil
 		c.Log.Info("All seeds are now in queue, crawling will start")
 	}
 

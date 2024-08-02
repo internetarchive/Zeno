@@ -213,7 +213,7 @@ func (c *Crawl) HQConsumer() {
 			}
 		}
 
-		err = c.Queue.BatchEnqueue(items...)
+		err = c.Queue.BatchEnqueueUntilCommited(items...)
 		if err != nil {
 			c.Log.Error("unable to enqueue URL batch received from crawl HQ, discarding", "error", err)
 			continue
