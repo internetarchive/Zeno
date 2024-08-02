@@ -80,9 +80,10 @@ func (w *Worker) Run() {
 				w.state.lastAction = fmt.Sprintf("waiting for queue to be filled, queue empty: %t, handover open: %t", w.pool.Crawl.Queue.Empty.Get(), w.pool.Crawl.Queue.HandoverOpen.Get())
 				time.Sleep(5 * time.Millisecond)
 			}
-			for !w.pool.Crawl.Queue.CanDequeue() {
+			if !w.pool.Crawl.Queue.CanDequeue() {
 				w.state.lastAction = "waiting for queue to be dequeuable"
 				time.Sleep(10 * time.Millisecond)
+				continue
 			}
 		}
 
