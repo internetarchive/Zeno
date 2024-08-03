@@ -255,6 +255,8 @@ func (im *IndexManager) Add(host string, id string, position uint64, size uint64
 // First it starts a goroutine that waits for the to-be-popped blob infos through blobChan, then writes to the WAL and if successful
 // informs index.pop() through WALSuccessChan to either continue as normal or return an error.
 func (im *IndexManager) Pop(host string) (commit uint64, id string, position uint64, size uint64, err error) {
+	im.Lock()
+	defer im.Unlock()
 	// Prepare the channels
 	blobChan := make(chan *blob)
 	WALSuccessChan := make(chan bool)
@@ -264,8 +266,6 @@ func (im *IndexManager) Pop(host string) (commit uint64, id string, position uin
 	defer close(errChan)
 
 	go func() {
-		im.Lock()
-		defer im.Unlock()
 		// Write to WAL
 		blob := <-blobChan
 		// If the blob is nil, it means index.pop() returned an error
