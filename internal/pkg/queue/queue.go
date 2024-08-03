@@ -16,9 +16,10 @@ import (
 )
 
 type PersistentGroupedQueue struct {
-	// Exported fields
-	Paused *utils.TAtomBool
-	Empty  *utils.TAtomBool
+	Paused    *utils.TAtomBool
+	Empty     *utils.TAtomBool
+	closed    *utils.TAtomBool
+	finishing *utils.TAtomBool
 
 	queueDirPath    string
 	queueFile       *os.File
@@ -37,8 +38,9 @@ type PersistentGroupedQueue struct {
 	handoverMutex sync.Mutex
 	handoverCount *atomic.Uint64
 
-	closed    *utils.TAtomBool
-	finishing *utils.TAtomBool
+	useCommit      bool
+	enqueueOp      func(*Item) error
+	batchEnqueueOp func(...*Item) error
 
 	logger *slog.Logger
 }
@@ -55,7 +57,7 @@ type Item struct {
 	Redirect        uint64
 }
 
-func NewPersistentGroupedQueue(queueDirPath string, useHandover bool) (*PersistentGroupedQueue, error) {
+func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit bool) (*PersistentGroupedQueue, error) {
 	err := os.MkdirAll(queueDirPath, 0755)
 	if err != nil {
 		return nil, err
@@ -71,7 +73,7 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool) (*Persiste
 		return nil, fmt.Errorf("open metadata file: %w", err)
 	}
 
-	indexManager, err := index.NewIndexManager(path.Join(queueDirPath, "index_wal"), path.Join(queueDirPath, "index"), queueDirPath)
+	indexManager, err := index.NewIndexManager(path.Join(queueDirPath, "index_wal"), path.Join(queueDirPath, "index"), queueDirPath, useCommit)
 	if err != nil {
 		return nil, fmt.Errorf("create index manager: %w", err)
 	}
@@ -86,6 +88,8 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool) (*Persiste
 		useHandover:   useHandover,
 		HandoverOpen:  new(utils.TAtomBool),
 		handoverCount: new(atomic.Uint64),
+
+		useCommit: useCommit,
 
 		queueDirPath:    queueDirPath,
 		queueFile:       file,
@@ -113,6 +117,15 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool) (*Persiste
 	q.handoverCount.Store(0)
 	if useHandover {
 		q.handover = newHandoverChannel()
+	}
+
+	// Commit
+	if useCommit {
+		q.enqueueOp = q.enqueueUntilCommitted
+		q.batchEnqueueOp = q.batchEnqueueUntilCommitted
+	} else {
+		q.enqueueOp = q.enqueueNoCommit
+		q.batchEnqueueOp = q.batchEnqueueNoCommit
 	}
 
 	// Loading stats from the disk means deleting the file from disk after having read it

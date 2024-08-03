@@ -19,7 +19,7 @@ func TestNewPersistentGroupedQueue(t *testing.T) {
 
 	queuePath := path.Join(tempDir, "test_queue")
 
-	q, err := NewPersistentGroupedQueue(queuePath, false)
+	q, err := NewPersistentGroupedQueue(queuePath, false, false)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 
 	queuePath := path.Join(tempDir, "test_queue")
 
-	q, err := NewPersistentGroupedQueue(queuePath, false)
+	q, err := NewPersistentGroupedQueue(queuePath, false, false)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 		t.Fatalf("Expected ErrDequeueClosed on Dequeue after Close, got: %v", err)
 	}
 
-	err = q.EnqueueUntilCommitted(&Item{})
+	err = q.Enqueue(&Item{})
 	if err != ErrQueueClosed {
 		t.Fatalf("Expected ErrQueueClosed on Enqueue after Close, got: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 
 	queuePath := path.Join(tempDir, "test_queue")
 
-	q, err := NewPersistentGroupedQueue(queuePath, false)
+	q, err := NewPersistentGroupedQueue(queuePath, false, false)
 	q.index.WalIoPercent = 100
 	q.index.WalMinInterval = time.Duration(0)
 	if err != nil {
@@ -131,7 +131,7 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 			t.Fatalf("Failed to create item %d: %v", i, err)
 		}
 
-		err = q.EnqueueUntilCommitted(item)
+		err = q.Enqueue(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item %d: %v", i, err)
 		}
@@ -184,7 +184,7 @@ func TestParallelQueueBehavior(t *testing.T) {
 	}
 	defer os.RemoveAll(queueDir)
 
-	queue, err := NewPersistentGroupedQueue(queueDir, false)
+	queue, err := NewPersistentGroupedQueue(queueDir, false, false)
 	queue.index.WalIoPercent = 100
 	queue.index.WalMinInterval = time.Duration(0)
 	if err != nil {
@@ -224,7 +224,7 @@ func TestParallelQueueBehavior(t *testing.T) {
 		go func(j int, item *Item) {
 			defer wg.Done()
 
-			err := queue.EnqueueUntilCommitted(item)
+			err := queue.Enqueue(item)
 			if err != nil {
 				errCh <- fmt.Errorf("Failed to enqueue item %d: %v", j, err)
 			}
@@ -271,7 +271,7 @@ func TestParallelQueueBehavior(t *testing.T) {
 		go func(j int, item *Item) {
 			defer wg.Done()
 
-			err := queue.EnqueueUntilCommitted(item)
+			err := queue.Enqueue(item)
 			if err != nil {
 				errCh <- fmt.Errorf("Failed to enqueue item %d: %v", j, err)
 			}
@@ -338,7 +338,7 @@ Notes:
 
 		queuePath := path.Join(tempDir, "test_queue")
 
-		q, err := NewPersistentGroupedQueue(queuePath, false)
+		q, err := NewPersistentGroupedQueue(queuePath, false, false)
 		if err != nil {
 			b.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -364,7 +364,7 @@ Notes:
 					b.Fatalf("Failed to create item %d: %v", i, err)
 				}
 
-				err = q.EnqueueUntilCommitted(item)
+				err = q.Enqueue(item)
 				if err != nil {
 					b.Fatalf("Failed to enqueue item %d: %v", i, err)
 				}
@@ -436,7 +436,7 @@ Notes:
 
 		queuePath := path.Join(tempDir, "test_queue")
 
-		q, err := NewPersistentGroupedQueue(queuePath, false)
+		q, err := NewPersistentGroupedQueue(queuePath, false, false)
 		if err != nil {
 			b.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -464,7 +464,7 @@ Notes:
 				items = append(items, item)
 			}
 
-			err = q.BatchEnqueueUntilCommitted(items...)
+			err = q.BatchEnqueue(items...)
 			if err != nil {
 				b.Fatalf("Failed to enqueue items: %v", err)
 			}
@@ -523,7 +523,7 @@ func TestQueueEmptyBool(t *testing.T) {
 	}
 	defer os.RemoveAll(queueDir)
 
-	queue, err := NewPersistentGroupedQueue(queueDir, false)
+	queue, err := NewPersistentGroupedQueue(queueDir, false, false)
 	if err != nil {
 		t.Fatalf("Failed to create queue: %v", err)
 	}
@@ -539,7 +539,7 @@ func TestQueueEmptyBool(t *testing.T) {
 		t.Fatalf("Failed to create item: %v", err)
 	}
 
-	err = queue.EnqueueUntilCommitted(item)
+	err = queue.Enqueue(item)
 	if err != nil {
 		t.Fatalf("Failed to enqueue item: %v", err)
 	}

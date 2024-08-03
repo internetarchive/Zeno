@@ -47,7 +47,7 @@ func (c *Crawl) Start() (err error) {
 
 	// Initialize the queue & seencheck
 	c.Log.Info("Initializing queue and seencheck..")
-	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"), c.UseHandover)
+	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"), c.UseHandover, c.UseCommit)
 	if err != nil {
 		c.Log.Fatal("unable to init queue", "error", err)
 	}
@@ -171,14 +171,14 @@ func (c *Crawl) Start() (err error) {
 			// Workers will start processing them as soon as one batch is enqueued
 			if idx%100000 == 0 {
 				c.Log.Info("Enqueuing seeds", "index", idx)
-				if err := c.Queue.BatchEnqueueUntilCommitted(seedPointers...); err != nil {
+				if err := c.Queue.BatchEnqueue(seedPointers...); err != nil {
 					c.Log.Error("unable to enqueue seeds, discarding", "error", err)
 				}
 				seedPointers = nil
 			}
 		}
 		if len(seedPointers) > 0 {
-			if err := c.Queue.BatchEnqueueUntilCommitted(seedPointers...); err != nil {
+			if err := c.Queue.BatchEnqueue(seedPointers...); err != nil {
 				c.Log.Error("unable to enqueue seeds, discarding", "error", err)
 			}
 		}

@@ -87,7 +87,7 @@ func (im *IndexManager) unsafeTruncateWAL() error {
 	}
 
 	// Reopen the file with O_TRUNC flag to truncate it
-	walFile, err := os.OpenFile(walPath, os.O_TRUNC|os.O_APPEND|os.O_RDWR, 0644)
+	walFile, err := os.OpenFile(walPath, os.O_TRUNC|walFileOpenFlags, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to truncate WAL file: %w", err)
 	}

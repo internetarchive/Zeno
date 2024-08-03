@@ -11,6 +11,7 @@ import (
 )
 
 var dumpFrequency = 60 // seconds
+var walFileOpenFlags int
 
 type Operation int
 
@@ -39,11 +40,13 @@ type IndexManager struct {
 	opsSinceDump int
 	totalOps     uint64
 
-	// WAL related fields
+	// WAL
+	walFile    *os.File
+	walEncoder *gob.Encoder
+	walDecoder *gob.Decoder
 
-	walFile     *os.File
-	walEncoder  *gob.Encoder
-	walDecoder  *gob.Decoder
+	// WAL commit
+	useCommit   bool
 	walCommit   *atomic.Uint64 // Flying in memory commit id
 	walCommited *atomic.Uint64 // Synced to disk commit id
 	// Number of listeners waiting for walCommitedNotify.
@@ -54,13 +57,18 @@ type IndexManager struct {
 	walStopChan        chan struct{} // Syncer will close this channel after stopping
 	WalIoPercent       int           // [1, 100] limit max io percentage for WAL sync
 	WalMinInterval     time.Duration // minimum interval **between** between after-sync and next sync
-
-	stopChan chan struct{}
+	stopChan           chan struct{}
 }
 
 // NewIndexManager creates a new IndexManager instance and loads the index from the index file.
-func NewIndexManager(walPath, indexPath, queueDirPath string) (*IndexManager, error) {
-	walFile, err := os.OpenFile(walPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*IndexManager, error) {
+	if useCommit {
+		walFileOpenFlags = os.O_APPEND | os.O_RDWR
+	} else {
+		walFileOpenFlags = os.O_APPEND | os.O_RDWR | os.O_SYNC
+	}
+
+	walFile, err := os.OpenFile(walPath, os.O_CREATE|walFileOpenFlags, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open WAL file: %w", err)
 	}
@@ -72,29 +80,39 @@ func NewIndexManager(walPath, indexPath, queueDirPath string) (*IndexManager, er
 	}
 
 	im := &IndexManager{
-		hostIndex:          newIndex(),
-		walFile:            walFile,
-		indexFile:          indexFile,
-		queueDirPath:       queueDirPath,
-		walEncoder:         gob.NewEncoder(walFile),
-		walDecoder:         gob.NewDecoder(walFile),
-		indexEncoder:       gob.NewEncoder(indexFile),
-		indexDecoder:       gob.NewDecoder(indexFile),
-		dumpTicker:         time.NewTicker(time.Duration(dumpFrequency) * time.Second),
-		lastDumpTime:       time.Now(),
-		walCommit:          new(atomic.Uint64),
-		walCommited:        new(atomic.Uint64),
-		walNotifyListeners: new(atomic.Int64),
-		walCommitedNotify:  make(chan uint64),
-		WalIoPercent:       10,
-		WalMinInterval:     10 * time.Millisecond,
-		walStopChan:        make(chan struct{}),
-		stopChan:           make(chan struct{}),
+		hostIndex:    newIndex(),
+		walFile:      walFile,
+		indexFile:    indexFile,
+		queueDirPath: queueDirPath,
+		walEncoder:   gob.NewEncoder(walFile),
+		walDecoder:   gob.NewDecoder(walFile),
+		indexEncoder: gob.NewEncoder(indexFile),
+		indexDecoder: gob.NewDecoder(indexFile),
+		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
+		lastDumpTime: time.Now(),
+		useCommit:    useCommit,
+	}
+
+	// Init WAL commit if enabled
+	if useCommit {
+		im.walCommit = new(atomic.Uint64)
+		im.walCommited = new(atomic.Uint64)
+		im.walNotifyListeners = new(atomic.Int64)
+		im.walCommitedNotify = make(chan uint64)
+		im.WalIoPercent = 10
+		im.WalMinInterval = 10 * time.Millisecond
+		im.walStopChan = make(chan struct{})
+		im.stopChan = make(chan struct{})
 	}
 
 	// Check if WAL file is empty
 	im.Lock()
 	empty, err := im.unsafeIsWALEmpty() // FIXME: check error
+	if err != nil {
+		walFile.Close()
+		indexFile.Close()
+		return nil, fmt.Errorf("failed to check if WAL is empty: %w", err)
+	}
 	im.Unlock()
 	if !empty {
 		err := im.RecoverFromCrash()
@@ -131,7 +149,9 @@ func NewIndexManager(walPath, indexPath, queueDirPath string) (*IndexManager, er
 	}(im, periodicDumpErrChan, periodicDumpStopChan)
 
 	go im.periodicDump(periodicDumpErrChan, periodicDumpStopChan)
-	go im.walCommitsSyncer()
+	if useCommit {
+		go im.walCommitsSyncer()
+	}
 
 	return im, nil
 }
@@ -245,6 +265,13 @@ func (im *IndexManager) AwaitWALCommitted(commit uint64) {
 }
 
 func (im *IndexManager) Add(host string, id string, position uint64, size uint64) (commit uint64, err error) {
+	if !im.useCommit {
+		return 0, im.add(host, id, position, size)
+	}
+	return im.addCommitted(host, id, position, size)
+}
+
+func (im *IndexManager) addCommitted(host string, id string, position uint64, size uint64) (commit uint64, err error) {
 	im.Lock()
 	defer im.Unlock()
 
@@ -253,6 +280,7 @@ func (im *IndexManager) Add(host string, id string, position uint64, size uint64
 	if err != nil {
 		return 0, fmt.Errorf("failed to write to WAL: %w", err)
 	}
+
 	commit = im.WALCommit()
 
 	// Update in-memory index
@@ -266,11 +294,41 @@ func (im *IndexManager) Add(host string, id string, position uint64, size uint64
 	return commit, nil
 }
 
+func (im *IndexManager) add(host string, id string, position uint64, size uint64) error {
+	im.Lock()
+	defer im.Unlock()
+
+	// Write to WAL
+	err := im.unsafeWriteToWAL(OpAdd, host, id, position, size)
+	if err != nil {
+		return fmt.Errorf("failed to write to WAL: %w", err)
+	}
+
+	// Update in-memory index
+	if err := im.hostIndex.add(host, id, position, size); err != nil {
+		return fmt.Errorf("failed to update in-memory index: %w", err)
+	}
+
+	im.opsSinceDump++
+	im.totalOps++
+
+	return nil
+}
+
 // Pop removes the oldest blob from the specified host's queue and returns its ID, position, and size.
 // Pop is responsible for synchronizing the pop of the blob from the in-memory index and writing to the WAL.
 // First it starts a goroutine that waits for the to-be-popped blob infos through blobChan, then writes to the WAL and if successful
 // informs index.pop() through WALSuccessChan to either continue as normal or return an error.
 func (im *IndexManager) Pop(host string) (commit uint64, id string, position uint64, size uint64, err error) {
+	if !im.useCommit {
+		id, position, size, err = im.pop(host)
+	} else {
+		commit, id, position, size, err = im.popCommitted(host)
+	}
+	return
+}
+
+func (im *IndexManager) popCommitted(host string) (commit uint64, id string, position uint64, size uint64, err error) {
 	im.Lock()
 	defer im.Unlock()
 	// Prepare the channels
@@ -315,7 +373,54 @@ func (im *IndexManager) Pop(host string) (commit uint64, id string, position uin
 	im.opsSinceDump++
 	im.totalOps++
 
-	return
+	return commit, id, position, size, nil
+}
+
+func (im *IndexManager) pop(host string) (id string, position uint64, size uint64, err error) {
+	im.Lock()
+	defer im.Unlock()
+
+	// Prepare the channels
+	blobChan := make(chan *blob)
+	WALSuccessChan := make(chan bool)
+	errChan := make(chan error)
+	defer close(blobChan)
+	defer close(WALSuccessChan)
+	defer close(errChan)
+
+	go func() {
+		// Write to WAL
+		blob := <-blobChan
+		// If the blob is nil, it means index.pop() returned an error
+		if blob == nil {
+			return
+		}
+		err := im.unsafeWriteToWAL(OpPop, host, blob.id, blob.position, blob.size)
+		if err != nil {
+			errChan <- fmt.Errorf("failed to write to WAL: %w", err)
+			WALSuccessChan <- false
+		}
+		id = blob.id
+		position = blob.position
+		size = blob.size
+		WALSuccessChan <- true
+		errChan <- nil
+	}()
+
+	// Pop from in-memory index
+	err = im.hostIndex.pop(host, blobChan, WALSuccessChan)
+	if err != nil {
+		return "", 0, 0, err
+	}
+
+	if err := <-errChan; err != nil {
+		return "", 0, 0, err
+	}
+
+	im.opsSinceDump++
+	im.totalOps++
+
+	return id, position, size, nil
 }
 
 // Close closes the index manager and performs a final dump of the index to disk.

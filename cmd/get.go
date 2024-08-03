@@ -57,6 +57,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("random-local-ip", false, "Use random local IP for requests. (will be ignored if a proxy is set)")
 	getCmd.PersistentFlags().Int("min-space-required", 20, "Minimum space required in GB to continue the crawl.")
 	getCmd.PersistentFlags().Bool("handover", false, "Use handover mechanism to dispatch URLs via a buffer before enqueuing on disk.")
+	getCmd.PersistentFlags().Bool("batch-write-WAL", false, "Use commited batch writes to the WAL. (can cause more seed loss on crash)")
 
 	// Proxy flags
 	getCmd.PersistentFlags().String("proxy", "", "Proxy to use when requesting pages.")
