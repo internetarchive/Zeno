@@ -171,14 +171,14 @@ func (c *Crawl) Start() (err error) {
 			// Workers will start processing them as soon as one batch is enqueued
 			if idx%100000 == 0 {
 				c.Log.Info("Enqueuing seeds", "index", idx)
-				if err := c.Queue.BatchEnqueueUntilCommited(seedPointers...); err != nil {
+				if err := c.Queue.BatchEnqueueUntilCommitted(seedPointers...); err != nil {
 					c.Log.Error("unable to enqueue seeds, discarding", "error", err)
 				}
 				seedPointers = nil
 			}
 		}
 		if len(seedPointers) > 0 {
-			if err := c.Queue.BatchEnqueueUntilCommited(seedPointers...); err != nil {
+			if err := c.Queue.BatchEnqueueUntilCommitted(seedPointers...); err != nil {
 				c.Log.Error("unable to enqueue seeds, discarding", "error", err)
 			}
 		}

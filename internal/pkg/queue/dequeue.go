@@ -43,7 +43,7 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		return nil, fmt.Errorf("failed to pop item from host %s: %w", host, errPop)
 	}
 
-	q.index.AwaitWALCommited(commit)
+	q.index.AwaitWALCommitted(commit)
 
 	q.mutex.Lock()
 	defer q.mutex.Unlock()

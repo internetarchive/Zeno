@@ -144,7 +144,7 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
-	im.AwaitWALCommited(commit)
+	im.AwaitWALCommitted(commit)
 
 	im.Lock()
 
@@ -201,7 +201,7 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
-	im.AwaitWALCommited(commit)
+	im.AwaitWALCommitted(commit)
 
 	im.Close()
 	im = nil
@@ -213,7 +213,7 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 
 	// Check if the index was recovered correctly
 	commit, _, _, _, err = im.Pop("example.com")
-	im.AwaitWALCommited(commit)
+	im.AwaitWALCommitted(commit)
 
 	if err != nil {
 		t.Fatalf("failed to pop entry from index: %v", err)
@@ -267,14 +267,14 @@ func benchmarkSequentialAddPop(b *testing.B, size int) {
 			if err != nil {
 				b.Fatalf("failed to add entry to index: %v", err)
 			}
-			im.AwaitWALCommited(commit)
+			im.AwaitWALCommitted(commit)
 
 			commit, _, _, _, err = im.Pop("example.com")
 			if err != nil {
 				b.Fatalf("failed to pop entry from index: %v", err)
 			}
 		}
-		im.AwaitWALCommited(commit)
+		im.AwaitWALCommitted(commit)
 		im = nil
 		os.RemoveAll(tempDir)
 	}
@@ -310,7 +310,7 @@ func benchmarkBulkAddThenPop(b *testing.B, size int) {
 				b.Fatalf("failed to pop entry from index: %v", err)
 			}
 		}
-		im.AwaitWALCommited(commit)
+		im.AwaitWALCommitted(commit)
 		im = nil
 		os.RemoveAll(tempDir)
 	}

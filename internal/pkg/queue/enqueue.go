@@ -10,7 +10,7 @@ import (
 // BatchEnqueue adds 1 or many items to the queue in a single operation.
 // If multiple items are provided, the order in which they will be enqueued is not guaranteed.
 // It WILL be less efficient than Enqueue for single items.
-func (q *PersistentGroupedQueue) BatchEnqueueUntilCommited(items ...*Item) error {
+func (q *PersistentGroupedQueue) BatchEnqueueUntilCommitted(items ...*Item) error {
 	if items == nil {
 		return errors.New("cannot enqueue nil item")
 	}
@@ -154,12 +154,12 @@ func (q *PersistentGroupedQueue) BatchEnqueueUntilCommited(items ...*Item) error
 		}
 	}
 
-	q.index.AwaitWALCommited(commit)
+	q.index.AwaitWALCommitted(commit)
 
 	return nil
 }
 
-func (q *PersistentGroupedQueue) EnqueueUntilComitted(item *Item) error {
+func (q *PersistentGroupedQueue) EnqueueUntilCommitted(item *Item) error {
 	if item == nil {
 		return errors.New("cannot enqueue nil item")
 	}
@@ -202,7 +202,7 @@ func (q *PersistentGroupedQueue) EnqueueUntilComitted(item *Item) error {
 		return err
 	}
 
-	q.index.AwaitWALCommited(commit)
+	q.index.AwaitWALCommitted(commit)
 
 	// Update stats
 	q.updateEnqueueStats(item)

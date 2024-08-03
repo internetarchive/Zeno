@@ -59,7 +59,7 @@ func Test_Recovery(t *testing.T) {
 			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
-	im.AwaitWALCommited(commit)
+	im.AwaitWALCommitted(commit)
 
 	im.Lock()
 
@@ -170,7 +170,7 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 		}
 	}
 	t.Log("Awaiting WAL commit")
-	im.AwaitWALCommited(commit)
+	im.AwaitWALCommitted(commit)
 	t.Log("WAL commit received")
 
 	// Perform a disk dump
@@ -186,7 +186,7 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
-	im.AwaitWALCommited(commit)
+	im.AwaitWALCommitted(commit)
 
 	im.Lock()
 

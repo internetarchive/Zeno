@@ -204,8 +204,9 @@ func (im *IndexManager) WALCommit() uint64 {
 	return im.walCommit.Add(1)
 }
 
-// AwaitWALCommited blocks until the given commit ID is commited.
-func (im *IndexManager) AwaitWALCommited(commit uint64) {
+// AwaitWALCommitted blocks until the given commit ID is commited to disk by Syncer.
+// DO NOT call this function with im.Lock() held, it will deadlock.
+func (im *IndexManager) AwaitWALCommitted(commit uint64) {
 	if commit == 0 {
 		slog.Warn("AwaitWALCommited called with commit 0")
 		return
