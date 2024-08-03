@@ -368,8 +368,9 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 
 	if writtenCount != 0 && commit == 0 {
 		return ErrCommitValueNotReceived
+	} else if writtenCount != 0 && commit != 0 {
+		q.index.AwaitWALCommitted(commit)
 	}
-	q.index.AwaitWALCommitted(commit)
 
 	return nil
 }
