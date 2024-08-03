@@ -45,7 +45,7 @@ func TestDequeue(t *testing.T) {
 	items := []*Item{item1, item2, item3}
 
 	for _, item := range items {
-		err = q.Enqueue(item)
+		err = q.EnqueueUntilCommitted(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -112,7 +112,7 @@ func TestDequeueHostOrder(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create item: %v", err)
 		}
-		err = q.Enqueue(item)
+		err = q.EnqueueUntilCommitted(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}

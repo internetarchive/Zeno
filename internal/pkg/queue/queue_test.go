@@ -92,7 +92,7 @@ func TestPersistentGroupedQueue_Close(t *testing.T) {
 		t.Fatalf("Expected ErrDequeueClosed on Dequeue after Close, got: %v", err)
 	}
 
-	err = q.Enqueue(&Item{})
+	err = q.EnqueueUntilCommitted(&Item{})
 	if err != ErrQueueClosed {
 		t.Fatalf("Expected ErrQueueClosed on Enqueue after Close, got: %v", err)
 	}
@@ -111,6 +111,8 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 	queuePath := path.Join(tempDir, "test_queue")
 
 	q, err := NewPersistentGroupedQueue(queuePath, false)
+	q.index.WalIoPercent = 100
+	q.index.WalMinInterval = time.Duration(0)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -129,7 +131,7 @@ func TestLargeScaleEnqueueDequeue(t *testing.T) {
 			t.Fatalf("Failed to create item %d: %v", i, err)
 		}
 
-		err = q.Enqueue(item)
+		err = q.EnqueueUntilCommitted(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item %d: %v", i, err)
 		}
@@ -183,6 +185,8 @@ func TestParallelQueueBehavior(t *testing.T) {
 	defer os.RemoveAll(queueDir)
 
 	queue, err := NewPersistentGroupedQueue(queueDir, false)
+	queue.index.WalIoPercent = 100
+	queue.index.WalMinInterval = time.Duration(0)
 	if err != nil {
 		t.Fatalf("Failed to create queue: %v", err)
 	}
@@ -220,7 +224,7 @@ func TestParallelQueueBehavior(t *testing.T) {
 		go func(j int, item *Item) {
 			defer wg.Done()
 
-			err := queue.Enqueue(item)
+			err := queue.EnqueueUntilCommitted(item)
 			if err != nil {
 				errCh <- fmt.Errorf("Failed to enqueue item %d: %v", j, err)
 			}
@@ -267,7 +271,7 @@ func TestParallelQueueBehavior(t *testing.T) {
 		go func(j int, item *Item) {
 			defer wg.Done()
 
-			err := queue.Enqueue(item)
+			err := queue.EnqueueUntilCommitted(item)
 			if err != nil {
 				errCh <- fmt.Errorf("Failed to enqueue item %d: %v", j, err)
 			}
@@ -338,6 +342,8 @@ Notes:
 		if err != nil {
 			b.Fatalf("Failed to create new queue: %v", err)
 		}
+		q.index.WalIoPercent = 100
+		q.index.WalMinInterval = time.Duration(0)
 		defer q.Close()
 
 		numItems := 50000
@@ -358,7 +364,7 @@ Notes:
 					b.Fatalf("Failed to create item %d: %v", i, err)
 				}
 
-				err = q.Enqueue(item)
+				err = q.EnqueueUntilCommitted(item)
 				if err != nil {
 					b.Fatalf("Failed to enqueue item %d: %v", i, err)
 				}
@@ -458,7 +464,7 @@ Notes:
 				items = append(items, item)
 			}
 
-			err = q.BatchEnqueue(items...)
+			err = q.BatchEnqueueUntilCommitted(items...)
 			if err != nil {
 				b.Fatalf("Failed to enqueue items: %v", err)
 			}
@@ -533,7 +539,7 @@ func TestQueueEmptyBool(t *testing.T) {
 		t.Fatalf("Failed to create item: %v", err)
 	}
 
-	err = queue.Enqueue(item)
+	err = queue.EnqueueUntilCommitted(item)
 	if err != nil {
 		t.Fatalf("Failed to enqueue item: %v", err)
 	}

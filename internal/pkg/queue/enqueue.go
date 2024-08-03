@@ -10,7 +10,11 @@ import (
 // BatchEnqueue adds 1 or many items to the queue in a single operation.
 // If multiple items are provided, the order in which they will be enqueued is not guaranteed.
 // It WILL be less efficient than Enqueue for single items.
-func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
+func (q *PersistentGroupedQueue) BatchEnqueueUntilCommitted(items ...*Item) error {
+	if items == nil {
+		return errors.New("cannot enqueue nil item")
+	}
+
 	if !q.CanEnqueue() {
 		return ErrQueueClosed
 	}
@@ -118,6 +122,7 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 		return fmt.Errorf("failed to seek to end of file: %s", err.Error())
 	}
 
+	var commit uint64 = 0
 	if isHandover {
 		itemsDrained, ok := q.handover.tryDrain()
 		if ok {
@@ -125,13 +130,15 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 				if item == nil {
 					continue
 				}
-				if err := writeItemToFile(q, item, &startPos); err != nil {
+				commit, err = writeItemToFile(q, item, &startPos)
+				if err != nil {
 					return err
 				}
 			}
 		}
 		for _, item := range failedHandoverItems {
-			if err := writeItemToFile(q, item, &startPos); err != nil {
+			commit, err = writeItemToFile(q, item, &startPos)
+			if err != nil {
 				return err
 			}
 		}
@@ -140,16 +147,19 @@ func (q *PersistentGroupedQueue) BatchEnqueue(items ...*Item) error {
 		}
 	} else {
 		for item := range itemsChan {
-			if err := writeItemToFile(q, item, &startPos); err != nil {
+			commit, err = writeItemToFile(q, item, &startPos)
+			if err != nil {
 				return err
 			}
 		}
 	}
 
+	q.index.AwaitWALCommitted(commit)
+
 	return nil
 }
 
-func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
+func (q *PersistentGroupedQueue) EnqueueUntilCommitted(item *Item) error {
 	if item == nil {
 		return errors.New("cannot enqueue nil item")
 	}
@@ -158,31 +168,43 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 		return ErrQueueClosed
 	}
 
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
+	var commit uint64 = 0
 
-	// Find free position
-	startPos, err := q.queueFile.Seek(0, io.SeekEnd)
+	// <- lock mutex
+	err := func() error {
+		q.mutex.Lock()
+		defer q.mutex.Unlock()
+		// Find free position
+		startPos, err := q.queueFile.Seek(0, io.SeekEnd)
+		if err != nil {
+			return fmt.Errorf("failed to seek to end of file: %w", err)
+		}
+
+		// Encode and write item
+		itemBytes, err := encodeItem(item)
+		if err != nil {
+			return fmt.Errorf("failed to marshal item: %w", err)
+		}
+
+		_, err = q.queueFile.Write(itemBytes)
+		if err != nil {
+			return fmt.Errorf("failed to write item: %w", err)
+		}
+
+		// Update host index and order
+		commit, err = q.index.Add(item.URL.Host, item.ID, uint64(startPos), uint64(len(itemBytes)))
+		if err != nil {
+			return fmt.Errorf("failed to update index: %w", err)
+		}
+
+		return nil // success
+	}()
+	// below is outside of the mutex lock ->
 	if err != nil {
-		return fmt.Errorf("failed to seek to end of file: %w", err)
+		return err
 	}
 
-	// Encode and write item
-	itemBytes, err := encodeItem(item)
-	if err != nil {
-		return fmt.Errorf("failed to marshal item: %w", err)
-	}
-
-	_, err = q.queueFile.Write(itemBytes)
-	if err != nil {
-		return fmt.Errorf("failed to write item: %w", err)
-	}
-
-	// Update host index and order
-	err = q.index.Add(item.URL.Host, item.ID, uint64(startPos), uint64(len(itemBytes)))
-	if err != nil {
-		return fmt.Errorf("failed to update index: %w", err)
-	}
+	q.index.AwaitWALCommitted(commit)
 
 	// Update stats
 	q.updateEnqueueStats(item)
@@ -193,17 +215,17 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 	return nil
 }
 
-func writeItemToFile(q *PersistentGroupedQueue, item *handoverEncodedItem, startPos *int64) error {
+func writeItemToFile(q *PersistentGroupedQueue, item *handoverEncodedItem, startPos *int64) (commit uint64, err error) {
 	// Write item to file
 	written, err := q.queueFile.Write(item.bytes)
 	if err != nil {
-		return fmt.Errorf("failed to write item: %w", err)
+		return 0, fmt.Errorf("failed to write item: %w", err)
 	}
 
 	// Update host index and order
-	err = q.index.Add(item.item.URL.Host, item.item.ID, uint64(*startPos), uint64(len(item.bytes)))
+	commit, err = q.index.Add(item.item.URL.Host, item.item.ID, uint64(*startPos), uint64(len(item.bytes)))
 	if err != nil {
-		return fmt.Errorf("failed to update index: %w", err)
+		return 0, fmt.Errorf("failed to update index: %w", err)
 	}
 
 	*startPos += int64(written)
@@ -211,5 +233,5 @@ func writeItemToFile(q *PersistentGroupedQueue, item *handoverEncodedItem, start
 	// Update stats
 	q.updateEnqueueStats(item.item)
 
-	return nil
+	return commit, nil
 }

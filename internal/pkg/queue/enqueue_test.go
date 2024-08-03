@@ -28,7 +28,7 @@ func TestEnqueue(t *testing.T) {
 			t.Fatalf("Failed to create item: %v", err)
 		}
 
-		err = q.Enqueue(item)
+		err = q.EnqueueUntilCommitted(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -68,7 +68,7 @@ func TestEnqueue(t *testing.T) {
 				t.Fatalf("Failed to create item for host %s: %v", host, err)
 			}
 
-			err = q.Enqueue(item)
+			err = q.EnqueueUntilCommitted(item)
 			if err != nil {
 				t.Fatalf("Failed to enqueue item for host %s: %v", host, err)
 			}
@@ -111,7 +111,7 @@ func TestEnqueue(t *testing.T) {
 			t.Fatalf("Failed to create item: %v", err)
 		}
 
-		err = q.Enqueue(item)
+		err = q.EnqueueUntilCommitted(item)
 		if err != ErrQueueClosed {
 			t.Fatalf("Expected ErrQueueClosed, got: %v", err)
 		}
@@ -136,7 +136,7 @@ func TestEnqueue(t *testing.T) {
 			t.Fatalf("Failed to create item: %v", err)
 		}
 
-		err = q.Enqueue(item)
+		err = q.EnqueueUntilCommitted(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -152,7 +152,7 @@ func TestEnqueue(t *testing.T) {
 		}
 
 		time.Sleep(10 * time.Millisecond)
-		err = q.Enqueue(item)
+		err = q.EnqueueUntilCommitted(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -190,7 +190,7 @@ func TestEnqueue(t *testing.T) {
 				t.Fatalf("Failed to create item: %v", err)
 			}
 
-			err = q.Enqueue(item)
+			err = q.EnqueueUntilCommitted(item)
 			if err != nil {
 				t.Fatalf("Failed to enqueue item: %v", err)
 			}
@@ -232,7 +232,7 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to create item: %v", err)
 		}
 
-		err = q.BatchEnqueue(item)
+		err = q.BatchEnqueueUntilCommitted(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -280,7 +280,7 @@ func TestBatchEnqueue(t *testing.T) {
 			items = append(items, item)
 		}
 
-		err = q.BatchEnqueue(items...)
+		err = q.BatchEnqueueUntilCommitted(items...)
 		if err != nil {
 			t.Fatalf("Failed to enqueue items: %v", err)
 		}
@@ -321,7 +321,7 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to create item: %v", err)
 		}
 
-		err = q.BatchEnqueue(item)
+		err = q.BatchEnqueueUntilCommitted(item)
 		if err != ErrQueueClosed {
 			t.Fatalf("Expected ErrQueueClosed, got: %v", err)
 		}
@@ -346,7 +346,7 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to create item: %v", err)
 		}
 
-		err = q.BatchEnqueue(item)
+		err = q.BatchEnqueueUntilCommitted(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -364,7 +364,7 @@ func TestBatchEnqueue(t *testing.T) {
 		}
 
 		time.Sleep(10 * time.Millisecond)
-		err = q.BatchEnqueue(item)
+		err = q.BatchEnqueueUntilCommitted(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -403,7 +403,7 @@ func TestBatchEnqueue(t *testing.T) {
 				t.Fatalf("Failed to create item: %v", err)
 			}
 
-			err = q.BatchEnqueue(item)
+			err = q.BatchEnqueueUntilCommitted(item)
 			if err != nil {
 				t.Fatalf("Failed to enqueue item: %v", err)
 			}

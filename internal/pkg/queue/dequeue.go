@@ -21,6 +21,7 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 	}
 
 	var (
+		commit   = uint64(0)
 		position = uint64(0)
 		size     = uint64(0)
 		errPop   error
@@ -34,13 +35,15 @@ func (q *PersistentGroupedQueue) Dequeue() (*Item, error) {
 		return nil, fmt.Errorf("failed to get next host: %w", err)
 	}
 
-	_, position, size, errPop = q.index.Pop(host)
+	commit, _, position, size, errPop = q.index.Pop(host)
 	if errPop != nil && errPop != index.ErrHostEmpty {
 		if errPop == index.ErrHostNotFound {
 			return q.Dequeue() // Try again with another host, this one might be empty due to the non-blocking nature of getNextHost
 		}
 		return nil, fmt.Errorf("failed to pop item from host %s: %w", host, errPop)
 	}
+
+	q.index.AwaitWALCommitted(commit)
 
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
