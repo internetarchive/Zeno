@@ -91,6 +91,7 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
 		useCommit:    useCommit,
+		stopChan:     make(chan struct{}),
 	}
 
 	// Init WAL commit if enabled
@@ -102,7 +103,6 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 		im.WalIoPercent = 10
 		im.WalMinInterval = 10 * time.Millisecond
 		im.walStopChan = make(chan struct{})
-		im.stopChan = make(chan struct{})
 	}
 
 	// Check if WAL file is empty
@@ -431,8 +431,10 @@ func (im *IndexManager) Close() error {
 	im.stopChan <- struct{}{}
 	im.walStopChan <- struct{}{}
 
-	// wait for im.walStopChan to be closed by walCommitsSyncer
-	<-im.walStopChan
+	// If WAL Syncer is running we wait for im.walStopChan to be closed by walCommitsSyncer
+	if im.walSyncerRunning.Load() {
+		<-im.walStopChan
+	}
 
 	if err := im.performDump(); err != nil {
 		return fmt.Errorf("failed to perform final dump: %w", err)
