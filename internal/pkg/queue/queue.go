@@ -41,6 +41,7 @@ type PersistentGroupedQueue struct {
 	useCommit      bool
 	enqueueOp      func(*Item) error
 	batchEnqueueOp func(...*Item) error
+	dequeueOp      func() (*Item, error)
 
 	logger *slog.Logger
 }
@@ -123,9 +124,11 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 	if useCommit {
 		q.enqueueOp = q.enqueueUntilCommitted
 		q.batchEnqueueOp = q.batchEnqueueUntilCommitted
+		q.dequeueOp = q.dequeueCommitted
 	} else {
 		q.enqueueOp = q.enqueueNoCommit
 		q.batchEnqueueOp = q.batchEnqueueNoCommit
+		q.dequeueOp = q.dequeueNoCommit
 	}
 
 	// Loading stats from the disk means deleting the file from disk after having read it
