@@ -330,7 +330,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 		return fmt.Errorf("failed to seek to end of file: %s", err.Error())
 	}
 
-	var commit uint64 = 0
+	var commit uint64
 	if isHandover {
 		itemsDrained, ok := q.handover.tryDrain()
 		if ok {
