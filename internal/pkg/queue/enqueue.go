@@ -331,6 +331,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 	}
 
 	var commit uint64
+	var writtenCount int64
 	if isHandover {
 		itemsDrained, ok := q.handover.tryDrain()
 		if ok {
@@ -342,6 +343,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 				if err != nil {
 					return err
 				}
+				writtenCount++
 			}
 		}
 		for _, item := range failedHandoverItems {
@@ -349,6 +351,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 			if err != nil {
 				return err
 			}
+			writtenCount++
 		}
 		if !q.handover.tryClose() {
 			return fmt.Errorf("failed to close handover")
@@ -359,9 +362,13 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 			if err != nil {
 				return err
 			}
+			writtenCount++
 		}
 	}
 
+	if writtenCount != 0 && commit == 0 {
+		return ErrCommitValueNotReceived
+	}
 	q.index.AwaitWALCommitted(commit)
 
 	return nil
