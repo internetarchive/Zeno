@@ -170,6 +170,7 @@ func (q *PersistentGroupedQueue) EnqueueUntilCommitted(item *Item) error {
 
 	var commit uint64 = 0
 
+	// <- lock mutex
 	err := func() error {
 		q.mutex.Lock()
 		defer q.mutex.Unlock()
@@ -196,8 +197,9 @@ func (q *PersistentGroupedQueue) EnqueueUntilCommitted(item *Item) error {
 			return fmt.Errorf("failed to update index: %w", err)
 		}
 
-		return nil
+		return nil // success
 	}()
+	// below is outside of the mutex lock ->
 	if err != nil {
 		return err
 	}
