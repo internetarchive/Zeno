@@ -429,10 +429,11 @@ func (im *IndexManager) Close() error {
 	defer slog.Info("Index manager closed")
 	im.dumpTicker.Stop()
 	im.stopChan <- struct{}{}
-	im.walStopChan <- struct{}{}
 
-	// If WAL Syncer is running we wait for im.walStopChan to be closed by walCommitsSyncer
 	if im.walSyncerRunning.Load() {
+		// tell walCommitsSyncer to stop
+		im.walStopChan <- struct{}{}
+		// wait for im.walStopChan to be closed by walCommitsSyncer
 		<-im.walStopChan
 	}
 
