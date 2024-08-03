@@ -164,13 +164,27 @@ func (c *Crawl) Start() (err error) {
 		// Push the seed list to the queue
 		c.Log.Info("Pushing seeds in the local queue..")
 		var seedPointers []*queue.Item
-		for _, item := range c.SeedList {
+		for idx, item := range c.SeedList {
 			seedPointers = append(seedPointers, &item)
+
+			// We enqueue seeds by batch of 100k
+			// Workers will start processing them as soon as one batch is enqueued
+			if idx%100000 == 0 {
+				c.Log.Info("Enqueuing seeds", "index", idx)
+				if err := c.Queue.BatchEnqueueUntilCommited(seedPointers...); err != nil {
+					c.Log.Error("unable to enqueue seeds, discarding", "error", err)
+				}
+				seedPointers = nil
+			}
 		}
-		c.Queue.BatchEnqueueUntilCommited(seedPointers...) // TODO: chunk
+		if len(seedPointers) > 0 {
+			if err := c.Queue.BatchEnqueueUntilCommited(seedPointers...); err != nil {
+				c.Log.Error("unable to enqueue seeds, discarding", "error", err)
+			}
+		}
+
 		c.SeedList = nil
-		seedPointers = nil
-		c.Log.Info("All seeds are now in queue, crawling will start")
+		c.Log.Info("All seeds are now in queue")
 	}
 
 	// Start the background process that will catch when there
