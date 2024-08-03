@@ -46,8 +46,8 @@ func provideTestIndexManager(t *testing.T, withSyncer bool) (*IndexManager, stri
 		im.walCommit = new(atomic.Uint64)
 		im.walCommited = new(atomic.Uint64)
 		im.walNotifyListeners = new(atomic.Int64)
-		im.WAL_IO_PERCENT = 100
-		im.WAL_MIN_INTERVAL = time.Duration(0)
+		im.WalIoPercent = 100
+		im.WalMinInterval = time.Duration(0)
 
 		go im.walCommitsSyncer()
 		for !im.walSyncerRunning.Load() {
@@ -92,8 +92,8 @@ func provideBenchmarkIndexManager(b *testing.B, withSyncer bool) (*IndexManager,
 		im.walCommit = new(atomic.Uint64)
 		im.walCommited = new(atomic.Uint64)
 		im.walNotifyListeners = new(atomic.Int64)
-		im.WAL_IO_PERCENT = 100
-		im.WAL_MIN_INTERVAL = time.Duration(0)
+		im.WalIoPercent = 100
+		im.WalMinInterval = time.Duration(0)
 
 		go im.walCommitsSyncer()
 		for !im.walSyncerRunning.Load() {

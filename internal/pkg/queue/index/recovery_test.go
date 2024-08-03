@@ -44,8 +44,8 @@ func Test_Recovery(t *testing.T) {
 		walCommit:          new(atomic.Uint64),
 		walCommited:        new(atomic.Uint64),
 		walNotifyListeners: new(atomic.Int64),
-		WAL_IO_PERCENT:     100,
-		WAL_MIN_INTERVAL:   time.Duration(0),
+		WalIoPercent:       100,
+		WalMinInterval:     time.Duration(0),
 		walCommitedNotify:  make(chan uint64),
 		walStopChan:        make(chan struct{}),
 	}
@@ -154,8 +154,8 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 		walCommited:        new(atomic.Uint64),
 		walNotifyListeners: new(atomic.Int64),
 		walCommitedNotify:  make(chan uint64),
-		WAL_IO_PERCENT:     100,
-		WAL_MIN_INTERVAL:   time.Duration(0),
+		WalIoPercent:       100,
+		WalMinInterval:     time.Duration(0),
 		lastDumpTime:       time.Now(),
 	}
 	go im.walCommitsSyncer()

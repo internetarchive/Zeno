@@ -49,11 +49,11 @@ type IndexManager struct {
 	// Number of listeners waiting for walCommitedNotify.
 	// It must be accurate, otherwise walNotifyListeners will be blocked
 	walNotifyListeners *atomic.Int64
-	walCommitedNotify  chan uint64 // receives the commited id from walCommitsSyncer
-	walSyncerRunning   atomic.Bool // used to prevent multiple walCommitsSyncer running,
-	walStopChan        chan struct{}
-	WAL_IO_PERCENT     int           // [1, 100] limit max io percentage for WAL sync
-	WAL_MIN_INTERVAL   time.Duration // minimum interval **between** between after-sync and next sync
+	walCommitedNotify  chan uint64   // receives the commited id from walCommitsSyncer
+	walSyncerRunning   atomic.Bool   // used to prevent multiple walCommitsSyncer running,
+	walStopChan        chan struct{} // Syncer will close this channel after stopping
+	WalIoPercent       int           // [1, 100] limit max io percentage for WAL sync
+	WalMinInterval     time.Duration // minimum interval **between** between after-sync and next sync
 
 	stopChan chan struct{}
 }
@@ -86,8 +86,8 @@ func NewIndexManager(walPath, indexPath, queueDirPath string) (*IndexManager, er
 		walCommited:        new(atomic.Uint64),
 		walNotifyListeners: new(atomic.Int64),
 		walCommitedNotify:  make(chan uint64),
-		WAL_IO_PERCENT:     10,
-		WAL_MIN_INTERVAL:   10 * time.Millisecond,
+		WalIoPercent:       10,
+		WalMinInterval:     10 * time.Millisecond,
 		walStopChan:        make(chan struct{}),
 		stopChan:           make(chan struct{}),
 	}
@@ -142,34 +142,56 @@ func (im *IndexManager) unsafeWalSync() error {
 
 func (im *IndexManager) walCommitsSyncer() {
 	if swaped := im.walSyncerRunning.CompareAndSwap(false, true); !swaped {
-		panic("walCommitsSyncer already running")
+		slog.Warn("another walCommitsSyncer is running")
+		return
 	}
 	defer im.walSyncerRunning.Store(false)
+	defer close(im.walStopChan)
 
-	lastSyncDuration := time.Duration(0)
+	if im.WalIoPercent < 1 || im.WalIoPercent > 100 {
+		slog.Warn("invalid WAL_IO_PERCENT", "value", im.WalIoPercent, "setting to", 10)
+		im.WalIoPercent = 10
+	}
+
+	lastTrySyncDuration := time.Duration(0)
+	stopping := false
 	for {
-		if im.WAL_IO_PERCENT < 1 || im.WAL_IO_PERCENT > 100 {
-			panic(fmt.Errorf("invalid WAL_IO_PERCENT: %d", im.WAL_IO_PERCENT))
+		// Check if we should stop
+		if stopping {
+			break
+		}
+		select {
+		case <-im.walStopChan:
+			slog.Info("walCommitsSyncer performing final sync before stopping")
+			stopping = true
+		default:
 		}
 
-		sleepTime := lastSyncDuration * time.Duration((100-im.WAL_IO_PERCENT)/im.WAL_IO_PERCENT)
-		if sleepTime < im.WAL_MIN_INTERVAL {
-			sleepTime = im.WAL_MIN_INTERVAL
+		sleepTime := lastTrySyncDuration * time.Duration((100-im.WalIoPercent)/im.WalIoPercent)
+		if sleepTime < im.WalMinInterval {
+			sleepTime = im.WalMinInterval
 		}
-		// fmt.Println("lastSyncDuration", lastSyncDuration, "sleepTime", sleepTime)
+		slog.Debug("walCommitsSyncer sleeping", "sleepTime", sleepTime, "lastTrySyncDuration", lastTrySyncDuration)
 		time.Sleep(sleepTime)
 
 		start := time.Now()
 		flyingCommit := im.walCommit.Load()
 		im.Lock()
-		if err := im.unsafeWalSync(); err != nil {
-			slog.Error("failed to sync WAL", "error", err)
-			im.Unlock()
-			return // FIXME: handle this error
-		}
+		err := im.unsafeWalSync()
 		im.Unlock()
+		lastTrySyncDuration = time.Since(start)
+		if lastTrySyncDuration > 2*time.Second {
+			slog.Warn("WAL sync took too long", "lastTrySyncDuration", lastTrySyncDuration)
+		}
+		if err != nil {
+			if stopping {
+				slog.Error("failed to sync WAL before stopping", "error", err)
+				return // we are stopping, no need to retry
+			}
+			slog.Error("failed to sync WAL, retrying", "error", err)
+			continue // we may infinitely retry, but it's better than losing data
+		}
 		commited := flyingCommit
-		lastSyncDuration = time.Since(start)
 
 		im.walCommited.Store(commited)
 
@@ -184,13 +206,6 @@ func (im *IndexManager) walCommitsSyncer() {
 		listeners := im.walNotifyListeners.Load()
 		for i := int64(0); i < listeners; i++ {
 			im.walCommitedNotify <- commited
-		}
-
-		// Check if we should stop
-		select {
-		case <-im.walStopChan:
-			return
-		default:
 		}
 	}
 }
@@ -303,13 +318,17 @@ func (im *IndexManager) Pop(host string) (commit uint64, id string, position uin
 	return
 }
 
+// Close closes the index manager and performs a final dump of the index to disk.
 func (im *IndexManager) Close() error {
+	slog.Info("Closing index manager")
+	defer slog.Info("Index manager closed")
 	im.dumpTicker.Stop()
 	im.stopChan <- struct{}{}
 	im.walStopChan <- struct{}{}
-	if im.walSyncerRunning.Load() {
-		panic("walCommitsSyncer still running")
-	}
+
+	// wait for im.walStopChan to be closed by walCommitsSyncer
+	<-im.walStopChan
+
 	if err := im.performDump(); err != nil {
 		return fmt.Errorf("failed to perform final dump: %w", err)
 	}
@@ -318,6 +337,9 @@ func (im *IndexManager) Close() error {
 	}
 	if err := im.indexFile.Close(); err != nil {
 		return fmt.Errorf("failed to close index file: %w", err)
+	}
+	if im.walSyncerRunning.Load() {
+		return fmt.Errorf("walCommitsSyncer still running")
 	}
 	return nil
 }
