@@ -16,7 +16,7 @@ func TestDequeue(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a new queue
-	q, err := NewPersistentGroupedQueue(tempDir, false)
+	q, err := NewPersistentGroupedQueue(tempDir, false, false)
 	if err != nil {
 		t.Fatalf("Failed to create queue: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestDequeueHostOrder(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a new queue
-	q, err := NewPersistentGroupedQueue(tempDir, false)
+	q, err := NewPersistentGroupedQueue(tempDir, false, false)
 	if err != nil {
 		t.Fatalf("Failed to create queue: %v", err)
 	}

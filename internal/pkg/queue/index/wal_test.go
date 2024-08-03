@@ -6,7 +6,7 @@ import (
 )
 
 func Test_isWALEmpty(t *testing.T) {
-	im, tempDir := provideTestIndexManager(t)
+	im, tempDir := provideTestIndexManager(t, false)
 	defer os.RemoveAll(tempDir)
 	im.Lock()
 	defer im.Unlock()
@@ -25,6 +25,10 @@ func Test_isWALEmpty(t *testing.T) {
 		t.Fatalf("failed to write to WAL: %v", err)
 	}
 
+	if err := im.unsafeWalSync(); err != nil {
+		t.Fatalf("failed to sync WAL: %v", err)
+	}
+
 	isEmpty, err = im.unsafeIsWALEmpty()
 	if err != nil {
 		t.Fatalf("failed to check if WAL is empty: %v", err)
@@ -35,7 +39,7 @@ func Test_isWALEmpty(t *testing.T) {
 }
 
 func Test_writeToWAL_Then_replayWAL(t *testing.T) {
-	im, tempDir := provideTestIndexManager(t)
+	im, tempDir := provideTestIndexManager(t, false)
 	defer os.RemoveAll(tempDir)
 	im.Lock()
 	defer im.Unlock()
@@ -46,6 +50,10 @@ func Test_writeToWAL_Then_replayWAL(t *testing.T) {
 	err := im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200)
 	if err != nil {
 		t.Fatalf("failed to write to WAL: %v", err)
+	}
+
+	if err := im.unsafeWalSync(); err != nil {
+		t.Fatalf("failed to sync WAL: %v", err)
 	}
 
 	// Replay WAL
@@ -60,7 +68,7 @@ func Test_writeToWAL_Then_replayWAL(t *testing.T) {
 }
 
 func Test_bigreplayWAL(t *testing.T) {
-	im, tempDir := provideTestIndexManager(t)
+	im, tempDir := provideTestIndexManager(t, false)
 	defer os.RemoveAll(tempDir)
 	im.Lock()
 	defer im.Unlock()
@@ -73,6 +81,9 @@ func Test_bigreplayWAL(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to write to WAL: %v", err)
 		}
+	}
+	if err := im.unsafeWalSync(); err != nil {
+		t.Fatalf("failed to sync WAL: %v", err)
 	}
 
 	// Replay WAL
@@ -88,7 +99,7 @@ func Test_bigreplayWAL(t *testing.T) {
 }
 
 func Test_writeToWAL_Then_truncateWAL(t *testing.T) {
-	im, tempDir := provideTestIndexManager(t)
+	im, tempDir := provideTestIndexManager(t, false)
 	defer os.RemoveAll(tempDir)
 	im.Lock()
 	defer im.Unlock()
@@ -97,6 +108,10 @@ func Test_writeToWAL_Then_truncateWAL(t *testing.T) {
 	err := im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200)
 	if err != nil {
 		t.Fatalf("failed to write to WAL: %v", err)
+	}
+
+	if err := im.unsafeWalSync(); err != nil {
+		t.Fatalf("failed to sync WAL: %v", err)
 	}
 
 	// Truncate WAL
@@ -118,7 +133,7 @@ func Test_writeToWAL_Then_truncateWAL(t *testing.T) {
 // Test_WAL_combined tests the combined functionality of writing, replaying, and truncating the WAL.
 // It writes a number of entries to the WAL, replays it, truncates it, replays it, writes more entries, replays it again.
 func Test_WAL_combined(t *testing.T) {
-	im, tempDir := provideTestIndexManager(t)
+	im, tempDir := provideTestIndexManager(t, false)
 	defer os.RemoveAll(tempDir)
 	im.Lock()
 	defer im.Unlock()
@@ -131,6 +146,10 @@ func Test_WAL_combined(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to write to WAL: %v", err)
 		}
+	}
+
+	if err := im.unsafeWalSync(); err != nil {
+		t.Fatalf("failed to sync WAL: %v", err)
 	}
 
 	// Replay WAL
@@ -211,7 +230,7 @@ func Test_WAL_combined(t *testing.T) {
 }
 
 func Test_WAL_WriteAfterNonZeroReplay(t *testing.T) {
-	im, tempDir := provideTestIndexManager(t)
+	im, tempDir := provideTestIndexManager(t, false)
 	defer os.RemoveAll(tempDir)
 	im.Lock()
 	defer im.Unlock()
@@ -252,7 +271,7 @@ func Test_WAL_WriteAfterNonZeroReplay(t *testing.T) {
 }
 
 func Test_replayWAL_error(t *testing.T) {
-	im, tempDir := provideTestIndexManager(t)
+	im, tempDir := provideTestIndexManager(t, false)
 	defer os.RemoveAll(tempDir)
 	im.Lock()
 	defer im.Unlock()
@@ -261,6 +280,10 @@ func Test_replayWAL_error(t *testing.T) {
 	err := im.unsafeWriteToWAL(OpAdd, "example.com", "id", 0, 200)
 	if err != nil {
 		t.Fatalf("failed to write to WAL: %v", err)
+	}
+
+	if err := im.unsafeWalSync(); err != nil {
+		t.Fatalf("failed to sync WAL: %v", err)
 	}
 
 	// Corrupt the WAL

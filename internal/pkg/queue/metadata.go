@@ -8,6 +8,8 @@ import (
 func (q *PersistentGroupedQueue) loadMetadata() error {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
+	q.statsMutex.Lock()
+	defer q.statsMutex.Unlock()
 
 	_, err := q.metadataFile.Seek(0, 0)
 	if err != nil {

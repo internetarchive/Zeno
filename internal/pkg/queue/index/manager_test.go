@@ -6,11 +6,12 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
-func provideTestIndexManager(t *testing.T) (*IndexManager, string) {
+func provideTestIndexManager(t *testing.T, withSyncer bool) (*IndexManager, string) {
 	queueDir, err := os.MkdirTemp("", "index_test")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
@@ -41,11 +42,22 @@ func provideTestIndexManager(t *testing.T) (*IndexManager, string) {
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
 	}
+	if withSyncer {
+		im.walCommit = new(atomic.Uint64)
+		im.walCommited = new(atomic.Uint64)
+		im.walNotifyListeners = new(atomic.Int64)
+		im.WalIoPercent = 100
+		im.WalMinInterval = time.Duration(0)
 
+		go im.walCommitsSyncer()
+		for !im.walSyncerRunning.Load() {
+			time.Sleep(1 * time.Millisecond)
+		}
+	}
 	return im, queueDir
 }
 
-func provideBenchmarkIndexManager(b *testing.B) (*IndexManager, string) {
+func provideBenchmarkIndexManager(b *testing.B, withSyncer bool) (*IndexManager, string) {
 	queueDir, err := os.MkdirTemp("", "index_test")
 	if err != nil {
 		b.Fatalf("failed to create temp dir: %v", err)
@@ -76,8 +88,37 @@ func provideBenchmarkIndexManager(b *testing.B) (*IndexManager, string) {
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
 	}
+	if withSyncer {
+		im.walCommit = new(atomic.Uint64)
+		im.walCommited = new(atomic.Uint64)
+		im.walNotifyListeners = new(atomic.Int64)
+		im.WalIoPercent = 100
+		im.WalMinInterval = time.Duration(0)
+
+		go im.walCommitsSyncer()
+		for !im.walSyncerRunning.Load() {
+			time.Sleep(1 * time.Millisecond)
+		}
+	}
 
 	return im, queueDir
+}
+
+func Test_badMultipleSyncers(t *testing.T) {
+	im, tempDir := provideTestIndexManager(t, false)
+	defer os.RemoveAll(tempDir)
+
+	if im.walSyncerRunning.Load() {
+		t.Fatalf("expected walSyncerRunning to be false")
+	}
+
+	// if we call the syncer again, it should panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+	im.walCommitsSyncer()
 }
 
 func Test_badCloseThenReopenIndex(t *testing.T) {
@@ -90,18 +131,20 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 	walPath := path.Join(queueDir, "/index_wal")
 	indexPath := path.Join(queueDir, "/index")
 
-	im, err := NewIndexManager(walPath, indexPath, queueDir)
+	im, err := NewIndexManager(walPath, indexPath, queueDir, false)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
 
 	// Add entries to the index
+	var commit uint64 = 0
 	for i := 0; i < 1000; i++ {
-		err := im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
+		commit, err = im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
 		if err != nil {
 			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
+	im.AwaitWALCommitted(commit)
 
 	im.Lock()
 
@@ -124,13 +167,15 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 	}
 
 	im.Unlock()
-
+	// gorourine should panic as "file already closed" a while after the index is Unlocked
 	im = nil
+	fmt.Println("Index nil now")
 
-	im, err = NewIndexManager(walPath, indexPath, queueDir)
+	im, err = NewIndexManager(walPath, indexPath, queueDir, false)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
+	defer im.Close()
 }
 
 func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
@@ -143,29 +188,33 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 	walPath := path.Join(queueDir, "/index_wal")
 	indexPath := path.Join(queueDir, "/index")
 
-	im, err := NewIndexManager(walPath, indexPath, queueDir)
+	im, err := NewIndexManager(walPath, indexPath, queueDir, false)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
 
 	// Add entries to the index
+	var commit uint64 = 0
 	for i := 0; i < 1000; i++ {
-		err := im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
+		commit, err = im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
 		if err != nil {
 			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
+	im.AwaitWALCommitted(commit)
 
 	im.Close()
 	im = nil
 
-	im, err = NewIndexManager(walPath, indexPath, queueDir)
+	im, err = NewIndexManager(walPath, indexPath, queueDir, false)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
 
 	// Check if the index was recovered correctly
-	_, _, _, err = im.Pop("example.com")
+	commit, _, _, _, err = im.Pop("example.com")
+	im.AwaitWALCommitted(commit)
+
 	if err != nil {
 		t.Fatalf("failed to pop entry from index: %v", err)
 	}
@@ -207,19 +256,25 @@ func benchmarkSequentialAddPop(b *testing.B, size int) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		im, tempDir := provideBenchmarkIndexManager(b)
+		im, tempDir := provideBenchmarkIndexManager(b, true)
 		// Perform size number of Add and Pop operations
+		var (
+			commit uint64 = 0
+			err    error
+		)
 		for j := 0; j < size; j++ {
-			err := im.Add("example.com", "id", uint64(200), uint64(200))
+			commit, err = im.Add("example.com", "id", uint64(200), uint64(200))
 			if err != nil {
 				b.Fatalf("failed to add entry to index: %v", err)
 			}
+			im.AwaitWALCommitted(commit)
 
-			_, _, _, err = im.Pop("example.com")
+			commit, _, _, _, err = im.Pop("example.com")
 			if err != nil {
 				b.Fatalf("failed to pop entry from index: %v", err)
 			}
 		}
+		im.AwaitWALCommitted(commit)
 		im = nil
 		os.RemoveAll(tempDir)
 	}
@@ -235,22 +290,27 @@ func benchmarkBulkAddThenPop(b *testing.B, size int) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		im, tempDir := provideBenchmarkIndexManager(b)
+		im, tempDir := provideBenchmarkIndexManager(b, true)
 		// Add entries
 		for j := 0; j < size; j++ {
-			err := im.Add("example.com", "id", uint64(200), uint64(200))
+			_, err := im.Add("example.com", "id", uint64(200), uint64(200))
 			if err != nil {
 				b.Fatalf("failed to add entry to index: %v", err)
 			}
 		}
 
 		// Pop all entries
+		var (
+			commit uint64 = 0
+			err    error
+		)
 		for j := 0; j < size; j++ {
-			_, _, _, err := im.Pop("example.com")
+			commit, _, _, _, err = im.Pop("example.com")
 			if err != nil {
 				b.Fatalf("failed to pop entry from index: %v", err)
 			}
 		}
+		im.AwaitWALCommitted(commit)
 		im = nil
 		os.RemoveAll(tempDir)
 	}

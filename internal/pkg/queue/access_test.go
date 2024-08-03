@@ -13,7 +13,7 @@ func Test_canEnqueue(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false)
+	q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}
@@ -31,7 +31,7 @@ func Test_canDequeue(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false)
+	q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
 	if err != nil {
 		t.Fatalf("Failed to create new queue: %v", err)
 	}

@@ -75,6 +75,7 @@ type Config struct {
 	HQRateLimitSendBack            bool     `mapstructure:"hq-rate-limiting-send-back"`
 	NoStdoutLogging                bool     `mapstructure:"no-stdout-log"`
 	Handover                       bool     `mapstructure:"handover"`
+	BatchWriteWAL                  bool     `mapstructure:"batch-write-WAL"`
 }
 
 var (
