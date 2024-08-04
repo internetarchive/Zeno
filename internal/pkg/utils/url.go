@@ -21,23 +21,23 @@ func URLToString(u *url.URL) string {
 		if strings.Contains(u.Host, ":") {
 			hostWithoutPort, port, err := net.SplitHostPort(u.Host)
 			if err != nil {
-				slog.Warn("can't split host and port", "error", err)
+				slog.Warn("cannot split host and port", "error", err)
 			} else {
 				asciiHost, err := idna.ToASCII(hostWithoutPort)
 				if err == nil {
 					u.Host = asciiHost + ":" + port
 				} else {
-					slog.Warn("could not encode punycode host without port to ASCII", "error", err)
+					slog.Warn("cannot encode punycode host without port to ASCII", "error", err)
 				}
 			}
 		} else {
-			slog.Warn("could not encode punycode host to ASCII", "error", err)
+			slog.Warn("cannot encode punycode host to ASCII", "error", err)
 		}
 	}
 
 	tempHost, err := idna.ToASCII(u.Hostname())
 	if err != nil {
-		slog.Warn("could not encode punycode hostname to ASCII", "error", err)
+		slog.Warn("cannot encode punycode hostname to ASCII", "error", err)
 		tempHost = u.Hostname()
 	}
 
