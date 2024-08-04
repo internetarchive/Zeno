@@ -23,7 +23,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/remeh/sizedwaitgroup"
-	"github.com/tomnomnom/linkheader"
 )
 
 func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bool) (resp *http.Response, err error) {
