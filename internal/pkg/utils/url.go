@@ -19,16 +19,16 @@ func URLToString(u *url.URL) string {
 	u.Host, err = idna.ToASCII(u.Host)
 	if err != nil {
 		if strings.Contains(u.Host, ":") {
-			hostWithoutPort, _, err := net.SplitHostPort(u.Host)
+			hostWithoutPort, port, err := net.SplitHostPort(u.Host)
 			if err != nil {
 				slog.Warn("can't split host and port", "error", err)
-			}
-
-			asciiHost, err := idna.ToASCII(hostWithoutPort)
-			if err == nil {
-				u.Host = asciiHost + ":" + u.Port()
 			} else {
-				slog.Warn("could not encode punycode host without port to ASCII", "error", err)
+				asciiHost, err := idna.ToASCII(hostWithoutPort)
+				if err == nil {
+					u.Host = asciiHost + ":" + port
+				} else {
+					slog.Warn("could not encode punycode host without port to ASCII", "error", err)
+				}
 			}
 		} else {
 			slog.Warn("could not encode punycode host to ASCII", "error", err)
