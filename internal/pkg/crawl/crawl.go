@@ -2,15 +2,16 @@
 package crawl
 
 import (
+	"path"
 	"sync"
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
+	"github.com/internetarchive/Zeno/internal/pkg/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 	"github.com/telanflow/cookiejar"
 	"mvdan.cc/xurls/v2"
 )
@@ -44,34 +45,21 @@ func (c *Crawl) Start() (err error) {
 	// to exit Zeno, like CTRL+C
 	go c.setupCloseHandler()
 
-	// Initialize the frontier
-	frontierLoggingChan := make(chan *frontier.FrontierLogMessage, 10)
-	go func() {
-		for log := range frontierLoggingChan {
-			switch log.Level {
-			case logrus.ErrorLevel:
-				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Error(log.Message)
-			case logrus.WarnLevel:
-				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Warn(log.Message)
-			case logrus.InfoLevel:
-				c.Log.WithFields(c.genLogFields(nil, nil, log.Fields)).Info(log.Message)
-			}
-		}
-	}()
+	// Initialize the queue & seencheck
+	c.Log.Info("Initializing queue and seencheck..")
+	c.Queue, err = queue.NewPersistentGroupedQueue(path.Join(c.JobPath, "queue"), c.UseHandover, c.UseCommit)
+	if err != nil {
+		c.Log.Fatal("unable to init queue", "error", err)
+	}
 
-	c.Frontier.Init(c.JobPath, frontierLoggingChan, int(c.Workers.Count), c.Seencheck)
-	c.Frontier.Load()
-	c.Frontier.Start()
+	c.Seencheck, err = seencheck.New(c.JobPath)
+	if err != nil {
+		c.Log.Fatal("unable to init seencheck", "error", err)
+	}
 
 	// Start the background process that will periodically check if the disk
 	// have enough free space, and potentially pause the crawl if it doesn't
 	go c.handleCrawlPause()
-
-	// Function responsible for writing to disk the frontier's hosts pool
-	// and other stats needed to resume the crawl. The process happen every minute.
-	// The actual queue used during the crawl and seencheck aren't included in this,
-	// because they are written to disk in real-time.
-	go c.writeFrontierToDisk()
 
 	// Initialize WARC writer
 	c.Log.Info("Initializing WARC writer..")
@@ -128,9 +116,10 @@ func (c *Crawl) Start() (err error) {
 
 	c.Log.Info("WARC writer initialized")
 
+	// TODO: re-implement host limitation
 	// Process responsible for slowing or pausing the crawl
 	// when the WARC writing queue gets too big
-	go c.crawlSpeedLimiter()
+	// go c.crawlSpeedLimiter()
 
 	if c.API {
 		go c.startAPI()
@@ -160,11 +149,11 @@ func (c *Crawl) Start() (err error) {
 	if c.UseHQ {
 		c.HQClient, err = gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
 		if err != nil {
-			logrus.Panic(err)
+			c.Log.Fatal("unable to init crawl HQ client", "error", err)
 		}
 
-		c.HQProducerChannel = make(chan *frontier.Item, c.Workers.Count)
-		c.HQFinishedChannel = make(chan *frontier.Item, c.Workers.Count)
+		c.HQProducerChannel = make(chan *queue.Item, c.Workers.Count)
+		c.HQFinishedChannel = make(chan *queue.Item, c.Workers.Count)
 
 		c.HQChannelsWg.Add(2)
 		go c.HQConsumer()
@@ -174,12 +163,28 @@ func (c *Crawl) Start() (err error) {
 	} else {
 		// Push the seed list to the queue
 		c.Log.Info("Pushing seeds in the local queue..")
-		for _, item := range c.SeedList {
-			item := item
-			c.Frontier.PushChan <- &item
+		var seedPointers []*queue.Item
+		for idx, item := range c.SeedList {
+			seedPointers = append(seedPointers, &item)
+
+			// We enqueue seeds by batch of 100k
+			// Workers will start processing them as soon as one batch is enqueued
+			if idx%100000 == 0 {
+				c.Log.Info("Enqueuing seeds", "index", idx)
+				if err := c.Queue.BatchEnqueue(seedPointers...); err != nil {
+					c.Log.Error("unable to enqueue seeds, discarding", "error", err)
+				}
+				seedPointers = nil
+			}
 		}
+		if len(seedPointers) > 0 {
+			if err := c.Queue.BatchEnqueue(seedPointers...); err != nil {
+				c.Log.Error("unable to enqueue seeds, discarding", "error", err)
+			}
+		}
+
 		c.SeedList = nil
-		c.Log.Info("All seeds are now in queue, crawling will start")
+		c.Log.Info("All seeds are now in queue")
 	}
 
 	// Start the background process that will catch when there

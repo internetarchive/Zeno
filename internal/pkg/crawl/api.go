@@ -21,11 +21,12 @@ type APIWorkersState struct {
 
 // APIWorkerState represents the state of an API worker.
 type APIWorkerState struct {
-	WorkerID  string `json:"worker_id"`
-	Status    string `json:"status"`
-	LastError string `json:"last_error"`
-	LastSeen  string `json:"last_seen"`
-	Locked    bool   `json:"locked"`
+	WorkerID   string `json:"worker_id"`
+	Status     string `json:"status"`
+	LastError  string `json:"last_error"`
+	LastSeen   string `json:"last_seen"`
+	LastAction string `json:"last_action"`
+	Locked     bool   `json:"locked"`
 }
 
 // startAPI starts the API server for the crawl
@@ -42,7 +43,7 @@ func (crawl *Crawl) startAPI() {
 			"crawled":       crawledSeeds + crawledAssets,
 			"crawledSeeds":  crawledSeeds,
 			"crawledAssets": crawledAssets,
-			"queued":        crawl.Frontier.QueueCount.Value(),
+			"queued":        crawl.Queue.GetStats().TotalElements,
 			"uptime":        time.Since(crawl.StartTime).String(),
 		}
 
@@ -53,12 +54,19 @@ func (crawl *Crawl) startAPI() {
 		http.HandleFunc("/metrics", setupPrometheus(crawl).ServeHTTP)
 	}
 
+	http.HandleFunc("/queue", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(crawl.Queue.GetStats())
+	})
+
 	http.HandleFunc("/workers", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		workersState := crawl.Workers.GetWorkerStateFromPool("")
 		json.NewEncoder(w).Encode(workersState)
 	})
 
 	http.HandleFunc("/worker/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		workerID := strings.TrimPrefix(r.URL.Path, "/worker/")
 		workersState := crawl.Workers.GetWorkerStateFromPool(workerID)
 		if workersState == nil {

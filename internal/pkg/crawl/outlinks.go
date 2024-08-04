@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
@@ -55,12 +55,13 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL,
 	return utils.DedupeURLs(outlinks), nil
 }
 
-func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *frontier.Item, wg *sync.WaitGroup) {
+func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	var excluded bool
 
 	// Send the outlinks to the pool of workers
+	var items = make([]*queue.Item, 0, len(outlinks))
 	for _, outlink := range outlinks {
 		outlink := outlink
 
@@ -83,20 +84,37 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *frontier.Item, wg *sync
 			continue
 		}
 
-		if c.DomainsCrawl && strings.Contains(item.Host, outlink.Host) && item.Hop == 0 {
-			newItem := frontier.NewItem(outlink, item, "seed", 0, "", false)
+		if c.DomainsCrawl && strings.Contains(item.URL.Host, outlink.Host) && item.Hop == 0 {
+			newItem, err := queue.NewItem(outlink, item.URL, "seed", 0, "", false)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to create new item from outlink, discarding")
+				continue
+			}
+
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
-				c.Frontier.PushChan <- newItem
+				items = append(items, newItem)
 			}
-		} else if c.MaxHops >= item.Hop+1 {
-			newItem := frontier.NewItem(outlink, item, "seed", item.Hop+1, "", false)
+		} else if uint64(c.MaxHops) >= item.Hop+1 {
+			newItem, err := queue.NewItem(outlink, item.URL, "seed", item.Hop+1, "", false)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to create new item from outlink, discarding")
+				continue
+			}
+
 			if c.UseHQ {
 				c.HQProducerChannel <- newItem
 			} else {
-				c.Frontier.PushChan <- newItem
+				items = append(items, newItem)
 			}
+		}
+	}
+
+	if !c.UseHQ {
+		err := c.Queue.BatchEnqueue(items...)
+		if err != nil {
+			c.Log.Error("unable to enqueue outlinks, discarding", "error", err)
 		}
 	}
 }

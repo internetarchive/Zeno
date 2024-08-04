@@ -2,6 +2,7 @@ package crawl
 
 import (
 	"fmt"
+	"hash/fnv"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -9,38 +10,31 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/xxh3"
 )
 
 var regexOutlinks *regexp.Regexp
 
-func (c *Crawl) writeFrontierToDisk() {
-	for !c.Finished.Get() {
-		c.Frontier.Save()
-		time.Sleep(time.Minute * 1)
-	}
-}
+// TODO: re-implement host limitation
+// func (c *Crawl) crawlSpeedLimiter() {
+// 	maxConcurrentAssets := c.MaxConcurrentAssets
 
-func (c *Crawl) crawlSpeedLimiter() {
-	maxConcurrentAssets := c.MaxConcurrentAssets
+// 	for {
+// 		if c.Client.WaitGroup.Size() > c.Workers*8 {
+// 			c.Paused.Set(true)
+// 			c.Frontier.Paused.Set(true)
+// 		} else if c.Client.WaitGroup.Size() > c.Workers*4 {
+// 			c.MaxConcurrentAssets = 1
+// 			c.Paused.Set(false)
+// 			c.Frontier.Paused.Set(false)
+// 		} else {
+// 			c.MaxConcurrentAssets = maxConcurrentAssets
+// 			c.Paused.Set(false)
+// 			c.Frontier.Paused.Set(false)
+// 		}
 
-	for {
-		if c.Client.WaitGroup.Size() > int(c.Workers.Count)*8 {
-			c.Paused.Set(true)
-			c.Frontier.Paused.Set(true)
-		} else if c.Client.WaitGroup.Size() > int(c.Workers.Count)*4 {
-			c.MaxConcurrentAssets = 1
-			c.Paused.Set(false)
-			c.Frontier.Paused.Set(false)
-		} else {
-			c.MaxConcurrentAssets = maxConcurrentAssets
-			c.Paused.Set(false)
-			c.Frontier.Paused.Set(false)
-		}
-
-		time.Sleep(time.Second / 4)
-	}
-}
+// 		time.Sleep(time.Second / 4)
+// 	}
+// }
 
 func (c *Crawl) checkIncludedHosts(host string) bool {
 	// If no hosts are included, all hosts are included
@@ -58,10 +52,10 @@ func (c *Crawl) handleCrawlPause() {
 			logrus.Errorln(fmt.Sprintf("Not enough disk space: %d GB required, %f GB available. "+
 				"Please free some space for the crawler to resume.", c.MinSpaceRequired, spaceLeft))
 			c.Paused.Set(true)
-			c.Frontier.Paused.Set(true)
+			c.Queue.Paused.Set(true)
 		} else {
 			c.Paused.Set(false)
-			c.Frontier.Paused.Set(false)
+			c.Queue.Paused.Set(false)
 		}
 
 		time.Sleep(time.Second)
@@ -69,12 +63,15 @@ func (c *Crawl) handleCrawlPause() {
 }
 
 func (c *Crawl) seencheckURL(URL string, URLType string) bool {
-	hash := strconv.FormatUint(xxh3.HashString(URL), 10)
-	found, _ := c.Frontier.Seencheck.IsSeen(hash)
+	h := fnv.New64a()
+	h.Write([]byte(URL))
+	hash := strconv.FormatUint(h.Sum64(), 10)
+
+	found, _ := c.Seencheck.IsSeen(hash)
 	if found {
 		return true
 	} else {
-		c.Frontier.Seencheck.Seen(hash, URLType)
+		c.Seencheck.Seen(hash, URLType)
 		return false
 	}
 }
@@ -113,9 +110,10 @@ func extractLinksFromText(source string) (links []*url.URL) {
 	return links
 }
 
-func (c *Crawl) shouldPause(host string) bool {
-	return c.Frontier.GetActiveHostCount(host) >= c.MaxConcurrentRequestsPerDomain
-}
+// TODO: re-implement host limitation
+// func (c *Crawl) shouldPause(host string) bool {
+// 	return c.Frontier.GetActiveHostCount(host) >= c.MaxConcurrentRequestsPerDomain
+// }
 
 func isStatusCodeRedirect(statusCode int) bool {
 	if statusCode == 300 || statusCode == 301 ||

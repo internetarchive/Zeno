@@ -1,12 +1,13 @@
 package crawl
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
@@ -39,8 +40,8 @@ func (s status) String() string {
 }
 
 type workerState struct {
-	currentItem  *frontier.Item
-	previousItem *frontier.Item
+	currentItem  *queue.Item
+	previousItem *queue.Item
 	status       status
 	lastAction   string
 	lastError    error
@@ -58,10 +59,11 @@ type Worker struct {
 
 // Run is the key component of a crawl, it's a background processed dispatched
 // when the crawl starts, it listens on a channel to get new URLs to archive,
-// and eventually push newly discovered URLs back in the frontier.
+// and eventually push newly discovered URLs back in the queue.
 func (w *Worker) Run() {
 	// Start archiving the URLs!
 	for {
+		// Check if the crawl is paused or needs to be stopped
 		select {
 		case <-w.doneSignal:
 			w.Lock()
@@ -69,41 +71,67 @@ func (w *Worker) Run() {
 			w.state.status = completed
 			w.logger.Info("Worker stopped")
 			return
-		case item := <-w.pool.Crawl.Frontier.PullChan:
-			// Can it happen? I don't think so but let's be safe
-			if item == nil {
-				continue
-			}
-			w.Lock()
-			w.state.lastAction = "got item"
-
-			// If the crawl is paused, we wait until it's resumed
-			for w.pool.Crawl.Paused.Get() || w.pool.Crawl.Frontier.Paused.Get() {
+		default:
+			for w.pool.Crawl.Paused.Get() {
 				w.state.lastAction = "waiting for crawl to resume"
-				time.Sleep(time.Second)
+				time.Sleep(10 * time.Millisecond)
 			}
-
-			// If the host of the item is in the host exclusion list, we skip it
-			if utils.StringInSlice(item.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.checkIncludedHosts(item.Host) {
-				if w.pool.Crawl.UseHQ {
-					w.state.lastAction = "skipping item because of host exclusion"
-					// If we are using the HQ, we want to mark the item as done
-					w.pool.Crawl.HQFinishedChannel <- item
-				}
-				w.Unlock()
+			for w.pool.Crawl.Queue.Empty.Get() && !w.pool.Crawl.Queue.HandoverOpen.Get() {
+				w.state.lastAction = fmt.Sprintf("waiting for queue to be filled, queue empty: %t, handover open: %t", w.pool.Crawl.Queue.Empty.Get(), w.pool.Crawl.Queue.HandoverOpen.Get())
+				time.Sleep(5 * time.Millisecond)
+			}
+			if !w.pool.Crawl.Queue.CanDequeue() {
+				w.state.lastAction = "waiting for queue to be dequeuable"
+				time.Sleep(10 * time.Millisecond)
 				continue
 			}
-
-			// Launches the capture of the given item
-			w.state.lastAction = "starting capture"
-			w.unsafeCapture(item)
-			w.Unlock()
 		}
+
+		// Try to get an item from the queue or handover channel
+		item, err := w.pool.Crawl.Queue.Dequeue()
+		if err != nil {
+			// Log the error too?
+			w.state.lastError = err
+			switch err {
+			case queue.ErrQueueEmpty:
+				w.state.lastAction = "queue is empty"
+			case queue.ErrQueueClosed:
+				w.state.lastAction = "queue is closed"
+			case queue.ErrDequeueClosed:
+				w.state.lastAction = "dequeue is closed"
+			default:
+				w.state.lastAction = "unhandled dequeue error"
+			}
+			continue
+		}
+
+		// Can it happen? I don't think so but let's be safe
+		if item == nil {
+			continue
+		}
+		w.Lock()
+		w.state.lastAction = "got item"
+
+		// If the host of the item is in the host exclusion list, we skip it
+		if utils.StringInSlice(item.URL.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.checkIncludedHosts(item.URL.Host) {
+			if w.pool.Crawl.UseHQ {
+				w.state.lastAction = "skipping item because of host exclusion"
+				// If we are using the HQ, we want to mark the item as done
+				w.pool.Crawl.HQFinishedChannel <- item
+			}
+			w.Unlock()
+			continue
+		}
+
+		// Launches the capture of the given item
+		w.state.lastAction = "starting capture"
+		w.unsafeCapture(item)
+		w.Unlock()
 	}
 }
 
 // unsafeCapture is named like so because it should only be called when the worker is locked
-func (w *Worker) unsafeCapture(item *frontier.Item) {
+func (w *Worker) unsafeCapture(item *queue.Item) {
 	if item == nil {
 		return
 	}
@@ -129,7 +157,7 @@ func (w *Worker) unsafeCapture(item *frontier.Item) {
 func (w *Worker) Stop() {
 	w.doneSignal <- true
 	for w.state.status != completed {
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

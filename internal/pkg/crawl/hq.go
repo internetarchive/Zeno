@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -107,8 +107,8 @@ func (c *Crawl) HQProducer() {
 	for discoveredItem := range c.HQProducerChannel {
 		var via string
 
-		if discoveredItem.ParentItem != nil {
-			via = utils.URLToString(discoveredItem.ParentItem.URL)
+		if discoveredItem.ParentURL != nil {
+			via = utils.URLToString(discoveredItem.ParentURL)
 		}
 
 		discoveredURL := gocrawlhq.URL{
@@ -116,13 +116,13 @@ func (c *Crawl) HQProducer() {
 			Via:   via,
 		}
 
-		for i := 0; uint8(i) < discoveredItem.Hop; i++ {
+		for i := uint64(0); i < discoveredItem.Hop; i++ {
 			discoveredURL.Path += "L"
 		}
 
 		// The reason we are using a string instead of a bool is because
 		// gob's encode/decode doesn't properly support booleans
-		if discoveredItem.BypassSeencheck == "true" {
+		if discoveredItem.BypassSeencheck {
 			for {
 				_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "seed", true, false)
 				if err != nil {
@@ -152,24 +152,18 @@ func (c *Crawl) HQConsumer() {
 		// This is on purpose evaluated every time,
 		// because the value of workers will maybe change
 		// during the crawl in the future (to be implemented)
-		var HQBatchSize = int(math.Ceil(float64(c.Workers.Count) / 2))
+		var HQBatchSize = int(math.Ceil(float64(c.Workers.Count)))
 
 		if c.Finished.Get() {
 			c.Log.Error("crawl finished, stopping HQ consumer")
 			break
 		}
 
-		if c.Paused.Get() {
-			time.Sleep(time.Second)
-		}
-
-		// If HQContinuousPull is set to true, we will pull URLs from HQ
-		// continuously, otherwise we will only pull URLs when needed
-		if !c.HQContinuousPull {
-			if c.ActiveWorkers.Value() >= int64(c.Workers.Count-(c.Workers.Count/10)) {
-				time.Sleep(time.Millisecond * 100)
-				continue
-			}
+		// If HQContinuousPull is set to true, we will pull URLs from HQ continuously,
+		// otherwise we will only pull URLs when needed (and when the crawl is not paused)
+		for (uint64(c.Queue.GetStats().TotalElements) > uint64(HQBatchSize) && !c.HQContinuousPull) || c.Paused.Get() || c.Queue.HandoverOpen.Get() {
+			time.Sleep(time.Millisecond * 50)
+			continue
 		}
 
 		// If a specific HQ batch size is set, use it
@@ -186,22 +180,43 @@ func (c *Crawl) HQConsumer() {
 
 			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
+				"err":       err,
 			})).Error("error getting new URLs from crawl HQ")
+			continue
 		}
 
-		// send all URLs received in the batch to the frontier
+		// send all URLs received in the batch to the queue
+		var items = make([]*queue.Item, 0, len(batch.URLs))
 		if len(batch.URLs) > 0 {
 			for _, URL := range batch.URLs {
 				newURL, err := url.Parse(URL.Value)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+						"url":       URL.Value,
 						"batchSize": HQBatchSize,
+						"err":       err,
 					})).Error("unable to parse URL received from crawl HQ, discarding")
 					continue
 				}
 
-				c.Frontier.PushChan <- frontier.NewItem(newURL, nil, "seed", uint8(strings.Count(URL.Path, "L")), URL.ID, false)
+				newItem, err := queue.NewItem(newURL, nil, "seed", uint64(strings.Count(URL.Path, "L")), URL.ID, false)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, newURL, map[string]interface{}{
+						"url":       URL.Value,
+						"batchSize": HQBatchSize,
+						"err":       err,
+					})).Error("unable to create new item from URL received from crawl HQ, discarding")
+					continue
+				}
+
+				items = append(items, newItem)
 			}
+		}
+
+		err = c.Queue.BatchEnqueue(items...)
+		if err != nil {
+			c.Log.Error("unable to enqueue URL batch received from crawl HQ, discarding", "error", err)
+			continue
 		}
 	}
 }

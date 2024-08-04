@@ -12,10 +12,6 @@ import (
 	"github.com/gosuri/uitable"
 )
 
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
-}
-
 func (c *Crawl) printLiveStats() {
 	var stats *uitable.Table
 	var m runtime.MemStats
@@ -33,12 +29,22 @@ func (c *Crawl) printLiveStats() {
 		crawledSeeds := c.CrawledSeeds.Value()
 		crawledAssets := c.CrawledAssets.Value()
 
+		queueStats := c.Queue.GetStats()
+
 		stats.AddRow("", "")
 		stats.AddRow("  - Job:", c.Job)
 		stats.AddRow("  - State:", c.getCrawlState())
 		stats.AddRow("  - Active workers:", strconv.Itoa(int(c.ActiveWorkers.Value()))+"/"+strconv.Itoa(c.Workers.wpLen()))
 		stats.AddRow("  - URI/s:", c.URIsPerSecond.Rate())
-		stats.AddRow("  - Queued:", c.Frontier.QueueCount.Value())
+		stats.AddRow("  - Items in queue:", queueStats.TotalElements)
+		stats.AddRow("  - Hosts in queue:", queueStats.UniqueHosts)
+		if c.UseHandover {
+			stats.AddRow("  - Handover open:", c.Queue.HandoverOpen.Get())
+			stats.AddRow("  - Handover Get() success:", queueStats.HandoverSuccessGetCount)
+		}
+		stats.AddRow("  - Queue empty bool state:", c.Queue.Empty.Get())
+		stats.AddRow("  - Can Enqueue:", c.Queue.CanEnqueue())
+		stats.AddRow("  - Can Dequeue:", c.Queue.CanDequeue())
 		stats.AddRow("  - Crawled total:", crawledSeeds+crawledAssets)
 		stats.AddRow("  - Crawled seeds:", crawledSeeds)
 		stats.AddRow("  - Crawled assets:", crawledAssets)
@@ -61,7 +67,7 @@ func (c *Crawl) printLiveStats() {
 
 		fmt.Fprintln(writer, stats.String())
 		writer.Flush()
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 250)
 	}
 }
 
@@ -75,4 +81,8 @@ func (c *Crawl) getCrawlState() (state string) {
 	}
 
 	return "running"
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }

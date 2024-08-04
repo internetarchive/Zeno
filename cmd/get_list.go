@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/internetarchive/Zeno/internal/pkg/crawl"
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
+	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ var getListCmd = &cobra.Command{
 		}
 
 		// Initialize initial seed list
-		crawl.SeedList, err = frontier.IsSeedList(args[0])
+		crawl.SeedList, err = queue.FileToItems(args[0])
 		if err != nil || len(crawl.SeedList) <= 0 {
 			crawl.Log.WithFields(map[string]interface{}{
 				"input": args[0],

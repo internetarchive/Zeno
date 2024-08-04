@@ -3,12 +3,8 @@ package crawl
 import (
 	"os"
 	"os/signal"
-	"path"
 	"syscall"
 	"time"
-
-	"github.com/internetarchive/Zeno/internal/pkg/frontier"
-	"github.com/sirupsen/logrus"
 )
 
 // catchFinish is running in the background and detect when the crawl need to be terminated
@@ -20,12 +16,8 @@ func (crawl *Crawl) catchFinish() {
 
 	for {
 		time.Sleep(time.Second * 5)
-		if !crawl.UseHQ && crawl.ActiveWorkers.Value() == 0 && crawl.Frontier.QueueCount.Value() == 0 && !crawl.Finished.Get() && (crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() > 0) {
-			crawl.Frontier.LoggingChan <- &frontier.FrontierLogMessage{
-				Fields:  logrus.Fields{},
-				Message: "no more work to do, finishing",
-				Level:   logrus.WarnLevel,
-			}
+		if !crawl.UseHQ && crawl.ActiveWorkers.Value() == 0 && crawl.Queue.GetStats().TotalElements == 0 && !crawl.Finished.Get() && (crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() > 0) {
+			crawl.Log.Warn("No more items to crawl, finishing..")
 			crawl.finish()
 		}
 	}
@@ -34,15 +26,8 @@ func (crawl *Crawl) catchFinish() {
 func (crawl *Crawl) finish() {
 	crawl.Finished.Set(true)
 
-	// First we wait for the queue reader to finish its current work,
-	// and stop it, when it's stopped it won't dispatch any additional work
-	// so we can safely close the channel it is using, and wait for all the
-	// workers to notice the channel is closed, and terminate.
-	crawl.Frontier.FinishingQueueReader.Set(true)
-	for crawl.Frontier.IsQueueReaderActive.Get() {
-		time.Sleep(time.Second / 2)
-	}
-	close(crawl.Frontier.PullChan)
+	crawl.Log.Warn("[QUEUE] Freezing the dequeue")
+	crawl.Queue.FreezeDequeue()
 
 	crawl.Log.Warn("[WORKERS] Waiting for workers to finish")
 	crawl.Workers.StopSignal <- true
@@ -64,15 +49,6 @@ func (crawl *Crawl) finish() {
 		crawl.Log.Warn("[HQ] All functions returned")
 	}
 
-	// Once all workers are done, it means nothing more is actively send to
-	// the PushChan channel, we ask for the queue writer to terminate, and when
-	// it's done we close the channel safely.
-	close(crawl.Frontier.PushChan)
-	crawl.Frontier.FinishingQueueWriter.Set(true)
-	for crawl.Frontier.IsQueueWriterActive.Get() {
-		time.Sleep(time.Second / 2)
-	}
-
 	crawl.Log.Warn("[WARC] Closing writer(s)..")
 	crawl.Client.Close()
 
@@ -82,19 +58,15 @@ func (crawl *Crawl) finish() {
 
 	crawl.Log.Warn("[WARC] Writer(s) closed")
 
-	// Closing the local queue used by the frontier
-	crawl.Frontier.Queue.Close()
-	crawl.Log.Warn("[FRONTIER] Queue closed")
+	// Closing the queue
+	crawl.Queue.Close()
+	crawl.Log.Warn("[QUEUE] Queue closed")
 
 	// Closing the seencheck database
-	if crawl.Seencheck {
-		crawl.Frontier.Seencheck.SeenDB.Close()
+	if crawl.UseSeencheck {
+		crawl.Seencheck.Close()
 		crawl.Log.Warn("[SEENCHECK] Database closed")
 	}
-
-	// Dumping hosts pool and frontier stats to disk
-	crawl.Log.Warn("[FRONTIER] Dumping hosts pool and frontier stats to " + path.Join(crawl.Frontier.JobPath, "frontier.gob"))
-	crawl.Frontier.Save()
 
 	crawl.Log.Warn("Finished!")
 

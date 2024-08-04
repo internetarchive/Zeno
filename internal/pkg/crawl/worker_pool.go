@@ -47,13 +47,21 @@ func (wp *WorkerPool) WorkerWatcher() {
 		// Stop the workers when requested
 		// Then end the watcher
 		case <-wp.StopSignal:
+			wg := sync.WaitGroup{}
+			wg.Add(wp.wpLen())
+
 			wp.Workers.Range(func(key, value interface{}) bool {
-				worker := value.(*Worker)
-				wp.Crawl.Log.Info("Stopping worker", "worker", worker.ID)
-				worker.Stop()
-				wp.Workers.Delete(key)
+				go func(worker *Worker) {
+					wp.Crawl.Log.Info("Stopping worker", "worker", worker.ID)
+					worker.Stop()
+					wp.Workers.Delete(key)
+				}(value.(*Worker))
+
 				return true
 			})
+
+			wg.Wait()
+
 			wp.Crawl.Log.Info("All workers are stopped, crawl/crawl.go:WorkerWatcher() is stopping")
 			return
 
@@ -123,11 +131,12 @@ func _getWorkerState(worker *Worker) *APIWorkerState {
 	}
 
 	return &APIWorkerState{
-		WorkerID:  worker.ID.String(),
-		Status:    worker.state.status.String(),
-		LastSeen:  worker.state.lastSeen.Format(time.RFC3339),
-		LastError: lastErr,
-		Locked:    isLocked,
+		WorkerID:   worker.ID.String(),
+		Status:     worker.state.status.String(),
+		LastSeen:   worker.state.lastSeen.Format(time.RFC3339),
+		LastError:  lastErr,
+		LastAction: worker.state.lastAction,
+		Locked:     isLocked,
 	}
 }
 
