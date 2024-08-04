@@ -2,10 +2,55 @@ package utils
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
+	"net"
 	"net/url"
+	"strings"
 
 	"github.com/asaskevich/govalidator"
+	"golang.org/x/net/idna"
 )
+
+func URLToString(u *url.URL) string {
+	var err error
+
+	q := u.Query()
+	u.RawQuery = q.Encode()
+	u.Host, err = idna.ToASCII(u.Host)
+	if err != nil {
+		if strings.Contains(u.Host, ":") {
+			hostWithoutPort, _, _ := net.SplitHostPort(u.Host)
+			asciiHost, err := idna.ToASCII(hostWithoutPort)
+			if err == nil {
+				u.Host = asciiHost + ":" + u.Port()
+			} else {
+				slog.Warn(fmt.Sprintf("could not IDNA encode URL: %s", err))
+			}
+		} else {
+			slog.Warn(fmt.Sprintf("could not IDNA encode URL: %s", err))
+		}
+	}
+
+	tempHost, err := idna.ToASCII(u.Hostname())
+	if err != nil {
+		slog.Warn(fmt.Sprintf("could not IDNA encode URL: %s", err))
+		tempHost = u.Hostname()
+	}
+
+	if strings.Contains(tempHost, ":") && !(strings.HasPrefix(tempHost, "[") && strings.HasSuffix(tempHost, "]")) {
+		tempHost = "[" + tempHost + "]"
+	}
+
+	port := u.Port()
+	if len(port) > 0 {
+		u.Host = tempHost + ":" + port
+	} else {
+		u.Host = tempHost
+	}
+
+	return u.String()
+}
 
 // MakeAbsolute turn all URLs in a slice of url.URL into absolute URLs, based
 // on a given base *url.URL
