@@ -25,6 +25,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/telanflow/cookiejar v0.0.0-20190719062046-114449e86aa5
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
+	github.com/zeebo/xxh3 v1.0.2
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.27.0
 	google.golang.org/protobuf v1.34.2

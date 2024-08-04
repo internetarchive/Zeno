@@ -373,7 +373,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 	// Scrape potential URLs from Link HTTP header
 	var (
-		links      = linkheader.Parse(resp.Header.Get("link"))
+		links      = Parse(resp.Header.Get("link"))
 		discovered []string
 	)
 
