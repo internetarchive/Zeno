@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"fmt"
 	"log/slog"
 	"net"
 	"net/url"
@@ -20,21 +19,25 @@ func URLToString(u *url.URL) string {
 	u.Host, err = idna.ToASCII(u.Host)
 	if err != nil {
 		if strings.Contains(u.Host, ":") {
-			hostWithoutPort, _, _ := net.SplitHostPort(u.Host)
+			hostWithoutPort, _, err := net.SplitHostPort(u.Host)
+			if err != nil {
+				slog.Warn("can't split host and port", "error", err)
+			}
+
 			asciiHost, err := idna.ToASCII(hostWithoutPort)
 			if err == nil {
 				u.Host = asciiHost + ":" + u.Port()
 			} else {
-				slog.Warn(fmt.Sprintf("could not IDNA encode URL: %s", err))
+				slog.Warn("could not encode punycode host without port to ASCII", "error", err)
 			}
 		} else {
-			slog.Warn(fmt.Sprintf("could not IDNA encode URL: %s", err))
+			slog.Warn("could not encode punycode host to ASCII", "error", err)
 		}
 	}
 
 	tempHost, err := idna.ToASCII(u.Hostname())
 	if err != nil {
-		slog.Warn(fmt.Sprintf("could not IDNA encode URL: %s", err))
+		slog.Warn("could not encode punycode hostname to ASCII", "error", err)
 		tempHost = u.Hostname()
 	}
 
