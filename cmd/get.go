@@ -78,7 +78,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 
 	// Logging flags
 	getCmd.PersistentFlags().Bool("live-stats", false, "Enable live stats but disable logging. (implies --no-stdout-log)")
-	getCmd.PersistentFlags().String("log-file-output-dir", "./jobs/", "Directory to write log files to.")
+	getCmd.PersistentFlags().String("log-file-output-dir", "", "Directory to write log files to.")
 	getCmd.PersistentFlags().String("es-url", "", "comma-separated ElasticSearch URL to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-user", "", "ElasticSearch username to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-password", "", "ElasticSearch password to use for indexing crawl logs.")

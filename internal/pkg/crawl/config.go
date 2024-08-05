@@ -121,10 +121,15 @@ type Crawl struct {
 func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	var c = new(Crawl)
 
-	// Ensure that the log file output directory is well parsed
-	logfileOutputDir := filepath.Dir(config.LogFileOutputDir)
-	if logfileOutputDir == "." && config.LogFileOutputDir != "." {
-		logfileOutputDir = filepath.Dir(config.LogFileOutputDir + "/")
+	var logfileOutputDir string
+	if config.LogFileOutputDir == "" {
+		if config.Job != "" {
+			logfileOutputDir = path.Join("jobs", config.Job, "logs")
+		} else {
+			logfileOutputDir = path.Join("jobs", "logs")
+		}
+	} else {
+		logfileOutputDir = filepath.Clean(config.LogFileOutputDir)
 	}
 
 	// Logger
