@@ -56,7 +56,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().StringSlice("exclude-string", []string{}, "Discard any (discovered) URLs containing this string.")
 	getCmd.PersistentFlags().Bool("random-local-ip", false, "Use random local IP for requests. (will be ignored if a proxy is set)")
 	getCmd.PersistentFlags().Int("min-space-required", 20, "Minimum space required in GB to continue the crawl.")
-	getCmd.PersistentFlags().Bool("disable-handover", false, "Disable the handover mechanism that dispatch URLs via a buffer before enqueuing on disk.")
+	getCmd.PersistentFlags().Bool("no-handover", false, "Disable the handover mechanism that dispatch URLs via a buffer before enqueuing on disk.")
 	getCmd.PersistentFlags().Bool("ultrasafe-queue", false, "Don't use commited batch writes to the WAL and instead fsync() after each write.")
 
 	// Proxy flags
