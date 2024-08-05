@@ -54,7 +54,7 @@ type Worker struct {
 	state      *workerState
 	doneSignal chan bool
 	pool       *WorkerPool
-	logger     *log.Entry
+	logger     *log.FieldedLogger
 }
 
 // Run is the key component of a crawl, it's a background processed dispatched
