@@ -47,6 +47,7 @@ type Config struct {
 	RotateLogFile            bool
 	ElasticsearchConfig      *ElasticsearchConfig
 	RotateElasticSearchIndex bool
+	isDefault                bool
 }
 
 // New creates a new Logger instance with the given configuration.
@@ -133,14 +134,16 @@ func New(cfg Config) (*Logger, error) {
 		stopErrorLog: make(chan struct{}),
 	}
 
-	once.Do(func() {
-		isLoggerInit = new(atomic.Bool)
-		storedLogger = logger
-		isLoggerInit.CompareAndSwap(false, true)
+	if !cfg.isDefault {
+		once.Do(func() {
+			isLoggerInit = new(atomic.Bool)
+			storedLogger = logger
+			isLoggerInit.CompareAndSwap(false, true)
 
-		// Start rotation goroutine
-		logger.startRotation()
-	})
+			// Start rotation goroutine
+			logger.startRotation()
+		})
+	}
 
 	return logger, nil
 }
@@ -161,13 +164,13 @@ func DefaultOrStored() (*Logger, bool) {
 			FileConfig:  &LogfileConfig{Dir: "jobs", Prefix: "zeno"},
 			FileLevel:   slog.LevelInfo,
 			StdoutLevel: slog.LevelInfo,
+			isDefault:   true,
 		})
 		if err != nil {
 			panic(err)
 		}
 		storedLogger = logger
-		isLoggerInit.CompareAndSwap(false, true)
-		created = true
+		created = isLoggerInit.CompareAndSwap(false, true)
 	})
 	return storedLogger, created
 }
