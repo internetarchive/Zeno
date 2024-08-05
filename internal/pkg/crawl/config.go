@@ -279,9 +279,9 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.HQRateLimitingSendBack = config.HQRateLimitSendBack
 
 	// Handover mechanism
-	c.UseHandover = config.Handover
+	c.UseHandover = !config.NoHandover
 
-	c.UseCommit = config.BatchWriteWAL
+	c.UseCommit = !config.NoBatchWriteWAL
 
 	return c, nil
 }
