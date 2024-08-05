@@ -16,14 +16,16 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8"
 )
 
 var (
-	defaultLogger *Logger
-	once          sync.Once
+	isLoggerInit *atomic.Bool
+	storedLogger *Logger
+	once         sync.Once
 )
 
 // Logger wraps slog.Logger to provide multi-output functionality
@@ -50,6 +52,9 @@ type Config struct {
 // New creates a new Logger instance with the given configuration.
 // It sets up handlers for stdout (text format) and file output (JSON format) if specified.
 // If FileOutput is empty, only stdout logging will be enabled.
+// Only the first call to New will store the logger to be reused. Subsequent calls will return a new logger instance.
+// Only the first call to New will rotate the logs destinations.
+// Please refrain from calling New multiple times in the same program.
 //
 // Parameters:
 //   - cfg: Config struct containing logger configuration options
@@ -128,21 +133,30 @@ func New(cfg Config) (*Logger, error) {
 		stopErrorLog: make(chan struct{}),
 	}
 
-	// Start rotation goroutine
-	logger.startRotation()
+	once.Do(func() {
+		isLoggerInit = new(atomic.Bool)
+		storedLogger = logger
+		isLoggerInit.CompareAndSwap(false, true)
+
+		// Start rotation goroutine
+		logger.startRotation()
+	})
 
 	return logger, nil
 }
 
-// Default returns the default Logger instance.
+// DefaultOrStored returns the default Logger instance or if already initialized, the logger created by first call to New().
 // The default logger writes to both stdout (text format) and a file named "app.log" (JSON format).
 // Both outputs are set to log messages at Info level and above.
 // This function uses sync.Once to ensure that the default logger is only created once.
 //
 // Returns:
 //   - *Logger: The default Logger instance
-func Default() *Logger {
+//   - bool: True if the logger was created by this function, false if the logger was already initialized
+func DefaultOrStored() (*Logger, bool) {
+	var created = false
 	once.Do(func() {
+		isLoggerInit = new(atomic.Bool)
 		logger, err := New(Config{
 			FileConfig:  &LogfileConfig{Dir: "jobs", Prefix: "zeno"},
 			FileLevel:   slog.LevelInfo,
@@ -151,9 +165,17 @@ func Default() *Logger {
 		if err != nil {
 			panic(err)
 		}
-		defaultLogger = logger
+		storedLogger = logger
+		isLoggerInit.CompareAndSwap(false, true)
+		created = true
 	})
-	return defaultLogger
+	return storedLogger, created
+}
+
+// GetStoredLogger returns the logger created by the first call to New() or DefaultOrStored().
+// If the logger has not been initialized, it will return nil.
+func GetStoredLogger() *Logger {
+	return storedLogger
 }
 
 // Errors returns a channel that will receive logging errors
