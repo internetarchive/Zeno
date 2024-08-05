@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 )
 
 var dumpFrequency = 60 // seconds
@@ -58,6 +60,9 @@ type IndexManager struct {
 	WalIoPercent       int           // [1, 100] limit max io percentage for WAL sync
 	WalMinInterval     time.Duration // minimum interval **between** between after-sync and next sync
 	stopChan           chan struct{}
+
+	// Logging
+	logger *log.Logger
 }
 
 // NewIndexManager creates a new IndexManager instance and loads the index from the index file.
@@ -94,6 +99,10 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 		stopChan:     make(chan struct{}),
 	}
 
+	// Logger
+	logger, _ := log.DefaultOrStored()
+	im.logger = logger
+
 	// Init WAL commit if enabled
 	if useCommit {
 		im.walCommit = new(atomic.Uint64)
@@ -121,7 +130,7 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 			indexFile.Close()
 			return nil, fmt.Errorf("failed to recover from crash: %w", err)
 		}
-		fmt.Println("Recovered from crash")
+		im.logger.Warn("Recovered from crash")
 	} else {
 		err = im.loadIndex()
 		if err != nil {

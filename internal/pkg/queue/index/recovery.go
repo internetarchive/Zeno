@@ -10,7 +10,7 @@ func (im *IndexManager) RecoverFromCrash() error {
 	im.Lock()
 	defer im.Unlock()
 
-	fmt.Println("Starting crash recovery process...")
+	im.logger.Warn("starting crash recovery process")
 
 	// Step 1: Load the index file into the in-memory index
 	if err := im.loadIndex(); err != nil {
@@ -48,7 +48,7 @@ func (im *IndexManager) RecoverFromCrash() error {
 
 	// Step 5: Remove old index file
 	if err := os.Remove(oldIndexPath); err != nil {
-		fmt.Printf("Warning: failed to remove old index file: %v\n", err)
+		im.logger.Warn("failed to remove old index file", "error", err)
 	}
 
 	// Step 6: Truncate and reset WAL
