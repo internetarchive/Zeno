@@ -62,24 +62,24 @@ func TestNewItem(t *testing.T) {
 
 			// Assertions
 			if item.URL != parsedURL {
-				t.Errorf("Expected URL %v, got %v", parsedURL, item.URL)
+				t.Fatalf("Expected URL %v, got %v", parsedURL, item.URL)
 			}
 			if item.Hop != tc.hop {
-				t.Errorf("Expected hop %d, got %d", tc.hop, item.Hop)
+				t.Fatalf("Expected hop %d, got %d", tc.hop, item.Hop)
 			}
 			if utils.URLToString(item.ParentURL) != tc.parentURL {
-				t.Errorf("Expected parent item %v, got %v", tc.parentURL, item.ParentURL)
+				t.Fatalf("Expected parent item %v, got %v", tc.parentURL, item.ParentURL)
 			}
 			if item.Type != tc.itemType {
-				t.Errorf("Expected item type %s, got %s", tc.itemType, item.Type)
+				t.Fatalf("Expected item type %s, got %s", tc.itemType, item.Type)
 			}
 			if tc.id != "" {
 				if item.ID != tc.id {
-					t.Errorf("Expected ID %s, got %s", tc.id, item.ID)
+					t.Fatalf("Expected ID %s, got %s", tc.id, item.ID)
 				}
 			} else {
 				if item.ID == "" {
-					t.Errorf("Expected random ID, got %s", item.ID)
+					t.Fatalf("Expected random ID, got %s", item.ID)
 				}
 			}
 
@@ -88,12 +88,12 @@ func TestNewItem(t *testing.T) {
 				expectedBypassSeencheck = true
 			}
 			if item.BypassSeencheck != expectedBypassSeencheck {
-				t.Errorf("Expected BypassSeencheck %t, got %t", expectedBypassSeencheck, item.BypassSeencheck)
+				t.Fatalf("Expected BypassSeencheck %t, got %t", expectedBypassSeencheck, item.BypassSeencheck)
 			}
 
 			// Check that Hash is not empty (we can't predict its exact value)
 			if item.Hash == 0 {
-				t.Error("Expected non-zero Hash")
+				t.Fatal("Expected non-zero Hash")
 			}
 		})
 	}

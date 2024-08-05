@@ -69,7 +69,7 @@ func TestDequeue(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Errorf("Dequeued unexpected item: %v", dequeued)
+			t.Fatalf("Dequeued unexpected item: %v", dequeued)
 		}
 	}
 
@@ -77,7 +77,7 @@ func TestDequeue(t *testing.T) {
 	q.Close()
 	_, err = q.Dequeue()
 	if err != ErrDequeueClosed {
-		t.Errorf("Expected ErrDequeueClosed, got %v", err)
+		t.Fatalf("Expected ErrDequeueClosed, got %v", err)
 	}
 }
 
@@ -134,7 +134,7 @@ func TestDequeueHostOrder(t *testing.T) {
 			t.Fatalf("Failed to dequeue item: %v", err)
 		}
 		if dequeued.URL.Host != expectedHost {
-			t.Errorf("Expected host %s for dequeue %d, got %s", expectedHost, i, dequeued.URL.Host)
+			t.Fatalf("Expected host %s for dequeue %d, got %s", expectedHost, i, dequeued.URL.Host)
 		}
 	}
 }

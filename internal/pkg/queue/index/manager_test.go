@@ -115,7 +115,7 @@ func Test_badMultipleSyncers(t *testing.T) {
 	// if we call the syncer again, it should panic
 	defer func() {
 		if r := recover(); r == nil {
-			t.Errorf("The code did not panic")
+			t.Fatalf("The code did not panic")
 		}
 	}()
 	im.walCommitsSyncer()

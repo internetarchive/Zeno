@@ -15,7 +15,7 @@ func TestParseOneLink(t *testing.T) {
 	want := links
 
 	if !slices.Equal(got, want) {
-		t.Errorf("got %q, wanted %q", got, want)
+		t.Fatalf("got %q, wanted %q", got, want)
 	}
 }
 
@@ -33,7 +33,7 @@ func TestParseMultipleLinks(t *testing.T) {
 	want := links
 
 	if !slices.Equal(got, want) {
-		t.Errorf("got %q, wanted %q", got, want)
+		t.Fatalf("got %q, wanted %q", got, want)
 	}
 }
 
@@ -47,7 +47,7 @@ func TestParseOneMalformedLink(t *testing.T) {
 	want := links
 
 	if !slices.Equal(got, want) {
-		t.Errorf("got %q, wanted %q", got, want)
+		t.Fatalf("got %q, wanted %q", got, want)
 	}
 }
 
@@ -65,7 +65,7 @@ func TestParseMultipleMalformedLinks(t *testing.T) {
 	want := links
 
 	if !slices.Equal(got, want) {
-		t.Errorf("got %q, wanted %q", got, want)
+		t.Fatalf("got %q, wanted %q", got, want)
 	}
 }
 
@@ -76,11 +76,11 @@ func TestParseAttr(t *testing.T) {
 	wantKey, wantValue := "rel", "preconnect"
 
 	if gotKey != wantKey {
-		t.Errorf("got %q, wanted %q", gotKey, wantKey)
+		t.Fatalf("got %q, wanted %q", gotKey, wantKey)
 	}
 
 	if gotValue != wantValue {
-		t.Errorf("got %q, wanted %q", gotValue, wantValue)
+		t.Fatalf("got %q, wanted %q", gotValue, wantValue)
 	}
 }
 
@@ -91,10 +91,10 @@ func TestParseMalformedAttr(t *testing.T) {
 	wantKey, wantValue := "", "preconnect"
 
 	if gotKey != wantKey {
-		t.Errorf("got %q, wanted %q", gotKey, wantKey)
+		t.Fatalf("got %q, wanted %q", gotKey, wantKey)
 	}
 
 	if gotValue != wantValue {
-		t.Errorf("got %q, wanted %q", gotValue, wantValue)
+		t.Fatalf("got %q, wanted %q", gotValue, wantValue)
 	}
 }

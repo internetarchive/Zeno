@@ -16,7 +16,7 @@ func Test_isWALEmpty(t *testing.T) {
 		t.Fatalf("failed to check if WAL is empty: %v", err)
 	}
 	if !isEmpty {
-		t.Error("expected WAL to be empty")
+		t.Fatal("expected WAL to be empty")
 	}
 
 	// Write to WAL
@@ -34,7 +34,7 @@ func Test_isWALEmpty(t *testing.T) {
 		t.Fatalf("failed to check if WAL is empty: %v", err)
 	}
 	if isEmpty {
-		t.Error("expected WAL not to be empty")
+		t.Fatal("expected WAL not to be empty")
 	}
 }
 
@@ -63,7 +63,7 @@ func Test_writeToWAL_Then_replayWAL(t *testing.T) {
 	}
 
 	if replayedEntries != 1 {
-		t.Errorf("expected 1 entry to be replayed, got: %d", replayedEntries)
+		t.Fatalf("expected 1 entry to be replayed, got: %d", replayedEntries)
 	}
 }
 
@@ -94,7 +94,7 @@ func Test_bigreplayWAL(t *testing.T) {
 	}
 
 	if replayedEntries != numEntries {
-		t.Errorf("expected %d entries to be replayed, got: %d", numEntries, replayedEntries)
+		t.Fatalf("expected %d entries to be replayed, got: %d", numEntries, replayedEntries)
 	}
 }
 
@@ -126,7 +126,7 @@ func Test_writeToWAL_Then_truncateWAL(t *testing.T) {
 		t.Fatalf("failed to check if WAL is empty: %v", err)
 	}
 	if !isEmpty {
-		t.Error("expected WAL to be empty after truncation")
+		t.Fatal("expected WAL to be empty after truncation")
 	}
 }
 
@@ -160,7 +160,7 @@ func Test_WAL_combined(t *testing.T) {
 	}
 
 	if replayedEntries != numEntries {
-		t.Errorf("expected 0 entries to be replayed, got: %d", replayedEntries)
+		t.Fatalf("expected 0 entries to be replayed, got: %d", replayedEntries)
 	}
 
 	replayedEntries = 0
@@ -177,7 +177,7 @@ func Test_WAL_combined(t *testing.T) {
 		t.Fatalf("failed to check if WAL is empty: %v", err)
 	}
 	if !isEmpty {
-		t.Error("expected WAL to be empty after truncation")
+		t.Fatal("expected WAL to be empty after truncation")
 	}
 
 	// Replay WAL
@@ -187,7 +187,7 @@ func Test_WAL_combined(t *testing.T) {
 	}
 
 	if replayedEntries != 0 {
-		t.Errorf("expected 0 entries to be replayed, got: %d", replayedEntries)
+		t.Fatalf("expected 0 entries to be replayed, got: %d", replayedEntries)
 	}
 
 	replayedEntries = 0
@@ -206,7 +206,7 @@ func Test_WAL_combined(t *testing.T) {
 		t.Fatalf("failed to check if WAL is empty: %v", err)
 	}
 	if isEmpty {
-		t.Error("expected WAL to be non-empty after writing")
+		t.Fatal("expected WAL to be non-empty after writing")
 	}
 
 	// Replay WAL
@@ -216,7 +216,7 @@ func Test_WAL_combined(t *testing.T) {
 	}
 
 	if replayedEntries != numEntries {
-		t.Errorf("expected %d entries to be replayed, got: %d", numEntries, replayedEntries)
+		t.Fatalf("expected %d entries to be replayed, got: %d", numEntries, replayedEntries)
 	}
 
 	// Check if WAL is empty
@@ -225,7 +225,7 @@ func Test_WAL_combined(t *testing.T) {
 		t.Fatalf("failed to check if WAL is empty: %v", err)
 	}
 	if isEmpty {
-		t.Error("expected WAL to be non-empty after replaying")
+		t.Fatal("expected WAL to be non-empty after replaying")
 	}
 }
 
@@ -253,7 +253,7 @@ func Test_WAL_WriteAfterNonZeroReplay(t *testing.T) {
 	}
 
 	if replayedEntries != numEntries {
-		t.Errorf("expected %d entries to be replayed, got: %d", numEntries, replayedEntries)
+		t.Fatalf("expected %d entries to be replayed, got: %d", numEntries, replayedEntries)
 	}
 
 	// Write to WAL again
