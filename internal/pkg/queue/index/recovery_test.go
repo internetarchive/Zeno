@@ -153,7 +153,6 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 		lastDumpTime: time.Now(),
 		useCommit:    false,
 	}
-
 	// Logger
 	logger, _ := log.DefaultOrStored()
 	im.logger = logger

@@ -56,8 +56,7 @@ type IndexManager struct {
 	walCommittedNotify chan uint64   // receives the committed id from walCommitsSyncer
 	walSyncerRunning   atomic.Bool   // used to prevent multiple walCommitsSyncer running,
 	walStopChan        chan struct{} // Syncer will close this channel after stopping
-	WalIoPercent       int           // [1, 100] limit max io percentage for WAL sync
-	WalMinInterval     time.Duration // minimum interval **between** between after-sync and next sync
+	WalWait            time.Duration // interval **between** between after-sync and next sync
 	stopChan           chan struct{}
 
 	// Logging
@@ -108,8 +107,7 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 		im.walCommitted = new(atomic.Uint64)
 		im.walNotifyListeners = new(atomic.Int64)
 		im.walCommittedNotify = make(chan uint64)
-		im.WalIoPercent = 10
-		im.WalMinInterval = 10 * time.Millisecond
+		im.WalWait = 100 * time.Millisecond
 		im.walStopChan = make(chan struct{})
 	}
 
@@ -176,11 +174,6 @@ func (im *IndexManager) walCommitsSyncer() {
 	defer im.walSyncerRunning.Store(false)
 	defer close(im.walStopChan)
 
-	if im.WalIoPercent < 1 || im.WalIoPercent > 100 {
-		im.logger.Warn("invalid WAL_IO_PERCENT", "value", im.WalIoPercent, "setting to", 10)
-		im.WalIoPercent = 10
-	}
-
 	lastTrySyncDuration := time.Duration(0)
 	stopping := false
 	for {
@@ -195,12 +188,8 @@ func (im *IndexManager) walCommitsSyncer() {
 		default:
 		}
 
-		sleepTime := lastTrySyncDuration * time.Duration((100-im.WalIoPercent)/im.WalIoPercent)
-		if sleepTime < im.WalMinInterval {
-			sleepTime = im.WalMinInterval
-		}
-		im.logger.Debug("walCommitsSyncer sleeping", "sleepTime", sleepTime, "lastTrySyncDuration", lastTrySyncDuration)
-		time.Sleep(sleepTime)
+		im.logger.Debug("walCommitsSyncer sleeping", "WalWait", im.WalWait, "lastTrySyncDuration", lastTrySyncDuration)
+		time.Sleep(im.WalWait)
 
 		start := time.Now()
 		flyingCommit := im.walCommit.Load()
