@@ -5,9 +5,10 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 )
 
 func Test_Recovery(t *testing.T) {
@@ -32,34 +33,29 @@ func Test_Recovery(t *testing.T) {
 	}
 
 	im := &IndexManager{
-		hostIndex:          newIndex(),
-		walFile:            walFile,
-		indexFile:          indexFile,
-		walEncoder:         gob.NewEncoder(walFile),
-		walDecoder:         gob.NewDecoder(walFile),
-		indexEncoder:       gob.NewEncoder(indexFile),
-		indexDecoder:       gob.NewDecoder(indexFile),
-		dumpTicker:         time.NewTicker(time.Duration(dumpFrequency) * time.Second),
-		lastDumpTime:       time.Now(),
-		walCommit:          new(atomic.Uint64),
-		walCommited:        new(atomic.Uint64),
-		walNotifyListeners: new(atomic.Int64),
-		WalIoPercent:       100,
-		WalMinInterval:     time.Duration(0),
-		walCommitedNotify:  make(chan uint64),
-		walStopChan:        make(chan struct{}),
+		hostIndex:    newIndex(),
+		walFile:      walFile,
+		indexFile:    indexFile,
+		walEncoder:   gob.NewEncoder(walFile),
+		walDecoder:   gob.NewDecoder(walFile),
+		indexEncoder: gob.NewEncoder(indexFile),
+		indexDecoder: gob.NewDecoder(indexFile),
+		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
+		lastDumpTime: time.Now(),
+		useCommit:    false,
 	}
-	go im.walCommitsSyncer()
+
+	// Logger
+	logger, _ := log.DefaultOrStored()
+	im.logger = logger
 
 	// Add entries to the index
-	var commit uint64 = 0
 	for i := 0; i < 1000; i++ {
-		commit, err = im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
+		_, err := im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
 		if err != nil {
 			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
-	im.AwaitWALCommitted(commit)
 
 	im.Lock()
 
@@ -109,7 +105,11 @@ func Test_Recovery(t *testing.T) {
 		indexDecoder: gob.NewDecoder(indexFile),
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
+		useCommit:    false,
 	}
+
+	// Logger
+	im.logger = logger
 
 	err = im.RecoverFromCrash()
 	if err != nil {
@@ -142,36 +142,29 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 	}
 
 	im := &IndexManager{
-		hostIndex:          newIndex(),
-		walFile:            walFile,
-		indexFile:          indexFile,
-		walEncoder:         gob.NewEncoder(walFile),
-		walDecoder:         gob.NewDecoder(walFile),
-		indexEncoder:       gob.NewEncoder(indexFile),
-		indexDecoder:       gob.NewDecoder(indexFile),
-		dumpTicker:         time.NewTicker(time.Duration(dumpFrequency) * time.Second),
-		walCommit:          new(atomic.Uint64),
-		walCommited:        new(atomic.Uint64),
-		walNotifyListeners: new(atomic.Int64),
-		walCommitedNotify:  make(chan uint64),
-		WalIoPercent:       100,
-		WalMinInterval:     time.Duration(0),
-		lastDumpTime:       time.Now(),
+		hostIndex:    newIndex(),
+		walFile:      walFile,
+		indexFile:    indexFile,
+		walEncoder:   gob.NewEncoder(walFile),
+		walDecoder:   gob.NewDecoder(walFile),
+		indexEncoder: gob.NewEncoder(indexFile),
+		indexDecoder: gob.NewDecoder(indexFile),
+		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
+		lastDumpTime: time.Now(),
+		useCommit:    false,
 	}
-	go im.walCommitsSyncer()
+
+	// Logger
+	logger, _ := log.DefaultOrStored()
+	im.logger = logger
 
 	// Add entries to the index
-	t.Log("Adding entries to index")
-	var commit uint64 = 0
 	for i := 0; i < 50; i++ {
-		commit, err = im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
+		_, err := im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
 		if err != nil {
 			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
-	t.Log("Awaiting WAL commit")
-	im.AwaitWALCommitted(commit)
-	t.Log("WAL commit received")
 
 	// Perform a disk dump
 	err = im.performDump()
@@ -181,12 +174,11 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 
 	// Add more entries to the index
 	for i := 50; i < 100; i++ {
-		commit, err = im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
+		_, err := im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
 		if err != nil {
 			t.Fatalf("failed to add entry to index: %v", err)
 		}
 	}
-	im.AwaitWALCommitted(commit)
 
 	im.Lock()
 
@@ -236,9 +228,11 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 		indexDecoder: gob.NewDecoder(indexFile),
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
+		useCommit:    false,
 	}
 
-	t.Log("Recovering from crash")
+	// Logger
+	im.logger = logger
 
 	err = im.RecoverFromCrash()
 	if err != nil {
