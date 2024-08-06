@@ -10,6 +10,7 @@ import (
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/queue"
 	"github.com/internetarchive/Zeno/internal/seencheck"
+	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/internetarchive/Zeno/internal/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/telanflow/cookiejar"
@@ -140,8 +141,13 @@ func (c *Crawl) Start() (err error) {
 	c.Workers.Start()
 
 	// Start the process responsible for printing live stats on the standard output
-	if c.LiveStats {
-		go c.printLiveStats()
+	if c.UseLiveStats {
+		statsRunner, ok := stats.Init()
+		if !ok {
+			c.Log.Fatal("unable to init stats")
+		}
+		c.LiveStats = statsRunner
+		go c.LiveStats.Printer()
 	}
 
 	// If crawl HQ parameters are specified, then we start the background

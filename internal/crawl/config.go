@@ -15,6 +15,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/log"
 	"github.com/internetarchive/Zeno/internal/queue"
 	"github.com/internetarchive/Zeno/internal/seencheck"
+	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/internetarchive/Zeno/internal/utils"
 	"github.com/paulbellamy/ratecounter"
 )
@@ -26,7 +27,10 @@ type Crawl struct {
 	SeedList  []queue.Item
 	Paused    *utils.TAtomBool
 	Finished  *utils.TAtomBool
-	LiveStats bool
+
+	// Live stats
+	UseLiveStats bool
+	LiveStats    *stats.Runner
 
 	// Logger
 	Log *log.Logger
@@ -167,7 +171,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.ActiveWorkers = new(ratecounter.Counter)
 	c.URIsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
-	c.LiveStats = config.LiveStats
+	c.UseLiveStats = config.LiveStats
 
 	// If the job name isn't specified, we generate a random name
 	if config.Job == "" {
