@@ -1,3 +1,4 @@
+// Package cmd provides the CLI system for Zeno
 package cmd
 
 import (
