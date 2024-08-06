@@ -8,8 +8,6 @@ import (
 func (q *PersistentGroupedQueue) loadMetadata() error {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
-	q.statsMutex.Lock()
-	defer q.statsMutex.Unlock()
 
 	_, err := q.metadataFile.Seek(0, 0)
 	if err != nil {
@@ -17,7 +15,6 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 	}
 
 	var metadata struct {
-		Stats       QueueStats
 		CurrentHost uint64
 	}
 
@@ -31,12 +28,6 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 	}
 
 	q.currentHost.Store(metadata.CurrentHost)
-	q.stats = &metadata.Stats
-
-	// Reinitialize maps if they're nil
-	if q.stats.elementsPerHost == nil {
-		q.stats.elementsPerHost = make(map[string]int)
-	}
 
 	return nil
 }

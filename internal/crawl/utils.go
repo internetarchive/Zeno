@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/internetarchive/Zeno/internal/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -53,9 +54,13 @@ func (c *Crawl) handleCrawlPause() {
 				"Please free some space for the crawler to resume.", c.MinSpaceRequired, spaceLeft))
 			c.Paused.Set(true)
 			c.Queue.Paused.Set(true)
+			stats.SetCrawlState("paused")
 		} else {
 			c.Paused.Set(false)
 			c.Queue.Paused.Set(false)
+			if stats.GetCrawlState() == "paused" {
+				stats.SetCrawlState("running")
+			}
 		}
 
 		time.Sleep(time.Second)

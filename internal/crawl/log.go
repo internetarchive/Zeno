@@ -17,7 +17,7 @@ var constants sync.Map
 func (c *Crawl) genLogFields(err interface{}, URL interface{}, additionalFields map[string]interface{}) (fields logrus.Fields) {
 	fields = logrus.Fields{}
 
-	fields["queued"] = c.Queue.GetStats().TotalElements
+	fields["queued"] = stats.GetQueueTotalElementsCount()
 	fields["crawled"] = stats.GetCrawledSeeds() + stats.GetCrawledAssets()
 	fields["rate"] = stats.GetURIPerSecond()
 	fields["activeWorkers"] = stats.GetActiveWorkers()

@@ -21,7 +21,7 @@ func (crawl *Crawl) catchFinish() {
 
 	for {
 		time.Sleep(time.Second * 5)
-		if !crawl.UseHQ && stats.GetActiveWorkers() == 0 && crawl.Queue.GetStats().TotalElements == 0 && !crawl.Finished.Get() && (stats.GetCrawledSeeds()+stats.GetCrawledAssets() > 0) {
+		if !crawl.UseHQ && stats.GetActiveWorkers() == 0 && stats.GetQueueTotalElementsCount() == 0 && !crawl.Finished.Get() && (stats.GetCrawledSeeds()+stats.GetCrawledAssets() > 0) {
 			crawl.Log.Warn("No more items to crawl, finishing..")
 			crawl.finish()
 		}
@@ -30,6 +30,7 @@ func (crawl *Crawl) catchFinish() {
 
 func (crawl *Crawl) finish() {
 	crawl.Finished.Set(true)
+	stats.SetCrawlState("finishing")
 
 	crawl.Log.Warn("[QUEUE] Freezing the dequeue")
 	crawl.Queue.FreezeDequeue()
@@ -55,6 +56,7 @@ func (crawl *Crawl) finish() {
 	}
 
 	crawl.Log.Warn("[WARC] Closing writer(s)..")
+	crawl.stopMonitorWARCWaitGroup <- struct{}{}
 	crawl.Client.Close()
 
 	if crawl.Proxy != "" {
@@ -72,6 +74,9 @@ func (crawl *Crawl) finish() {
 		crawl.Seencheck.Close()
 		crawl.Log.Warn("[SEENCHECK] Database closed")
 	}
+
+	// Closing the stats
+	stats.Stop()
 
 	crawl.Log.Warn("Finished!")
 

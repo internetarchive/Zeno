@@ -6,10 +6,14 @@ import (
 	"path"
 	"testing"
 	"time"
+
+	"github.com/internetarchive/Zeno/internal/stats"
 )
 
 func TestEnqueue(t *testing.T) {
 	t.Run("Enqueue single item", func(t *testing.T) {
+		stats.Reset()
+		stats.Init(nil)
 		tempDir, err := os.MkdirTemp("", "queue_test")
 		if err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)
@@ -33,24 +37,24 @@ func TestEnqueue(t *testing.T) {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
 
-		if q.GetStats().TotalElements != 1 {
-			t.Fatalf("Expected TotalElements to be 1, got %d", q.GetStats().TotalElements)
+		if totalElem := stats.GetQueueTotalElementsCount(); totalElem != 1 {
+			t.Fatalf("Expected TotalElements to be 1, got %d", totalElem)
 		}
 
-		if q.GetStats().UniqueHosts != 1 {
-			t.Fatalf("Expected UniqueHosts to be 1, got %d", q.GetStats().UniqueHosts)
+		if uniqueHosts := stats.GetQueueUniqueHostsCount(); uniqueHosts != 1 {
+			t.Fatalf("Expected UniqueHosts to be 1, got %d", uniqueHosts)
 		}
 
-		ElementsPerHost := q.GetElementsPerHost()
-		q.statsMutex.Lock()
-		defer q.statsMutex.Unlock()
+		elementsPerHost := stats.GetElementsPerHost()
 
-		if (*ElementsPerHost)["example.fr"] != 1 {
-			t.Fatalf("Expected ElementsPerHost[example.fr] to be 1, got %d", (*ElementsPerHost)["example.fr"])
+		if elementsPerHost["example.fr"] != 1 {
+			t.Fatalf("Expected ElementsPerHost[example.fr] to be 1, got %d", elementsPerHost["example.fr"])
 		}
 	})
 
 	t.Run("Enqueue multiple items", func(t *testing.T) {
+		stats.Reset()
+		stats.Init(nil)
 		tempDir, err := os.MkdirTemp("", "queue_test")
 		if err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)
@@ -78,20 +82,18 @@ func TestEnqueue(t *testing.T) {
 			}
 		}
 
-		if q.GetStats().TotalElements != 4 {
-			t.Fatalf("Expected TotalElements to be 4, got %d", q.GetStats().TotalElements)
+		if totalElem := stats.GetQueueTotalElementsCount(); totalElem != 4 {
+			t.Fatalf("Expected TotalElements to be 4, got %d", totalElem)
 		}
 
-		if q.GetStats().UniqueHosts != 3 {
-			t.Fatalf("Expected UniqueHosts to be 3, got %d", q.GetStats().UniqueHosts)
+		if uniqueHosts := stats.GetQueueUniqueHostsCount(); uniqueHosts != 3 {
+			t.Fatalf("Expected UniqueHosts to be 3, got %d", uniqueHosts)
 		}
 
-		ElementsPerHost := q.GetElementsPerHost()
-		q.statsMutex.Lock()
-		defer q.statsMutex.Unlock()
+		elementsPerHost := stats.GetElementsPerHost()
 
-		if (*ElementsPerHost)["example.fr"] != 2 {
-			t.Fatalf("Expected ElementsPerHost[example.fr] to be 2, got %d", (*ElementsPerHost)["example.fr"])
+		if elementsPerHost["example.fr"] != 2 {
+			t.Fatalf("Expected ElementsPerHost[example.fr] to be 2, got %d", elementsPerHost["example.fr"])
 		}
 
 		if q.Empty.Get() {
@@ -100,6 +102,8 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Enqueue to closed queue", func(t *testing.T) {
+		stats.Reset()
+		stats.Init(nil)
 		tempDir, err := os.MkdirTemp("", "queue_test")
 		if err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)
@@ -126,6 +130,8 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check enqueue times", func(t *testing.T) {
+		stats.Reset()
+		stats.Init(nil)
 		tempDir, err := os.MkdirTemp("", "queue_test")
 		if err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)
@@ -149,14 +155,14 @@ func TestEnqueue(t *testing.T) {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
 
-		if q.GetStats().FirstEnqueueTime.IsZero() {
+		if stats.GetFirstEnqueueTime().IsZero() {
 			t.Fatal("FirstEnqueueTime should not be zero")
 		}
-		if q.GetStats().LastEnqueueTime.IsZero() {
+		if stats.GetLastEnqueueTime().IsZero() {
 			t.Fatal("LastEnqueueTime should not be zero")
 		}
-		if q.GetStats().EnqueueCount != 1 {
-			t.Fatalf("Expected EnqueueCount to be 1, got %d", q.GetStats().EnqueueCount)
+		if enqueueCount := stats.GetEnqueueCount(); enqueueCount != 1 {
+			t.Fatalf("Expected EnqueueCount to be 1, got %d", enqueueCount)
 		}
 
 		time.Sleep(10 * time.Millisecond)
@@ -165,11 +171,11 @@ func TestEnqueue(t *testing.T) {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
 
-		if !q.GetStats().LastEnqueueTime.After(q.GetStats().FirstEnqueueTime) {
+		if !stats.GetLastEnqueueTime().After(stats.GetFirstEnqueueTime()) {
 			t.Fatal("LastEnqueueTime should be after FirstEnqueueTime")
 		}
-		if q.GetStats().EnqueueCount != 2 {
-			t.Fatalf("Expected EnqueueCount to be 2, got %d", q.GetStats().EnqueueCount)
+		if enqueueCount := stats.GetEnqueueCount(); enqueueCount != 2 {
+			t.Fatalf("Expected EnqueueCount to be 2, got %d", enqueueCount)
 		}
 
 		if q.Empty.Get() {
@@ -178,6 +184,8 @@ func TestEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check host order", func(t *testing.T) {
+		stats.Reset()
+		stats.Init(nil)
 		tempDir, err := os.MkdirTemp("", "queue_test")
 		if err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)
@@ -222,6 +230,8 @@ func TestEnqueue(t *testing.T) {
 
 func TestBatchEnqueue(t *testing.T) {
 	t.Run("Enqueue single item", func(t *testing.T) {
+		stats.Reset()
+		stats.Init(nil)
 		tempDir, err := os.MkdirTemp("", "queue_test")
 		if err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)
@@ -245,20 +255,18 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
 
-		if q.GetStats().TotalElements != 1 {
-			t.Fatalf("Expected TotalElements to be 1, got %d", q.GetStats().TotalElements)
+		if totalElem := stats.GetQueueTotalElementsCount(); totalElem != 1 {
+			t.Fatalf("Expected TotalElements to be 1, got %d", totalElem)
 		}
 
-		if q.GetStats().UniqueHosts != 1 {
-			t.Fatalf("Expected UniqueHosts to be 1, got %d", q.GetStats().UniqueHosts)
+		if uniqueHosts := stats.GetQueueUniqueHostsCount(); uniqueHosts != 1 {
+			t.Fatalf("Expected UniqueHosts to be 1, got %d", stats.GetQueueUniqueHostsCount())
 		}
 
-		ElementsPerHost := q.GetElementsPerHost()
-		q.statsMutex.Lock()
-		defer q.statsMutex.Unlock()
+		elementsPerHost := stats.GetElementsPerHost()
 
-		if (*ElementsPerHost)["example.fr"] != 1 {
-			t.Fatalf("Expected ElementsPerHost[example.fr] to be 1, got %d", (*ElementsPerHost)["example.fr"])
+		if elementsPerHost["example.fr"] != 1 {
+			t.Fatalf("Expected ElementsPerHost[example.fr] to be 1, got %d", elementsPerHost["example.fr"])
 		}
 
 		if q.Empty.Get() {
@@ -267,6 +275,8 @@ func TestBatchEnqueue(t *testing.T) {
 	})
 
 	t.Run("Enqueue multiple items", func(t *testing.T) {
+		stats.Reset()
+		stats.Init(nil)
 		tempDir, err := os.MkdirTemp("", "queue_test")
 		if err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)
@@ -297,20 +307,18 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to enqueue items: %v", err)
 		}
 
-		if q.GetStats().TotalElements != 4 {
-			t.Fatalf("Expected TotalElements to be 4, got %d", q.GetStats().TotalElements)
+		if totalElem := stats.GetQueueTotalElementsCount(); totalElem != 4 {
+			t.Fatalf("Expected TotalElements to be 4, got %d", totalElem)
 		}
 
-		if q.GetStats().UniqueHosts != 3 {
-			t.Fatalf("Expected UniqueHosts to be 3, got %d", q.GetStats().UniqueHosts)
+		if uniqueHosts := stats.GetQueueUniqueHostsCount(); uniqueHosts != 3 {
+			t.Fatalf("Expected UniqueHosts to be 3, got %d", stats.GetQueueUniqueHostsCount())
 		}
 
-		ElementsPerHost := q.GetElementsPerHost()
-		q.statsMutex.Lock()
-		defer q.statsMutex.Unlock()
+		elementsPerHost := stats.GetElementsPerHost()
 
-		if (*ElementsPerHost)["example.fr"] != 2 {
-			t.Fatalf("Expected ElementsPerHost[example.fr] to be 2, got %d", (*ElementsPerHost)["example.fr"])
+		if elementsPerHost["example.fr"] != 2 {
+			t.Fatalf("Expected ElementsPerHost[example.fr] to be 2, got %d", elementsPerHost["example.fr"])
 		}
 
 		if q.Empty.Get() {
@@ -319,6 +327,8 @@ func TestBatchEnqueue(t *testing.T) {
 	})
 
 	t.Run("Enqueue to closed queue", func(t *testing.T) {
+		stats.Reset()
+		stats.Init(nil)
 		tempDir, err := os.MkdirTemp("", "queue_test")
 		if err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)
@@ -344,6 +354,8 @@ func TestBatchEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check enqueue times", func(t *testing.T) {
+		stats.Reset()
+		stats.Init(nil)
 		tempDir, err := os.MkdirTemp("", "queue_test")
 		if err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)
@@ -367,16 +379,16 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
 
-		if q.GetStats().FirstEnqueueTime.IsZero() {
+		if stats.GetFirstEnqueueTime().IsZero() {
 			t.Fatal("FirstEnqueueTime should not be zero")
 		}
 
-		if q.GetStats().LastEnqueueTime.IsZero() {
+		if stats.GetLastEnqueueTime().IsZero() {
 			t.Fatal("LastEnqueueTime should not be zero")
 		}
 
-		if q.GetStats().EnqueueCount != 1 {
-			t.Fatalf("Expected EnqueueCount to be 1, got %d", q.GetStats().EnqueueCount)
+		if enqueueCount := stats.GetEnqueueCount(); enqueueCount != 1 {
+			t.Fatalf("Expected EnqueueCount to be 1, got %d", enqueueCount)
 		}
 
 		time.Sleep(10 * time.Millisecond)
@@ -385,12 +397,12 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
 
-		if !q.GetStats().LastEnqueueTime.After(q.GetStats().FirstEnqueueTime) {
+		if !stats.GetLastEnqueueTime().After(stats.GetFirstEnqueueTime()) {
 			t.Fatal("LastEnqueueTime should be after FirstEnqueueTime")
 		}
 
-		if q.GetStats().EnqueueCount != 2 {
-			t.Fatalf("Expected EnqueueCount to be 2, got %d", q.GetStats().EnqueueCount)
+		if enqueueCount := stats.GetEnqueueCount(); enqueueCount != 2 {
+			t.Fatalf("Expected EnqueueCount to be 2, got %d", enqueueCount)
 		}
 
 		if q.Empty.Get() {
@@ -399,6 +411,8 @@ func TestBatchEnqueue(t *testing.T) {
 	})
 
 	t.Run("Check host order", func(t *testing.T) {
+		stats.Reset()
+		stats.Init(nil)
 		tempDir, err := os.MkdirTemp("", "queue_test")
 		if err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)

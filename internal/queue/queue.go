@@ -12,6 +12,7 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/log"
 	"github.com/internetarchive/Zeno/internal/queue/index"
+	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/internetarchive/Zeno/internal/utils"
 )
 
@@ -27,8 +28,6 @@ type PersistentGroupedQueue struct {
 	metadataEncoder *gob.Encoder
 	metadataDecoder *gob.Decoder
 	index           *index.IndexManager
-	stats           *QueueStats
-	statsMutex      sync.Mutex // Write lock for stats
 	currentHost     *atomic.Uint64
 	mutex           sync.RWMutex
 
@@ -99,9 +98,6 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 		metadataDecoder: gob.NewDecoder(metafile),
 		index:           indexManager,
 		currentHost:     new(atomic.Uint64),
-		stats: &QueueStats{
-			elementsPerHost: make(map[string]int),
-		},
 	}
 
 	// Logging
@@ -134,8 +130,8 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 		q.dequeueOp = q.dequeueNoCommit
 	}
 
-	// Loading stats from the disk means deleting the file from disk after having read it
-	if err = q.loadStatsFromFile(path.Join(q.queueDirPath, "queue.stats")); err != nil {
+	err = stats.LoadQueueStatsFromFile(path.Join(q.queueDirPath, "queue.stats"))
+	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, fmt.Errorf("load queue stats: %w", err)
 		}
@@ -159,9 +155,11 @@ func (q *PersistentGroupedQueue) Close() error {
 
 	q.finishing.Set(true)
 	q.closed.Set(true)
+	stats.SetCanEnqueue(false)
+	stats.SetCanDequeue(false)
 
 	// Save metadata
-	err := q.saveStatsToFile(path.Join(q.queueDirPath, "queue.stats"))
+	err := stats.SaveQueueStatsToFile(path.Join(q.queueDirPath, "queue.stats"))
 	if err != nil {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}
@@ -192,4 +190,5 @@ func (q *PersistentGroupedQueue) FreezeDequeue() {
 	defer q.mutex.Unlock()
 
 	q.finishing.Set(true)
+	stats.SetCanDequeue(false)
 }

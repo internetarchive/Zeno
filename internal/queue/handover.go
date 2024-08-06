@@ -3,6 +3,8 @@ package queue
 import (
 	"sync/atomic"
 	"time"
+
+	"github.com/internetarchive/Zeno/internal/stats"
 )
 
 var defaultMonitorInterval = 20 * time.Millisecond
@@ -78,6 +80,7 @@ func (h *handoverChannel) tryOpen(size int) bool {
 	h.signalConsumerDone = make(chan bool)
 	h.ready.Store(true)
 	h.drained.Store(false)
+	stats.SetHandoverOpen(true)
 	go h.monitorActivity()
 	return true
 }
@@ -96,6 +99,7 @@ func (h *handoverChannel) tryClose() bool {
 	}
 	close(h.ch)
 	close(h.signalConsumerDone)
+	stats.SetHandoverOpen(false)
 	return true
 }
 

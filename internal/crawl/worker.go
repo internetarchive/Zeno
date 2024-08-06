@@ -71,6 +71,7 @@ func (w *Worker) Run() {
 			w.state.currentItem = nil
 			w.state.status = completed
 			w.logger.Info("Worker stopped")
+			stats.DecreaseTotalWorkers()
 			return
 		default:
 			for w.pool.Crawl.Paused.Get() {

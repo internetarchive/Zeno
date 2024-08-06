@@ -26,4 +26,7 @@ var (
 
 	// ErrCommitValueNotReceived is returned when a commit value is not received when it should have been
 	ErrCommitValueNotReceived = errors.New("commit value not received when it should have been")
+
+	// ErrNilItem is returned when a nil item is enqueued
+	ErrNilItem = errors.New("nil item")
 )

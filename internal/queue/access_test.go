@@ -4,9 +4,13 @@ import (
 	"os"
 	"path"
 	"testing"
+
+	"github.com/internetarchive/Zeno/internal/stats"
 )
 
 func Test_canEnqueue(t *testing.T) {
+	stats.Reset()
+	stats.Init(nil)
 	tempDir, err := os.MkdirTemp("", "queue_test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -25,6 +29,8 @@ func Test_canEnqueue(t *testing.T) {
 }
 
 func Test_canDequeue(t *testing.T) {
+	stats.Reset()
+	stats.Init(nil)
 	tempDir, err := os.MkdirTemp("", "queue_test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)

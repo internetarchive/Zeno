@@ -127,6 +127,7 @@ func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
 		return fmt.Errorf("failed to seek to end of file: %s", err.Error())
 	}
 
+	var itemsProcessed = []*Item{}
 	if isHandover {
 		itemsDrained, ok := q.handover.tryDrain()
 		if ok {
@@ -141,6 +142,7 @@ func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
 					}
 					return err
 				}
+				itemsProcessed = append(itemsProcessed, item.item)
 			}
 		}
 		for _, item := range failedHandoverItems {
@@ -151,6 +153,7 @@ func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
 				}
 				return err
 			}
+			itemsProcessed = append(itemsProcessed, item.item)
 		}
 		if !q.handover.tryClose() {
 			return fmt.Errorf("failed to close handover")
@@ -164,7 +167,12 @@ func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
 				}
 				return err
 			}
+			itemsProcessed = append(itemsProcessed, item.item)
 		}
+	}
+	err = updateEnqueueStats(itemsProcessed...)
+	if err != nil && err != ErrNilItem {
+		return err
 	}
 
 	return nil
@@ -210,7 +218,7 @@ func (q *PersistentGroupedQueue) enqueueNoCommit(item *Item) error {
 	}
 
 	// Update stats
-	q.updateEnqueueStats(item)
+	updateEnqueueStats(item)
 
 	// Update empty status
 	q.Empty.Set(false)
@@ -323,7 +331,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 
 	var commit uint64
 	var writtenCount int64
-
+	var itemsProcessed = []*Item{}
 	// <- lock mutex
 	err := func() error {
 		q.mutex.Lock()
@@ -347,6 +355,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 						return err
 					}
 					writtenCount++
+					itemsProcessed = append(itemsProcessed, item.item)
 				}
 			}
 			for _, item := range failedHandoverItems {
@@ -355,6 +364,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 					return err
 				}
 				writtenCount++
+				itemsProcessed = append(itemsProcessed, item.item)
 			}
 			if !q.handover.tryClose() {
 				return fmt.Errorf("failed to close handover")
@@ -366,6 +376,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 					return err
 				}
 				writtenCount++
+				itemsProcessed = append(itemsProcessed, item.item)
 			}
 		}
 		return nil // success
@@ -381,6 +392,11 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 		q.index.AwaitWALCommitted(commit)
 	}
 
+	err = updateEnqueueStats(itemsProcessed...)
+	if err != nil && err != ErrNilItem {
+		return err
+	}
+
 	return nil
 }
 
@@ -393,7 +409,7 @@ func (q *PersistentGroupedQueue) enqueueUntilCommitted(item *Item) error {
 		return ErrQueueClosed
 	}
 
-	var commit uint64 = 0
+	var commit uint64
 
 	// <- lock mutex
 	err := func() error {
@@ -431,11 +447,11 @@ func (q *PersistentGroupedQueue) enqueueUntilCommitted(item *Item) error {
 
 	q.index.AwaitWALCommitted(commit)
 
-	// Update stats
-	q.updateEnqueueStats(item)
-
 	// Update empty status
 	q.Empty.Set(false)
+
+	// Update stats
+	updateEnqueueStats(item)
 
 	return nil
 }
@@ -454,9 +470,6 @@ func writeItemToFile(q *PersistentGroupedQueue, item *handoverEncodedItem, start
 	}
 
 	*startPos += int64(written)
-
-	// Update stats
-	q.updateEnqueueStats(item.item)
 
 	// If commit is not enabled we discard the commit value which should already be zero
 	if !q.useCommit && commit != 0 {

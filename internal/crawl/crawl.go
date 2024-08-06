@@ -31,6 +31,27 @@ func (c *Crawl) Start() (err error) {
 	c.HQChannelsWg = new(sync.WaitGroup)
 	regexOutlinks = xurls.Relaxed()
 
+	// Init the stats package
+	// If LiveStats enabled : launch the reoutine responsible for printing live stats on the standard output
+	if stats.IsInitialized() {
+		stats.Reset()
+	}
+	ok := stats.Init(&stats.Config{
+		HandoverUsed:    c.UseHandover,           //Pass the handover enable bool
+		LocalDedupeUsed: !c.DisableLocalDedupe,   //Invert the local dedupe disable bool
+		CDXDedupeUsed:   c.CDXDedupeServer != "", //Pass true if the CDXDedupeServer address if it's set
+	})
+	if !ok {
+		c.Log.Fatal("unable to init stats")
+	}
+
+	stats.SetJob(c.Job)
+	stats.SetCrawlState("starting")
+
+	if c.UseLiveStats {
+		go stats.Printer()
+	}
+
 	// Setup the --crawl-time-limit clock
 	if c.CrawlTimeLimit != 0 {
 		go func() {
@@ -115,6 +136,9 @@ func (c *Crawl) Start() (err error) {
 		}()
 	}
 
+	// Launch the monitorWARCWaitGroup goroutine
+	go c.monitorWARCWaitGroup()
+
 	c.Log.Info("WARC writer initialized")
 
 	// TODO: re-implement host limitation
@@ -139,21 +163,6 @@ func (c *Crawl) Start() (err error) {
 	// Start the workers pool by building all the workers and starting them
 	// Also starts all the background processes that will handle the workers
 	c.Workers.Start()
-
-	// Init the stats package
-	// If LiveStats enabled : launch the reoutine responsible for printing live stats on the standard output
-	ok := stats.Init(&stats.Config{
-		HandoverUsed:    c.UseHandover,           //Pass the handover enable bool
-		LocalDedupeUsed: !c.DisableLocalDedupe,   //Invert the local dedupe disable bool
-		CDXDedupeUsed:   c.CDXDedupeServer != "", //Pass true if the CDXDedupeServer address if it's set
-	})
-	if !ok {
-		c.Log.Fatal("unable to init stats")
-	}
-
-	if c.UseLiveStats {
-		go stats.Printer()
-	}
 
 	// If crawl HQ parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to HQ
@@ -197,6 +206,8 @@ func (c *Crawl) Start() (err error) {
 		c.SeedList = nil
 		c.Log.Info("All seeds are now in queue")
 	}
+
+	stats.SetCrawlState("running")
 
 	// Start the background process that will catch when there
 	// is nothing more to crawl

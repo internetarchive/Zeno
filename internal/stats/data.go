@@ -4,33 +4,43 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/queue"
 	"github.com/paulbellamy/ratecounter"
 )
 
 // Data is a struct that holds the data to be displayed in the stats table
 // NEVER ACCESS THE FIELDS DIRECTLY, ALWAYS USE THE GETTERS AND SETTERS
 type data struct {
-	job           *atomic.Value
+	// Job name
+	job *atomic.Value
+
+	// Crawl
 	crawlState    *atomic.Value
 	crawledSeeds  *ratecounter.Counter
 	crawledAssets *ratecounter.Counter
-	queueStats    *atomic.Value
 	uriPerSecond  *ratecounter.RateCounter
+
+	// Workers
 	activeWorkers *atomic.Int32
 	totalWorkers  *atomic.Int32
+
+	// Queue
+	queue *queueStats
+
+	// WARC
+	warcWritingQueue *atomic.Int32
 }
 
 func initStatsData() *data {
 	return &data{
-		job:           new(atomic.Value),
-		crawlState:    new(atomic.Value),
-		crawledSeeds:  new(ratecounter.Counter),
-		crawledAssets: new(ratecounter.Counter),
-		queueStats:    new(atomic.Value),
-		uriPerSecond:  ratecounter.NewRateCounter(1 * time.Second),
-		activeWorkers: new(atomic.Int32),
-		totalWorkers:  new(atomic.Int32),
+		job:              new(atomic.Value),
+		crawlState:       new(atomic.Value),
+		crawledSeeds:     new(ratecounter.Counter),
+		crawledAssets:    new(ratecounter.Counter),
+		queue:            newQueueStats(),
+		uriPerSecond:     ratecounter.NewRateCounter(1 * time.Second),
+		activeWorkers:    new(atomic.Int32),
+		totalWorkers:     new(atomic.Int32),
+		warcWritingQueue: new(atomic.Int32),
 	}
 }
 
@@ -45,7 +55,11 @@ func SetJob(job string) {
 
 // GetJob returns the job name
 func GetJob() string {
-	return packageRunner.data.job.Load().(string)
+	v := packageRunner.data.job.Load()
+	if v == nil {
+		return ""
+	}
+	return v.(string)
 }
 
 ////////////////////////////////////////
@@ -59,7 +73,11 @@ func SetCrawlState(state string) {
 
 // GetCrawlState returns the crawl state
 func GetCrawlState() string {
-	return packageRunner.data.crawlState.Load().(string)
+	v := packageRunner.data.crawlState.Load()
+	if v == nil {
+		return ""
+	}
+	return v.(string)
 }
 
 //////////////////////////////////////////
@@ -88,20 +106,6 @@ func IncreaseCrawledAssets(assets int64) {
 // GetCrawledAssets returns the number of crawled assets
 func GetCrawledAssets() int64 {
 	return packageRunner.data.crawledAssets.Value()
-}
-
-////////////////////////////////////////
-// Setters and Getters for queueStats //
-////////////////////////////////////////
-
-// SetQueueStats sets the queue stats
-func SetQueueStats(stats *queue.QueueStats) {
-	packageRunner.data.queueStats.Store(stats)
-}
-
-// GetQueueStats returns the queue stats
-func GetQueueStats() *queue.QueueStats {
-	return packageRunner.data.queueStats.Load().(*queue.QueueStats)
 }
 
 //////////////////////////////////////////
@@ -154,4 +158,18 @@ func DecreaseTotalWorkers() {
 // GetTotalWorkers returns the number of active workers
 func GetTotalWorkers() int32 {
 	return packageRunner.data.totalWorkers.Load()
+}
+
+//////////////////////////////////
+// Setters and Getters for WARC //
+//////////////////////////////////
+
+// SetWARCWritingQueue sets the number of items in the WARC writing queue
+func SetWARCWritingQueue(count int32) {
+	packageRunner.data.warcWritingQueue.Store(count)
+}
+
+// GetWARCWritingQueue returns the number of items in the WARC writing queue
+func GetWARCWritingQueue() int32 {
+	return packageRunner.data.warcWritingQueue.Load()
 }

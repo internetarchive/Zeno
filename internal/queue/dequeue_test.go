@@ -5,9 +5,13 @@ import (
 	"net/url"
 	"os"
 	"testing"
+
+	"github.com/internetarchive/Zeno/internal/stats"
 )
 
 func TestDequeue(t *testing.T) {
+	stats.Reset()
+	stats.Init(nil)
 	// Create a temporary directory for the queue files
 	tempDir, err := os.MkdirTemp("", "queue_test")
 	if err != nil {
@@ -82,6 +86,8 @@ func TestDequeue(t *testing.T) {
 }
 
 func TestDequeueHostOrder(t *testing.T) {
+	stats.Reset()
+	stats.Init(nil)
 	// Create a temporary directory for the queue files
 	tempDir, err := os.MkdirTemp("", "queue_test")
 	if err != nil {

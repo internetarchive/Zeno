@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/internetarchive/Zeno/internal/stats"
 )
 
 type WorkerPool struct {
@@ -34,6 +35,7 @@ func (wp *WorkerPool) Start() {
 		wp.Crawl.Log.Info("Starting worker", "worker", worker.ID)
 		go worker.Run()
 		go worker.WatchHang()
+		stats.IncreaseTotalWorkers()
 	}
 	go wp.WorkerWatcher()
 }

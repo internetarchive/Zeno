@@ -3,8 +3,10 @@ package crawl
 import (
 	"fmt"
 	"path"
+	"time"
 
 	"github.com/CorentinB/warc"
+	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/internetarchive/Zeno/internal/utils"
 )
 
@@ -22,4 +24,17 @@ func (c *Crawl) initWARCRotatorSettings() *warc.RotatorSettings {
 	}
 
 	return rotatorSettings
+}
+
+func (c *Crawl) monitorWARCWaitGroup() {
+	// Monitor every 250ms
+	ticker := time.NewTicker(250 * time.Millisecond)
+	for {
+		select {
+		case <-c.stopMonitorWARCWaitGroup:
+			return
+		case <-ticker.C:
+			stats.SetWARCWritingQueue(int32(c.Client.WaitGroup.Size()))
+		}
+	}
 }

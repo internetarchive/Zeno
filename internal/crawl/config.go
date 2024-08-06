@@ -26,8 +26,9 @@ type Crawl struct {
 	Paused    *utils.TAtomBool
 	Finished  *utils.TAtomBool
 
-	// Live stats
-	UseLiveStats bool
+	// Stats
+	UseLiveStats             bool
+	stopMonitorWARCWaitGroup chan struct{}
 
 	// Logger
 	Log *log.Logger
@@ -156,7 +157,9 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	}
 	c.Log = customLogger
 
+	// Stats
 	c.UseLiveStats = config.LiveStats
+	c.stopMonitorWARCWaitGroup = make(chan struct{})
 
 	// If the job name isn't specified, we generate a random name
 	if config.Job == "" {

@@ -44,7 +44,7 @@ func (crawl *Crawl) startAPI() {
 			"crawled":       crawledSeeds + crawledAssets,
 			"crawledSeeds":  crawledSeeds,
 			"crawledAssets": crawledAssets,
-			"queued":        crawl.Queue.GetStats().TotalElements,
+			"queued":        stats.GetQueueTotalElementsCount(),
 			"uptime":        time.Since(crawl.StartTime).String(),
 		}
 
@@ -57,7 +57,7 @@ func (crawl *Crawl) startAPI() {
 
 	http.HandleFunc("/queue", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(crawl.Queue.GetStats())
+		json.NewEncoder(w).Encode(stats.GetJSONQueueStats())
 	})
 
 	http.HandleFunc("/workers", func(w http.ResponseWriter, r *http.Request) {

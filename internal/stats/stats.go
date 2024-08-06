@@ -16,9 +16,10 @@ import (
 )
 
 type Runner struct {
-	stopChan chan struct{}
-	doneChan chan struct{}
-	data     *data
+	liveStats *atomic.Bool
+	stopChan  chan struct{}
+	doneChan  chan struct{}
+	data      *data
 
 	// Config booleans
 	handoverUsed    bool
@@ -34,9 +35,14 @@ type Config struct {
 
 var (
 	once          sync.Once
-	initialized   *atomic.Bool
+	initialized   = new(atomic.Bool)
 	packageRunner *Runner
+	startTime     time.Time
 )
+
+func init() {
+	initialized.Store(false)
+}
 
 // Init initializes the stats package
 //
@@ -47,11 +53,20 @@ func Init(config *Config) bool {
 		return false
 	}
 
+	if config == nil {
+		config = &Config{
+			HandoverUsed:    false,
+			LocalDedupeUsed: false,
+			CDXDedupeUsed:   false,
+		}
+	}
+
 	var successfullyInit = false
 
 	once.Do(func() {
 		data := initStatsData()
 		packageRunner = &Runner{
+			liveStats:       new(atomic.Bool),
 			stopChan:        make(chan struct{}),
 			doneChan:        make(chan struct{}),
 			data:            data,
@@ -60,10 +75,32 @@ func Init(config *Config) bool {
 			cdxDedupeUsed:   config.CDXDedupeUsed,
 		}
 
+		packageRunner.liveStats.Store(false)
+
 		successfullyInit = initialized.CompareAndSwap(false, true)
+		if successfullyInit {
+			startTime = time.Now()
+		}
 	})
 
 	return successfullyInit
+}
+
+// IsInitialized returns true if the stats package has been initialized, false otherwise
+func IsInitialized() bool {
+	return initialized.Load()
+}
+
+// Reset resets without closing the stats package
+// This is NOT INTENDED to be used in production code
+func Reset() {
+	if initialized.Load() && packageRunner != nil {
+		close(packageRunner.stopChan)
+		close(packageRunner.doneChan)
+	}
+	packageRunner = nil
+	initialized.Store(false)
+	once = sync.Once{}
 }
 
 // Printer starts the stats printer.
@@ -75,6 +112,10 @@ func Printer() {
 
 	writer := uilive.New()
 	writer.Start()
+
+	if !packageRunner.liveStats.CompareAndSwap(false, true) {
+		return
+	}
 
 	for {
 		select {
@@ -92,26 +133,24 @@ func Printer() {
 			crawledSeeds := GetCrawledSeeds()
 			crawledAssets := GetCrawledAssets()
 
-			queueStats := GetQueueStats()
-
 			stats.AddRow("", "")
 			stats.AddRow("  - Job:", GetJob())
 			stats.AddRow("  - State:", GetCrawlState())
 			stats.AddRow("  - Active workers:", fmt.Sprintf("%d/%d", GetActiveWorkers(), GetTotalWorkers()))
 			stats.AddRow("  - URI/s:", GetURIPerSecond())
-			stats.AddRow("  - Items in queue:", queueStats.TotalElements)
-			stats.AddRow("  - Hosts in queue:", queueStats.UniqueHosts)
+			stats.AddRow("  - Items in queue:", GetQueueTotalElementsCount())
+			stats.AddRow("  - Hosts in queue:", GetQueueUniqueHostsCount())
 			if packageRunner.handoverUsed {
-				stats.AddRow("  - Handover open:", c.Queue.HandoverOpen.Get())
-				stats.AddRow("  - Handover Get() success:", queueStats.HandoverSuccessGetCount)
+				stats.AddRow("  - Handover open:", GetHandoverOpen())
+				stats.AddRow("  - Handover Get() success:", GetHandoverSuccessGetCount())
 			}
-			stats.AddRow("  - Queue empty bool state:", c.Queue.Empty.Get())
-			stats.AddRow("  - Can Enqueue:", c.Queue.CanEnqueue())
-			stats.AddRow("  - Can Dequeue:", c.Queue.CanDequeue())
+			stats.AddRow("  - Queue empty bool state:", GetQueueEmpty())
+			stats.AddRow("  - Can Enqueue:", GetCanEnqueue())
+			stats.AddRow("  - Can Dequeue:", GetCanDequeue())
 			stats.AddRow("  - Crawled total:", crawledSeeds+crawledAssets)
 			stats.AddRow("  - Crawled seeds:", crawledSeeds)
 			stats.AddRow("  - Crawled assets:", crawledAssets)
-			stats.AddRow("  - WARC writing queue:", c.Client.WaitGroup.Size())
+			stats.AddRow("  - WARC writing queue:", GetWARCWritingQueue())
 			stats.AddRow("  - Data written:", humanize.Bytes(uint64(warc.DataTotal.Value())))
 
 			if packageRunner.localDedupeUsed {
@@ -123,7 +162,7 @@ func Printer() {
 			}
 
 			stats.AddRow("", "")
-			stats.AddRow("  - Elapsed time:", time.Since(c.StartTime).String())
+			stats.AddRow("  - Elapsed time:", time.Since(startTime).String())
 			stats.AddRow("  - Allocated (heap):", bToMb(m.Alloc))
 			stats.AddRow("  - Goroutines:", runtime.NumGoroutine())
 			stats.AddRow("", "")
@@ -138,6 +177,10 @@ func Printer() {
 // Stop stops the stats printer.
 // Blocks until the printer is stopped.
 func Stop() {
-	r.stopChan <- struct{}{}
-	<-r.doneChan
+	if !packageRunner.liveStats.Load() {
+		return
+	}
+	packageRunner.stopChan <- struct{}{}
+
+	<-packageRunner.doneChan
 }

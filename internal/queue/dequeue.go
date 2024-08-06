@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/internetarchive/Zeno/internal/queue/index"
+	"github.com/internetarchive/Zeno/internal/stats"
 )
 
 // Dequeue removes and returns the next item from the queue
@@ -20,6 +21,7 @@ func (q *PersistentGroupedQueue) dequeueNoCommit() (*Item, error) {
 	if q.HandoverOpen.Get() {
 		if item, ok := q.handover.tryGet(); ok && item != nil {
 			q.handoverCount.Add(1)
+			stats.UpdateHandoverSuccessGetCount(1)
 			return item.item, nil
 		}
 	}
@@ -51,6 +53,7 @@ func (q *PersistentGroupedQueue) dequeueNoCommit() (*Item, error) {
 
 	if position == 0 && size == 0 {
 		q.Empty.Set(true)
+		stats.SetQueueEmpty(true)
 		return nil, ErrQueueEmpty
 	}
 
@@ -78,6 +81,7 @@ func (q *PersistentGroupedQueue) dequeueCommitted() (*Item, error) {
 	if q.HandoverOpen.Get() {
 		if item, ok := q.handover.tryGet(); ok && item != nil {
 			q.handoverCount.Add(1)
+			stats.UpdateHandoverSuccessGetCount(1)
 			return item.item, nil
 		}
 	}
@@ -112,6 +116,7 @@ func (q *PersistentGroupedQueue) dequeueCommitted() (*Item, error) {
 
 	if position == 0 && size == 0 {
 		q.Empty.Set(true)
+		stats.SetQueueEmpty(true)
 		return nil, ErrQueueEmpty
 	}
 
@@ -148,6 +153,7 @@ func (q *PersistentGroupedQueue) getNextHost() (string, error) {
 	// If there are no hosts, we wait for one to be added
 	if len(hosts) == 0 {
 		q.Empty.Set(true)
+		stats.SetQueueEmpty(true)
 		return q.getNextHost()
 	}
 

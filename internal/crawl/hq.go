@@ -9,6 +9,7 @@ import (
 
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/internetarchive/Zeno/internal/queue"
+	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/internetarchive/Zeno/internal/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -161,7 +162,7 @@ func (c *Crawl) HQConsumer() {
 
 		// If HQContinuousPull is set to true, we will pull URLs from HQ continuously,
 		// otherwise we will only pull URLs when needed (and when the crawl is not paused)
-		for (uint64(c.Queue.GetStats().TotalElements) > uint64(HQBatchSize) && !c.HQContinuousPull) || c.Paused.Get() || c.Queue.HandoverOpen.Get() {
+		for (uint64(stats.GetQueueTotalElementsCount()) > uint64(HQBatchSize) && !c.HQContinuousPull) || c.Paused.Get() || c.Queue.HandoverOpen.Get() {
 			time.Sleep(time.Millisecond * 50)
 			continue
 		}
