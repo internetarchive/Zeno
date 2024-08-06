@@ -1,9 +1,11 @@
+// Package stats provides a way to store and display statistics about the crawl.
+// This package can be used as a realiable source of truth for the current state of the crawl.
 package stats
 
 import (
 	"fmt"
 	"runtime"
-	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -14,39 +16,60 @@ import (
 )
 
 type Runner struct {
-	StopChan chan struct{}
-	DoneChan chan struct{}
+	stopChan chan struct{}
+	doneChan chan struct{}
 	data     *data
+
+	// Config booleans
+	handoverUsed    bool
+	localDedupeUsed bool
+	cdxDedupeUsed   bool
 }
 
-var initialized *atomic.Bool
+type Config struct {
+	HandoverUsed    bool
+	LocalDedupeUsed bool
+	CDXDedupeUsed   bool
+}
+
+var (
+	once          sync.Once
+	initialized   *atomic.Bool
+	packageRunner *Runner
+)
 
 // Init initializes the stats package
 //
 // Returns:
-// - Runner: a struct that can be used to control the stats lifecycle
 // - bool: true if the stats package was initialized, false otherwise meaning that stats was already initialized
-func Init() (*Runner, bool) {
+func Init(config *Config) bool {
 	if initialized.Load() {
-		return nil, false
+		return false
 	}
 
-	data := initStatsData()
-	runner := &Runner{
-		StopChan: make(chan struct{}),
-		DoneChan: make(chan struct{}),
-		data:     data,
-	}
+	var successfullyInit = false
 
-	initialized.Store(true)
+	once.Do(func() {
+		data := initStatsData()
+		packageRunner = &Runner{
+			stopChan:        make(chan struct{}),
+			doneChan:        make(chan struct{}),
+			data:            data,
+			handoverUsed:    config.HandoverUsed,
+			localDedupeUsed: config.LocalDedupeUsed,
+			cdxDedupeUsed:   config.CDXDedupeUsed,
+		}
 
-	return runner, true
+		successfullyInit = initialized.CompareAndSwap(false, true)
+	})
+
+	return successfullyInit
 }
 
 // Printer starts the stats printer.
 // Preferably run this in a goroutine.
 // Is controlled by the StopChan channel.
-func (r *Runner) Printer() {
+func Printer() {
 	var stats *uitable.Table
 	var m runtime.MemStats
 
@@ -55,9 +78,9 @@ func (r *Runner) Printer() {
 
 	for {
 		select {
-		case <-r.StopChan:
+		case <-packageRunner.stopChan:
 			writer.Stop()
-			r.DoneChan <- struct{}{}
+			packageRunner.doneChan <- struct{}{}
 			return
 		default:
 			runtime.ReadMemStats(&m)
@@ -66,19 +89,19 @@ func (r *Runner) Printer() {
 			stats.MaxColWidth = 80
 			stats.Wrap = true
 
-			crawledSeeds := r.GetCrawledSeeds()
-			crawledAssets := r.GetCrawledAssets()
+			crawledSeeds := GetCrawledSeeds()
+			crawledAssets := GetCrawledAssets()
 
-			queueStats := r.GetQueueStats()
+			queueStats := GetQueueStats()
 
 			stats.AddRow("", "")
-			stats.AddRow("  - Job:", r.GetJob())
-			stats.AddRow("  - State:", r.GetCrawlState())
-			stats.AddRow("  - Active workers:", strconv.Itoa(int(c.ActiveWorkers.Value()))+"/"+strconv.Itoa(c.Workers.wpLen()))
-			stats.AddRow("  - URI/s:", c.URIsPerSecond.Rate())
+			stats.AddRow("  - Job:", GetJob())
+			stats.AddRow("  - State:", GetCrawlState())
+			stats.AddRow("  - Active workers:", fmt.Sprintf("%d/%d", GetActiveWorkers(), GetTotalWorkers()))
+			stats.AddRow("  - URI/s:", GetURIPerSecond())
 			stats.AddRow("  - Items in queue:", queueStats.TotalElements)
 			stats.AddRow("  - Hosts in queue:", queueStats.UniqueHosts)
-			if c.UseHandover {
+			if packageRunner.handoverUsed {
 				stats.AddRow("  - Handover open:", c.Queue.HandoverOpen.Get())
 				stats.AddRow("  - Handover Get() success:", queueStats.HandoverSuccessGetCount)
 			}
@@ -91,11 +114,11 @@ func (r *Runner) Printer() {
 			stats.AddRow("  - WARC writing queue:", c.Client.WaitGroup.Size())
 			stats.AddRow("  - Data written:", humanize.Bytes(uint64(warc.DataTotal.Value())))
 
-			if !c.DisableLocalDedupe {
+			if packageRunner.localDedupeUsed {
 				stats.AddRow("  - Deduped (local):", humanize.Bytes(uint64(warc.LocalDedupeTotal.Value())))
 			}
 
-			if c.CDXDedupeServer != "" {
+			if packageRunner.cdxDedupeUsed {
 				stats.AddRow("  - Deduped (via CDX):", humanize.Bytes(uint64(warc.RemoteDedupeTotal.Value())))
 			}
 
@@ -112,14 +135,9 @@ func (r *Runner) Printer() {
 	}
 }
 
-func (c *Crawl) getCrawlState() (state string) {
-	if c.Finished.Get() {
-		return "finishing"
-	}
-
-	if c.Paused.Get() {
-		return "paused"
-	}
-
-	return "running"
+// Stop stops the stats printer.
+// Blocks until the printer is stopped.
+func Stop() {
+	r.stopChan <- struct{}{}
+	<-r.doneChan
 }

@@ -140,14 +140,19 @@ func (c *Crawl) Start() (err error) {
 	// Also starts all the background processes that will handle the workers
 	c.Workers.Start()
 
-	// Start the process responsible for printing live stats on the standard output
+	// Init the stats package
+	// If LiveStats enabled : launch the reoutine responsible for printing live stats on the standard output
+	ok := stats.Init(&stats.Config{
+		HandoverUsed:    c.UseHandover,           //Pass the handover enable bool
+		LocalDedupeUsed: !c.DisableLocalDedupe,   //Invert the local dedupe disable bool
+		CDXDedupeUsed:   c.CDXDedupeServer != "", //Pass true if the CDXDedupeServer address if it's set
+	})
+	if !ok {
+		c.Log.Fatal("unable to init stats")
+	}
+
 	if c.UseLiveStats {
-		statsRunner, ok := stats.Init()
-		if !ok {
-			c.Log.Fatal("unable to init stats")
-		}
-		c.LiveStats = statsRunner
-		go c.LiveStats.Printer()
+		go stats.Printer()
 	}
 
 	// If crawl HQ parameters are specified, then we start the background

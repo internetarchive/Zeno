@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/log"
 	"github.com/internetarchive/Zeno/internal/queue"
+	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/internetarchive/Zeno/internal/utils"
 )
 
@@ -138,7 +139,7 @@ func (w *Worker) unsafeCapture(item *queue.Item) {
 	}
 
 	// Signals that the worker is processing an item
-	w.pool.Crawl.ActiveWorkers.Incr(1)
+	stats.IncreaseActiveWorkers()
 	w.state.currentItem = item
 	w.state.status = processing
 
@@ -151,7 +152,7 @@ func (w *Worker) unsafeCapture(item *queue.Item) {
 	w.state.status = idle
 	w.state.currentItem = nil
 	w.state.previousItem = item
-	w.pool.Crawl.ActiveWorkers.Incr(-1)
+	stats.DecreaseActiveWorkers()
 	w.state.lastSeen = time.Now()
 }
 

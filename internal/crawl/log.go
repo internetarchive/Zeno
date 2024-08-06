@@ -7,6 +7,7 @@ import (
 
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/queue"
+	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/internetarchive/Zeno/internal/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -17,9 +18,9 @@ func (c *Crawl) genLogFields(err interface{}, URL interface{}, additionalFields 
 	fields = logrus.Fields{}
 
 	fields["queued"] = c.Queue.GetStats().TotalElements
-	fields["crawled"] = c.CrawledSeeds.Value() + c.CrawledAssets.Value()
-	fields["rate"] = c.URIsPerSecond.Rate()
-	fields["activeWorkers"] = c.ActiveWorkers.Value()
+	fields["crawled"] = stats.GetCrawledSeeds() + stats.GetCrawledAssets()
+	fields["rate"] = stats.GetURIPerSecond()
+	fields["activeWorkers"] = stats.GetActiveWorkers()
 
 	ip, found := constants.Load("ip")
 	if found {

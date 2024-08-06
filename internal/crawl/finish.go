@@ -5,18 +5,23 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/internetarchive/Zeno/internal/stats"
 )
 
 // catchFinish is running in the background and detect when the crawl need to be terminated
 // because it won't crawl anything more. This doesn't apply for Kafka-powered crawls.
 func (crawl *Crawl) catchFinish() {
-	for crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() <= 0 {
+
+	// ndlr: idk what this does
+	for stats.GetCrawledSeeds()+stats.GetCrawledAssets() <= 0 {
 		time.Sleep(1 * time.Second)
 	}
+	//
 
 	for {
 		time.Sleep(time.Second * 5)
-		if !crawl.UseHQ && crawl.ActiveWorkers.Value() == 0 && crawl.Queue.GetStats().TotalElements == 0 && !crawl.Finished.Get() && (crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() > 0) {
+		if !crawl.UseHQ && stats.GetActiveWorkers() == 0 && crawl.Queue.GetStats().TotalElements == 0 && !crawl.Finished.Get() && (stats.GetCrawledSeeds()+stats.GetCrawledAssets() > 0) {
 			crawl.Log.Warn("No more items to crawl, finishing..")
 			crawl.finish()
 		}

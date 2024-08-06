@@ -21,6 +21,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/crawl/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/crawl/sitespecific/vk"
 	"github.com/internetarchive/Zeno/internal/queue"
+	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/internetarchive/Zeno/internal/utils"
 	"github.com/remeh/sizedwaitgroup"
 )
@@ -38,12 +39,11 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 			c.PrometheusMetrics.DownloadedURI.Inc()
 		}
 
-		c.URIsPerSecond.Incr(1)
-
+		stats.IncreaseURIPerSecond(1)
 		if item.Type == "seed" {
-			c.CrawledSeeds.Incr(1)
+			stats.IncreaseCrawledSeeds(1)
 		} else if item.Type == "asset" {
-			c.CrawledAssets.Incr(1)
+			stats.IncreaseCrawledAssets(1)
 		}
 	}()
 
@@ -613,7 +613,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		}
 
 		swg.Add()
-		c.URIsPerSecond.Incr(1)
+		stats.IncreaseURIPerSecond(1)
 
 		go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
 			defer swg.Done()

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
+	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -32,14 +33,14 @@ type APIWorkerState struct {
 // startAPI starts the API server for the crawl
 func (crawl *Crawl) startAPI() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		crawledSeeds := crawl.CrawledSeeds.Value()
-		crawledAssets := crawl.CrawledAssets.Value()
+		crawledSeeds := stats.GetCrawledSeeds()
+		crawledAssets := stats.GetCrawledAssets()
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
 		response := map[string]interface{}{
-			"rate":          crawl.URIsPerSecond.Rate(),
+			"rate":          stats.GetURIPerSecond(),
 			"crawled":       crawledSeeds + crawledAssets,
 			"crawledSeeds":  crawledSeeds,
 			"crawledAssets": crawledAssets,

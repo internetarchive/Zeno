@@ -15,9 +15,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/log"
 	"github.com/internetarchive/Zeno/internal/queue"
 	"github.com/internetarchive/Zeno/internal/seencheck"
-	"github.com/internetarchive/Zeno/internal/stats"
 	"github.com/internetarchive/Zeno/internal/utils"
-	"github.com/paulbellamy/ratecounter"
 )
 
 // Crawl define the parameters of a crawl process
@@ -30,7 +28,6 @@ type Crawl struct {
 
 	// Live stats
 	UseLiveStats bool
-	LiveStats    *stats.Runner
 
 	// Logger
 	Log *log.Logger
@@ -85,12 +82,6 @@ type Crawl struct {
 	APIPort           string
 	Prometheus        bool
 	PrometheusMetrics *PrometheusMetrics
-
-	// Real time statistics
-	URIsPerSecond *ratecounter.RateCounter
-	ActiveWorkers *ratecounter.Counter
-	CrawledSeeds  *ratecounter.Counter
-	CrawledAssets *ratecounter.Counter
 
 	// WARC settings
 	WARCPrefix         string
@@ -164,12 +155,6 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 		return nil, err
 	}
 	c.Log = customLogger
-
-	// Statistics counters
-	c.CrawledSeeds = new(ratecounter.Counter)
-	c.CrawledAssets = new(ratecounter.Counter)
-	c.ActiveWorkers = new(ratecounter.Counter)
-	c.URIsPerSecond = ratecounter.NewRateCounter(1 * time.Second)
 
 	c.UseLiveStats = config.LiveStats
 
