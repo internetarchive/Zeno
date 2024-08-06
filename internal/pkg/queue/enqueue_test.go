@@ -89,6 +89,7 @@ func TestEnqueue(t *testing.T) {
 		ElementsPerHost := q.GetElementsPerHost()
 		q.statsMutex.Lock()
 		defer q.statsMutex.Unlock()
+
 		if (*ElementsPerHost)["example.fr"] != 2 {
 			t.Fatalf("Expected ElementsPerHost[example.fr] to be 2, got %d", (*ElementsPerHost)["example.fr"])
 		}
@@ -254,6 +255,8 @@ func TestBatchEnqueue(t *testing.T) {
 
 		ElementsPerHost := q.GetElementsPerHost()
 		q.statsMutex.Lock()
+		defer q.statsMutex.Unlock()
+
 		if (*ElementsPerHost)["example.fr"] != 1 {
 			t.Fatalf("Expected ElementsPerHost[example.fr] to be 1, got %d", (*ElementsPerHost)["example.fr"])
 		}
@@ -304,6 +307,8 @@ func TestBatchEnqueue(t *testing.T) {
 
 		ElementsPerHost := q.GetElementsPerHost()
 		q.statsMutex.Lock()
+		defer q.statsMutex.Unlock()
+
 		if (*ElementsPerHost)["example.fr"] != 2 {
 			t.Fatalf("Expected ElementsPerHost[example.fr] to be 2, got %d", (*ElementsPerHost)["example.fr"])
 		}
