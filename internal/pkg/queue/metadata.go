@@ -34,11 +34,8 @@ func (q *PersistentGroupedQueue) loadMetadata() error {
 	q.stats = &metadata.Stats
 
 	// Reinitialize maps if they're nil
-	if q.stats.ElementsPerHost == nil {
-		q.stats.ElementsPerHost = make(map[string]int)
-	}
-	if q.stats.HostDistribution == nil {
-		q.stats.HostDistribution = make(map[string]float64)
+	if q.stats.elementsPerHost == nil {
+		q.stats.elementsPerHost = make(map[string]int)
 	}
 
 	return nil
