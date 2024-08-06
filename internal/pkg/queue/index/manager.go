@@ -174,6 +174,7 @@ func (im *IndexManager) walCommitsSyncer() {
 	defer im.walSyncerRunning.Store(false)
 	defer close(im.walStopChan)
 
+	im.logger.Info("walCommitsSyncer started")
 	lastTrySyncDuration := time.Duration(0)
 	stopping := false
 	for {
@@ -188,7 +189,7 @@ func (im *IndexManager) walCommitsSyncer() {
 		default:
 		}
 
-		im.logger.Debug("walCommitsSyncer sleeping", "WalWait", im.WalWait, "lastTrySyncDuration", lastTrySyncDuration)
+		// im.logger.Debug("walCommitsSyncer sleeping", "WalWait", im.WalWait, "lastTrySyncDuration", lastTrySyncDuration)
 		time.Sleep(im.WalWait)
 
 		start := time.Now()
