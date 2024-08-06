@@ -321,24 +321,46 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 		}
 	}
 
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
-
-	// Seek to end of file to get start position
-	startPos, err := q.queueFile.Seek(0, io.SeekEnd)
-	if err != nil {
-		return fmt.Errorf("failed to seek to end of file: %s", err.Error())
-	}
-
 	var commit uint64
 	var writtenCount int64
-	if isHandover {
-		itemsDrained, ok := q.handover.tryDrain()
-		if ok {
-			for _, item := range itemsDrained {
-				if item == nil {
-					continue
+
+	// <- lock mutex
+	err := func() error {
+		q.mutex.Lock()
+		defer q.mutex.Unlock()
+
+		// Seek to end of file to get start position
+		startPos, err := q.queueFile.Seek(0, io.SeekEnd)
+		if err != nil {
+			return fmt.Errorf("failed to seek to end of file: %s", err.Error())
+		}
+
+		if isHandover {
+			itemsDrained, ok := q.handover.tryDrain()
+			if ok {
+				for _, item := range itemsDrained {
+					if item == nil {
+						continue
+					}
+					commit, err = writeItemToFile(q, item, &startPos)
+					if err != nil {
+						return err
+					}
+					writtenCount++
 				}
+			}
+			for _, item := range failedHandoverItems {
+				commit, err = writeItemToFile(q, item, &startPos)
+				if err != nil {
+					return err
+				}
+				writtenCount++
+			}
+			if !q.handover.tryClose() {
+				return fmt.Errorf("failed to close handover")
+			}
+		} else {
+			for item := range itemsChan {
 				commit, err = writeItemToFile(q, item, &startPos)
 				if err != nil {
 					return err
@@ -346,24 +368,11 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 				writtenCount++
 			}
 		}
-		for _, item := range failedHandoverItems {
-			commit, err = writeItemToFile(q, item, &startPos)
-			if err != nil {
-				return err
-			}
-			writtenCount++
-		}
-		if !q.handover.tryClose() {
-			return fmt.Errorf("failed to close handover")
-		}
-	} else {
-		for item := range itemsChan {
-			commit, err = writeItemToFile(q, item, &startPos)
-			if err != nil {
-				return err
-			}
-			writtenCount++
-		}
+		return nil // success
+	}()
+	// below is outside of the mutex lock ->
+	if err != nil {
+		return err
 	}
 
 	if writtenCount != 0 && commit == 0 {

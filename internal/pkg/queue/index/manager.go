@@ -47,17 +47,16 @@ type IndexManager struct {
 	walDecoder *gob.Decoder
 
 	// WAL commit
-	useCommit   bool
-	walCommit   *atomic.Uint64 // Flying in memory commit id
-	walCommited *atomic.Uint64 // Synced to disk commit id
-	// Number of listeners waiting for walCommitedNotify.
+	useCommit    bool
+	walCommit    *atomic.Uint64 // Flying in memory commit id
+	walCommitted *atomic.Uint64 // Synced to disk commit id
+	// Number of listeners waiting for walCommittedNotify.
 	// It must be accurate, otherwise walNotifyListeners will be blocked
 	walNotifyListeners *atomic.Int64
-	walCommitedNotify  chan uint64   // receives the commited id from walCommitsSyncer
+	walCommittedNotify chan uint64   // receives the committed id from walCommitsSyncer
 	walSyncerRunning   atomic.Bool   // used to prevent multiple walCommitsSyncer running,
 	walStopChan        chan struct{} // Syncer will close this channel after stopping
-	WalIoPercent       int           // [1, 100] limit max io percentage for WAL sync
-	WalMinInterval     time.Duration // minimum interval **between** between after-sync and next sync
+	WalWait            time.Duration // interval **between** between after-sync and next sync
 	stopChan           chan struct{}
 
 	// Logging
@@ -105,11 +104,10 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 	// Init WAL commit if enabled
 	if useCommit {
 		im.walCommit = new(atomic.Uint64)
-		im.walCommited = new(atomic.Uint64)
+		im.walCommitted = new(atomic.Uint64)
 		im.walNotifyListeners = new(atomic.Int64)
-		im.walCommitedNotify = make(chan uint64)
-		im.WalIoPercent = 10
-		im.WalMinInterval = 10 * time.Millisecond
+		im.walCommittedNotify = make(chan uint64)
+		im.WalWait = 100 * time.Millisecond
 		im.walStopChan = make(chan struct{})
 	}
 
@@ -176,11 +174,7 @@ func (im *IndexManager) walCommitsSyncer() {
 	defer im.walSyncerRunning.Store(false)
 	defer close(im.walStopChan)
 
-	if im.WalIoPercent < 1 || im.WalIoPercent > 100 {
-		im.logger.Warn("invalid WAL_IO_PERCENT", "value", im.WalIoPercent, "setting to", 10)
-		im.WalIoPercent = 10
-	}
-
+	im.logger.Info("walCommitsSyncer started")
 	lastTrySyncDuration := time.Duration(0)
 	stopping := false
 	for {
@@ -195,12 +189,8 @@ func (im *IndexManager) walCommitsSyncer() {
 		default:
 		}
 
-		sleepTime := lastTrySyncDuration * time.Duration((100-im.WalIoPercent)/im.WalIoPercent)
-		if sleepTime < im.WalMinInterval {
-			sleepTime = im.WalMinInterval
-		}
-		im.logger.Debug("walCommitsSyncer sleeping", "sleepTime", sleepTime, "lastTrySyncDuration", lastTrySyncDuration)
-		time.Sleep(sleepTime)
+		// im.logger.Debug("walCommitsSyncer sleeping", "WalWait", im.WalWait, "lastTrySyncDuration", lastTrySyncDuration)
+		time.Sleep(im.WalWait)
 
 		start := time.Now()
 		flyingCommit := im.walCommit.Load()
@@ -219,27 +209,27 @@ func (im *IndexManager) walCommitsSyncer() {
 			im.logger.Error("failed to sync WAL, retrying", "error", err)
 			continue // we may infinitely retry, but it's better than losing data
 		}
-		commited := flyingCommit
+		committed := flyingCommit
 
-		im.walCommited.Store(commited)
+		im.walCommitted.Store(committed)
 
 		// Clear notify channel before sending, just in case.
 		// should never happen if listeners number is accurate.
-		for len(im.walCommitedNotify) > 0 {
-			<-im.walCommitedNotify
-			im.logger.Warn("unconsumed commited id in walCommitedNotify")
+		for len(im.walCommittedNotify) > 0 {
+			<-im.walCommittedNotify
+			im.logger.Warn("unconsumed committed id in walCommittedNotify")
 		}
 
-		// Send the commited id to all listeners
+		// Send the committed id to all listeners
 		listeners := im.walNotifyListeners.Load()
 		for i := int64(0); i < listeners; i++ {
-			im.walCommitedNotify <- commited
+			im.walCommittedNotify <- committed
 		}
 	}
 }
 
-func (im *IndexManager) IsWALCommited(commit uint64) bool {
-	return im.walCommited.Load() >= commit
+func (im *IndexManager) IsWALCommitted(commit uint64) bool {
+	return im.walCommitted.Load() >= commit
 }
 
 // increments the WAL commit counter and returns the new commit ID.
@@ -247,23 +237,23 @@ func (im *IndexManager) WALCommit() uint64 {
 	return im.walCommit.Add(1)
 }
 
-// AwaitWALCommitted blocks until the given commit ID is commited to disk by Syncer.
+// AwaitWALCommitted blocks until the given commit ID is committed to disk by Syncer.
 // DO NOT call this function with im.Lock() held, it will deadlock.
 func (im *IndexManager) AwaitWALCommitted(commit uint64) {
 	if commit == 0 {
-		im.logger.Warn("AwaitWALCommited called with commit 0")
+		im.logger.Warn("AwaitWALCommitted called with commit 0")
 		return
 	}
 	if !im.walSyncerRunning.Load() {
-		im.logger.Warn("AwaitWALCommited called without Syncer running, beaware of hanging")
+		im.logger.Warn("AwaitWALCommitted called without Syncer running, beaware of hanging")
 	}
-	if im.IsWALCommited(commit) {
+	if im.IsWALCommitted(commit) {
 		return
 	}
 
 	for {
 		im.walNotifyListeners.Add(1)
-		idFromChan := <-im.walCommitedNotify
+		idFromChan := <-im.walCommittedNotify
 		im.walNotifyListeners.Add(-1)
 
 		if idFromChan >= commit {
