@@ -11,11 +11,11 @@ import (
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
 	"github.com/google/uuid"
-	"github.com/internetarchive/Zeno/config"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/queue"
-	"github.com/internetarchive/Zeno/internal/pkg/seencheck"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/config"
+	"github.com/internetarchive/Zeno/internal/log"
+	"github.com/internetarchive/Zeno/internal/queue"
+	"github.com/internetarchive/Zeno/internal/seencheck"
+	"github.com/internetarchive/Zeno/internal/utils"
 	"github.com/paulbellamy/ratecounter"
 )
 

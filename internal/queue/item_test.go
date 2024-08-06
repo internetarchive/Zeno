@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/utils"
 )
 
 func TestNewItem(t *testing.T) {

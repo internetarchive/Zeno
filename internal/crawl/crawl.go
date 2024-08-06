@@ -8,9 +8,9 @@ import (
 
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
-	"github.com/internetarchive/Zeno/internal/pkg/queue"
-	"github.com/internetarchive/Zeno/internal/pkg/seencheck"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/queue"
+	"github.com/internetarchive/Zeno/internal/seencheck"
+	"github.com/internetarchive/Zeno/internal/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/telanflow/cookiejar"
 	"mvdan.cc/xurls/v2"

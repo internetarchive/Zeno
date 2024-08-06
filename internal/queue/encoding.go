@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	protobufv1 "github.com/internetarchive/Zeno/internal/pkg/queue/protobuf/v1"
+	protobufv1 "github.com/internetarchive/Zeno/internal/queue/protobuf/v1"
 	"google.golang.org/protobuf/proto"
 )
 

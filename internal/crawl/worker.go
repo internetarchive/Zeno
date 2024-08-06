@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/queue"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/log"
+	"github.com/internetarchive/Zeno/internal/queue"
+	"github.com/internetarchive/Zeno/internal/utils"
 )
 
 const (

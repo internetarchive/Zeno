@@ -12,7 +12,7 @@ import (
 
 	"github.com/CorentinB/warc"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/utils"
 )
 
 type MPD struct {

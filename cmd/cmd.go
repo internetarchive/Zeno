@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/internetarchive/Zeno/config"
+	"github.com/internetarchive/Zeno/internal/config"
 	"github.com/spf13/cobra"
 )
 

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
-	"github.com/internetarchive/Zeno/internal/pkg/queue"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/queue"
+	"github.com/internetarchive/Zeno/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 

@@ -10,9 +10,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/queue/index"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/log"
+	"github.com/internetarchive/Zeno/internal/queue/index"
+	"github.com/internetarchive/Zeno/internal/utils"
 )
 
 type PersistentGroupedQueue struct {

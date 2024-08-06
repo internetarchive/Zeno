@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
-	"github.com/internetarchive/Zeno/internal/pkg/queue"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/crawl/sitespecific/cloudflarestream"
+	"github.com/internetarchive/Zeno/internal/queue"
+	"github.com/internetarchive/Zeno/internal/utils"
 )
 
 func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Document) (assets []*url.URL, err error) {

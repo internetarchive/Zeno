@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/log"
 )
 
 func Test_Recovery(t *testing.T) {

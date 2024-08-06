@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 

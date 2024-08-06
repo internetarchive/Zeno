@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/log"
 )
 
 var dumpFrequency = 60 // seconds

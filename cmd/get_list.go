@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/internetarchive/Zeno/internal/pkg/crawl"
-	"github.com/internetarchive/Zeno/internal/pkg/queue"
+	"github.com/internetarchive/Zeno/internal/crawl"
+	"github.com/internetarchive/Zeno/internal/queue"
 	"github.com/spf13/cobra"
 )
 

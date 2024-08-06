@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/internetarchive/Zeno/internal/pkg/queue"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/internal/queue"
+	"github.com/internetarchive/Zeno/internal/utils"
 )
 
 func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL, err error) {
