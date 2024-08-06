@@ -100,8 +100,7 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 		index:           indexManager,
 		currentHost:     new(atomic.Uint64),
 		stats: &QueueStats{
-			ElementsPerHost:  make(map[string]int),
-			HostDistribution: make(map[string]float64),
+			elementsPerHost: make(map[string]int),
 		},
 	}
 
