@@ -87,6 +87,7 @@ func (w *Worker) Run() {
 			}
 		}
 
+		w.state.lastAction = "dequeueing item"
 		// Try to get an item from the queue or handover channel
 		item, err := w.pool.Crawl.Queue.Dequeue()
 		if err != nil {
