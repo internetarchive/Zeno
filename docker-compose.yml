@@ -1,0 +1,11 @@
+services:
+  go-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./start.sh:/app/start.sh
+      - ./jobs:/app/jobs
+    command: [ "/bin/sh", "/app/start.sh" ]
