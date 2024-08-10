@@ -135,10 +135,6 @@ func (c *Crawl) Start() (err error) {
 		c.Client.Jar = cookieJar
 	}
 
-	// Start the workers pool by building all the workers and starting them
-	// Also starts all the background processes that will handle the workers
-	c.Workers.Start()
-
 	// Start the process responsible for printing live stats on the standard output
 	if c.LiveStats {
 		go c.printLiveStats()
@@ -186,6 +182,10 @@ func (c *Crawl) Start() (err error) {
 		c.SeedList = nil
 		c.Log.Info("All seeds are now in queue")
 	}
+
+	// Start the workers pool by building all the workers and starting them
+	// Also starts all the background processes that will handle the workers
+	c.Workers.Start()
 
 	// Start the background process that will catch when there
 	// is nothing more to crawl
