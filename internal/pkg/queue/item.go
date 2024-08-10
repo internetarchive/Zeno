@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
+	"log/slog"
 	"net/url"
 	"os"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/gosuri/uilive"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/sirupsen/logrus"
 )
 
 func NewItem(URL *url.URL, parentURL *url.URL, itemType string, hop uint64, ID string, bypassSeencheck bool) (*Item, error) {
@@ -55,14 +53,6 @@ func (q *PersistentGroupedQueue) ReadItemAt(position uint64, itemSize uint64) ([
 func FileToItems(path string) (seeds []Item, err error) {
 	var totalCount, validCount int
 
-	writer := uilive.New()
-	// We manual flushing, uilive's auto flushing is not needed
-	// set it to 1s for convenience
-	writer.RefreshInterval = 1 * time.Second
-	writerFlushInterval := 50 * time.Millisecond
-	writerFlushed := time.Now()
-	writer.Start()
-
 	// Verify that the file exist
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		// File doesn't exist
@@ -79,53 +69,34 @@ func FileToItems(path string) (seeds []Item, err error) {
 	// Initialize scanner
 	scanner := bufio.NewScanner(file)
 
-	logrus.WithFields(logrus.Fields{
-		"path": path,
-	}).Info("Start reading input list")
+	slog.Info("Start reading input list", "path", path)
 
 	for scanner.Scan() {
 		totalCount++
 		URL, err := url.Parse(scanner.Text())
 		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"url": scanner.Text(),
-				"err": err.Error(),
-			}).Debug("this is not a valid URL")
+			slog.Warn("Invalid URL", "url", scanner.Text(), "error", err.Error())
 			continue
 		}
 
 		item, err := NewItem(URL, nil, "seed", 0, "", false)
 		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"url": scanner.Text(),
-				"err": err.Error(),
-			}).Debug("Failed to create new item")
+			slog.Warn("Failed to create new item", "url", scanner.Text(), "error", err.Error())
 			continue
 		}
 
 		seeds = append(seeds, *item)
 		validCount++
-
-		if time.Since(writerFlushed) > writerFlushInterval {
-			fmt.Fprintf(writer, "\t   Reading input list.. Found %d valid URLs out of %d URLs read...\n", validCount, totalCount)
-			writer.Flush()
-			writerFlushed = time.Now()
-		}
 	}
-	writer.Stop()
-
 	if err := scanner.Err(); err != nil {
 		return seeds, err
 	}
 
 	if len(seeds) == 0 {
-		return seeds, errors.New("seed list's content invalid")
+		return seeds, errors.New("seed list is empty")
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"total": totalCount,
-		"valid": validCount,
-	}).Info("Finished reading input list")
+	slog.Info("Finished reading input list", "total", totalCount, "valid", validCount)
 
 	return seeds, nil
 }
