@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
 type WorkerPool struct {
@@ -133,6 +134,7 @@ func _getWorkerState(worker *Worker) *APIWorkerState {
 	return &APIWorkerState{
 		WorkerID:   worker.ID.String(),
 		Status:     worker.state.status.String(),
+		URL:        utils.URLToString(worker.state.currentItem.URL),
 		LastSeen:   worker.state.lastSeen.Format(time.RFC3339),
 		LastError:  lastErr,
 		LastAction: worker.state.lastAction,

@@ -26,6 +26,7 @@ type APIWorkerState struct {
 	LastError  string `json:"last_error"`
 	LastSeen   string `json:"last_seen"`
 	LastAction string `json:"last_action"`
+	URL        string `json:"url"`
 	Locked     bool   `json:"locked"`
 }
 
