@@ -76,6 +76,10 @@ type Config struct {
 	NoStdoutLogging                bool     `mapstructure:"no-stdout-log"`
 	NoHandover                     bool     `mapstructure:"no-handover"`
 	NoBatchWriteWAL                bool     `mapstructure:"ultrasafe-queue"`
+
+	// Dependencies
+	NoYTDLP   bool   `mapstructure:"no-ytdlp"`
+	YTDLPPath string `mapstructure:"ytdlp-path"`
 }
 
 var (

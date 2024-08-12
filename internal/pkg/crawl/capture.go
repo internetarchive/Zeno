@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -20,9 +19,9 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/vk"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/youtube"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/remeh/sizedwaitgroup"
 )
 
 func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bool) (resp *http.Response, err error) {
@@ -188,37 +187,6 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 	return resp, nil
 }
 
-func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie) error {
-	var resp *http.Response
-
-	// Prepare GET request
-	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Referer", utils.URLToString(item.ParentURL))
-	req.Header.Set("User-Agent", c.UserAgent)
-
-	// Apply cookies obtained from the original URL captured
-	for i := range cookies {
-		req.AddCookie(cookies[i])
-	}
-
-	resp, err = c.executeGET(item, req, false)
-	if err != nil && err.Error() == "URL from redirection has already been seen" {
-		return nil
-	} else if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// needed for WARC writing
-	io.Copy(io.Discard, resp.Body)
-
-	return nil
-}
-
 // Capture capture the URL and return the outlinks
 func (c *Crawl) Capture(item *queue.Item) error {
 	var (
@@ -369,6 +337,22 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	// If it was a YouTube watch page, we potentially want to run it through the YouTube extractor
+	// TODO: support other watch page URLs
+	if strings.Contains(item.URL.Host, "youtube.com") && strings.Contains(item.URL.Path, "/watch") && !c.NoYTDLP {
+		URLs, err := youtube.Parse(resp.Body)
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing YouTube watch page")
+			return err
+		}
+
+		if len(URLs) > 0 {
+			c.captureAssets(item, URLs, resp.Cookies())
+		}
+
+		return nil
+	}
 
 	// Scrape potential URLs from Link HTTP header
 	var (
@@ -577,76 +561,8 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		}
 	}
 
-	// TODO: implement a counter for the number of assets
-	// currently being processed
-	// c.Frontier.QueueCount.Incr(int64(len(assets)))
-	swg := sizedwaitgroup.New(int(c.MaxConcurrentAssets))
-	excluded := false
+	c.captureAssets(item, assets, resp.Cookies())
 
-	for _, asset := range assets {
-		// TODO: implement a counter for the number of assets
-		// currently being processed
-		// c.Frontier.QueueCount.Incr(-1)
-
-		// Just making sure we do not over archive by archiving the original URL
-		if utils.URLToString(item.URL) == utils.URLToString(asset) {
-			continue
-		}
-
-		// We ban googlevideo.com URLs because they are heavily rate limited by default, and
-		// we don't want the crawler to spend an innapropriate amount of time archiving them
-		if strings.Contains(item.URL.Host, "googlevideo.com") {
-			continue
-		}
-
-		// If the URL match any excluded string, we ignore it
-		for _, excludedString := range c.ExcludedStrings {
-			if strings.Contains(utils.URLToString(asset), excludedString) {
-				excluded = true
-				break
-			}
-		}
-
-		if excluded {
-			excluded = false
-			continue
-		}
-
-		swg.Add()
-		c.URIsPerSecond.Incr(1)
-
-		go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
-			defer swg.Done()
-
-			// Create the asset's item
-			newAsset, err := queue.NewItem(asset, item.URL, "asset", item.Hop, "", false)
-			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, asset, map[string]interface{}{
-					"parentHop": item.Hop,
-					"parentUrl": utils.URLToString(item.URL),
-					"type":      "asset",
-				})).Error("error while creating asset item")
-				return
-			}
-
-			// Capture the asset
-			err = c.captureAsset(newAsset, resp.Cookies())
-			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
-					"parentHop": item.Hop,
-					"parentUrl": utils.URLToString(item.URL),
-					"type":      "asset",
-				})).Error("error while capturing asset")
-				return
-			}
-
-			// If we made it to this point, it means that the asset have been crawled successfully,
-			// then we can increment the locallyCrawled variable
-			atomic.AddUint64(&item.LocallyCrawled, 1)
-		}(asset, &swg)
-	}
-
-	swg.Wait()
 	return err
 }
 
