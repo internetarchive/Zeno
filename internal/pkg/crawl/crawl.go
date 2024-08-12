@@ -192,6 +192,7 @@ func (c *Crawl) Start() (err error) {
 		enableBackHandover <- struct{}{}
 		<-syncHandover
 		close(enableBackHandover)
+		close(syncHandover)
 
 		c.Log.Info("All seeds are now in queue")
 	}
