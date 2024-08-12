@@ -160,10 +160,11 @@ func (c *Crawl) Start() (err error) {
 		// Temporarily disable handover as it's not needed
 		c.Log.Info("Temporarily disabling handover..")
 		enableBackHandover := make(chan struct{})
-		wg := new(sync.WaitGroup)
+		syncHandover := make(chan struct{})
 
-		go c.Queue.TempDisableHandover(enableBackHandover, wg)
+		go c.Queue.TempDisableHandover(enableBackHandover, syncHandover)
 
+		<-syncHandover
 		// Push the seed list to the queue
 		c.Log.Info("Pushing seeds in the local queue..")
 		for i := 0; i < len(c.SeedList); i += 100000 {
@@ -189,7 +190,7 @@ func (c *Crawl) Start() (err error) {
 
 		c.Log.Info("Enabling handover..")
 		enableBackHandover <- struct{}{}
-		wg.Wait()
+		<-syncHandover
 		close(enableBackHandover)
 
 		c.Log.Info("All seeds are now in queue")

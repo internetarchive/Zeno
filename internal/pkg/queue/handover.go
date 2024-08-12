@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -178,18 +177,20 @@ func (h *handoverChannel) monitorActivity() {
 	}
 }
 
-func (q *PersistentGroupedQueue) TempDisableHandover(enableBack chan struct{}, wg *sync.WaitGroup) bool {
-	wg.Add(1)
-	defer wg.Done()
-
+func (q *PersistentGroupedQueue) TempDisableHandover(enableBack chan struct{}, syncHandover chan struct{}) bool {
 	if !q.useHandover.CompareAndSwap(true, false) {
 		return false
 	}
+
+	syncHandover <- struct{}{}
+
 	for {
 		timeout := time.After(1 * time.Minute)
 		select {
 		case <-enableBack:
-			return q.useHandover.CompareAndSwap(false, true)
+			ok := q.useHandover.CompareAndSwap(false, true)
+			syncHandover <- struct{}{}
+			return ok
 		case <-timeout:
 			return false
 		}
