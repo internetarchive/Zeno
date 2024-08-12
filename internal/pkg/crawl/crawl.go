@@ -158,13 +158,15 @@ func (c *Crawl) Start() (err error) {
 		go c.HQWebsocket()
 	} else {
 		// Temporarily disable handover as it's not needed
-		c.Log.Info("Temporarily disabling handover..")
 		enableBackHandover := make(chan struct{})
 		syncHandover := make(chan struct{})
+		if c.UseHandover {
+			c.Log.Info("Temporarily disabling handover..")
 
-		go c.Queue.TempDisableHandover(enableBackHandover, syncHandover)
+			go c.Queue.TempDisableHandover(enableBackHandover, syncHandover)
 
-		<-syncHandover
+			<-syncHandover
+		}
 		// Push the seed list to the queue
 		c.Log.Info("Pushing seeds in the local queue..")
 		for i := 0; i < len(c.SeedList); i += 100000 {
@@ -188,9 +190,12 @@ func (c *Crawl) Start() (err error) {
 
 		c.SeedList = nil
 
-		c.Log.Info("Enabling handover..")
-		enableBackHandover <- struct{}{}
-		<-syncHandover
+		// Re-enable handover
+		if c.UseHandover {
+			c.Log.Info("Enabling handover..")
+			enableBackHandover <- struct{}{}
+			<-syncHandover
+		}
 		close(enableBackHandover)
 		close(syncHandover)
 
