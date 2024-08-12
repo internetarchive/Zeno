@@ -32,7 +32,7 @@ type PersistentGroupedQueue struct {
 	currentHost     *atomic.Uint64
 	mutex           sync.RWMutex
 
-	useHandover   bool
+	useHandover   *atomic.Bool
 	handover      *handoverChannel
 	HandoverOpen  *utils.TAtomBool
 	handoverMutex sync.Mutex
@@ -86,7 +86,7 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 		closed:    new(utils.TAtomBool),
 		finishing: new(utils.TAtomBool),
 
-		useHandover:   useHandover,
+		useHandover:   new(atomic.Bool),
 		HandoverOpen:  new(utils.TAtomBool),
 		handoverCount: new(atomic.Uint64),
 
@@ -117,6 +117,7 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 	q.currentHost.Store(0)
 
 	// Handover
+	q.useHandover.Store(useHandover)
 	q.HandoverOpen.Set(false)
 	q.handoverCount.Store(0)
 	if useHandover {

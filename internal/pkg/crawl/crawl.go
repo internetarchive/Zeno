@@ -157,9 +157,14 @@ func (c *Crawl) Start() (err error) {
 		go c.HQFinisher()
 		go c.HQWebsocket()
 	} else {
+		// Temporarily disable handover as it's not needed
+		c.Log.Info("Temporarily disabling handover..")
+		enableBackHandover := make(chan struct{})
+		go c.Queue.TempDisableHandover(enableBackHandover)
+
 		// Push the seed list to the queue
 		c.Log.Info("Pushing seeds in the local queue..")
-		var seedPointers []*queue.Item
+		seedPointers := make([]*queue.Item, 0, 100000)
 		for idx, item := range c.SeedList {
 			seedPointers = append(seedPointers, &item)
 
@@ -170,7 +175,7 @@ func (c *Crawl) Start() (err error) {
 				if err := c.Queue.BatchEnqueue(seedPointers...); err != nil {
 					c.Log.Error("unable to enqueue seeds, discarding", "error", err)
 				}
-				seedPointers = nil
+				seedPointers = make([]*queue.Item, 0, 100000)
 			}
 		}
 		if len(seedPointers) > 0 {
@@ -180,6 +185,8 @@ func (c *Crawl) Start() (err error) {
 		}
 
 		c.SeedList = nil
+		c.Log.Info("Enabling handover..")
+		enableBackHandover <- struct{}{}
 		c.Log.Info("All seeds are now in queue")
 	}
 

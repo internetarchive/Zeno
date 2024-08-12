@@ -61,7 +61,7 @@ func (q *PersistentGroupedQueue) genStats() {
 	}
 
 	// Calculate handover success get count
-	if q.useHandover {
+	if q.useHandover.Load() {
 		q.stats.HandoverSuccessGetCount = q.handoverCount.Load()
 	}
 }

@@ -176,3 +176,18 @@ func (h *handoverChannel) monitorActivity() {
 		}
 	}
 }
+
+func (q *PersistentGroupedQueue) TempDisableHandover(enableBack chan struct{}) bool {
+	if !q.useHandover.CompareAndSwap(true, false) {
+		return false
+	}
+	for {
+		timeout := time.After(1 * time.Minute)
+		select {
+		case <-enableBack:
+			return q.useHandover.CompareAndSwap(false, true)
+		case <-timeout:
+			return false
+		}
+	}
+}
