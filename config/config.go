@@ -35,6 +35,7 @@ type Config struct {
 	ElasticSearchUsername          string   `mapstructure:"es-user"`
 	ElasticSearchPassword          string   `mapstructure:"es-password"`
 	ElasticSearchIndexPrefix       string   `mapstructure:"es-index-prefix"`
+	PyroscopeAddress               string   `mapstructure:"pyroscope-address"`
 	DisableHTMLTag                 []string `mapstructure:"disable-html-tag"`
 	ExcludeHosts                   []string `mapstructure:"exclude-host"`
 	IncludeHosts                   []string `mapstructure:"include-host"`
