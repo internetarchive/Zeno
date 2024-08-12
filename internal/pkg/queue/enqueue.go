@@ -44,7 +44,7 @@ func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
 	// Update empty status
 	defer q.Empty.Set(false)
 
-	if !q.useHandover {
+	if !q.useHandover.Load() {
 		isHandover = false
 	} else {
 		isHandover = q.handover.tryOpen(batchLen)
@@ -110,7 +110,7 @@ func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
 	close(itemsChan)
 
 	// Wait for handover to finish then close for consumption
-	for q.useHandover {
+	for q.useHandover.Load() {
 		done := <-q.handover.signalConsumerDone
 		if done {
 			q.HandoverOpen.Set(false)
@@ -247,7 +247,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 	// Update empty status
 	defer q.Empty.Set(false)
 
-	if !q.useHandover {
+	if !q.useHandover.Load() {
 		isHandover = false
 	} else {
 		isHandover = q.handover.tryOpen(batchLen)
@@ -313,7 +313,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 	close(itemsChan)
 
 	// Wait for handover to finish then close for consumption
-	for q.useHandover {
+	for q.useHandover.Load() {
 		done := <-q.handover.signalConsumerDone
 		if done {
 			q.HandoverOpen.Set(false)

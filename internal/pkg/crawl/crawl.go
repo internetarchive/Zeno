@@ -157,29 +157,43 @@ func (c *Crawl) Start() (err error) {
 		go c.HQFinisher()
 		go c.HQWebsocket()
 	} else {
+		// Temporarily disable handover as it's not needed
+		c.Log.Info("Temporarily disabling handover..")
+		enableBackHandover := make(chan struct{})
+		syncHandover := make(chan struct{})
+
+		go c.Queue.TempDisableHandover(enableBackHandover, syncHandover)
+
+		<-syncHandover
 		// Push the seed list to the queue
 		c.Log.Info("Pushing seeds in the local queue..")
-		var seedPointers []*queue.Item
-		for idx, item := range c.SeedList {
-			seedPointers = append(seedPointers, &item)
-
-			// We enqueue seeds by batch of 100k
-			// Workers will start processing them as soon as one batch is enqueued
-			if idx%100000 == 0 {
-				c.Log.Info("Enqueuing seeds", "index", idx)
-				if err := c.Queue.BatchEnqueue(seedPointers...); err != nil {
-					c.Log.Error("unable to enqueue seeds, discarding", "error", err)
-				}
-				seedPointers = nil
+		for i := 0; i < len(c.SeedList); i += 100000 {
+			end := i + 100000
+			if end > len(c.SeedList) {
+				end = len(c.SeedList)
 			}
-		}
-		if len(seedPointers) > 0 {
+
+			c.Log.Info("Enqueuing seeds", "index", i)
+
+			// Create a slice of pointers to the items in the current batch
+			seedPointers := make([]*queue.Item, end-i)
+			for j := range seedPointers {
+				seedPointers[j] = &c.SeedList[i+j]
+			}
+
 			if err := c.Queue.BatchEnqueue(seedPointers...); err != nil {
 				c.Log.Error("unable to enqueue seeds, discarding", "error", err)
 			}
 		}
 
 		c.SeedList = nil
+
+		c.Log.Info("Enabling handover..")
+		enableBackHandover <- struct{}{}
+		<-syncHandover
+		close(enableBackHandover)
+		close(syncHandover)
+
 		c.Log.Info("All seeds are now in queue")
 	}
 
