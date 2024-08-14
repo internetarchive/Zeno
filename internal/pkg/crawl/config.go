@@ -289,7 +289,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 		version := utils.GetVersion()
 
 		// If Version is a commit hash, we only take the first 7 characters
-		if len(version.Version) == 40 {
+		if len(version.Version) >= 40 {
 			version.Version = version.Version[:7]
 		}
 
