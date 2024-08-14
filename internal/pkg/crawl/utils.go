@@ -14,27 +14,26 @@ import (
 
 var regexOutlinks *regexp.Regexp
 
-// TODO: re-implement host limitation
-// func (c *Crawl) crawlSpeedLimiter() {
-// 	maxConcurrentAssets := c.MaxConcurrentAssets
+func (c *Crawl) crawlSpeedLimiter() {
+	maxConcurrentAssets := c.MaxConcurrentAssets
 
-// 	for {
-// 		if c.Client.WaitGroup.Size() > c.Workers*8 {
-// 			c.Paused.Set(true)
-// 			c.Frontier.Paused.Set(true)
-// 		} else if c.Client.WaitGroup.Size() > c.Workers*4 {
-// 			c.MaxConcurrentAssets = 1
-// 			c.Paused.Set(false)
-// 			c.Frontier.Paused.Set(false)
-// 		} else {
-// 			c.MaxConcurrentAssets = maxConcurrentAssets
-// 			c.Paused.Set(false)
-// 			c.Frontier.Paused.Set(false)
-// 		}
+	for {
+		if c.Client.WaitGroup.Size() > int(*c.ActiveWorkers)*8 {
+			c.Paused.Set(true)
+			c.Queue.Paused.Set(true)
+		} else if c.Client.WaitGroup.Size() > int(*c.ActiveWorkers)*4 {
+			c.MaxConcurrentAssets = 1
+			c.Paused.Set(false)
+			c.Queue.Paused.Set(false)
+		} else {
+			c.MaxConcurrentAssets = maxConcurrentAssets
+			c.Paused.Set(false)
+			c.Queue.Paused.Set(false)
+		}
 
-// 		time.Sleep(time.Second / 4)
-// 	}
-// }
+		time.Sleep(time.Second / 10)
+	}
+}
 
 func (c *Crawl) checkIncludedHosts(host string) bool {
 	// If no hosts are included, all hosts are included

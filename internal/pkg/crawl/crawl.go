@@ -116,10 +116,9 @@ func (c *Crawl) Start() (err error) {
 
 	c.Log.Info("WARC writer initialized")
 
-	// TODO: re-implement host limitation
 	// Process responsible for slowing or pausing the crawl
 	// when the WARC writing queue gets too big
-	// go c.crawlSpeedLimiter()
+	go c.crawlSpeedLimiter()
 
 	if c.API {
 		go c.startAPI()
