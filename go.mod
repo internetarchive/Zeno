@@ -1,6 +1,6 @@
 module github.com/internetarchive/Zeno
 
-go 1.23
+go 1.23.0
 
 require (
 	git.archive.org/wb/gocrawlhq v1.2.5
