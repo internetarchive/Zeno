@@ -158,40 +158,6 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 		customLoggerConfig.ElasticsearchConfig = nil
 	}
 
-	if config.PyroscopeAddress != "" {
-		runtime.SetMutexProfileFraction(5)
-		runtime.SetBlockProfileRate(5)
-
-		hostname, err := os.Hostname()
-		if err != nil {
-			return nil, err
-		}
-
-		pyroscope.Start(pyroscope.Config{
-			ApplicationName: "zeno",
-
-			ServerAddress: config.PyroscopeAddress,
-
-			// Debug logging for Pyroscope can be enabled with pyroscope.StandardLogger
-			Logger: nil,
-
-			Tags: map[string]string{"hostname": hostname, "version": utils.GetVersion().Version},
-
-			ProfileTypes: []pyroscope.ProfileType{
-				pyroscope.ProfileCPU,
-				pyroscope.ProfileAllocObjects,
-				pyroscope.ProfileAllocSpace,
-				pyroscope.ProfileInuseObjects,
-				pyroscope.ProfileInuseSpace,
-				pyroscope.ProfileGoroutines,
-				pyroscope.ProfileMutexCount,
-				pyroscope.ProfileMutexDuration,
-				pyroscope.ProfileBlockCount,
-				pyroscope.ProfileBlockDuration,
-			},
-		})
-	}
-
 	customLogger, err := log.New(customLoggerConfig)
 	if err != nil {
 		return nil, err
@@ -226,6 +192,40 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.JobPath = path.Join("jobs", config.Job)
 
 	c.Workers = NewPool(uint(config.WorkersCount), time.Second*60, c)
+
+	if config.PyroscopeAddress != "" {
+		runtime.SetMutexProfileFraction(5)
+		runtime.SetBlockProfileRate(5)
+
+		hostname, err := os.Hostname()
+		if err != nil {
+			return nil, err
+		}
+
+		pyroscope.Start(pyroscope.Config{
+			ApplicationName: "zeno",
+
+			ServerAddress: config.PyroscopeAddress,
+
+			// Debug logging for Pyroscope can be enabled with pyroscope.StandardLogger
+			Logger: nil,
+
+			Tags: map[string]string{"hostname": hostname, "version": utils.GetVersion().Version, "job": c.Job, "WARCPrefix": c.WARCPrefix},
+
+			ProfileTypes: []pyroscope.ProfileType{
+				pyroscope.ProfileCPU,
+				pyroscope.ProfileAllocObjects,
+				pyroscope.ProfileAllocSpace,
+				pyroscope.ProfileInuseObjects,
+				pyroscope.ProfileInuseSpace,
+				pyroscope.ProfileGoroutines,
+				pyroscope.ProfileMutexCount,
+				pyroscope.ProfileMutexDuration,
+				pyroscope.ProfileBlockCount,
+				pyroscope.ProfileBlockDuration,
+			},
+		})
+	}
 
 	c.UseSeencheck = config.LocalSeencheck
 	c.HTTPTimeout = config.HTTPTimeout
