@@ -15,9 +15,8 @@ func IsTelegramURL(url string) bool {
 
 func TransformURL(URL *url.URL) {
 	// Add embed=1 to the URL, without changing the original URL
-	if len(URL.RawQuery) > 0 {
-		URL.RawQuery += "&embed=1&mode=tme"
-	} else {
-		URL.RawQuery = "embed=1&mode=tme"
-	}
+	q := URL.Query()
+	q.Add("embed", "1")
+	q.Add("mode", "tme")
+	URL.RawQuery = q.Encode()
 }
