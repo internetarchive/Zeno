@@ -6,7 +6,7 @@ import (
 )
 
 func IsTelegramEmbedURL(url string) bool {
-	return strings.Contains(url, "/t.me/") && strings.Contains(url, "?embed=1")
+	return strings.Contains(url, "/t.me/") && strings.Contains(url, "embed=1")
 }
 
 func IsTelegramURL(url string) bool {
