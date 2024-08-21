@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -12,7 +11,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/clbanning/mxj/v2"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/facebook"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/libsyn"
@@ -224,6 +223,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	var (
 		resp      *http.Response
 		waitGroup sync.WaitGroup
+		assets    []*url.URL
 	)
 
 	defer func(i *queue.Item) {
@@ -390,53 +390,20 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		return err
 	}
 
-	// If the response is a JSON document, we want to scrape it for links
-	if strings.Contains(resp.Header.Get("Content-Type"), "json") {
-		jsonBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading JSON body")
-			return err
-		}
-
-		outlinksFromJSON, err := getURLsFromJSON(string(jsonBody))
-		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting URLs from JSON")
-			return err
-		}
-
-		waitGroup.Add(1)
-		go c.queueOutlinks(utils.MakeAbsolute(item.URL, utils.StringSliceToURLSlice(outlinksFromJSON)), item, &waitGroup)
-
-		return err
-	}
-
 	// If the response is an XML document, we want to scrape it for links
 	if strings.Contains(resp.Header.Get("Content-Type"), "xml") {
-		xmlBody, err := io.ReadAll(resp.Body)
+		assets, err = extractor.XML(resp)
 		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading XML body")
-			return err
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from XML")
 		}
-
-		mv, err := mxj.NewMapXml(xmlBody)
+	} else if strings.Contains(resp.Header.Get("Content-Type"), "json") {
+		assets, err = extractor.JSON(resp)
 		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing XML body")
-			return err
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from JSON")
 		}
-
-		for _, value := range mv.LeafValues() {
-			if _, ok := value.(string); ok {
-				if strings.HasPrefix(value.(string), "http") {
-					discovered = append(discovered, value.(string))
-				}
-			}
-		}
-	}
-
-	// If the response isn't a text/*, we do not scrape it.
-	// We also aren't going to scrape if assets and outlinks are turned off.
-	if !strings.Contains(resp.Header.Get("Content-Type"), "text/") || (c.DisableAssetsCapture && !c.DomainsCrawl && (uint64(c.MaxHops) <= item.Hop)) {
-		// Enforce reading all data from the response for WARC writing
+	} else if !strings.Contains(resp.Header.Get("Content-Type"), "text/") || (c.DisableAssetsCapture && !c.DomainsCrawl && (uint64(c.MaxHops) <= item.Hop)) {
+		// If the response isn't a text/*, we do not scrape it.
+		// We also aren't going to scrape if assets and outlinks are turned off.
 		_, err := io.Copy(io.Discard, resp.Body)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading response body")
@@ -526,11 +493,13 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		return err
 	}
 
-	// Extract and capture assets
-	assets, err := c.extractAssets(base, item, doc)
-	if err != nil {
-		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting assets")
-		return err
+	// Extract and capture assets (only if we didn't use an extractor that produce assets)
+	if len(assets) == 0 {
+		assets, err = c.extractAssets(base, item, doc)
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting assets")
+			return err
+		}
 	}
 
 	// If we didn't find any assets, let's stop here
@@ -648,39 +617,4 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 	swg.Wait()
 	return err
-}
-
-func getURLsFromJSON(jsonString string) ([]string, error) {
-	var data interface{}
-	err := json.Unmarshal([]byte(jsonString), &data)
-	if err != nil {
-		return nil, err
-	}
-
-	links := make([]string, 0)
-	findURLs(data, &links)
-
-	return links, nil
-}
-
-func findURLs(data interface{}, links *[]string) {
-	switch v := data.(type) {
-	case string:
-		if isValidURL(v) {
-			*links = append(*links, v)
-		}
-	case []interface{}:
-		for _, element := range v {
-			findURLs(element, links)
-		}
-	case map[string]interface{}:
-		for _, value := range v {
-			findURLs(value, links)
-		}
-	}
-}
-
-func isValidURL(str string) bool {
-	u, err := url.Parse(str)
-	return err == nil && u.Scheme != "" && u.Host != ""
 }

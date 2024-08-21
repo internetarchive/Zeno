@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -30,7 +31,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 	doc.Find("[data-item]").Each(func(index int, item *goquery.Selection) {
 		dataItem, exists := item.Attr("data-item")
 		if exists {
-			URLsFromJSON, _ := getURLsFromJSON(dataItem)
+			URLsFromJSON, _ := extractor.GetURLsFromJSON(dataItem)
 			rawAssets = append(rawAssets, URLsFromJSON...)
 		}
 	})
@@ -136,7 +137,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 			scriptType, exists := item.Attr("type")
 			if exists {
 				if scriptType == "application/json" {
-					URLsFromJSON, _ := getURLsFromJSON(item.Text())
+					URLsFromJSON, _ := extractor.GetURLsFromJSON(item.Text())
 					rawAssets = append(rawAssets, URLsFromJSON...)
 				}
 			}
@@ -184,7 +185,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 					}
 
 					if len(jsonContent[1]) > payloadEndPosition {
-						URLsFromJSON, _ := getURLsFromJSON(jsonContent[1][:payloadEndPosition+1])
+						URLsFromJSON, _ := extractor.GetURLsFromJSON(jsonContent[1][:payloadEndPosition+1])
 						rawAssets = append(rawAssets, removeGoogleVideoURLs(URLsFromJSON)...)
 					}
 				}
