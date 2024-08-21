@@ -14,6 +14,7 @@ import (
 
 func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Document) (assets []*url.URL, err error) {
 	var rawAssets []string
+	var URL = utils.URLToString(item.URL)
 
 	// Execute plugins on the response
 	if strings.Contains(base.Host, "cloudflarestream.com") {
@@ -31,8 +32,12 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 	doc.Find("[data-item]").Each(func(index int, item *goquery.Selection) {
 		dataItem, exists := item.Attr("data-item")
 		if exists {
-			URLsFromJSON, _ := extractor.GetURLsFromJSON(dataItem)
-			rawAssets = append(rawAssets, URLsFromJSON...)
+			URLsFromJSON, err := extractor.GetURLsFromJSON(dataItem)
+			if err != nil {
+				c.Log.Error("unable to extract URLs from JSON in data-item attribute", "error", err, "url", URL)
+			} else {
+				rawAssets = append(rawAssets, URLsFromJSON...)
+			}
 		}
 	})
 
@@ -137,8 +142,12 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 			scriptType, exists := item.Attr("type")
 			if exists {
 				if scriptType == "application/json" {
-					URLsFromJSON, _ := extractor.GetURLsFromJSON(item.Text())
-					rawAssets = append(rawAssets, URLsFromJSON...)
+					URLsFromJSON, err := extractor.GetURLsFromJSON(item.Text())
+					if err != nil {
+						c.Log.Error("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
+					} else {
+						rawAssets = append(rawAssets, URLsFromJSON...)
+					}
 				}
 			}
 
@@ -185,8 +194,12 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 					}
 
 					if len(jsonContent[1]) > payloadEndPosition {
-						URLsFromJSON, _ := extractor.GetURLsFromJSON(jsonContent[1][:payloadEndPosition+1])
-						rawAssets = append(rawAssets, removeGoogleVideoURLs(URLsFromJSON)...)
+						URLsFromJSON, err := extractor.GetURLsFromJSON(jsonContent[1][:payloadEndPosition+1])
+						if err != nil {
+							c.Log.Error("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
+						} else {
+							rawAssets = append(rawAssets, removeGoogleVideoURLs(URLsFromJSON)...)
+						}
 					}
 				}
 			}
