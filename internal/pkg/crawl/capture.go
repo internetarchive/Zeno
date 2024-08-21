@@ -149,7 +149,7 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 
 		// Seencheck the URL
 		if c.UseSeencheck {
-			found := c.seencheckURL(utils.URLToString(URL), "seed")
+			found := c.Seencheck.SeencheckURL(utils.URLToString(URL), "seed")
 			if found {
 				return nil, errors.New("URL from redirection has already been seen")
 			}
@@ -433,7 +433,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		// to the seencheck table.
 		if c.UseSeencheck {
 			for _, cfstreamURL := range cfstreamURLs {
-				c.seencheckURL(cfstreamURL, "asset")
+				c.Seencheck.SeencheckURL(cfstreamURL, "asset")
 			}
 		} else if c.UseHQ {
 			_, err := c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
