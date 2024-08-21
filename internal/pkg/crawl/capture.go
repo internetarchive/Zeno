@@ -149,18 +149,20 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 
 		// Seencheck the URL
 		if c.UseSeencheck {
-			found := c.Seencheck.SeencheckURL(utils.URLToString(URL), "seed")
-			if found {
-				return nil, errors.New("URL from redirection has already been seen")
-			}
-		} else if c.UseHQ {
-			isNewURL, err := c.HQSeencheckURL(URL)
-			if err != nil {
-				return resp, err
-			}
+			if c.UseHQ {
+				isNewURL, err := c.HQSeencheckURL(URL)
+				if err != nil {
+					return resp, err
+				}
 
-			if !isNewURL {
-				return nil, errors.New("URL from redirection has already been seen")
+				if !isNewURL {
+					return nil, errors.New("URL from redirection has already been seen")
+				}
+			} else {
+				found := c.Seencheck.SeencheckURL(utils.URLToString(URL), "seed")
+				if found {
+					return nil, errors.New("URL from redirection has already been seen")
+				}
 			}
 		}
 
@@ -432,18 +434,19 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		// because we already archived the URLs, we just want them to be added
 		// to the seencheck table.
 		if c.UseSeencheck {
-			for _, cfstreamURL := range cfstreamURLs {
-				c.Seencheck.SeencheckURL(cfstreamURL, "asset")
-			}
-		} else if c.UseHQ {
-			_, err := c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
-			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, item.URL, map[string]interface{}{
-					"urls": cfstreamURLs,
-				})).Error("error while seenchecking assets via HQ")
+			if c.UseHQ {
+				_, err := c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, map[string]interface{}{
+						"urls": cfstreamURLs,
+					})).Error("error while seenchecking assets via HQ")
+				}
+			} else {
+				for _, cfstreamURL := range cfstreamURLs {
+					c.Seencheck.SeencheckURL(cfstreamURL, "asset")
+				}
 			}
 		}
-
 		// Log the archived URLs
 		for _, cfstreamURL := range cfstreamURLs {
 			c.Log.WithFields(c.genLogFields(err, cfstreamURL, map[string]interface{}{
@@ -511,38 +514,40 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	// seencheck DB. If they are, then they are skipped.
 	// Else, if we use HQ, then we use HQ's seencheck.
 	if c.UseSeencheck {
-		seencheckedBatch := []*url.URL{}
-
-		for _, URL := range assets {
-			found := c.Seencheck.SeencheckURL(utils.URLToString(URL), "asset")
-			if found {
-				continue
+		if c.UseHQ {
+			seencheckedURLs, err := c.HQSeencheckURLs(assets)
+			// We ignore the error here because we don't want to slow down the crawl
+			// if HQ is down or if the request failed. So if we get an error, we just
+			// continue with the original list of assets.
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+					"urls":      assets,
+					"parentHop": item.Hop,
+					"parentUrl": utils.URLToString(item.URL),
+				})).Error("error while seenchecking assets via HQ")
+			} else {
+				assets = seencheckedURLs
 			}
-			seencheckedBatch = append(seencheckedBatch, URL)
-		}
 
-		if len(seencheckedBatch) == 0 {
-			return err
-		}
-
-		assets = seencheckedBatch
-	} else if c.UseHQ {
-		seencheckedURLs, err := c.HQSeencheckURLs(assets)
-		// We ignore the error here because we don't want to slow down the crawl
-		// if HQ is down or if the request failed. So if we get an error, we just
-		// continue with the original list of assets.
-		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-				"urls":      assets,
-				"parentHop": item.Hop,
-				"parentUrl": utils.URLToString(item.URL),
-			})).Error("error while seenchecking assets via HQ")
+			if len(assets) == 0 {
+				return err
+			}
 		} else {
-			assets = seencheckedURLs
-		}
+			seencheckedBatch := []*url.URL{}
 
-		if len(assets) == 0 {
-			return err
+			for _, URL := range assets {
+				found := c.Seencheck.SeencheckURL(utils.URLToString(URL), "asset")
+				if found {
+					continue
+				}
+				seencheckedBatch = append(seencheckedBatch, URL)
+			}
+
+			if len(seencheckedBatch) == 0 {
+				return err
+			}
+
+			assets = seencheckedBatch
 		}
 	}
 
