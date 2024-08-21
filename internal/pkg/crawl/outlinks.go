@@ -111,7 +111,7 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 		}
 	}
 
-	if !c.UseHQ {
+	if !c.UseHQ && len(items) > 0 {
 		err := c.Queue.BatchEnqueue(items...)
 		if err != nil {
 			c.Log.Error("unable to enqueue outlinks, discarding", "error", err)
