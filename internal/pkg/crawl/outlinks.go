@@ -84,6 +84,13 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 			continue
 		}
 
+		// Seencheck the outlink
+		if c.UseSeencheck {
+			if c.Seencheck.SeencheckURL(utils.URLToString(outlink), "seed") {
+				continue
+			}
+		}
+
 		if c.DomainsCrawl && strings.Contains(item.URL.Host, outlink.Host) && item.Hop == 0 {
 			newItem, err := queue.NewItem(outlink, item.URL, "seed", 0, "", false)
 			if err != nil {

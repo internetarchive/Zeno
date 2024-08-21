@@ -2,6 +2,7 @@
 package crawl
 
 import (
+	"os"
 	"path"
 	"sync"
 	"time"
@@ -155,7 +156,7 @@ func (c *Crawl) Start() (err error) {
 		go c.HQProducer()
 		go c.HQFinisher()
 		go c.HQWebsocket()
-	} else {
+	} else if len(c.SeedList) > 0 {
 		// Temporarily disable handover as it's not needed
 		enableBackHandover := make(chan struct{})
 		syncHandover := make(chan struct{})
@@ -166,6 +167,27 @@ func (c *Crawl) Start() (err error) {
 
 			<-syncHandover
 		}
+
+		// Dedupe the seeds list
+		if c.UseSeencheck {
+			c.Log.Info("Seenchecking seeds list..")
+
+			var seencheckedSeeds []queue.Item
+			var duplicates int
+			for i := 0; i < len(c.SeedList); i++ {
+				if c.Seencheck.SeencheckURL(c.SeedList[i].URL.String(), "seed") {
+					duplicates++
+					continue
+				}
+
+				seencheckedSeeds = append(seencheckedSeeds, c.SeedList[i])
+			}
+
+			c.SeedList = seencheckedSeeds
+
+			c.Log.Info("Seencheck done", "duplicates", duplicates)
+		}
+
 		// Push the seed list to the queue
 		c.Log.Info("Pushing seeds in the local queue..")
 		for i := 0; i < len(c.SeedList); i += 100000 {
@@ -199,6 +221,9 @@ func (c *Crawl) Start() (err error) {
 		close(syncHandover)
 
 		c.Log.Info("All seeds are now in queue")
+	} else {
+		c.Log.Info("No seeds to crawl")
+		os.Exit(0)
 	}
 
 	// Start the workers pool by building all the workers and starting them

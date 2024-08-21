@@ -58,7 +58,7 @@ type Config struct {
 	HQBatchSize                    int64    `mapstructure:"hq-batch-size"`
 	KeepCookies                    bool     `mapstructure:"keep-cookies"`
 	Headless                       bool     `mapstructure:"headless"`
-	LocalSeencheck                 bool     `mapstructure:"local-seencheck"`
+	DisableSeencheck               bool     `mapstructure:"disable-seencheck"`
 	JSON                           bool     `mapstructure:"json"`
 	Debug                          bool     `mapstructure:"debug"`
 	LiveStats                      bool     `mapstructure:"live-stats"`

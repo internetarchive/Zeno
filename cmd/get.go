@@ -34,7 +34,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("cookies", "", "File containing cookies that will be used for requests.")
 	getCmd.PersistentFlags().Bool("keep-cookies", false, "Keep a global cookie jar")
 	getCmd.PersistentFlags().Bool("headless", false, "Use headless browsers instead of standard GET requests.")
-	getCmd.PersistentFlags().Bool("local-seencheck", false, "Simple local seencheck to avoid re-crawling of URIs.")
+	getCmd.PersistentFlags().Bool("disable-seencheck", false, "Disable the (remote or local) seencheck that avoid re-crawling of URIs.")
 	getCmd.PersistentFlags().Bool("json", false, "Output logs in JSON")
 	getCmd.PersistentFlags().Bool("debug", false, "")
 	getCmd.PersistentFlags().Bool("api", false, "Enable API")

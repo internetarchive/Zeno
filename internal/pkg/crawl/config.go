@@ -227,7 +227,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 		})
 	}
 
-	c.UseSeencheck = config.LocalSeencheck
+	c.UseSeencheck = !config.DisableSeencheck
 	c.HTTPTimeout = config.HTTPTimeout
 	c.MaxConcurrentRequestsPerDomain = config.MaxConcurrentRequestsPerDomain
 	c.RateLimitDelay = config.ConcurrentSleepLength
