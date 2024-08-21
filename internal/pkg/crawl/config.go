@@ -246,7 +246,10 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.DomainsCrawl = config.DomainsCrawl
 	c.DisableAssetsCapture = config.DisableAssetsCapture
 	c.DisabledHTMLTags = config.DisableHTMLTag
-	c.ExcludedHosts = config.ExcludeHosts
+
+	// We exclude some hosts by default
+	c.ExcludedHosts = utils.DedupeStrings(append(config.ExcludeHosts, "archive.org", "archive-it.org"))
+
 	c.IncludedHosts = config.IncludeHosts
 	c.CaptureAlternatePages = config.CaptureAlternatePages
 	c.ExcludedStrings = config.ExcludeString
