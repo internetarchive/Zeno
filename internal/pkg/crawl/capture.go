@@ -514,7 +514,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		seencheckedBatch := []*url.URL{}
 
 		for _, URL := range assets {
-			found := c.seencheckURL(utils.URLToString(URL), "asset")
+			found := c.Seencheck.SeencheckURL(utils.URLToString(URL), "asset")
 			if found {
 				continue
 			}

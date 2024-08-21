@@ -1,7 +1,9 @@
 package seencheck
 
 import (
+	"hash/fnv"
 	"path"
+	"strconv"
 	"sync/atomic"
 
 	"github.com/philippgille/gokv/leveldb"
@@ -43,4 +45,18 @@ func (seencheck *Seencheck) IsSeen(hash string) (found bool, value string) {
 func (seencheck *Seencheck) Seen(hash, value string) {
 	seencheck.DB.Set(hash, value)
 	atomic.AddInt64(seencheck.Count, 1)
+}
+
+func (seencheck *Seencheck) SeencheckURL(URL string, URLType string) bool {
+	h := fnv.New64a()
+	h.Write([]byte(URL))
+	hash := strconv.FormatUint(h.Sum64(), 10)
+
+	found, _ := seencheck.IsSeen(hash)
+	if found {
+		return true
+	} else {
+		seencheck.Seen(hash, URLType)
+		return false
+	}
 }

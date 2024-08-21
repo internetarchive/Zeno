@@ -10,7 +10,6 @@ import (
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/sirupsen/logrus"
 )
 
 // This function connects to HQ's websocket and listen for messages.
@@ -317,7 +316,7 @@ func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 
 	discoveredResponse, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "asset", false, true)
 	if err != nil {
-		logrus.WithFields(c.genLogFields(err, URL, nil)).Errorln("error sending seencheck payload to crawl HQ")
+		c.Log.Error("error sending seencheck payload to crawl HQ", "err", err, "url", utils.URLToString(URL))
 		return false, err
 	}
 
