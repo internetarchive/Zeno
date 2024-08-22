@@ -119,7 +119,7 @@ func (wp *WorkerPool) GetWorkerStateFromPool(UUID string) interface{} {
 }
 
 func _getWorkerState(worker *Worker) *APIWorkerState {
-	lastErr := ""
+	var URL, lastErr string
 	isLocked := true
 
 	if worker.TryLock() {
@@ -131,10 +131,14 @@ func _getWorkerState(worker *Worker) *APIWorkerState {
 		lastErr = worker.state.lastError.Error()
 	}
 
+	if worker.state.currentItem != nil && worker.state.currentItem.URL != nil {
+		URL = utils.URLToString(worker.state.currentItem.URL)
+	}
+
 	return &APIWorkerState{
 		WorkerID:   worker.ID.String(),
 		Status:     worker.state.status.String(),
-		URL:        utils.URLToString(worker.state.currentItem.URL),
+		URL:        URL,
 		LastSeen:   worker.state.lastSeen.Format(time.RFC3339),
 		LastError:  lastErr,
 		LastAction: worker.state.lastAction,
