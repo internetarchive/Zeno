@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"sort"
 	"testing"
 )
 
@@ -81,11 +80,4 @@ func TestJSON(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Helper function to sort URL slices
-func sortURLs(urls []*url.URL) {
-	sort.Slice(urls, func(i, j int) bool {
-		return urls[i].String() < urls[j].String()
-	})
 }

@@ -88,16 +88,3 @@ func TestXMLBodyReadError(t *testing.T) {
 		t.Errorf("XML() expected error, got nil")
 	}
 }
-
-// compareURLs compares two slices of *url.URL
-func compareURLs(a, b []*url.URL) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i].String() != b[i].String() {
-			return false
-		}
-	}
-	return true
-}
