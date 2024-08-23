@@ -12,6 +12,9 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
+var backgroundImageRegex = regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
+var urlRegex = regexp.MustCompile(`(?m)url\((.*?)\)`)
+
 func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Document) (assets []*url.URL, err error) {
 	var rawAssets []string
 	var URL = utils.URLToString(item.URL)
@@ -45,8 +48,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 	doc.Find("*").Each(func(index int, item *goquery.Selection) {
 		style, exists := item.Attr("style")
 		if exists {
-			re := regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
-			matches := re.FindAllStringSubmatch(style, -1)
+			matches := backgroundImageRegex.FindAllStringSubmatch(style, -1)
 
 			for match := range matches {
 				if len(matches[match]) > 0 {
@@ -110,9 +112,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 
 	if !utils.StringInSlice("style", c.DisabledHTMLTags) {
 		doc.Find("style").Each(func(index int, item *goquery.Selection) {
-			re := regexp.MustCompile(`(?m)url\((.*?)\)`)
-			matches := re.FindAllStringSubmatch(item.Text(), -1)
-
+			matches := urlRegex.FindAllStringSubmatch(item.Text(), -1)
 			for match := range matches {
 				matchReplacement := matches[match][1]
 				matchReplacement = strings.Replace(matchReplacement, "'", "", -1)
