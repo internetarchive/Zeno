@@ -151,7 +151,7 @@ func (c *Crawl) HQConsumer() {
 		// This is on purpose evaluated every time,
 		// because the value of workers will maybe change
 		// during the crawl in the future (to be implemented)
-		var HQBatchSize = int(math.Ceil(float64(c.Workers.Count)))
+		var HQBatchSize = int(c.Workers.Count)
 
 		if c.Finished.Get() {
 			c.Log.Error("crawl finished, stopping HQ consumer")
@@ -173,10 +173,6 @@ func (c *Crawl) HQConsumer() {
 		// get batch from crawl HQ
 		batch, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
 		if err != nil {
-			if strings.Contains(err.Error(), "feed is empty") {
-				time.Sleep(time.Second)
-			}
-
 			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
 				"err":       err,
