@@ -7,15 +7,10 @@ import (
 	"strings"
 )
 
+var truthSocialPostURLRegex = regexp.MustCompile(`https?://truthsocial\.com/@[A-Za-z0-9_]+/posts/\d+`)
+
 func IsTruthSocialURL(URL string) bool {
-	regexPattern := `https?://truthsocial\.com/@[A-Za-z0-9_]+/posts/\d+`
-
-	match, err := regexp.MatchString(regexPattern, URL)
-	if err != nil {
-		return false
-	}
-
-	return match
+	return truthSocialPostURLRegex.MatchString(URL)
 }
 
 func extractPostID(URL string) (string, error) {
