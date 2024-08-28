@@ -29,6 +29,9 @@ type PrometheusMetrics struct {
 func (c *Crawl) Start() (err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			// Treat faults as panics
+			debug.SetPanicOnFault(true)
+
 			// Write the stacktrace to a file in the job's directory
 			stacktrace := fmt.Sprintf("%s\n%s", r, debug.Stack())
 			stacktracePath := path.Join(c.JobPath, "logs", fmt.Sprintf("%s.%s.log", "panic", time.Now().Format("2006.01.02T15-04")))
