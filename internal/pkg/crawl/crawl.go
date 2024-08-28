@@ -2,8 +2,10 @@
 package crawl
 
 import (
+	"fmt"
 	"os"
 	"path"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -25,6 +27,25 @@ type PrometheusMetrics struct {
 
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			// Write the stacktrace to a file in the job's directory
+			stacktrace := fmt.Sprintf("%s\n%s", r, debug.Stack())
+			stacktracePath := path.Join(c.JobPath, "logs", fmt.Sprintf("%s.%s.log", "panic", time.Now().Format("2006.01.02T15-04")))
+			f, err := os.Create(stacktracePath)
+			if err != nil {
+				c.Log.Fatal("unable to create stacktrace file", "error", err)
+			}
+			defer f.Close()
+
+			if _, err := f.WriteString(stacktrace); err != nil {
+				c.Log.Fatal("unable to write stacktrace to file", "error", err)
+			}
+
+			c.Log.Fatal("panic occurred, stacktrace written to file", "file", stacktracePath)
+		}
+	}()
+
 	c.StartTime = time.Now()
 	c.Paused = new(utils.TAtomBool)
 	c.Finished = new(utils.TAtomBool)
