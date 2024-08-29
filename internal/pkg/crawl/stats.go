@@ -45,6 +45,11 @@ func (c *Crawl) printLiveStats() {
 		stats.AddRow("  - Queue empty bool state:", c.Queue.Empty.Get())
 		stats.AddRow("  - Can Enqueue:", c.Queue.CanEnqueue())
 		stats.AddRow("  - Can Dequeue:", c.Queue.CanDequeue())
+
+		if c.UseHQ {
+			stats.AddRow("  - HQ consumer state:", c.HQConsumerState)
+		}
+
 		stats.AddRow("  - Crawled total:", crawledSeeds+crawledAssets)
 		stats.AddRow("  - Crawled seeds:", crawledSeeds)
 		stats.AddRow("  - Crawled assets:", crawledAssets)
