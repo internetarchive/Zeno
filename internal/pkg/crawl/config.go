@@ -25,12 +25,11 @@ import (
 // Crawl define the parameters of a crawl process
 type Crawl struct {
 	*sync.Mutex
-	StartTime          time.Time
-	SeedList           []queue.Item
-	Paused             *utils.TAtomBool
-	Finished           *utils.TAtomBool
-	PauseTriggeredByCS *utils.TAtomBool
-	LiveStats          bool
+	StartTime time.Time
+	SeedList  []queue.Item
+	Paused    *utils.TAtomBool
+	Finished  *utils.TAtomBool
+	LiveStats bool
 
 	// Logger
 	Log *log.Logger
