@@ -52,6 +52,7 @@ func (c *Crawl) Start() (err error) {
 	c.StartTime = time.Now()
 	c.Paused = new(utils.TAtomBool)
 	c.Finished = new(utils.TAtomBool)
+	c.PauseTriggeredByCS = new(utils.TAtomBool)
 	c.HQChannelsWg = new(sync.WaitGroup)
 	regexOutlinks = xurls.Relaxed()
 
