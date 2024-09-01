@@ -316,6 +316,11 @@ func (c *Crawl) HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, e
 	return seencheckedBatch, nil
 }
 
+// returns:
+//   - bool: true if the URL is new, false if it has been seen before
+//   - error: if there's an error sending the payload to crawl HQ
+//
+// NOTE: if there's an error, the URL is considered new
 func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 	discoveredURL := gocrawlhq.URL{
 		Value: utils.URLToString(URL),
@@ -324,17 +329,17 @@ func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 	discoveredResponse, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "asset", false, true)
 	if err != nil {
 		c.Log.Error("error sending seencheck payload to crawl HQ", "err", err, "url", utils.URLToString(URL))
-		return false, err
+		return true, err // return true, don't discard the URL if there's an error
 	}
 
 	if discoveredResponse.URLs != nil {
 		for _, URL := range discoveredResponse.URLs {
+			// the returned payload only contain new URLs to be crawled by Zeno
 			if URL.Value == discoveredURL.Value {
-				return false, nil
+				return true, nil
 			}
 		}
 	}
 
-	// didn't find the URL in the HQ, so it's new and has been added to HQ's seencheck database
-	return true, nil
+	return false, nil
 }
