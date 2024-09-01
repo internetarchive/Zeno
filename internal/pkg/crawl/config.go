@@ -320,7 +320,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.HQRateLimitingSendBack = config.HQRateLimitSendBack
 
 	// Handover mechanism
-	c.UseHandover = !config.NoHandover
+	c.UseHandover = config.Handover
 
 	c.UseCommit = !config.NoBatchWriteWAL
 
