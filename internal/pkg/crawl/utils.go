@@ -11,6 +11,7 @@ import (
 )
 
 var regexOutlinks *regexp.Regexp
+var pauseTriggeredByCrawlSpeed = false
 
 func (c *Crawl) crawlSpeedLimiter() {
 	maxConcurrentAssets := c.MaxConcurrentAssets
@@ -20,18 +21,18 @@ func (c *Crawl) crawlSpeedLimiter() {
 		if c.Client.WaitGroup.Size() > int(*c.ActiveWorkers)*8 {
 			c.Paused.Set(true)
 			c.Queue.Paused.Set(true)
-			c.PauseTriggeredByCS.Set(true)
+			pauseTriggeredByCrawlSpeed = true
 			// Lower the number of concurrent assets we'll capture if the waitgroup exceeds 4 times the active workers (and the pause is caused by crawlSpeed)
-		} else if c.Client.WaitGroup.Size() > int(*c.ActiveWorkers)*4 && c.pauseTriggeredByCrawlSpeed.Get() {
+		} else if c.Client.WaitGroup.Size() > int(*c.ActiveWorkers)*4 && pauseTriggeredByCrawlSpeed {
 			c.MaxConcurrentAssets = 1
 			c.Paused.Set(false)
 			c.Queue.Paused.Set(false)
 			// If the pause was triggered by crawlSpeed and everything is fine, fully reset state.
-		} else if c.PauseTriggeredByCS.Get() {
+		} else if pauseTriggeredByCrawlSpeed {
 			c.MaxConcurrentAssets = maxConcurrentAssets
 			c.Paused.Set(false)
 			c.Queue.Paused.Set(false)
-			c.PauseTriggeredByCS.Set(false)
+			pauseTriggeredByCrawlSpeed = false
 		}
 
 		time.Sleep(time.Second / 10)
