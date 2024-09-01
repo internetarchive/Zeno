@@ -11,10 +11,10 @@ import (
 )
 
 var regexOutlinks *regexp.Regexp
-var pauseTriggeredByCrawlSpeed = false
 
 func (c *Crawl) crawlSpeedLimiter() {
 	maxConcurrentAssets := c.MaxConcurrentAssets
+	var pauseTriggeredByCrawlSpeed = false
 
 	for {
 		// Pause if the waitgroup has exceeded 8 times the active workers.
