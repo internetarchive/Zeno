@@ -24,7 +24,7 @@ func AddCookies(req *http.Request) {
 			Path:   "/",
 		},
 		{
-			Name:   "options",
+			Name:   "_options",
 			Value:  "%7B%22pref_quarantine_optin%22%3A%20true%2C%20%22pref_gated_sr_optin%22%3A%20true%7D",
 			Domain: ".reddit.com",
 			Path:   "/",
