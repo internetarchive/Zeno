@@ -35,23 +35,6 @@ func URLToString(u *url.URL) string {
 		}
 	}
 
-	tempHost, err := idna.ToASCII(u.Hostname())
-	if err != nil {
-		slog.Warn("cannot encode punycode hostname to ASCII", "error", err)
-		tempHost = u.Hostname()
-	}
-
-	if strings.Contains(tempHost, ":") && !(strings.HasPrefix(tempHost, "[") && strings.HasSuffix(tempHost, "]")) {
-		tempHost = "[" + tempHost + "]"
-	}
-
-	port := u.Port()
-	if len(port) > 0 {
-		u.Host = tempHost + ":" + port
-	} else {
-		u.Host = tempHost
-	}
-
 	return u.String()
 }
 

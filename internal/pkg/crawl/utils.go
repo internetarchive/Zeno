@@ -2,10 +2,8 @@ package crawl
 
 import (
 	"fmt"
-	"hash/fnv"
 	"net/url"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -14,27 +12,32 @@ import (
 
 var regexOutlinks *regexp.Regexp
 
-// TODO: re-implement host limitation
-// func (c *Crawl) crawlSpeedLimiter() {
-// 	maxConcurrentAssets := c.MaxConcurrentAssets
+func (c *Crawl) crawlSpeedLimiter() {
+	maxConcurrentAssets := c.MaxConcurrentAssets
+	var pauseTriggeredByCrawlSpeed = false
 
-// 	for {
-// 		if c.Client.WaitGroup.Size() > c.Workers*8 {
-// 			c.Paused.Set(true)
-// 			c.Frontier.Paused.Set(true)
-// 		} else if c.Client.WaitGroup.Size() > c.Workers*4 {
-// 			c.MaxConcurrentAssets = 1
-// 			c.Paused.Set(false)
-// 			c.Frontier.Paused.Set(false)
-// 		} else {
-// 			c.MaxConcurrentAssets = maxConcurrentAssets
-// 			c.Paused.Set(false)
-// 			c.Frontier.Paused.Set(false)
-// 		}
+	for {
+		// Pause if the waitgroup has exceeded 8 times the active workers.
+		if c.Client.WaitGroup.Size() > int(*c.ActiveWorkers)*8 {
+			c.Paused.Set(true)
+			c.Queue.Paused.Set(true)
+			pauseTriggeredByCrawlSpeed = true
+			// Lower the number of concurrent assets we'll capture if the waitgroup exceeds 4 times the active workers (and the pause is caused by crawlSpeed)
+		} else if c.Client.WaitGroup.Size() > int(*c.ActiveWorkers)*4 && pauseTriggeredByCrawlSpeed {
+			c.MaxConcurrentAssets = 1
+			c.Paused.Set(false)
+			c.Queue.Paused.Set(false)
+			// If the pause was triggered by crawlSpeed and everything is fine, fully reset state.
+		} else if pauseTriggeredByCrawlSpeed {
+			c.MaxConcurrentAssets = maxConcurrentAssets
+			c.Paused.Set(false)
+			c.Queue.Paused.Set(false)
+			pauseTriggeredByCrawlSpeed = false
+		}
 
-// 		time.Sleep(time.Second / 4)
-// 	}
-// }
+		time.Sleep(time.Second / 10)
+	}
+}
 
 func (c *Crawl) checkIncludedHosts(host string) bool {
 	// If no hosts are included, all hosts are included
@@ -59,20 +62,6 @@ func (c *Crawl) handleCrawlPause() {
 		}
 
 		time.Sleep(time.Second)
-	}
-}
-
-func (c *Crawl) seencheckURL(URL string, URLType string) bool {
-	h := fnv.New64a()
-	h.Write([]byte(URL))
-	hash := strconv.FormatUint(h.Sum64(), 10)
-
-	found, _ := c.Seencheck.IsSeen(hash)
-	if found {
-		return true
-	} else {
-		c.Seencheck.Seen(hash, URLType)
-		return false
 	}
 }
 

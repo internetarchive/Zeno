@@ -1,126 +1,23 @@
 package crawl
 
 import (
-	"io"
-	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
-	"sync/atomic"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/remeh/sizedwaitgroup"
 )
 
-func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie) error {
-	var resp *http.Response
-
-	// Prepare GET request
-	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Referer", utils.URLToString(item.ParentURL))
-	req.Header.Set("User-Agent", c.UserAgent)
-
-	// Apply cookies obtained from the original URL captured
-	for i := range cookies {
-		req.AddCookie(cookies[i])
-	}
-
-	resp, err = c.executeGET(item, req, false)
-	if err != nil && err.Error() == "URL from redirection has already been seen" {
-		return nil
-	} else if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// needed for WARC writing
-	io.Copy(io.Discard, resp.Body)
-
-	return nil
-}
-
-func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*http.Cookie) {
-	// TODO: implement a counter for the number of assets
-	// currently being processed
-	// c.Frontier.QueueCount.Incr(int64(len(assets)))
-	swg := sizedwaitgroup.New(int(c.MaxConcurrentAssets))
-	excluded := false
-
-	for _, asset := range assets {
-		// TODO: implement a counter for the number of assets
-		// currently being processed
-		// c.Frontier.QueueCount.Incr(-1)
-
-		// Just making sure we do not over archive by archiving the original URL
-		if utils.URLToString(item.URL) == utils.URLToString(asset) {
-			continue
-		}
-
-		// We ban googlevideo.com URLs because they are heavily rate limited by default, and
-		// we don't want the crawler to spend an innapropriate amount of time archiving them
-		if strings.Contains(item.URL.Host, "googlevideo.com") {
-			continue
-		}
-
-		// If the URL match any excluded string, we ignore it
-		for _, excludedString := range c.ExcludedStrings {
-			if strings.Contains(utils.URLToString(asset), excludedString) {
-				excluded = true
-				break
-			}
-		}
-
-		if excluded {
-			excluded = false
-			continue
-		}
-
-		swg.Add()
-		c.URIsPerSecond.Incr(1)
-
-		go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
-			defer swg.Done()
-
-			// Create the asset's item
-			newAsset, err := queue.NewItem(asset, item.URL, "asset", item.Hop, "", false)
-			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, asset, map[string]interface{}{
-					"parentHop": item.Hop,
-					"parentUrl": utils.URLToString(item.URL),
-					"type":      "asset",
-				})).Error("error while creating asset item")
-				return
-			}
-
-			// Capture the asset
-			err = c.captureAsset(newAsset, cookies)
-			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
-					"parentHop": item.Hop,
-					"parentUrl": utils.URLToString(item.URL),
-					"type":      "asset",
-				})).Error("error while capturing asset")
-				return
-			}
-
-			// If we made it to this point, it means that the asset have been crawled successfully,
-			// then we can increment the locallyCrawled variable
-			atomic.AddUint64(&item.LocallyCrawled, 1)
-		}(asset, &swg)
-	}
-
-	swg.Wait()
-}
+var backgroundImageRegex = regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
+var urlRegex = regexp.MustCompile(`(?m)url\((.*?)\)`)
 
 func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Document) (assets []*url.URL, err error) {
 	var rawAssets []string
+	var URL = utils.URLToString(item.URL)
 
 	// Execute plugins on the response
 	if strings.Contains(base.Host, "cloudflarestream.com") {
@@ -138,8 +35,12 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 	doc.Find("[data-item]").Each(func(index int, item *goquery.Selection) {
 		dataItem, exists := item.Attr("data-item")
 		if exists {
-			URLsFromJSON, _ := getURLsFromJSON(dataItem)
-			rawAssets = append(rawAssets, URLsFromJSON...)
+			URLsFromJSON, err := extractor.GetURLsFromJSON(dataItem)
+			if err != nil {
+				c.Log.Error("unable to extract URLs from JSON in data-item attribute", "error", err, "url", URL)
+			} else {
+				rawAssets = append(rawAssets, URLsFromJSON...)
+			}
 		}
 	})
 
@@ -147,8 +48,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 	doc.Find("*").Each(func(index int, item *goquery.Selection) {
 		style, exists := item.Attr("style")
 		if exists {
-			re := regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
-			matches := re.FindAllStringSubmatch(style, -1)
+			matches := backgroundImageRegex.FindAllStringSubmatch(style, -1)
 
 			for match := range matches {
 				if len(matches[match]) > 0 {
@@ -212,9 +112,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 
 	if !utils.StringInSlice("style", c.DisabledHTMLTags) {
 		doc.Find("style").Each(func(index int, item *goquery.Selection) {
-			re := regexp.MustCompile(`(?m)url\((.*?)\)`)
-			matches := re.FindAllStringSubmatch(item.Text(), -1)
-
+			matches := urlRegex.FindAllStringSubmatch(item.Text(), -1)
 			for match := range matches {
 				matchReplacement := matches[match][1]
 				matchReplacement = strings.Replace(matchReplacement, "'", "", -1)
@@ -244,8 +142,12 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 			scriptType, exists := item.Attr("type")
 			if exists {
 				if scriptType == "application/json" {
-					URLsFromJSON, _ := getURLsFromJSON(item.Text())
-					rawAssets = append(rawAssets, URLsFromJSON...)
+					URLsFromJSON, err := extractor.GetURLsFromJSON(item.Text())
+					if err != nil {
+						c.Log.Error("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
+					} else {
+						rawAssets = append(rawAssets, URLsFromJSON...)
+					}
 				}
 			}
 
@@ -292,8 +194,12 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 					}
 
 					if len(jsonContent[1]) > payloadEndPosition {
-						URLsFromJSON, _ := getURLsFromJSON(jsonContent[1][:payloadEndPosition+1])
-						rawAssets = append(rawAssets, removeGoogleVideoURLs(URLsFromJSON)...)
+						URLsFromJSON, err := extractor.GetURLsFromJSON(jsonContent[1][:payloadEndPosition+1])
+						if err != nil {
+							c.Log.Error("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
+						} else {
+							rawAssets = append(rawAssets, removeGoogleVideoURLs(URLsFromJSON)...)
+						}
 					}
 				}
 			}

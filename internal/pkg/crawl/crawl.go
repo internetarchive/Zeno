@@ -2,7 +2,10 @@
 package crawl
 
 import (
+	"fmt"
+	"os"
 	"path"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -25,6 +28,28 @@ type PrometheusMetrics struct {
 
 // Start fire up the crawling process
 func (c *Crawl) Start() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			// Treat faults as panics
+			debug.SetPanicOnFault(true)
+
+			// Write the stacktrace to a file in the job's directory
+			stacktrace := fmt.Sprintf("%s\n%s", r, debug.Stack())
+			stacktracePath := path.Join(c.JobPath, "logs", fmt.Sprintf("%s.%s.log", "panic", time.Now().Format("2006.01.02T15-04")))
+			f, err := os.Create(stacktracePath)
+			if err != nil {
+				c.Log.Fatal("unable to create stacktrace file", "error", err)
+			}
+			defer f.Close()
+
+			if _, err := f.WriteString(stacktrace); err != nil {
+				c.Log.Fatal("unable to write stacktrace to file", "error", err)
+			}
+
+			c.Log.Fatal("panic occurred, stacktrace written to file", "file", stacktracePath)
+		}
+	}()
+
 	c.StartTime = time.Now()
 	c.Paused = new(utils.TAtomBool)
 	c.Finished = new(utils.TAtomBool)
@@ -117,10 +142,9 @@ func (c *Crawl) Start() (err error) {
 
 	c.Log.Info("WARC writer initialized")
 
-	// TODO: re-implement host limitation
 	// Process responsible for slowing or pausing the crawl
 	// when the WARC writing queue gets too big
-	// go c.crawlSpeedLimiter()
+	go c.crawlSpeedLimiter()
 
 	if c.API {
 		go c.startAPI()
@@ -171,15 +195,38 @@ func (c *Crawl) Start() (err error) {
 		go c.HQProducer()
 		go c.HQFinisher()
 		go c.HQWebsocket()
-	} else {
+	} else if len(c.SeedList) > 0 {
 		// Temporarily disable handover as it's not needed
-		c.Log.Info("Temporarily disabling handover..")
 		enableBackHandover := make(chan struct{})
 		syncHandover := make(chan struct{})
+		if c.UseHandover {
+			c.Log.Info("Temporarily disabling handover..")
 
-		go c.Queue.TempDisableHandover(enableBackHandover, syncHandover)
+			go c.Queue.TempDisableHandover(enableBackHandover, syncHandover)
 
-		<-syncHandover
+			<-syncHandover
+		}
+
+		// Dedupe the seeds list
+		if c.UseSeencheck {
+			c.Log.Info("Seenchecking seeds list..")
+
+			var seencheckedSeeds []queue.Item
+			var duplicates int
+			for i := 0; i < len(c.SeedList); i++ {
+				if c.Seencheck.SeencheckURL(c.SeedList[i].URL.String(), "seed") {
+					duplicates++
+					continue
+				}
+
+				seencheckedSeeds = append(seencheckedSeeds, c.SeedList[i])
+			}
+
+			c.SeedList = seencheckedSeeds
+
+			c.Log.Info("Seencheck done", "duplicates", duplicates)
+		}
+
 		// Push the seed list to the queue
 		c.Log.Info("Pushing seeds in the local queue..")
 		for i := 0; i < len(c.SeedList); i += 100000 {
@@ -203,13 +250,19 @@ func (c *Crawl) Start() (err error) {
 
 		c.SeedList = nil
 
-		c.Log.Info("Enabling handover..")
-		enableBackHandover <- struct{}{}
-		<-syncHandover
+		// Re-enable handover
+		if c.UseHandover {
+			c.Log.Info("Enabling handover..")
+			enableBackHandover <- struct{}{}
+			<-syncHandover
+		}
 		close(enableBackHandover)
 		close(syncHandover)
 
 		c.Log.Info("All seeds are now in queue")
+	} else {
+		c.Log.Info("No seeds to crawl")
+		os.Exit(0)
 	}
 
 	// Start the workers pool by building all the workers and starting them

@@ -6,3 +6,4 @@ Zeno
 zeno.log
 .vscode/
 *.py
+.DS_Store

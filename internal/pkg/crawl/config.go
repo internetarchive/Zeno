@@ -3,14 +3,17 @@ package crawl
 import (
 	"log/slog"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
 	"github.com/google/uuid"
+	"github.com/grafana/pyroscope-go"
 	"github.com/internetarchive/Zeno/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
@@ -112,6 +115,7 @@ type Crawl struct {
 	HQBatchSize            int
 	HQContinuousPull       bool
 	HQClient               *gocrawlhq.Client
+	HQConsumerState        string
 	HQFinishedChannel      chan *queue.Item
 	HQProducerChannel      chan *queue.Item
 	HQChannelsWg           *sync.WaitGroup
@@ -194,7 +198,41 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 
 	c.Workers = NewPool(uint(config.WorkersCount), time.Second*60, c)
 
-	c.UseSeencheck = config.LocalSeencheck
+	if config.PyroscopeAddress != "" {
+		runtime.SetMutexProfileFraction(5)
+		runtime.SetBlockProfileRate(5)
+
+		hostname, err := os.Hostname()
+		if err != nil {
+			return nil, err
+		}
+
+		pyroscope.Start(pyroscope.Config{
+			ApplicationName: "zeno",
+
+			ServerAddress: config.PyroscopeAddress,
+
+			// Debug logging for Pyroscope can be enabled with pyroscope.StandardLogger
+			Logger: nil,
+
+			Tags: map[string]string{"hostname": hostname, "version": utils.GetVersion().Version, "job": c.Job, "WARCPrefix": c.WARCPrefix},
+
+			ProfileTypes: []pyroscope.ProfileType{
+				pyroscope.ProfileCPU,
+				pyroscope.ProfileAllocObjects,
+				pyroscope.ProfileAllocSpace,
+				pyroscope.ProfileInuseObjects,
+				pyroscope.ProfileInuseSpace,
+				pyroscope.ProfileGoroutines,
+				pyroscope.ProfileMutexCount,
+				pyroscope.ProfileMutexDuration,
+				pyroscope.ProfileBlockCount,
+				pyroscope.ProfileBlockDuration,
+			},
+		})
+	}
+
+	c.UseSeencheck = !config.DisableSeencheck
 	c.HTTPTimeout = config.HTTPTimeout
 	c.MaxConcurrentRequestsPerDomain = config.MaxConcurrentRequestsPerDomain
 	c.RateLimitDelay = config.ConcurrentSleepLength
@@ -213,7 +251,10 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.DomainsCrawl = config.DomainsCrawl
 	c.DisableAssetsCapture = config.DisableAssetsCapture
 	c.DisabledHTMLTags = config.DisableHTMLTag
-	c.ExcludedHosts = config.ExcludeHosts
+
+	// We exclude some hosts by default
+	c.ExcludedHosts = utils.DedupeStrings(append(config.ExcludeHosts, "archive.org", "archive-it.org"))
+
 	c.IncludedHosts = config.IncludeHosts
 	c.CaptureAlternatePages = config.CaptureAlternatePages
 	c.ExcludedStrings = config.ExcludeString
@@ -260,7 +301,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 		version := utils.GetVersion()
 
 		// If Version is a commit hash, we only take the first 7 characters
-		if len(version.Version) == 40 {
+		if len(version.Version) >= 40 {
 			version.Version = version.Version[:7]
 		}
 
@@ -287,7 +328,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.HQRateLimitingSendBack = config.HQRateLimitSendBack
 
 	// Handover mechanism
-	c.UseHandover = !config.NoHandover
+	c.UseHandover = config.Handover
 
 	c.UseCommit = !config.NoBatchWriteWAL
 

@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 	"sync"
@@ -35,8 +34,6 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL,
 		if exists {
 			rawOutlinks = append(rawOutlinks, link)
 		}
-
-		fmt.Println(item.Text())
 	})
 
 	// Turn strings into url.URL
@@ -84,6 +81,13 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 			continue
 		}
 
+		// Seencheck the outlink
+		if c.UseSeencheck {
+			if c.Seencheck.SeencheckURL(utils.URLToString(outlink), "seed") {
+				continue
+			}
+		}
+
 		if c.DomainsCrawl && strings.Contains(item.URL.Host, outlink.Host) && item.Hop == 0 {
 			newItem, err := queue.NewItem(outlink, item.URL, "seed", 0, "", false)
 			if err != nil {
@@ -111,7 +115,7 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 		}
 	}
 
-	if !c.UseHQ {
+	if !c.UseHQ && len(items) > 0 {
 		err := c.Queue.BatchEnqueue(items...)
 		if err != nil {
 			c.Log.Error("unable to enqueue outlinks, discarding", "error", err)

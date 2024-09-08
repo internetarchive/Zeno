@@ -10,7 +10,6 @@ import (
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/sirupsen/logrus"
 )
 
 // This function connects to HQ's websocket and listen for messages.
@@ -149,19 +148,24 @@ func (c *Crawl) HQProducer() {
 
 func (c *Crawl) HQConsumer() {
 	for {
+		c.HQConsumerState = "running"
+
 		// This is on purpose evaluated every time,
 		// because the value of workers will maybe change
 		// during the crawl in the future (to be implemented)
-		var HQBatchSize = int(math.Ceil(float64(c.Workers.Count)))
+		var HQBatchSize = int(c.Workers.Count)
 
 		if c.Finished.Get() {
+			c.HQConsumerState = "finished"
 			c.Log.Error("crawl finished, stopping HQ consumer")
 			break
 		}
 
 		// If HQContinuousPull is set to true, we will pull URLs from HQ continuously,
 		// otherwise we will only pull URLs when needed (and when the crawl is not paused)
-		for (uint64(c.Queue.GetStats().TotalElements) > uint64(HQBatchSize) && !c.HQContinuousPull) || c.Paused.Get() || c.Queue.HandoverOpen.Get() {
+		for (c.Queue.GetStats().TotalElements > HQBatchSize && !c.HQContinuousPull) || c.Paused.Get() || c.Queue.HandoverOpen.Get() {
+			c.HQConsumerState = "waiting"
+			c.Log.Info("HQ producer waiting", "paused", c.Paused.Get(), "handoverOpen", c.Queue.HandoverOpen.Get(), "queueSize", c.Queue.GetStats().TotalElements)
 			time.Sleep(time.Millisecond * 50)
 			continue
 		}
@@ -172,23 +176,22 @@ func (c *Crawl) HQConsumer() {
 		}
 
 		// get batch from crawl HQ
+		c.HQConsumerState = "waitingOnFeed"
 		batch, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
 		if err != nil {
-			if strings.Contains(err.Error(), "feed is empty") {
-				time.Sleep(time.Second)
-			}
-
 			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
 				"err":       err,
 			})).Error("error getting new URLs from crawl HQ")
 			continue
 		}
+		c.HQConsumerState = "feedCompleted"
 
 		// send all URLs received in the batch to the queue
 		var items = make([]*queue.Item, 0, len(batch.URLs))
 		if len(batch.URLs) > 0 {
 			for _, URL := range batch.URLs {
+				c.HQConsumerState = "urlParse"
 				newURL, err := url.Parse(URL.Value)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
@@ -199,6 +202,7 @@ func (c *Crawl) HQConsumer() {
 					continue
 				}
 
+				c.HQConsumerState = "newItem"
 				newItem, err := queue.NewItem(newURL, nil, "seed", uint64(strings.Count(URL.Path, "L")), URL.ID, false)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, newURL, map[string]interface{}{
@@ -209,10 +213,12 @@ func (c *Crawl) HQConsumer() {
 					continue
 				}
 
+				c.HQConsumerState = "append"
 				items = append(items, newItem)
 			}
 		}
 
+		c.HQConsumerState = "enqueue"
 		err = c.Queue.BatchEnqueue(items...)
 		if err != nil {
 			c.Log.Error("unable to enqueue URL batch received from crawl HQ, discarding", "error", err)
@@ -310,6 +316,11 @@ func (c *Crawl) HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, e
 	return seencheckedBatch, nil
 }
 
+// returns:
+//   - bool: true if the URL is new, false if it has been seen before
+//   - error: if there's an error sending the payload to crawl HQ
+//
+// NOTE: if there's an error, the URL is considered new
 func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 	discoveredURL := gocrawlhq.URL{
 		Value: utils.URLToString(URL),
@@ -317,18 +328,18 @@ func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 
 	discoveredResponse, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "asset", false, true)
 	if err != nil {
-		logrus.WithFields(c.genLogFields(err, URL, nil)).Errorln("error sending seencheck payload to crawl HQ")
-		return false, err
+		c.Log.Error("error sending seencheck payload to crawl HQ", "err", err, "url", utils.URLToString(URL))
+		return true, err // return true, don't discard the URL if there's an error
 	}
 
 	if discoveredResponse.URLs != nil {
 		for _, URL := range discoveredResponse.URLs {
+			// the returned payload only contain new URLs to be crawled by Zeno
 			if URL.Value == discoveredURL.Value {
-				return false, nil
+				return true, nil
 			}
 		}
 	}
 
-	// didn't find the URL in the HQ, so it's new and has been added to HQ's seencheck database
-	return true, nil
+	return false, nil
 }

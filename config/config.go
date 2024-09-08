@@ -35,6 +35,7 @@ type Config struct {
 	ElasticSearchUsername          string   `mapstructure:"es-user"`
 	ElasticSearchPassword          string   `mapstructure:"es-password"`
 	ElasticSearchIndexPrefix       string   `mapstructure:"es-index-prefix"`
+	PyroscopeAddress               string   `mapstructure:"pyroscope-address"`
 	DisableHTMLTag                 []string `mapstructure:"disable-html-tag"`
 	ExcludeHosts                   []string `mapstructure:"exclude-host"`
 	IncludeHosts                   []string `mapstructure:"include-host"`
@@ -57,7 +58,7 @@ type Config struct {
 	HQBatchSize                    int64    `mapstructure:"hq-batch-size"`
 	KeepCookies                    bool     `mapstructure:"keep-cookies"`
 	Headless                       bool     `mapstructure:"headless"`
-	LocalSeencheck                 bool     `mapstructure:"local-seencheck"`
+	DisableSeencheck               bool     `mapstructure:"disable-seencheck"`
 	JSON                           bool     `mapstructure:"json"`
 	Debug                          bool     `mapstructure:"debug"`
 	LiveStats                      bool     `mapstructure:"live-stats"`
@@ -74,8 +75,8 @@ type Config struct {
 	HQContinuousPull               bool     `mapstructure:"hq-continuous-pull"`
 	HQRateLimitSendBack            bool     `mapstructure:"hq-rate-limiting-send-back"`
 	NoStdoutLogging                bool     `mapstructure:"no-stdout-log"`
-	NoHandover                     bool     `mapstructure:"no-handover"`
 	NoBatchWriteWAL                bool     `mapstructure:"ultrasafe-queue"`
+	Handover                       bool     `mapstructure:"handover"`
 
 	// Dependencies
 	NoYTDLP   bool   `mapstructure:"no-ytdlp"`
