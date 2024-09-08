@@ -343,7 +343,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	// If it was a YouTube watch page, we potentially want to run it through the YouTube extractor
 	// TODO: support other watch page URLs
 	if strings.Contains(item.URL.Host, "youtube.com") && strings.Contains(item.URL.Path, "/watch") && !c.NoYTDLP {
-		URLs, err := youtube.Parse(resp.Body)
+		URLs, rawJSON, err := youtube.Parse(resp.Body)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing YouTube watch page")
 			return err
@@ -351,6 +351,11 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 		if len(URLs) > 0 {
 			c.captureAssets(item, URLs, resp.Cookies())
+		}
+
+		// Write the metadata record for the video
+		if rawJSON != "" {
+			c.Client.WriteMetadataRecord(utils.URLToString(item.URL), "application/json;generator=youtube-dl", rawJSON)
 		}
 
 		return nil

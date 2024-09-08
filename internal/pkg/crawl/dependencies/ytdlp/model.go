@@ -1,10 +1,52 @@
 package ytdlp
 
 type Video struct {
-	IsLive           bool `json:"is_live"`
-	RequestedFormats []struct {
-		URL string `json:"url"`
-	} `json:"requested_formats"`
+	ID      string `json:"id"`
+	IsLive  bool   `json:"is_live"`
+	Formats []struct {
+		Acodec      string  `json:"acodec"`
+		AspectRatio float64 `json:"aspect_ratio"`
+		AudioExt    string  `json:"audio_ext"`
+		Columns     float64 `json:"columns,omitempty"`
+		Ext         string  `json:"ext"`
+		Format      string  `json:"format"`
+		FormatID    string  `json:"format_id"`
+		FormatNote  string  `json:"format_note"`
+		Fps         float64 `json:"fps"`
+		Fragments   []struct {
+			Duration float64 `json:"duration"`
+			URL      string  `json:"url"`
+		} `json:"fragments,omitempty"`
+		Height      float64 `json:"height"`
+		HTTPHeaders struct {
+			Accept         string `json:"Accept"`
+			AcceptLanguage string `json:"Accept-Language"`
+			SecFetchMode   string `json:"Sec-Fetch-Mode"`
+			UserAgent      string `json:"User-Agent"`
+		} `json:"http_headers"`
+		Protocol           string      `json:"protocol"`
+		Resolution         string      `json:"resolution"`
+		Rows               float64     `json:"rows,omitempty"`
+		URL                string      `json:"url"`
+		Vcodec             string      `json:"vcodec"`
+		VideoExt           string      `json:"video_ext"`
+		Width              float64     `json:"width"`
+		Abr                float64     `json:"abr,omitempty"`
+		Asr                float64     `json:"asr,omitempty"`
+		AudioChannels      float64     `json:"audio_channels,omitempty"`
+		Container          string      `json:"container,omitempty"`
+		DynamicRange       interface{} `json:"dynamic_range,omitempty"`
+		Filesize           float64     `json:"filesize,omitempty"`
+		HasDrm             bool        `json:"has_drm,omitempty"`
+		Language           string      `json:"language,omitempty"`
+		LanguagePreference float64     `json:"language_preference,omitempty"`
+		Preference         interface{} `json:"preference,omitempty"`
+		Quality            float64     `json:"quality,omitempty"`
+		SourcePreference   float64     `json:"source_preference,omitempty"`
+		Tbr                float64     `json:"tbr,omitempty"`
+		Vbr                float64     `json:"vbr,omitempty"`
+		FilesizeApprox     float64     `json:"filesize_approx,omitempty"`
+	} `json:"formats"`
 	Thumbnails []struct {
 		URL string `json:"url"`
 	} `json:"thumbnails"`
