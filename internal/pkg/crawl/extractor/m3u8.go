@@ -3,14 +3,13 @@ package extractor
 import (
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/grafov/m3u8"
 )
 
 func IsM3U8(resp *http.Response) bool {
-	return strings.Contains(resp.Header.Get("Content-Type"), "application/vnd.apple.mpegurl") ||
-		strings.Contains(resp.Header.Get("Content-Type"), "application/x-mpegURL")
+	return isContentType(resp.Header.Get("Content-Type"), "application/vnd.apple.mpegurl") ||
+		isContentType(resp.Header.Get("Content-Type"), "application/x-mpegURL")
 }
 
 func M3U8(resp *http.Response) (URLs []*url.URL, err error) {
