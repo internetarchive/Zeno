@@ -121,8 +121,12 @@ func (c *Crawl) Start() (err error) {
 		}
 	}()
 
-	c.Client.Timeout = time.Duration(c.HTTPTimeout) * time.Second
-	c.Log.Info("HTTP client timeout set", "timeout", c.HTTPTimeout)
+	if c.HTTPTimeout > 0 {
+		c.Client.Timeout = time.Duration(c.HTTPTimeout) * time.Second
+		c.Log.Info("Global HTTP client timeout set", "timeout", c.HTTPTimeout)
+	} else {
+		c.Log.Info("Global HTTP client timeout not set")
+	}
 
 	if c.Proxy != "" {
 		proxyHTTPClientSettings := HTTPClientSettings

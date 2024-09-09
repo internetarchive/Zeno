@@ -4,7 +4,7 @@ go 1.23.1
 
 require (
 	git.archive.org/wb/gocrawlhq v1.2.7
-	github.com/CorentinB/warc v0.8.44
+	github.com/CorentinB/warc v0.8.45
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/clbanning/mxj/v2 v2.7.0
@@ -14,6 +14,7 @@ require (
 	github.com/gosuri/uilive v0.0.4
 	github.com/gosuri/uitable v0.0.4
 	github.com/grafana/pyroscope-go v1.1.2
+	github.com/grafov/m3u8 v0.12.0
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.20.2
@@ -49,7 +50,6 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomodule/redigo v1.9.2 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
-	github.com/grafov/m3u8 v0.12.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

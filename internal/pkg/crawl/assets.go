@@ -19,7 +19,7 @@ import (
 var backgroundImageRegex = regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
 var urlRegex = regexp.MustCompile(`(?m)url\((.*?)\)`)
 
-func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie) error {
+func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie, headers map[string]string) error {
 	var resp *http.Response
 
 	// Prepare GET request
@@ -28,8 +28,16 @@ func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie) error {
 		return err
 	}
 
-	req.Header.Set("Referer", utils.URLToString(item.ParentURL))
-	req.Header.Set("User-Agent", c.UserAgent)
+	// If headers are passed, apply them to the request
+	// else, apply the default headers
+	if headers == nil {
+		for key, value := range headers {
+			req.Header.Set(key, value)
+		}
+	} else {
+		req.Header.Set("Referer", utils.URLToString(item.ParentURL))
+		req.Header.Set("User-Agent", c.UserAgent)
+	}
 
 	// Apply cookies obtained from the original URL captured
 	for i := range cookies {
@@ -45,23 +53,24 @@ func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie) error {
 	defer resp.Body.Close()
 
 	if strings.Contains(resp.Header.Get("Content-Type"), "vnd.apple.mpegurl") {
-		assets, err := extractor.M3U8(resp)
-		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")
-		}
+		// assets, err := extractor.M3U8(resp)
+		// if err != nil {
+		// 	c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")
+		// }
+		// resp.Body.Close()
 
-		c.captureAssets(item, assets, cookies)
+		// c.captureAssets(item, assets, cookies)
 
-		return nil
+		// return nil
+	} else {
+		// needed for WARC writing
+		io.Copy(io.Discard, resp.Body)
 	}
-
-	// needed for WARC writing
-	io.Copy(io.Discard, resp.Body)
 
 	return nil
 }
 
-func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*http.Cookie) {
+func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*http.Cookie, headers map[string]string) {
 	// TODO: implement a counter for the number of assets
 	// currently being processed
 	// c.Frontier.QueueCount.Incr(int64(len(assets)))
@@ -109,7 +118,7 @@ func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*ht
 			}
 
 			// Capture the asset
-			err = c.captureAsset(newAsset, cookies)
+			err = c.captureAsset(newAsset, cookies, headers)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
 					"parentHop": item.Hop,

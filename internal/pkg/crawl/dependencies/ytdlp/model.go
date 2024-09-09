@@ -20,14 +20,9 @@ type Video struct {
 		Fragments     []struct {
 			URL string `json:"url"`
 		} `json:"fragments"`
-		HasDrm      bool    `json:"has_drm"`
-		Height      float64 `json:"height"`
-		HTTPHeaders struct {
-			Accept         string `json:"Accept"`
-			AcceptLanguage string `json:"Accept-Language"`
-			SecFetchMode   string `json:"Sec-Fetch-Mode"`
-			UserAgent      string `json:"User-Agent"`
-		} `json:"http_headers"`
+		HasDrm             bool        `json:"has_drm"`
+		Height             float64     `json:"height"`
+		HTTPHeaders        HTTPHeaders `json:"http_headers"`
 		Language           interface{} `json:"language"`
 		LanguagePreference float64     `json:"language_preference"`
 		Preference         interface{} `json:"preference"`
@@ -90,4 +85,11 @@ type Video struct {
 	Thumbnails []struct {
 		URL string `json:"url"`
 	} `json:"thumbnails"`
+}
+
+type HTTPHeaders struct {
+	Accept         string `json:"Accept"`
+	AcceptLanguage string `json:"Accept-Language"`
+	SecFetchMode   string `json:"Sec-Fetch-Mode"`
+	UserAgent      string `json:"User-Agent"`
 }

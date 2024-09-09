@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-func GetJSON(port int) (URLs []string, rawJSON string, err error) {
+func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders HTTPHeaders, err error) {
 	// Prepare the command
 	cmd := exec.Command("yt-dlp", "--dump-json", "http://localhost:"+strconv.Itoa(port))
 
@@ -20,22 +20,22 @@ func GetJSON(port int) (URLs []string, rawJSON string, err error) {
 	// Run the command
 	err = cmd.Run()
 	if err != nil {
-		return URLs, rawJSON, fmt.Errorf("yt-dlp error: %v\nstderr: %s", err, stderr.String())
+		return URLs, rawJSON, HTTPHeaders, fmt.Errorf("yt-dlp error: %v\nstderr: %s", err, stderr.String())
 	}
 
 	output := stdout.String()
 
 	// Find subtitles
-	// subtitleURLs, err := parseSubtitles(output)
-	// if err != nil {
-	// 	return nil, rawJSON, fmt.Errorf("error parsing subtitles: %v", err)
-	// }
+	subtitleURLs, err := parseSubtitles(output)
+	if err != nil {
+		return nil, rawJSON, HTTPHeaders, fmt.Errorf("error parsing subtitles: %v", err)
+	}
 
 	// Parse the output as a Video object
 	var video Video
 	err = json.Unmarshal([]byte(output), &video)
 	if err != nil {
-		return nil, rawJSON, fmt.Errorf("error unmarshaling yt-dlp JSON: %v", err)
+		return nil, rawJSON, HTTPHeaders, fmt.Errorf("error unmarshaling yt-dlp JSON: %v", err)
 	}
 
 	// Get all thumbnail URLs
@@ -46,14 +46,23 @@ func GetJSON(port int) (URLs []string, rawJSON string, err error) {
 	// Get the manifest URL for the best video & audio quality
 	// Note: we do not archive live streams
 	if !video.IsLive {
-		for _, format := range video.RequestedFormats {
-			URLs = append(URLs, format.URL, format.URL+"&video_id="+video.ID)
+		if len(video.RequestedFormats) > 0 {
+			HTTPHeaders = video.RequestedFormats[0].HTTPHeaders
+			for _, format := range video.RequestedFormats {
+				URLs = append(URLs, format.URL, format.URL+"&video_id="+video.ID)
+			}
 		}
 	}
 
-	//URLs = append(URLs, subtitleURLs...)
+	// write output to a .json file (debug)
+	// err = ioutil.WriteFile("output.json", []byte(output), 0644)
+	// if err != nil {
+	// 	return nil, rawJSON, HTTPHeaders, fmt.Errorf("error writing output.json: %v", err)
+	// }
 
-	return URLs, output, nil
+	URLs = append(URLs, subtitleURLs...)
+
+	return URLs, output, HTTPHeaders, nil
 }
 
 func FindPath() (string, bool) {
