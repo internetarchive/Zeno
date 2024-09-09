@@ -414,7 +414,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from JSON")
 		}
-	} else if strings.Contains(resp.Header.Get("Content-Type"), "vnd.apple.mpegurl") {
+	} else if extractor.IsM3U8(resp) {
 		assets, err = extractor.M3U8(resp)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")

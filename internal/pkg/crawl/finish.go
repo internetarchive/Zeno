@@ -8,7 +8,7 @@ import (
 )
 
 // catchFinish is running in the background and detect when the crawl need to be terminated
-// because it won't crawl anything more. This doesn't apply for Kafka-powered crawls.
+// because it won't crawl anything more. This doesn't apply for HQ-powered crawls.
 func (crawl *Crawl) catchFinish() {
 	for crawl.CrawledSeeds.Value()+crawl.CrawledAssets.Value() <= 0 {
 		time.Sleep(1 * time.Second)

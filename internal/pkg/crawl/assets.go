@@ -28,15 +28,14 @@ func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie, headers m
 		return err
 	}
 
+	req.Header.Set("Referer", utils.URLToString(item.ParentURL))
+	req.Header.Set("User-Agent", c.UserAgent)
+
 	// If headers are passed, apply them to the request
-	// else, apply the default headers
-	if headers == nil {
+	if headers != nil {
 		for key, value := range headers {
 			req.Header.Set(key, value)
 		}
-	} else {
-		req.Header.Set("Referer", utils.URLToString(item.ParentURL))
-		req.Header.Set("User-Agent", c.UserAgent)
 	}
 
 	// Apply cookies obtained from the original URL captured
@@ -52,20 +51,16 @@ func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie, headers m
 	}
 	defer resp.Body.Close()
 
-	if strings.Contains(resp.Header.Get("Content-Type"), "vnd.apple.mpegurl") {
-		// assets, err := extractor.M3U8(resp)
-		// if err != nil {
-		// 	c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")
-		// }
-		// resp.Body.Close()
-
-		// c.captureAssets(item, assets, cookies)
-
-		// return nil
-	} else {
-		// needed for WARC writing
-		io.Copy(io.Discard, resp.Body)
+	if extractor.IsM3U8(resp) {
+		assets, err := extractor.M3U8(resp)
+		if err == nil {
+			c.captureAssets(item, assets, cookies, headers)
+		} else {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")
+		}
 	}
+
+	io.Copy(io.Discard, resp.Body)
 
 	return nil
 }
