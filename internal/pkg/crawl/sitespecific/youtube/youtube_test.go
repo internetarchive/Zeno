@@ -25,7 +25,7 @@ func TestParse(t *testing.T) {
 	}
 
 	// Check the number of URLs
-	expected := 146
+	expected := 148
 	if len(URLs) != expected {
 		t.Fatalf("Expected %d URLs, got %d", expected, len(URLs))
 	}
