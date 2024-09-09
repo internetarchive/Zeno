@@ -392,6 +392,11 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from JSON")
 		}
+	} else if strings.Contains(resp.Header.Get("Content-Type"), "vnd.apple.mpegurl") {
+		assets, err = extractor.M3U8(resp)
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")
+		}
 	} else if !strings.Contains(resp.Header.Get("Content-Type"), "text/") || (c.DisableAssetsCapture && !c.DomainsCrawl && (uint64(c.MaxHops) <= item.Hop)) {
 		// If the response isn't a text/*, we do not scrape it.
 		// We also aren't going to scrape if assets and outlinks are turned off.

@@ -44,6 +44,17 @@ func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie) error {
 	}
 	defer resp.Body.Close()
 
+	if strings.Contains(resp.Header.Get("Content-Type"), "vnd.apple.mpegurl") {
+		assets, err := extractor.M3U8(resp)
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")
+		}
+
+		c.captureAssets(item, assets, cookies)
+
+		return nil
+	}
+
 	// needed for WARC writing
 	io.Copy(io.Discard, resp.Body)
 
@@ -64,12 +75,6 @@ func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*ht
 
 		// Just making sure we do not over archive by archiving the original URL
 		if utils.URLToString(item.URL) == utils.URLToString(asset) {
-			continue
-		}
-
-		// We ban googlevideo.com URLs because they are heavily rate limited by default, and
-		// we don't want the crawler to spend an innapropriate amount of time archiving them
-		if strings.Contains(item.URL.Host, "googlevideo.com") {
 			continue
 		}
 

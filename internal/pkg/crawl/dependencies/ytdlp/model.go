@@ -1,8 +1,48 @@
 package ytdlp
 
 type Video struct {
-	ID      string `json:"id"`
-	IsLive  bool   `json:"is_live"`
+	ID               string `json:"id"`
+	IsLive           bool   `json:"is_live"`
+	RequestedFormats []struct {
+		Acodec        string      `json:"acodec"`
+		AspectRatio   float64     `json:"aspect_ratio"`
+		Asr           interface{} `json:"asr"`
+		AudioChannels interface{} `json:"audio_channels"`
+		AudioExt      string      `json:"audio_ext"`
+		Container     string      `json:"container"`
+		DynamicRange  string      `json:"dynamic_range"`
+		Ext           string      `json:"ext"`
+		Filesize      float64     `json:"filesize"`
+		Format        string      `json:"format"`
+		FormatID      string      `json:"format_id"`
+		FormatNote    string      `json:"format_note"`
+		Fps           float64     `json:"fps"`
+		Fragments     []struct {
+			URL string `json:"url"`
+		} `json:"fragments"`
+		HasDrm      bool    `json:"has_drm"`
+		Height      float64 `json:"height"`
+		HTTPHeaders struct {
+			Accept         string `json:"Accept"`
+			AcceptLanguage string `json:"Accept-Language"`
+			SecFetchMode   string `json:"Sec-Fetch-Mode"`
+			UserAgent      string `json:"User-Agent"`
+		} `json:"http_headers"`
+		Language           interface{} `json:"language"`
+		LanguagePreference float64     `json:"language_preference"`
+		Preference         interface{} `json:"preference"`
+		Protocol           string      `json:"protocol"`
+		Quality            float64     `json:"quality"`
+		Resolution         string      `json:"resolution"`
+		SourcePreference   float64     `json:"source_preference"`
+		Tbr                float64     `json:"tbr"`
+		URL                string      `json:"url"`
+		Vbr                float64     `json:"vbr,omitempty"`
+		Vcodec             string      `json:"vcodec"`
+		VideoExt           string      `json:"video_ext"`
+		Width              float64     `json:"width"`
+		Abr                float64     `json:"abr,omitempty"`
+	} `json:"requested_formats"`
 	Formats []struct {
 		Acodec      string  `json:"acodec"`
 		AspectRatio float64 `json:"aspect_ratio"`

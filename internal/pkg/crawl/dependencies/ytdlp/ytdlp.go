@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"os/exec"
 	"strconv"
-	"strings"
 )
 
 func GetJSON(port int) (URLs []string, rawJSON string, err error) {
 	// Prepare the command
-	cmd := exec.Command("yt-dlp", "--dump-json", "-f", "18", "http://localhost:"+strconv.Itoa(port))
+	cmd := exec.Command("yt-dlp", "--dump-json", "http://localhost:"+strconv.Itoa(port))
 
 	// Buffers to capture stdout and stderr
 	var stdout, stderr bytes.Buffer
@@ -27,10 +26,10 @@ func GetJSON(port int) (URLs []string, rawJSON string, err error) {
 	output := stdout.String()
 
 	// Find subtitles
-	subtitleURLs, err := parseSubtitles(output)
-	if err != nil {
-		return nil, rawJSON, fmt.Errorf("error parsing subtitles: %v", err)
-	}
+	// subtitleURLs, err := parseSubtitles(output)
+	// if err != nil {
+	// 	return nil, rawJSON, fmt.Errorf("error parsing subtitles: %v", err)
+	// }
 
 	// Parse the output as a Video object
 	var video Video
@@ -47,27 +46,12 @@ func GetJSON(port int) (URLs []string, rawJSON string, err error) {
 	// Get the manifest URL for the best video & audio quality
 	// Note: we do not archive live streams
 	if !video.IsLive {
-		// Find the best format for the video in the formats that
-		// use the "https" protocol and don't contain "only" in their name (to avoid audio or video-only formats)
-		// and don't contain "_dash" in their container (to avoid DASH formats)
-		var bestFormatQuality float64
-		var bestFormatPosition int
-		for i, format := range video.Formats {
-			if (bestFormatQuality == 0 || format.Quality > bestFormatQuality) &&
-				format.Protocol == "https" &&
-				!strings.Contains(format.Format, "only") &&
-				!strings.Contains(format.Container, "_dash") {
-				bestFormatQuality = format.Quality
-				bestFormatPosition = i
-			}
+		for _, format := range video.RequestedFormats {
+			URLs = append(URLs, format.URL, format.URL+"&video_id="+video.ID)
 		}
-
-		URLs = append(URLs,
-			video.Formats[bestFormatPosition].URL+"&video_id="+video.ID,
-			video.Formats[bestFormatPosition].URL)
 	}
 
-	URLs = append(URLs, subtitleURLs...)
+	//URLs = append(URLs, subtitleURLs...)
 
 	return URLs, output, nil
 }
