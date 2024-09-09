@@ -25,17 +25,19 @@ func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders HTTPHeaders, 
 
 	output := stdout.String()
 
-	// Find subtitles
-	subtitleURLs, err := parseSubtitles(output)
-	if err != nil {
-		return nil, rawJSON, HTTPHeaders, fmt.Errorf("error parsing subtitles: %v", err)
-	}
-
 	// Parse the output as a Video object
 	var video Video
 	err = json.Unmarshal([]byte(output), &video)
 	if err != nil {
 		return nil, rawJSON, HTTPHeaders, fmt.Errorf("error unmarshaling yt-dlp JSON: %v", err)
+	}
+
+	// Get all subtitles (not automatic captions)
+	var subtitleURLs []string
+	for _, subtitle := range video.Subtitles {
+		for _, sub := range subtitle {
+			subtitleURLs = append(subtitleURLs, sub.URL)
+		}
 	}
 
 	// Get all thumbnail URLs

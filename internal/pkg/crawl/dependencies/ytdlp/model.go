@@ -1,8 +1,15 @@
 package ytdlp
 
+type Subtitle struct {
+	Ext  string `json:"ext"`
+	URL  string `json:"url"`
+	Name string `json:"name"`
+}
+
 type Video struct {
-	ID               string `json:"id"`
-	IsLive           bool   `json:"is_live"`
+	ID               string                `json:"id"`
+	IsLive           bool                  `json:"is_live"`
+	Subtitles        map[string][]Subtitle `json:"subtitles"`
 	RequestedFormats []struct {
 		Acodec        string      `json:"acodec"`
 		AspectRatio   float64     `json:"aspect_ratio"`
