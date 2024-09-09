@@ -14,9 +14,14 @@ func TestParse(t *testing.T) {
 	defer f.Close()
 
 	// Parse the video
-	URLs, err := Parse(f)
+	URLs, rawJSON, _, err := Parse(f)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// Check the raw JSON
+	if rawJSON == "" {
+		t.Fatal("Expected non-empty raw JSON")
 	}
 
 	// Check the number of URLs
