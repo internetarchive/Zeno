@@ -1,10 +1,10 @@
 module github.com/internetarchive/Zeno
 
-go 1.22.7
+go 1.22.4
 
 require (
-	git.archive.org/wb/gocrawlhq v1.2.9
-	github.com/CorentinB/warc v0.8.46
+	git.archive.org/wb/gocrawlhq v1.2.10
+	github.com/CorentinB/warc v0.8.47
 	github.com/PuerkitoBio/goquery v1.9.3
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/clbanning/mxj/v2 v2.7.0
