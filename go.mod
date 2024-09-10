@@ -13,7 +13,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gosuri/uilive v0.0.4
 	github.com/gosuri/uitable v0.0.4
-	github.com/grafana/pyroscope-go v1.2.0
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.20.3
@@ -48,7 +47,6 @@ require (
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomodule/redigo v1.9.2 // indirect
-	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

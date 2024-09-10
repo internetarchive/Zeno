@@ -84,9 +84,6 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("es-password", "", "ElasticSearch password to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-index-prefix", "zeno", "ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno`, without `-`")
 
-	// Profiling flag
-	getCmd.PersistentFlags().String("pyroscope-address", "", "Pyroscope server address for profiling. Will enable the Pyroscope profiling suite when added.")
-
 	// Alias support
 	// As cobra doesn't support aliases natively (couldn't find a way to do it), we have to do it manually
 	// This is a workaround to allow users to use `--hops` instead of `--max-hops` for example
