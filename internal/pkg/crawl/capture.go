@@ -342,28 +342,13 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 	// If it was a YouTube watch page, we potentially want to run it through the YouTube extractor
 	// TODO: support other watch page URLs
-	if strings.Contains(item.URL.Host, "youtube.com") && strings.Contains(item.URL.Path, "/watch") && !c.NoYTDLP {
+	if !c.NoYTDLP && youtube.IsYouTubeWatchPage(item.URL) {
 		URLs, rawJSON, HTTPHeaders, err := youtube.Parse(resp.Body)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing YouTube watch page")
 			return err
 		}
 		resp.Body.Close()
-
-		// Build the cookies
-		// cookies := append([]*http.Cookie{}, &http.Cookie{
-		// 	Name:  "Accept",
-		// 	Value: HTTPHeaders.Accept,
-		// }, &http.Cookie{
-		// 	Name:  "Accept-Language",
-		// 	Value: HTTPHeaders.AcceptLanguage,
-		// }, &http.Cookie{
-		// 	Name:  "Sec-Fetch-Mode",
-		// 	Value: HTTPHeaders.SecFetchMode,
-		// }, &http.Cookie{
-		// 	Name:  "User-Agent",
-		// 	Value: HTTPHeaders.UserAgent,
-		// })
 
 		var headers = make(map[string]string)
 		headers["Accept"] = HTTPHeaders.Accept
@@ -377,7 +362,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 		// Write the metadata record for the video
 		if rawJSON != "" {
-			c.Client.WriteMetadataRecord(utils.URLToString(item.URL), "application/json;generator=youtube-dl", rawJSON)
+			c.Client.WriteMetadataRecord(utils.URLToString(item.URL), "application/json;generator=youtube-dlp", rawJSON)
 		}
 
 		return nil
