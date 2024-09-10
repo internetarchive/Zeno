@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strconv"
+	"strings"
 )
 
 func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders HTTPHeaders, err error) {
@@ -53,6 +54,13 @@ func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders HTTPHeaders, 
 			for _, format := range video.RequestedFormats {
 				URLs = append(URLs, format.URL, format.URL+"&video_id="+video.ID)
 			}
+		}
+	}
+
+	// Get all dubbed audio URLs
+	for _, audio := range video.Formats {
+		if strings.Contains(audio.FormatNote, "dubbed") {
+			URLs = append(URLs, audio.URL, audio.URL+"&video_id="+video.ID)
 		}
 	}
 
