@@ -84,7 +84,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("es-password", "", "ElasticSearch password to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-index-prefix", "zeno", "ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno`, without `-`")
 
-	// Pyroscope profiling flag
+	// Profiling flag
 	getCmd.PersistentFlags().String("pyroscope-address", "", "Pyroscope server address for profiling. Will enable the Pyroscope profiling suite when added.")
 
 	// Alias support

@@ -12,8 +12,6 @@ import (
 	"fmt"
 	"os"
 
-	_ "net/http/pprof"
-
 	"github.com/internetarchive/Zeno/cmd"
 )
 
