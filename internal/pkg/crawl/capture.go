@@ -350,6 +350,11 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		}
 		resp.Body.Close()
 
+		// Write the metadata record for the video
+		if rawJSON != "" {
+			c.Client.WriteMetadataRecord(utils.URLToString(item.URL), "application/json;generator=youtube-dlp", rawJSON)
+		}
+
 		var headers = make(map[string]string)
 		headers["Accept"] = HTTPHeaders.Accept
 		headers["Accept-Language"] = HTTPHeaders.AcceptLanguage
@@ -358,11 +363,6 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 		if len(URLs) > 0 {
 			c.captureAssets(item, URLs, resp.Cookies(), headers)
-		}
-
-		// Write the metadata record for the video
-		if rawJSON != "" {
-			c.Client.WriteMetadataRecord(utils.URLToString(item.URL), "application/json;generator=youtube-dlp", rawJSON)
 		}
 
 		return nil
@@ -484,7 +484,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	}
 
 	// Extract outlinks
-	outlinks, err := extractOutlinks(base, doc)
+	outlinks, err := c.extractOutlinks(base, doc)
 	if err != nil {
 		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting outlinks")
 		return err

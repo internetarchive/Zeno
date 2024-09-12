@@ -315,7 +315,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 						if err != nil {
 							c.Log.Error("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
 						} else {
-							rawAssets = append(rawAssets, removeGoogleVideoURLs(URLsFromJSON)...)
+							rawAssets = append(rawAssets, URLsFromJSON...)
 						}
 					}
 				}
@@ -391,21 +391,26 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 	// Turn strings into url.URL
 	assets = append(assets, utils.StringSliceToURLSlice(rawAssets)...)
 
-	// Ensure that excluded hosts aren't in the assets.
-	assets = c.excludeHosts(assets)
-
-	// Go over all assets and outlinks and make sure they are absolute links
-	assets = utils.MakeAbsolute(base, assets)
+	// Ensure that no asset that would be excluded is added to the list,
+	// remove all fragments, and make sure that all assets are absolute URLs
+	assets = c.cleanURLs(base, assets)
 
 	return utils.DedupeURLs(assets), nil
 }
 
-func removeGoogleVideoURLs(input []string) (output []string) {
-	for _, i := range input {
-		if !strings.Contains(i, "googlevideo.com") {
-			output = append(output, i)
+func (c *Crawl) cleanURLs(base *url.URL, URLs []*url.URL) (output []*url.URL) {
+	// Remove excluded URLs
+	for _, URL := range URLs {
+		if !c.isExcluded(URL) {
+			output = append(output, URL)
 		}
 	}
 
-	return output
+	// Make all URLs absolute
+	if base != nil {
+		output = utils.MakeAbsolute(base, output)
+	}
+
+	// Remove fragments
+	return utils.RemoveFragments(output)
 }

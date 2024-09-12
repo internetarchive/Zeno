@@ -39,15 +39,6 @@ func (c *Crawl) crawlSpeedLimiter() {
 	}
 }
 
-func (c *Crawl) checkIncludedHosts(host string) bool {
-	// If no hosts are included, all hosts are included
-	if len(c.IncludedHosts) == 0 {
-		return true
-	}
-
-	return utils.StringInSlice(host, c.IncludedHosts)
-}
-
 func (c *Crawl) handleCrawlPause() {
 	for {
 		spaceLeft := float64(utils.GetFreeDiskSpace(c.JobPath).Avail) / float64(GB)
@@ -63,18 +54,6 @@ func (c *Crawl) handleCrawlPause() {
 
 		time.Sleep(time.Second)
 	}
-}
-
-func (c *Crawl) excludeHosts(URLs []*url.URL) (output []*url.URL) {
-	for _, URL := range URLs {
-		if utils.StringInSlice(URL.Host, c.ExcludedHosts) || !c.checkIncludedHosts(URL.Host) {
-			continue
-		} else {
-			output = append(output, URL)
-		}
-	}
-
-	return output
 }
 
 func extractLinksFromText(source string) (links []*url.URL) {

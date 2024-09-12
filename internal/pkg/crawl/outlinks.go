@@ -10,7 +10,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
-func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL, err error) {
+func (c *Crawl) extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL, err error) {
 	var rawOutlinks []string
 
 	// Extract outlinks
@@ -43,11 +43,9 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL,
 	textOutlinks := extractLinksFromText(doc.Find("body").RemoveFiltered("script").Text())
 	outlinks = append(outlinks, textOutlinks...)
 
-	// Go over all outlinks and make sure they are absolute links
-	outlinks = utils.MakeAbsolute(base, outlinks)
-
-	// Hash (or fragment) URLs are navigational links pointing to the exact same page as such, they should not be treated as new outlinks.
-	outlinks = utils.RemoveFragments(outlinks)
+	// Ensure that no outlink that would be excluded is added to the list,
+	// remove all fragments, and make sure that all assets are absolute URLs
+	outlinks = c.cleanURLs(base, outlinks)
 
 	return utils.DedupeURLs(outlinks), nil
 }
@@ -55,33 +53,9 @@ func extractOutlinks(base *url.URL, doc *goquery.Document) (outlinks []*url.URL,
 func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	var excluded bool
-
 	// Send the outlinks to the pool of workers
 	var items = make([]*queue.Item, 0, len(outlinks))
 	for _, outlink := range outlinks {
-		outlink := outlink
-
-		// If the host of the outlink is in the host exclusion list, or the host is not in the host inclusion list
-		// if one is specified, we ignore the outlink
-		if utils.StringInSlice(outlink.Host, c.ExcludedHosts) || !c.checkIncludedHosts(outlink.Host) {
-			continue
-		}
-
-		// If the outlink match any excluded string, we ignore it
-		for _, excludedString := range c.ExcludedStrings {
-			if strings.Contains(utils.URLToString(outlink), excludedString) {
-				excluded = true
-				break
-			}
-		}
-
-		if excluded {
-			excluded = false
-			continue
-		}
-
-		// Seencheck the outlink
 		if c.UseSeencheck {
 			if c.Seencheck.SeencheckURL(utils.URLToString(outlink), "seed") {
 				continue

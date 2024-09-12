@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"os/exec"
 	"strconv"
-	"strings"
 )
 
 func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders HTTPHeaders, err error) {
 	// Prepare the command
-	cmd := exec.Command("yt-dlp", "--dump-json", "http://localhost:"+strconv.Itoa(port))
+	cmd := exec.Command("yt-dlp", "--dump-json", "http://localhost:"+strconv.Itoa(port), "-f", "bv[protocol=https]+ba[protocol=https]")
 
 	// Buffers to capture stdout and stderr
 	var stdout, stderr bytes.Buffer
@@ -52,23 +51,20 @@ func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders HTTPHeaders, 
 		if len(video.RequestedFormats) > 0 {
 			HTTPHeaders = video.RequestedFormats[0].HTTPHeaders
 			for _, format := range video.RequestedFormats {
-				URLs = append(URLs, format.URL, format.URL+"&video_id="+video.ID)
+				URLs = append(URLs, format.URL+"&video_id="+video.ID)
 			}
 		}
 	}
 
-	// Get all dubbed audio URLs
-	for _, audio := range video.Formats {
-		if strings.Contains(audio.FormatNote, "dubbed") {
-			URLs = append(URLs, audio.URL, audio.URL+"&video_id="+video.ID)
+	// Get the storyboards
+	for _, format := range video.Formats {
+		if format.FormatNote == "storyboard" {
+			URLs = append(URLs, format.URL)
+			for _, fragment := range format.Fragments {
+				URLs = append(URLs, fragment.URL)
+			}
 		}
 	}
-
-	// write output to a .json file (debug)
-	// err = ioutil.WriteFile("output.json", []byte(output), 0644)
-	// if err != nil {
-	// 	return nil, rawJSON, HTTPHeaders, fmt.Errorf("error writing output.json: %v", err)
-	// }
 
 	URLs = append(URLs, subtitleURLs...)
 
