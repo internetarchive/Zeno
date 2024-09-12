@@ -97,7 +97,7 @@ type Crawl struct {
 	CDXDedupeServer    string
 	WARCFullOnDisk     bool
 	WARCPoolSize       int
-	WARCDedupSize      int
+	WARCDedupeSize     int
 	DisableLocalDedupe bool
 	CertValidation     bool
 	WARCCustomCookie   string
@@ -117,6 +117,10 @@ type Crawl struct {
 	HQProducerChannel      chan *queue.Item
 	HQChannelsWg           *sync.WaitGroup
 	HQRateLimitingSendBack bool
+
+	// Dependencies
+	NoYTDLP   bool
+	YTDLPPath string
 }
 
 func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
@@ -235,7 +239,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.CertValidation = config.CertValidation
 	c.WARCFullOnDisk = config.WARCOnDisk
 	c.WARCPoolSize = config.WARCPoolSize
-	c.WARCDedupSize = config.WARCDedupeSize
+	c.WARCDedupeSize = config.WARCDedupeSize
 	c.WARCCustomCookie = config.CDXCookie
 
 	c.API = config.API
@@ -249,6 +253,10 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 		c.PrometheusMetrics = &PrometheusMetrics{}
 		c.PrometheusMetrics.Prefix = config.PrometheusPrefix
 	}
+
+	// Dependencies
+	c.NoYTDLP = config.NoYTDLP
+	c.YTDLPPath = config.YTDLPPath
 
 	if config.UserAgent != "Zeno" {
 		c.UserAgent = config.UserAgent

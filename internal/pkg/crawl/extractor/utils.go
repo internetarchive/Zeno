@@ -3,7 +3,16 @@ package extractor
 import (
 	"net/url"
 	"sort"
+	"strings"
 )
+
+func isContentType(header, targetContentType string) bool {
+	// Lowercase the header and target content type for case-insensitive comparison
+	header = strings.ToLower(header)
+	targetContentType = strings.ToLower(targetContentType)
+
+	return strings.Contains(header, targetContentType)
+}
 
 // compareURLs compares two slices of *url.URL
 func compareURLs(a, b []*url.URL) bool {

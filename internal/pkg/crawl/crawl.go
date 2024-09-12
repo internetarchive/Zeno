@@ -11,6 +11,7 @@ import (
 
 	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/dependencies/ytdlp"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -92,9 +93,9 @@ func (c *Crawl) Start() (err error) {
 	// Init WARC rotator settings
 	rotatorSettings := c.initWARCRotatorSettings()
 
-	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, SizeThreshold: c.WARCDedupSize}
+	dedupeOptions := warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, SizeThreshold: c.WARCDedupeSize}
 	if c.CDXDedupeServer != "" {
-		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer, CDXCookie: c.WARCCustomCookie, SizeThreshold: c.WARCDedupSize}
+		dedupeOptions = warc.DedupeOptions{LocalDedupe: !c.DisableLocalDedupe, CDXDedupe: true, CDXURL: c.CDXDedupeServer, CDXCookie: c.WARCCustomCookie, SizeThreshold: c.WARCDedupeSize}
 	}
 
 	// Init the HTTP client responsible for recording HTTP(s) requests / responses
@@ -120,8 +121,12 @@ func (c *Crawl) Start() (err error) {
 		}
 	}()
 
-	c.Client.Timeout = time.Duration(c.HTTPTimeout) * time.Second
-	c.Log.Info("HTTP client timeout set", "timeout", c.HTTPTimeout)
+	if c.HTTPTimeout > 0 {
+		c.Client.Timeout = time.Duration(c.HTTPTimeout) * time.Second
+		c.Log.Info("Global HTTP client timeout set", "timeout", c.HTTPTimeout)
+	} else {
+		c.Log.Info("Global HTTP client timeout not set (defaulting to infinite)")
+	}
 
 	if c.Proxy != "" {
 		proxyHTTPClientSettings := HTTPClientSettings
@@ -147,6 +152,20 @@ func (c *Crawl) Start() (err error) {
 
 	if c.API {
 		go c.startAPI()
+	}
+
+	// Verify that dependencies exist on the system
+	if !c.NoYTDLP {
+		// If a yt-dlp path is specified, we use it,
+		// otherwise we try to find yt-dlp on the system
+		if c.YTDLPPath == "" {
+			path, found := ytdlp.FindPath()
+			if !found {
+				c.Log.Warn("yt-dlp not found on the system, please install it or specify the path in the configuration if you wish to use it")
+			} else {
+				c.YTDLPPath = path
+			}
+		}
 	}
 
 	// Parse input cookie file if specified

@@ -1,19 +1,136 @@
 package crawl
 
 import (
+	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+	"sync/atomic"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/remeh/sizedwaitgroup"
 )
 
 var backgroundImageRegex = regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
 var urlRegex = regexp.MustCompile(`(?m)url\((.*?)\)`)
+
+func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie, headers map[string]string) error {
+	var resp *http.Response
+
+	// Prepare GET request
+	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Referer", utils.URLToString(item.ParentURL))
+	req.Header.Set("User-Agent", c.UserAgent)
+
+	// If headers are passed, apply them to the request
+	if headers != nil {
+		for key, value := range headers {
+			req.Header.Set(key, value)
+		}
+	}
+
+	// Apply cookies obtained from the original URL captured
+	for i := range cookies {
+		req.AddCookie(cookies[i])
+	}
+
+	resp, err = c.executeGET(item, req, false)
+	if err != nil && err.Error() == "URL from redirection has already been seen" {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if extractor.IsM3U8(resp) {
+		assets, err := extractor.M3U8(resp)
+		if err == nil {
+			c.captureAssets(item, assets, cookies, headers)
+		} else {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")
+		}
+	}
+
+	io.Copy(io.Discard, resp.Body)
+
+	return nil
+}
+
+func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*http.Cookie, headers map[string]string) {
+	// TODO: implement a counter for the number of assets
+	// currently being processed
+	// c.Frontier.QueueCount.Incr(int64(len(assets)))
+	swg := sizedwaitgroup.New(int(c.MaxConcurrentAssets))
+	excluded := false
+
+	for _, asset := range assets {
+		// TODO: implement a counter for the number of assets
+		// currently being processed
+		// c.Frontier.QueueCount.Incr(-1)
+
+		// Just making sure we do not over archive by archiving the original URL
+		if utils.URLToString(item.URL) == utils.URLToString(asset) {
+			continue
+		}
+
+		// If the URL match any excluded string, we ignore it
+		for _, excludedString := range c.ExcludedStrings {
+			if strings.Contains(utils.URLToString(asset), excludedString) {
+				excluded = true
+				break
+			}
+		}
+
+		if excluded {
+			excluded = false
+			continue
+		}
+
+		swg.Add()
+		c.URIsPerSecond.Incr(1)
+
+		go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
+			defer swg.Done()
+
+			// Create the asset's item
+			newAsset, err := queue.NewItem(asset, item.URL, "asset", item.Hop, "", false)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, asset, map[string]interface{}{
+					"parentHop": item.Hop,
+					"parentUrl": utils.URLToString(item.URL),
+					"type":      "asset",
+				})).Error("error while creating asset item")
+				return
+			}
+
+			// Capture the asset
+			err = c.captureAsset(newAsset, cookies, headers)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
+					"parentHop": item.Hop,
+					"parentUrl": utils.URLToString(item.URL),
+					"type":      "asset",
+				})).Error("error while capturing asset")
+				return
+			}
+
+			// If we made it to this point, it means that the asset have been crawled successfully,
+			// then we can increment the locallyCrawled variable
+			atomic.AddUint64(&item.LocallyCrawled, 1)
+		}(asset, &swg)
+	}
+
+	swg.Wait()
+}
 
 func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Document) (assets []*url.URL, err error) {
 	var rawAssets []string
@@ -198,7 +315,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 						if err != nil {
 							c.Log.Error("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
 						} else {
-							rawAssets = append(rawAssets, removeGoogleVideoURLs(URLsFromJSON)...)
+							rawAssets = append(rawAssets, URLsFromJSON...)
 						}
 					}
 				}
@@ -274,21 +391,26 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 	// Turn strings into url.URL
 	assets = append(assets, utils.StringSliceToURLSlice(rawAssets)...)
 
-	// Ensure that excluded hosts aren't in the assets.
-	assets = c.excludeHosts(assets)
-
-	// Go over all assets and outlinks and make sure they are absolute links
-	assets = utils.MakeAbsolute(base, assets)
+	// Ensure that no asset that would be excluded is added to the list,
+	// remove all fragments, and make sure that all assets are absolute URLs
+	assets = c.cleanURLs(base, assets)
 
 	return utils.DedupeURLs(assets), nil
 }
 
-func removeGoogleVideoURLs(input []string) (output []string) {
-	for _, i := range input {
-		if !strings.Contains(i, "googlevideo.com") {
-			output = append(output, i)
+func (c *Crawl) cleanURLs(base *url.URL, URLs []*url.URL) (output []*url.URL) {
+	// Remove excluded URLs
+	for _, URL := range URLs {
+		if !c.isExcluded(URL) {
+			output = append(output, URL)
 		}
 	}
 
-	return output
+	// Make all URLs absolute
+	if base != nil {
+		output = utils.MakeAbsolute(base, output)
+	}
+
+	// Remove fragments
+	return utils.RemoveFragments(output)
 }

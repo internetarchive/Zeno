@@ -114,7 +114,7 @@ func (w *Worker) Run() {
 		w.state.lastAction = "got item"
 
 		// If the host of the item is in the host exclusion list, we skip it
-		if utils.StringInSlice(item.URL.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.checkIncludedHosts(item.URL.Host) {
+		if utils.StringInSlice(item.URL.Host, w.pool.Crawl.ExcludedHosts) || !w.pool.Crawl.isHostIncluded(item.URL) {
 			if w.pool.Crawl.UseHQ {
 				w.state.lastAction = "skipping item because of host exclusion"
 				// If we are using the HQ, we want to mark the item as done
