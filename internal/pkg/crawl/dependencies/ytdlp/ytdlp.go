@@ -8,11 +8,11 @@ import (
 	"strconv"
 )
 
-func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders map[string]string, err error) {
+func getJSON(port int) (streamURLs, metaURLs []string, rawJSON string, HTTPHeaders map[string]string, err error) {
 	HTTPHeaders = make(map[string]string)
 
 	// Prepare the command
-	cmd := exec.Command("yt-dlp", "--dump-json", "http://localhost:"+strconv.Itoa(port), "-f", "bv[protocol=https]+ba[protocol=https]")
+	cmd := exec.Command("yt-dlp", "http://localhost:"+strconv.Itoa(port), "--dump-json", "-f", "bv[protocol=https]+ba[protocol=https]")
 
 	// Buffers to capture stdout and stderr
 	var stdout, stderr bytes.Buffer
@@ -22,7 +22,7 @@ func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders map[string]st
 	// Run the command
 	err = cmd.Run()
 	if err != nil {
-		return URLs, rawJSON, HTTPHeaders, fmt.Errorf("yt-dlp error: %v\nstderr: %s", err, stderr.String())
+		return streamURLs, metaURLs, rawJSON, HTTPHeaders, fmt.Errorf("yt-dlp error: %v\nstderr: %s", err, stderr.String())
 	}
 
 	output := stdout.String()
@@ -31,20 +31,7 @@ func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders map[string]st
 	var video Video
 	err = json.Unmarshal([]byte(output), &video)
 	if err != nil {
-		return nil, rawJSON, HTTPHeaders, fmt.Errorf("error unmarshaling yt-dlp JSON: %v", err)
-	}
-
-	// Get all subtitles (not automatic captions)
-	var subtitleURLs []string
-	for _, subtitle := range video.Subtitles {
-		for _, sub := range subtitle {
-			subtitleURLs = append(subtitleURLs, sub.URL)
-		}
-	}
-
-	// Get all thumbnail URLs
-	for _, thumbnail := range video.Thumbnails {
-		URLs = append(URLs, thumbnail.URL)
+		return streamURLs, metaURLs, rawJSON, HTTPHeaders, fmt.Errorf("error unmarshaling yt-dlp JSON: %v", err)
 	}
 
 	// Get the manifest URL for the best video & audio quality
@@ -53,24 +40,50 @@ func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders map[string]st
 		if len(video.RequestedFormats) > 0 {
 			HTTPHeaders = video.RequestedFormats[0].HTTPHeaders
 			for _, format := range video.RequestedFormats {
-				URLs = append(URLs, format.URL+"&video_id="+video.ID)
+				// Choose stream_type=
+				// If acodec == "none" and vcodec != "none", it's "video"
+				// If acodec != "none" and vcodec == "none", it's "audio"
+				// If acodec != "none" and vcodec != "none", we don't specify stream_type
+				var streamType string
+				if format.Acodec == "none" && format.Vcodec != "none" {
+					streamType = "video"
+				} else if format.Acodec != "none" && format.Vcodec == "none" {
+					streamType = "audio"
+				}
+
+				var URL = format.URL + "&video_id=" + video.ID
+				if streamType != "" {
+					URL += "&stream_type=" + streamType
+				}
+
+				streamURLs = append(streamURLs, URL)
 			}
 		}
+	}
+
+	// Get all subtitles (not automatic captions)
+	for _, subtitle := range video.Subtitles {
+		for _, sub := range subtitle {
+			metaURLs = append(metaURLs, sub.URL)
+		}
+	}
+
+	// Get all thumbnail URLs
+	for _, thumbnail := range video.Thumbnails {
+		metaURLs = append(metaURLs, thumbnail.URL)
 	}
 
 	// Get the storyboards
 	for _, format := range video.Formats {
 		if format.FormatNote == "storyboard" {
-			URLs = append(URLs, format.URL)
+			metaURLs = append(metaURLs, format.URL)
 			for _, fragment := range format.Fragments {
-				URLs = append(URLs, fragment.URL)
+				metaURLs = append(metaURLs, fragment.URL)
 			}
 		}
 	}
 
-	URLs = append(URLs, subtitleURLs...)
-
-	return URLs, output, HTTPHeaders, nil
+	return streamURLs, metaURLs, output, HTTPHeaders, nil
 }
 
 func FindPath() (string, bool) {

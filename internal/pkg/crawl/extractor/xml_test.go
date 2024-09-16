@@ -63,8 +63,7 @@ func TestXML(t *testing.T) {
 				Body: io.NopCloser(bytes.NewBufferString(tt.xmlBody)),
 			}
 
-			gotURLs, err := XML(resp)
-
+			gotURLs, _, err := XML(resp)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("XML() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -83,7 +82,7 @@ func TestXMLBodyReadError(t *testing.T) {
 	}
 	resp.Body.Close() // Close the body to simulate a read error
 
-	_, err := XML(resp)
+	_, _, err := XML(resp)
 	if err == nil {
 		t.Errorf("XML() expected error, got nil")
 	}

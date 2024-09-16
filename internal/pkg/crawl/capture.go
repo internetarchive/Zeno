@@ -2,6 +2,7 @@ package crawl
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/dependencies/ytdlp"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/facebook"
@@ -343,20 +345,59 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	// If it was a YouTube watch page, we potentially want to run it through the YouTube extractor
 	// TODO: support other watch page URLs
 	if !c.NoYTDLP && youtube.IsYouTubeWatchPage(item.URL) {
-		URLs, rawJSON, HTTPHeaders, err := youtube.Parse(resp.Body)
+		streamURLs, metaURLs, rawJSON, HTTPHeaders, err := ytdlp.Parse(resp.Body)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing YouTube watch page")
 			return err
 		}
 		resp.Body.Close()
 
+		// Capture the 2 stream URLs for the video
+		var streamErrs []error
+		var streamWg sync.WaitGroup
+
+		for _, streamURL := range streamURLs {
+			streamWg.Add(1)
+			go func(streamURL *url.URL) {
+				defer streamWg.Done()
+				resp, err := c.executeGET(item, &http.Request{
+					Method: "GET",
+					URL:    streamURL,
+				}, false)
+				if err != nil {
+					streamErrs = append(streamErrs, fmt.Errorf("error executing GET request for %s: %w", streamURL, err))
+					return
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode != 200 {
+					streamErrs = append(streamErrs, fmt.Errorf("invalid status code for %s: %s", streamURL, resp.Status))
+					return
+				}
+
+				_, err = io.Copy(io.Discard, resp.Body)
+				if err != nil {
+					streamErrs = append(streamErrs, fmt.Errorf("error reading response body for %s: %w", streamURL, err))
+				}
+			}(streamURL)
+		}
+
+		streamWg.Wait()
+
+		if len(streamErrs) > 0 {
+			for _, err := range streamErrs {
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing stream URL")
+			}
+			return fmt.Errorf("errors occurred while capturing stream URLs: %v", streamErrs)
+		}
+
 		// Write the metadata record for the video
 		if rawJSON != "" {
 			c.Client.WriteMetadataRecord(utils.URLToString(item.URL), "application/json;generator=youtube-dlp", rawJSON)
 		}
 
-		if len(URLs) > 0 {
-			c.captureAssets(item, URLs, resp.Cookies(), HTTPHeaders)
+		if len(metaURLs) > 0 {
+			c.captureAssets(item, metaURLs, resp.Cookies(), HTTPHeaders)
 		}
 
 		return nil

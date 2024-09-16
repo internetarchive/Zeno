@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func ServeBody(body io.ReadCloser) (port int, stopChan chan struct{}, err error) {
+func serveBody(body io.ReadCloser) (port int, stopChan chan struct{}, err error) {
 	stopChan = make(chan struct{})
 	portChan := make(chan int)
 

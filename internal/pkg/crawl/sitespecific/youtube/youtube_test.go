@@ -3,6 +3,8 @@ package youtube
 import (
 	"os"
 	"testing"
+
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/dependencies/ytdlp"
 )
 
 func TestParse(t *testing.T) {
@@ -14,7 +16,7 @@ func TestParse(t *testing.T) {
 	defer f.Close()
 
 	// Parse the video
-	URLs, rawJSON, _, err := Parse(f)
+	streamURLs, metaURLs, rawJSON, _, err := ytdlp.Parse(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,8 +27,8 @@ func TestParse(t *testing.T) {
 	}
 
 	// Check the number of URLs
-	expected := 204
-	if len(URLs) != expected {
-		t.Fatalf("Expected %d URLs, got %d", expected, len(URLs))
+	expected := 174
+	if len(streamURLs)+len(metaURLs) != expected {
+		t.Fatalf("Expected %d URLs, got %d", expected, len(streamURLs)+len(metaURLs))
 	}
 }

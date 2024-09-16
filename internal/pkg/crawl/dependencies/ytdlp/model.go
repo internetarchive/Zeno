@@ -8,6 +8,18 @@ type Subtitle struct {
 
 type Video struct {
 	ID               string                `json:"id"`
+	Title            string                `json:"title"`
+	Channel          string                `json:"channel"`
+	ChannelID        string                `json:"channel_id"`
+	ChannelURL       string                `json:"channel_url"`
+	Description      string                `json:"description"`
+	Timestamp        int                   `json:"timestamp"`
+	Duration         float64               `json:"duration"`
+	ViewCount        float64               `json:"view_count"`
+	Tags             []string              `json:"tags"`
+	Categories       []string              `json:"categories"`
+	Thumbnail        string                `json:"thumbnail"`
+	Language         string                `json:"language"`
 	IsLive           bool                  `json:"is_live"`
 	Subtitles        map[string][]Subtitle `json:"subtitles"`
 	RequestedFormats []struct {
