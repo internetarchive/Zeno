@@ -8,7 +8,9 @@ import (
 	"strconv"
 )
 
-func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders HTTPHeaders, err error) {
+func GetJSON(port int) (URLs []string, rawJSON string, HTTPHeaders map[string]string, err error) {
+	HTTPHeaders = make(map[string]string)
+
 	// Prepare the command
 	cmd := exec.Command("yt-dlp", "--dump-json", "http://localhost:"+strconv.Itoa(port), "-f", "bv[protocol=https]+ba[protocol=https]")
 

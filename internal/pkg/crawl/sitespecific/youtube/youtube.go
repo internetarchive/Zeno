@@ -12,7 +12,9 @@ func IsYouTubeWatchPage(URL *url.URL) bool {
 	return strings.Contains(URL.Host, "youtube.com") && (strings.Contains(URL.Path, "/watch") || strings.Contains(URL.Path, "/v/"))
 }
 
-func Parse(body io.ReadCloser) (URLs []*url.URL, rawJSON string, HTTPHeaders ytdlp.HTTPHeaders, err error) {
+func Parse(body io.ReadCloser) (URLs []*url.URL, rawJSON string, HTTPHeaders map[string]string, err error) {
+	HTTPHeaders = make(map[string]string)
+
 	// Create a temporary server to serve the body and call ytdlp on it
 	port, stopChan, err := ytdlp.ServeBody(body)
 	if err != nil {

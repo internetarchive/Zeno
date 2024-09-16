@@ -27,23 +27,23 @@ type Video struct {
 		Fragments     []struct {
 			URL string `json:"url"`
 		} `json:"fragments"`
-		HasDrm             bool        `json:"has_drm"`
-		Height             float64     `json:"height"`
-		HTTPHeaders        HTTPHeaders `json:"http_headers"`
-		Language           interface{} `json:"language"`
-		LanguagePreference float64     `json:"language_preference"`
-		Preference         interface{} `json:"preference"`
-		Protocol           string      `json:"protocol"`
-		Quality            float64     `json:"quality"`
-		Resolution         string      `json:"resolution"`
-		SourcePreference   float64     `json:"source_preference"`
-		Tbr                float64     `json:"tbr"`
-		URL                string      `json:"url"`
-		Vbr                float64     `json:"vbr,omitempty"`
-		Vcodec             string      `json:"vcodec"`
-		VideoExt           string      `json:"video_ext"`
-		Width              float64     `json:"width"`
-		Abr                float64     `json:"abr,omitempty"`
+		HasDrm             bool              `json:"has_drm"`
+		Height             float64           `json:"height"`
+		HTTPHeaders        map[string]string `json:"http_headers"`
+		Language           interface{}       `json:"language"`
+		LanguagePreference float64           `json:"language_preference"`
+		Preference         interface{}       `json:"preference"`
+		Protocol           string            `json:"protocol"`
+		Quality            float64           `json:"quality"`
+		Resolution         string            `json:"resolution"`
+		SourcePreference   float64           `json:"source_preference"`
+		Tbr                float64           `json:"tbr"`
+		URL                string            `json:"url"`
+		Vbr                float64           `json:"vbr,omitempty"`
+		Vcodec             string            `json:"vcodec"`
+		VideoExt           string            `json:"video_ext"`
+		Width              float64           `json:"width"`
+		Abr                float64           `json:"abr,omitempty"`
 	} `json:"requested_formats"`
 	Formats []struct {
 		Acodec      string  `json:"acodec"`
