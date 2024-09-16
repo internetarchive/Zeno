@@ -9,15 +9,23 @@ import (
 	"github.com/clbanning/mxj/v2"
 )
 
-func XML(resp *http.Response) (URLs []*url.URL, err error) {
+func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
 	xmlBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, sitemap, err
 	}
 
 	mv, err := mxj.NewMapXml(xmlBody)
 	if err != nil {
-		return nil, err
+		return nil, sitemap, err
+	}
+
+	// Try to find if it's a sitemap
+	for _, node := range mv.LeafNodes() {
+		if strings.Contains(node.Path, "sitemap") {
+			sitemap = true
+			break
+		}
 	}
 
 	for _, value := range mv.LeafValues() {
@@ -31,5 +39,5 @@ func XML(resp *http.Response) (URLs []*url.URL, err error) {
 		}
 	}
 
-	return URLs, nil
+	return URLs, sitemap, nil
 }

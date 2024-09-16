@@ -62,7 +62,7 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 			}
 		}
 
-		if c.DomainsCrawl && strings.Contains(item.URL.Host, outlink.Host) && item.Hop == 0 {
+		if c.domainsCrawlPass(item.URL, outlink, item.Hop) {
 			newItem, err := queue.NewItem(outlink, item.URL, "seed", 0, "", false)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, outlink, nil)).Error("unable to create new item from outlink, discarding")
@@ -95,4 +95,29 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 			c.Log.Error("unable to enqueue outlinks, discarding", "error", err)
 		}
 	}
+}
+
+func (c *Crawl) domainsCrawlPass(origin, outlink *url.URL, originHop uint64) bool {
+	if origin == nil || outlink == nil {
+		return false
+	}
+
+	if !c.DomainsCrawl || originHop != 0 {
+		return false
+	}
+
+	// Strip out subdomains from both URLs & compare
+	originParts := strings.Split(origin.Host, ".")
+	if len(originParts) < 2 {
+		// ???
+		return false
+	}
+
+	outlinkParts := strings.Split(outlink.Host, ".")
+	if len(outlinkParts) < 2 {
+		// ???
+		return false
+	}
+
+	return originParts[len(originParts)-2]+"."+originParts[len(originParts)-1] == outlinkParts[len(outlinkParts)-2]+"."+outlinkParts[len(outlinkParts)-1]
 }

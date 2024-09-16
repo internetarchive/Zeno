@@ -355,14 +355,8 @@ func (c *Crawl) Capture(item *queue.Item) error {
 			c.Client.WriteMetadataRecord(utils.URLToString(item.URL), "application/json;generator=youtube-dlp", rawJSON)
 		}
 
-		var headers = make(map[string]string)
-		headers["Accept"] = HTTPHeaders.Accept
-		headers["Accept-Language"] = HTTPHeaders.AcceptLanguage
-		headers["Sec-Fetch-Mode"] = HTTPHeaders.SecFetchMode
-		headers["User-Agent"] = HTTPHeaders.UserAgent
-
 		if len(URLs) > 0 {
-			c.captureAssets(item, URLs, resp.Cookies(), headers)
+			c.captureAssets(item, URLs, resp.Cookies(), HTTPHeaders)
 		}
 
 		return nil
@@ -390,9 +384,16 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 	// If the response is an XML document, we want to scrape it for links
 	if strings.Contains(resp.Header.Get("Content-Type"), "xml") {
-		assets, err = extractor.XML(resp)
+		URLsFromXML, isSitemap, err := extractor.XML(resp)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from XML")
+		} else {
+			if isSitemap {
+				waitGroup.Add(1)
+				go c.queueOutlinks(URLsFromXML, item, &waitGroup)
+			} else {
+				assets = append(assets, URLsFromXML...)
+			}
 		}
 	} else if strings.Contains(resp.Header.Get("Content-Type"), "json") {
 		assets, err = extractor.JSON(resp)
