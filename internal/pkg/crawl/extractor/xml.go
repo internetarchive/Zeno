@@ -15,6 +15,10 @@ func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
 		return nil, sitemap, err
 	}
 
+	if strings.Contains(string(xmlBody), "sitemaps.org/schemas/sitemap/") {
+		sitemap = true
+	}
+
 	mv, err := mxj.NewMapXml(xmlBody)
 	if err != nil {
 		return nil, sitemap, err

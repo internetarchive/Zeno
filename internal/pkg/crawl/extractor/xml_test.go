@@ -5,15 +5,18 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"testing"
 )
 
 func TestXML(t *testing.T) {
 	tests := []struct {
-		name     string
-		xmlBody  string
-		wantURLs []*url.URL
-		wantErr  bool
+		name          string
+		xmlBody       string
+		wantURLs      []*url.URL
+		wantURLsCount int
+		wantErr       bool
+		sitemap       bool
 	}{
 		{
 			name: "Valid XML with URLs",
@@ -29,6 +32,7 @@ func TestXML(t *testing.T) {
 				{Scheme: "http", Host: "example.com"},
 				{Scheme: "https", Host: "example.org"},
 			},
+			sitemap: false,
 			wantErr: false,
 		},
 		{
@@ -36,12 +40,14 @@ func TestXML(t *testing.T) {
 			xmlBody:  `<root></root>`,
 			wantURLs: nil,
 			wantErr:  false,
+			sitemap:  false,
 		},
 		{
 			name:     "Invalid XML",
 			xmlBody:  `<root><unclosed>`,
 			wantURLs: nil,
 			wantErr:  true,
+			sitemap:  false,
 		},
 		{
 			name: "XML with invalid URL",
@@ -54,6 +60,14 @@ func TestXML(t *testing.T) {
 				{Scheme: "http", Host: "example.com"},
 			},
 			wantErr: false,
+			sitemap: false,
+		},
+		{
+			name:          "Huge sitemap",
+			xmlBody:       loadTestFile(t, "xml_test_sitemap.xml"),
+			wantURLsCount: 100002,
+			wantErr:       false,
+			sitemap:       true,
 		},
 	}
 
@@ -63,17 +77,43 @@ func TestXML(t *testing.T) {
 				Body: io.NopCloser(bytes.NewBufferString(tt.xmlBody)),
 			}
 
-			gotURLs, _, err := XML(resp)
+			gotURLs, sitemap, err := XML(resp)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("XML() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
-			if !compareURLs(gotURLs, tt.wantURLs) {
-				t.Errorf("XML() gotURLs = %v, want %v", gotURLs, tt.wantURLs)
+			if tt.wantURLsCount != 0 {
+				if len(gotURLs) != tt.wantURLsCount {
+					t.Errorf("XML() gotURLs count = %v, want %v", len(gotURLs), tt.wantURLsCount)
+				}
+			}
+
+			if tt.wantURLs != nil {
+				if !compareURLs(gotURLs, tt.wantURLs) {
+					t.Errorf("XML() gotURLs = %v, want %v", gotURLs, tt.wantURLs)
+				}
+			}
+
+			if tt.sitemap != sitemap {
+				t.Errorf("XML() sitemap = %v, want %v", sitemap, tt.sitemap)
 			}
 		})
 	}
+}
+
+func loadTestFile(t *testing.T, path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("openFile() error = %v", err)
+	}
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatalf("readFile() error = %v", err)
+	}
+
+	return string(b)
 }
 
 func TestXMLBodyReadError(t *testing.T) {
