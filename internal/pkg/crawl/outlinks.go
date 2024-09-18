@@ -154,7 +154,7 @@ func (c *Crawl) domainsCrawlPass(origin, outlink *url.URL, originHop uint64) boo
 	for _, domain := range excluded {
 		if originDomain == domain {
 			// We want to crawl the subdomain, not the entire domain
-			return origin.Host == outlink.Host
+			return strings.Contains(outlink.Host, origin.Host)
 		}
 	}
 
