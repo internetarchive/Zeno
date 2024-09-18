@@ -98,6 +98,34 @@ func (c *Crawl) queueOutlinks(outlinks []*url.URL, item *queue.Item, wg *sync.Wa
 }
 
 func (c *Crawl) domainsCrawlPass(origin, outlink *url.URL, originHop uint64) bool {
+	// These are sites that host other sites. When --domains-crawl is used on one of these
+	// domains, we want to perform it on the subdomain, not the entire domain.
+	var excluded = []string{
+		"blogspot.com",
+		"wordpress.com",
+		"tumblr.com",
+		"weebly.com",
+		"jimdo.com",
+		"webnode.com",
+		"yola.com",
+		"strikingly.com",
+		"site123.com",
+		"simplesite.com",
+		"webstarts.com",
+		"webflow.com",
+		"weblium.com",
+		"webself.net",
+		"one.com",
+		"free.fr",
+		"000webhost.com",
+		"hostinger.com",
+		"hostgator.com",
+		"bluehost.com",
+		"godaddy.com",
+		"siteground.com",
+		"ionos.com",
+	}
+
 	if origin == nil || outlink == nil {
 		return false
 	}
@@ -106,12 +134,14 @@ func (c *Crawl) domainsCrawlPass(origin, outlink *url.URL, originHop uint64) boo
 		return false
 	}
 
-	// Strip out subdomains from both URLs & compare
+	// Strip out subdomains from both URLs
 	originParts := strings.Split(origin.Host, ".")
 	if len(originParts) < 2 {
 		// ???
 		return false
 	}
+
+	originDomain := originParts[len(originParts)-2] + "." + originParts[len(originParts)-1]
 
 	outlinkParts := strings.Split(outlink.Host, ".")
 	if len(outlinkParts) < 2 {
@@ -119,5 +149,14 @@ func (c *Crawl) domainsCrawlPass(origin, outlink *url.URL, originHop uint64) boo
 		return false
 	}
 
-	return originParts[len(originParts)-2]+"."+originParts[len(originParts)-1] == outlinkParts[len(outlinkParts)-2]+"."+outlinkParts[len(outlinkParts)-1]
+	outlinkDomain := outlinkParts[len(outlinkParts)-2] + "." + outlinkParts[len(outlinkParts)-1]
+
+	for _, domain := range excluded {
+		if originDomain == domain {
+			// We want to crawl the subdomain, not the entire domain
+			return origin.Host == outlink.Host
+		}
+	}
+
+	return originDomain == outlinkDomain
 }
