@@ -101,6 +101,7 @@ func (c *Crawl) domainsCrawlPass(origin, outlink *url.URL, originHop uint64) boo
 	// These are sites that host other sites. When --domains-crawl is used on one of these
 	// domains, we want to perform it on the subdomain, not the entire domain.
 	var excluded = []string{
+		"forumactif.com",
 		"canalblog.com",
 		"blogspot.com",
 		"wordpress.com",
