@@ -261,7 +261,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 				if scriptType == "application/json" {
 					URLsFromJSON, err := extractor.GetURLsFromJSON(item.Text())
 					if err != nil {
-						c.Log.Error("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
+						c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
 					} else {
 						rawAssets = append(rawAssets, URLsFromJSON...)
 					}
@@ -313,7 +313,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 					if len(jsonContent[1]) > payloadEndPosition {
 						URLsFromJSON, err := extractor.GetURLsFromJSON(jsonContent[1][:payloadEndPosition+1])
 						if err != nil {
-							c.Log.Error("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
+							c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
 						} else {
 							rawAssets = append(rawAssets, URLsFromJSON...)
 						}

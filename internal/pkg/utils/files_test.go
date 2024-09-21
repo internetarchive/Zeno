@@ -1,17 +1,33 @@
 package utils
 
 import (
+	"os"
 	"testing"
-
-	"github.com/spf13/afero"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestFileExists(t *testing.T) {
-	appFS := afero.NewMemMapFs()
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "fileexists_test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
 
-	afero.WriteFile(appFS, "src/a", []byte("file"), 0644)
+	// Create a file
+	filePath := tempDir + "/a"
+	err = os.WriteFile(filePath, []byte("file"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write file: %v", err)
+	}
 
-	assert.True(t, true, FileExists("src/a"))
-	assert.False(t, false, FileExists("src/b"))
+	// Test existing file
+	if !FileExists(filePath) {
+		t.Errorf("Expected file %s to exist, but it doesn't", filePath)
+	}
+
+	// Test non-existing file
+	nonExistentPath := tempDir + "/b"
+	if FileExists(nonExistentPath) {
+		t.Errorf("Expected file %s to not exist, but it does", nonExistentPath)
+	}
 }
