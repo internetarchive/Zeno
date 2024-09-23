@@ -15,7 +15,7 @@ func URLToString(u *url.URL) string {
 	var err error
 
 	q := u.Query()
-	u.RawQuery = ZenoEncode(q)
+	u.RawQuery = encodeQuery(q)
 	u.Host, err = idna.ToASCII(u.Host)
 	if err != nil {
 		if strings.Contains(u.Host, ":") {
@@ -41,7 +41,7 @@ func URLToString(u *url.URL) string {
 // Encode encodes the values into “URL encoded” form
 // from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=1002
 // modified to not sort.
-func ZenoEncode(v url.Values) string {
+func encodeQuery(v url.Values) string {
 	if len(v) == 0 {
 		return ""
 	}
