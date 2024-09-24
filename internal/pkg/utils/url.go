@@ -14,8 +14,12 @@ import (
 func URLToString(u *url.URL) string {
 	var err error
 
-	q := u.Query()
-	u.RawQuery = encodeQuery(q)
+	if u.Host == "external-preview.redd.it" || u.Host == "styles.redditmedia.com" || u.Host == "preview.redd.it" {
+		// Do nothing. We don't want to encode the URL for signature purposes. :(
+	} else {
+		q := u.Query()
+		u.RawQuery = encodeQuery(q)
+	}
 	u.Host, err = idna.ToASCII(u.Host)
 	if err != nil {
 		if strings.Contains(u.Host, ":") {
