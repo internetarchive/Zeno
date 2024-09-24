@@ -271,6 +271,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 		}
 
 		c.UserAgent = "Mozilla/5.0 (compatible; archive.org_bot +http://archive.org/details/archive.org_bot) Zeno/" + version.Version + " warc/" + version.WarcVersion
+		c.Log.Info("User-Agent set to", "user-agent", c.UserAgent)
 	}
 	c.Headless = config.Headless
 
@@ -286,6 +287,10 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 
 	if c.DisableIPv4 && c.DisableIPv6 {
 		c.Log.Fatal("Both IPv4 and IPv6 are disabled, at least one of them must be enabled.")
+	} else if c.DisableIPv4 {
+		c.Log.Info("IPv4 is disabled")
+	} else if c.DisableIPv6 {
+		c.Log.Info("IPv6 is disabled")
 	}
 
 	// Crawl HQ settings
