@@ -108,3 +108,17 @@ func TestURLwithSpacesandUnicode(t *testing.T) {
 		t.Fatalf("Expected %s, got %s", expected, actual)
 	}
 }
+
+// For technical reasons we are not encoding reddit URLs.
+func TestURLwithRedditOverride(t *testing.T) {
+	u, err := url.Parse("https://styles.redditmedia.com/t5_7wkhw/styles/profileIcon_8w6r6fr3rh2d1.jpeg?width=64&height=64&frame=1&auto=webp&crop=64:64,smart&s=6d8ab9b89c9b846c9eb65622db9ced4992dc0905")
+	if err != nil {
+		t.Fatalf("Error parsing URL: %v", err)
+	}
+
+	expected := "https://styles.redditmedia.com/t5_7wkhw/styles/profileIcon_8w6r6fr3rh2d1.jpeg?width=64&height=64&frame=1&auto=webp&crop=64:64,smart&s=6d8ab9b89c9b846c9eb65622db9ced4992dc0905"
+	actual := URLToString(u)
+	if actual != expected {
+		t.Fatalf("Expected %s, got %s", expected, actual)
+	}
+}
