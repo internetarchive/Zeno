@@ -284,6 +284,10 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.DisableIPv4 = config.DisableIPv4
 	c.DisableIPv6 = config.DisableIPv6
 
+	if c.DisableIPv4 && c.DisableIPv6 {
+		c.Log.Fatal("Both IPv4 and IPv6 are disabled, at least one of them must be enabled.")
+	}
+
 	// Crawl HQ settings
 	c.UseHQ = config.HQ
 	c.HQProject = config.HQProject
