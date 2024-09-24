@@ -64,7 +64,6 @@ type Crawl struct {
 	CaptureAlternatePages          bool
 	DomainsCrawl                   bool
 	Headless                       bool
-	RandomLocalIP                  bool
 	MinSpaceRequired               int
 
 	// Cookie-related settings
@@ -72,9 +71,12 @@ type Crawl struct {
 	KeepCookies bool
 	CookieJar   http.CookieJar
 
-	// proxy settings
-	Proxy       string
-	BypassProxy []string
+	// Network settings
+	Proxy         string
+	BypassProxy   []string
+	RandomLocalIP bool
+	DisableIPv4   bool
+	DisableIPv6   bool
 
 	// API settings
 	API               bool
@@ -275,9 +277,12 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.CookieFile = config.Cookies
 	c.KeepCookies = config.KeepCookies
 
-	// Proxy settings
+	// Network settings
 	c.Proxy = config.Proxy
 	c.BypassProxy = config.DomainsBypassProxy
+	c.RandomLocalIP = config.RandomLocalIP
+	c.DisableIPv4 = config.DisableIPv4
+	c.DisableIPv6 = config.DisableIPv6
 
 	// Crawl HQ settings
 	c.UseHQ = config.HQ

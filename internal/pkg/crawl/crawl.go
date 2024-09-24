@@ -108,6 +108,8 @@ func (c *Crawl) Start() (err error) {
 		TempDir:             c.WARCTempDir,
 		FullOnDisk:          c.WARCFullOnDisk,
 		RandomLocalIP:       c.RandomLocalIP,
+		DisableIPv4:         c.DisableIPv4,
+		DisableIPv6:         c.DisableIPv6,
 	}
 
 	c.Client, err = warc.NewWARCWritingHTTPClient(HTTPClientSettings)
