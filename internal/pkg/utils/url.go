@@ -14,9 +14,11 @@ import (
 func URLToString(u *url.URL) string {
 	var err error
 
-	if u.Host == "external-preview.redd.it" || u.Host == "styles.redditmedia.com" || u.Host == "preview.redd.it" {
+	switch u.Host {
+	case "external-preview.redd.it", "styles.redditmedia.com", "preview.redd.it":
 		// Do nothing. We don't want to encode the URL for signature purposes. :(
-	} else {
+		break
+	default:
 		q := u.Query()
 		u.RawQuery = encodeQuery(q)
 	}
