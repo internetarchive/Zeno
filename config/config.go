@@ -20,7 +20,6 @@ type Config struct {
 	Cookies                        string   `mapstructure:"cookies"`
 	APIPort                        string   `mapstructure:"api-port"`
 	PrometheusPrefix               string   `mapstructure:"prometheus-prefix"`
-	Proxy                          string   `mapstructure:"proxy"`
 	WARCPrefix                     string   `mapstructure:"warc-prefix"`
 	WARCOperator                   string   `mapstructure:"warc-operator"`
 	CDXDedupeServer                string   `mapstructure:"warc-cdx-dedupe-server"`
@@ -39,7 +38,6 @@ type Config struct {
 	ExcludeHosts                   []string `mapstructure:"exclude-host"`
 	IncludeHosts                   []string `mapstructure:"include-host"`
 	ExcludeString                  []string `mapstructure:"exclude-string"`
-	DomainsBypassProxy             []string `mapstructure:"bypass-proxy"`
 	ElasticSearchURLs              []string `mapstructure:"es-url"`
 	WorkersCount                   int      `mapstructure:"workers"`
 	MaxConcurrentAssets            int      `mapstructure:"max-concurrent-assets"`
@@ -65,7 +63,6 @@ type Config struct {
 	Prometheus                     bool     `mapstructure:"prometheus"`
 	DomainsCrawl                   bool     `mapstructure:"domains-crawl"`
 	CaptureAlternatePages          bool     `mapstructure:"capture-alternate-pages"`
-	RandomLocalIP                  bool     `mapstructure:"random-local-ip"`
 	WARCOnDisk                     bool     `mapstructure:"warc-on-disk"`
 	DisableLocalDedupe             bool     `mapstructure:"disable-local-dedupe"`
 	CertValidation                 bool     `mapstructure:"cert-validation"`
@@ -76,6 +73,13 @@ type Config struct {
 	NoStdoutLogging                bool     `mapstructure:"no-stdout-log"`
 	NoBatchWriteWAL                bool     `mapstructure:"ultrasafe-queue"`
 	Handover                       bool     `mapstructure:"handover"`
+
+	// Network
+	Proxy              string   `mapstructure:"proxy"`
+	DomainsBypassProxy []string `mapstructure:"bypass-proxy"`
+	RandomLocalIP      bool     `mapstructure:"random-local-ip"`
+	DisableIPv4        bool     `mapstructure:"disable-ipv4"`
+	DisableIPv6        bool     `mapstructure:"disable-ipv6"`
 
 	// Dependencies
 	NoYTDLP   bool   `mapstructure:"no-ytdlp"`

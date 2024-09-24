@@ -54,14 +54,16 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("crawl-time-limit", 0, "Number of seconds until the crawl will automatically set itself into the finished state.")
 	getCmd.PersistentFlags().Int("crawl-max-time-limit", 0, "Number of seconds until the crawl will automatically panic itself. Default to crawl-time-limit + (crawl-time-limit / 10)")
 	getCmd.PersistentFlags().StringSlice("exclude-string", []string{}, "Discard any (discovered) URLs containing this string.")
-	getCmd.PersistentFlags().Bool("random-local-ip", false, "Use random local IP for requests. (will be ignored if a proxy is set)")
 	getCmd.PersistentFlags().Int("min-space-required", 20, "Minimum space required in GB to continue the crawl.")
 	getCmd.PersistentFlags().Bool("handover", false, "Use the handover mechanism that dispatch URLs via a buffer before enqueuing on disk. (UNSTABLE)")
 	getCmd.PersistentFlags().Bool("ultrasafe-queue", false, "Don't use committed batch writes to the WAL and instead fsync() after each write.")
 
-	// Proxy flags
+	// Network flags
 	getCmd.PersistentFlags().String("proxy", "", "Proxy to use when requesting pages.")
 	getCmd.PersistentFlags().StringSlice("bypass-proxy", []string{}, "Domains that should not be proxied.")
+	getCmd.PersistentFlags().Bool("random-local-ip", false, "Use random local IP for requests. (will be ignored if a proxy is set)")
+	getCmd.PersistentFlags().Bool("disable-ipv4", false, "Disable IPv4 for requests.")
+	getCmd.PersistentFlags().Bool("disable-ipv6", false, "Disable IPv6 for requests.")
 
 	// WARC flags
 	getCmd.PersistentFlags().String("warc-prefix", "ZENO", "Prefix to use when naming the WARC files.")
