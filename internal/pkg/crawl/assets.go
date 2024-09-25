@@ -169,7 +169,11 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 
 			for match := range matches {
 				if len(matches[match]) > 0 {
-					rawAssets = append(rawAssets, matches[match][1])
+					matchFound := matches[match][1]
+					if strings.Contains(matchFound, "%") || strings.HasPrefix(matchFound, "--font") || strings.HasPrefix(matchFound, "--size") || strings.HasPrefix(matchFound, "--color") || strings.HasPrefix(matchFound, "--shreddit") || strings.HasPrefix(matchFound, "0.") || strings.HasPrefix(matchFound, "100vh") {
+						continue
+					}
+					rawAssets = append(rawAssets, matchFound)
 				}
 			}
 		}
