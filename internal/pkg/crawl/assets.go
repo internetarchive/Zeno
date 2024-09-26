@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync/atomic"
 
@@ -280,6 +281,12 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 				scriptLinks := utils.DedupeStrings(regexOutlinks.FindAllString(outerHTML, -1))
 				for _, scriptLink := range scriptLinks {
 					if strings.HasPrefix(scriptLink, "http") {
+						// Escape URLs when unicode runes are present in the extracted URLs
+						scriptLink, err := strconv.Unquote(`"` + scriptLink + `"`)
+						if err != nil {
+							c.Log.Debug("unable to escape URL from JSON in script tag", "error", err, "url", scriptLink)
+							continue
+						}
 						rawAssets = append(rawAssets, scriptLink)
 					}
 				}
