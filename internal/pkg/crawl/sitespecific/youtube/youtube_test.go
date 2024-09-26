@@ -20,8 +20,8 @@ func TestParse(t *testing.T) {
 	if err != nil {
 		_, found := ytdlp.FindPath()
 		if !found {
-			// TODO: install yt-dlp when running our tests.
-			t.Skipf("yt-dlp not installed. xfailing test due to missing executable.")
+			// TODO: install yt-dlp when running our tests in CI?
+			t.Skipf("yt-dlp not installed. skipping test due to missing executable.")
 			return
 		}
 		t.Fatal(err)
