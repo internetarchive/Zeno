@@ -14,8 +14,14 @@ import (
 func URLToString(u *url.URL) string {
 	var err error
 
-	q := u.Query()
-	u.RawQuery = q.Encode()
+	switch u.Host {
+	case "external-preview.redd.it", "styles.redditmedia.com", "preview.redd.it":
+		// Do nothing. We don't want to encode the URL for signature purposes. :(
+		break
+	default:
+		q := u.Query()
+		u.RawQuery = encodeQuery(q)
+	}
 	u.Host, err = idna.ToASCII(u.Host)
 	if err != nil {
 		if strings.Contains(u.Host, ":") {
@@ -36,6 +42,35 @@ func URLToString(u *url.URL) string {
 	}
 
 	return u.String()
+}
+
+// Encode encodes the values into “URL encoded” form
+// from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=1002
+// modified to not sort.
+func encodeQuery(v url.Values) string {
+	if len(v) == 0 {
+		return ""
+	}
+	var buf strings.Builder
+	keys := make([]string, 0, len(v))
+	for k := range v {
+		keys = append(keys, k)
+	}
+	// Modified to not sort the keys.
+	// slices.Sort(keys)
+	for _, k := range keys {
+		vs := v[k]
+		keyEscaped := url.QueryEscape(k)
+		for _, v := range vs {
+			if buf.Len() > 0 {
+				buf.WriteByte('&')
+			}
+			buf.WriteString(keyEscaped)
+			buf.WriteByte('=')
+			buf.WriteString(url.QueryEscape(v))
+		}
+	}
+	return buf.String()
 }
 
 // MakeAbsolute turn all URLs in a slice of url.URL into absolute URLs, based

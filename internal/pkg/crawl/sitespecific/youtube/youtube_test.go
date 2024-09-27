@@ -18,6 +18,12 @@ func TestParse(t *testing.T) {
 	// Parse the video
 	streamURLs, metaURLs, rawJSON, _, err := ytdlp.Parse(f)
 	if err != nil {
+		_, found := ytdlp.FindPath()
+		if !found {
+			// TODO: install yt-dlp when running our tests in CI?
+			t.Skipf("yt-dlp not installed. skipping test due to missing executable.")
+			return
+		}
 		t.Fatal(err)
 	}
 

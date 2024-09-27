@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync/atomic"
 
@@ -169,7 +170,12 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 
 			for match := range matches {
 				if len(matches[match]) > 0 {
-					rawAssets = append(rawAssets, matches[match][1])
+					matchFound := matches[match][1]
+					// Don't extract CSS elements that aren't URLs
+					if strings.Contains(matchFound, "%") || strings.HasPrefix(matchFound, "0.") || strings.HasPrefix(matchFound, "--font") || strings.HasPrefix(matchFound, "--size") || strings.HasPrefix(matchFound, "--color") || strings.HasPrefix(matchFound, "--shreddit") || strings.HasPrefix(matchFound, "100vh") {
+						continue
+					}
+					rawAssets = append(rawAssets, matchFound)
 				}
 			}
 		}
@@ -276,6 +282,12 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 				scriptLinks := utils.DedupeStrings(regexOutlinks.FindAllString(outerHTML, -1))
 				for _, scriptLink := range scriptLinks {
 					if strings.HasPrefix(scriptLink, "http") {
+						// Escape URLs when unicode runes are present in the extracted URLs
+						scriptLink, err := strconv.Unquote(`"` + scriptLink + `"`)
+						if err != nil {
+							c.Log.Debug("unable to escape URL from JSON in script tag", "error", err, "url", scriptLink)
+							continue
+						}
 						rawAssets = append(rawAssets, scriptLink)
 					}
 				}
