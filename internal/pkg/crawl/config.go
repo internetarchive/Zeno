@@ -140,13 +140,20 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 		logfileOutputDir = filepath.Clean(config.LogFileOutputDir)
 	}
 
+	var fileLogLevel slog.Level
+	if config.Debug {
+		fileLogLevel = slog.LevelDebug
+	} else {
+		fileLogLevel = slog.LevelInfo
+	}
+
 	// Logger
 	customLoggerConfig := log.Config{
 		FileConfig: &log.LogfileConfig{
 			Dir:    logfileOutputDir,
 			Prefix: "zeno",
 		},
-		FileLevel:                slog.LevelDebug,
+		FileLevel:                fileLogLevel,
 		StdoutEnabled:            !config.NoStdoutLogging,
 		StdoutLevel:              slog.LevelInfo,
 		RotateLogFile:            true,
