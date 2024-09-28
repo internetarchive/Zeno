@@ -13,7 +13,7 @@ func IsM3U8(resp *http.Response) bool {
 }
 
 func M3U8(resp *http.Response) (URLs []*url.URL, err error) {
-	p, listType, err := m3u8.DecodeFrom(resp.Body, true)
+	playlist, listType, err := m3u8.DecodeFrom(resp.Body, true)
 	if err != nil {
 		return URLs, err
 	}
@@ -21,29 +21,42 @@ func M3U8(resp *http.Response) (URLs []*url.URL, err error) {
 	var rawURLs []string
 	switch listType {
 	case m3u8.MEDIA:
-		mediapl := p.(*m3u8.MediaPlaylist)
+		mediapl := playlist.(*m3u8.MediaPlaylist)
 
 		for _, segment := range mediapl.Segments {
-			if segment != nil {
+			if segment != nil && segment.URI != "" {
 				rawURLs = append(rawURLs, segment.URI)
 			}
 		}
 	case m3u8.MASTER:
-		masterpl := p.(*m3u8.MasterPlaylist)
+		masterpl := playlist.(*m3u8.MasterPlaylist)
 
 		for _, variant := range masterpl.Variants {
 			if variant != nil {
-				rawURLs = append(rawURLs, variant.URI)
+				if variant.URI != "" {
+					rawURLs = append(rawURLs, variant.URI)
+				}
+
+				for _, alt := range variant.Alternatives {
+					if alt != nil && alt.URI != "" {
+						rawURLs = append(rawURLs, alt.URI)
+					}
+				}
 			}
 		}
 	}
 
+	baseURL := resp.Request.URL
+
 	for _, rawURL := range rawURLs {
 		URL, err := url.Parse(rawURL)
 		if err == nil {
+			if !URL.IsAbs() {
+				URL = baseURL.ResolveReference(URL)
+			}
 			URLs = append(URLs, URL)
 		}
 	}
 
-	return URLs, err
+	return URLs, nil
 }

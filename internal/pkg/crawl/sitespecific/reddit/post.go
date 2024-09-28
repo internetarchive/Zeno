@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/extractor"
@@ -199,6 +200,10 @@ func ExtractPost(body []byte) (permalinks []string, assets []string, err error) 
 	assets, err = extractor.GetURLsFromJSON(body)
 	if err != nil {
 		return permalinks, assets, err
+	}
+
+	for i, asset := range assets {
+		assets[i], _ = strconv.Unquote(`"` + asset + `"`)
 	}
 
 	return permalinks, assets, nil
