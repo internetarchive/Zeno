@@ -55,7 +55,10 @@ func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie, headers m
 	if extractor.IsM3U8(resp) {
 		assets, err := extractor.M3U8(resp)
 		if err == nil {
-			c.captureAssets(item, assets, cookies, headers)
+			assets = c.seencheckAssets(assets, item)
+			if len(assets) != 0 {
+				c.captureAssets(item, assets, cookies, headers)
+			}
 		} else {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")
 		}
@@ -309,7 +312,8 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 				if scriptType == "application/json" {
 					URLsFromJSON, err := extractor.GetURLsFromJSON([]byte(item.Text()))
 					if err != nil {
-						c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
+						// TODO: maybe add back when https://github.com/internetarchive/Zeno/issues/147 is fixed
+						// c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
 					} else {
 						rawAssets = append(rawAssets, URLsFromJSON...)
 					}
@@ -367,7 +371,8 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 					if len(jsonContent[1]) > payloadEndPosition {
 						URLsFromJSON, err := extractor.GetURLsFromJSON([]byte(jsonContent[1][:payloadEndPosition+1]))
 						if err != nil {
-							c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
+							// TODO: maybe add back when https://github.com/internetarchive/Zeno/issues/147 is fixed
+							// c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
 						} else {
 							rawAssets = append(rawAssets, URLsFromJSON...)
 						}
