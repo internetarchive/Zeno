@@ -41,14 +41,13 @@ type FieldedLogger struct {
 }
 
 func (e *FieldedLogger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
-	allAttrs := append(e.attrs, slog.Any("msg", msg))
 	for i := 0; i < len(args); i += 2 {
 		if i+1 < len(args) {
-			allAttrs = append(allAttrs, slog.Any(fmt.Sprint(args[i]), args[i+1]))
+			e.attrs = append(e.attrs, slog.Any(fmt.Sprint(args[i]), args[i+1]))
 		}
 	}
 	r := slog.NewRecord(time.Now(), level, msg, 0)
-	r.AddAttrs(allAttrs...)
+	r.AddAttrs(e.attrs...)
 	_ = e.logger.handler.Handle(ctx, r)
 }
 
