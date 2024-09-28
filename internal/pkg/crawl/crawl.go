@@ -110,6 +110,7 @@ func (c *Crawl) Start() (err error) {
 		RandomLocalIP:       c.RandomLocalIP,
 		DisableIPv4:         c.DisableIPv4,
 		DisableIPv6:         c.DisableIPv6,
+		IPv6AnyIP:           c.IPv6AnyIP,
 	}
 
 	c.Client, err = warc.NewWARCWritingHTTPClient(HTTPClientSettings)
@@ -188,7 +189,7 @@ func (c *Crawl) Start() (err error) {
 	// If crawl HQ parameters are specified, then we start the background
 	// processes responsible for pulling and pushing seeds from and to HQ
 	if c.UseHQ {
-		c.HQClient, err = gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress)
+		c.HQClient, err = gocrawlhq.Init(c.HQKey, c.HQSecret, c.HQProject, c.HQAddress, "")
 		if err != nil {
 			c.Log.Fatal("unable to init crawl HQ client", "error", err)
 		}

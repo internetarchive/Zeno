@@ -393,7 +393,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 		// Write the metadata record for the video
 		if rawJSON != "" {
-			c.Client.WriteMetadataRecord(utils.URLToString(item.URL), "application/json;generator=youtube-dlp", rawJSON)
+			c.Client.WriteRecord(utils.URLToString(item.URL), "metadata", "application/json;generator=youtube-dlp", rawJSON)
 		}
 
 		if len(metaURLs) > 0 {

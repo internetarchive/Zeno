@@ -77,6 +77,7 @@ type Crawl struct {
 	RandomLocalIP bool
 	DisableIPv4   bool
 	DisableIPv6   bool
+	IPv6AnyIP     bool
 
 	// API settings
 	API               bool
@@ -282,8 +283,14 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.Proxy = config.Proxy
 	c.BypassProxy = config.DomainsBypassProxy
 	c.RandomLocalIP = config.RandomLocalIP
+
+	if c.RandomLocalIP {
+		c.Log.Warn("Random local IP is enabled")
+	}
+
 	c.DisableIPv4 = config.DisableIPv4
 	c.DisableIPv6 = config.DisableIPv6
+	c.IPv6AnyIP = config.IPv6AnyIP
 
 	if c.DisableIPv4 && c.DisableIPv6 {
 		c.Log.Fatal("Both IPv4 and IPv6 are disabled, at least one of them must be enabled.")
