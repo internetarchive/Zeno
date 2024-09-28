@@ -133,6 +133,48 @@ func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*ht
 	swg.Wait()
 }
 
+func (c *Crawl) seencheckAssets(assets []*url.URL, item *queue.Item) []*url.URL {
+	if c.UseSeencheck {
+		if c.UseHQ {
+			seencheckedURLs, err := c.HQSeencheckURLs(assets)
+			// We ignore the error here because we don't want to slow down the crawl
+			// if HQ is down or if the request failed. So if we get an error, we just
+			// continue with the original list of assets.
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+					"urls":      assets,
+					"parentHop": item.Hop,
+					"parentUrl": utils.URLToString(item.URL),
+				})).Error("error while seenchecking assets via HQ")
+			} else {
+				assets = seencheckedURLs
+			}
+
+			if len(assets) == 0 {
+				return []*url.URL{}
+			}
+		} else {
+			seencheckedBatch := []*url.URL{}
+
+			for _, URL := range assets {
+				found := c.Seencheck.SeencheckURL(utils.URLToString(URL), "asset")
+				if found {
+					continue
+				}
+				seencheckedBatch = append(seencheckedBatch, URL)
+			}
+
+			if len(seencheckedBatch) == 0 {
+				return []*url.URL{}
+			}
+
+			assets = seencheckedBatch
+		}
+	}
+
+	return assets
+}
+
 func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Document) (assets []*url.URL, err error) {
 	var rawAssets []string
 	var URL = utils.URLToString(item.URL)
@@ -153,7 +195,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 	doc.Find("[data-item]").Each(func(index int, item *goquery.Selection) {
 		dataItem, exists := item.Attr("data-item")
 		if exists {
-			URLsFromJSON, err := extractor.GetURLsFromJSON(dataItem)
+			URLsFromJSON, err := extractor.GetURLsFromJSON([]byte(dataItem))
 			if err != nil {
 				c.Log.Error("unable to extract URLs from JSON in data-item attribute", "error", err, "url", URL)
 			} else {
@@ -265,7 +307,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 			scriptType, exists := item.Attr("type")
 			if exists {
 				if scriptType == "application/json" {
-					URLsFromJSON, err := extractor.GetURLsFromJSON(item.Text())
+					URLsFromJSON, err := extractor.GetURLsFromJSON([]byte(item.Text()))
 					if err != nil {
 						c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
 					} else {
@@ -323,7 +365,7 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 					}
 
 					if len(jsonContent[1]) > payloadEndPosition {
-						URLsFromJSON, err := extractor.GetURLsFromJSON(jsonContent[1][:payloadEndPosition+1])
+						URLsFromJSON, err := extractor.GetURLsFromJSON([]byte(jsonContent[1][:payloadEndPosition+1]))
 						if err != nil {
 							c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
 						} else {
