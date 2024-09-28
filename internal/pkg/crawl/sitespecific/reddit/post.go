@@ -195,6 +195,10 @@ func ExtractPost(body []byte) (permalinks []string, assets []string, err error) 
 		return permalinks, assets, err
 	}
 
+	if len(data.Data.Children) == 0 {
+		return permalinks, assets, fmt.Errorf("no children found in post")
+	}
+
 	permalinks = append(permalinks, fmt.Sprintf("https://www.reddit.com%s", data.Data.Children[0].Data.Permalink), fmt.Sprintf("https://old.reddit.com%s", data.Data.Children[0].Data.Permalink))
 
 	assets, err = extractor.GetURLsFromJSON(body)
