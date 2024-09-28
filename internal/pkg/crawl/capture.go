@@ -16,6 +16,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/facebook"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/libsyn"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/telegram"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/truthsocial"
@@ -320,6 +321,8 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		}
 	} else if vk.IsVKURL(utils.URLToString(item.URL)) {
 		vk.AddHeaders(req)
+	} else if reddit.IsRedditURL(utils.URLToString(item.URL)) {
+		reddit.AddCookies(req)
 	}
 
 	// Execute request
@@ -398,6 +401,30 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 		if len(metaURLs) > 0 {
 			c.captureAssets(item, metaURLs, resp.Cookies(), HTTPHeaders)
+		}
+
+		return nil
+	} else if reddit.IsRedditPostAPI(req) {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading response body")
+			return err
+		}
+
+		permalinks, rawAssets, err := reddit.ExtractPost(body)
+
+		// Queue the permalinks
+		waitGroup.Add(1)
+		go c.queueOutlinks(utils.StringSliceToURLSlice(permalinks), item, &waitGroup)
+
+		// Capture the assets (if any)
+		if len(rawAssets) != 0 {
+			assets = utils.StringSliceToURLSlice(rawAssets)
+
+			assets = c.seencheckAssets(assets, item)
+			if len(assets) != 0 {
+				c.captureAssets(item, assets, resp.Cookies(), nil)
+			}
 		}
 
 		return nil
@@ -548,53 +575,12 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		}
 	}
 
-	// If we didn't find any assets, let's stop here
-	if len(assets) == 0 {
-		return err
-	}
-
-	// If --local-seencheck is enabled, then we check if the assets are in the
-	// seencheck DB. If they are, then they are skipped.
-	// Else, if we use HQ, then we use HQ's seencheck.
-	if c.UseSeencheck {
-		if c.UseHQ {
-			seencheckedURLs, err := c.HQSeencheckURLs(assets)
-			// We ignore the error here because we don't want to slow down the crawl
-			// if HQ is down or if the request failed. So if we get an error, we just
-			// continue with the original list of assets.
-			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-					"urls":      assets,
-					"parentHop": item.Hop,
-					"parentUrl": utils.URLToString(item.URL),
-				})).Error("error while seenchecking assets via HQ")
-			} else {
-				assets = seencheckedURLs
-			}
-
-			if len(assets) == 0 {
-				return err
-			}
-		} else {
-			seencheckedBatch := []*url.URL{}
-
-			for _, URL := range assets {
-				found := c.Seencheck.SeencheckURL(utils.URLToString(URL), "asset")
-				if found {
-					continue
-				}
-				seencheckedBatch = append(seencheckedBatch, URL)
-			}
-
-			if len(seencheckedBatch) == 0 {
-				return err
-			}
-
-			assets = seencheckedBatch
+	if len(assets) != 0 {
+		assets = c.seencheckAssets(assets, item)
+		if len(assets) != 0 {
+			c.captureAssets(item, assets, resp.Cookies(), nil)
 		}
 	}
 
-	c.captureAssets(item, assets, resp.Cookies(), nil)
-
-	return err
+	return nil
 }

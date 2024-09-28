@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-func IsRedditURL(req *http.Request) bool {
-	return strings.Contains(req.URL.Host, "reddit.com")
+func IsRedditURL(URL string) bool {
+	return strings.Contains(URL, "reddit.com")
 }
 
 func AddCookies(req *http.Request) {

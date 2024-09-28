@@ -8,12 +8,12 @@ import (
 )
 
 func JSON(resp *http.Response) (URLs []*url.URL, err error) {
-	jsonBody, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	rawURLs, err := GetURLsFromJSON(string(jsonBody))
+	rawURLs, err := GetURLsFromJSON(body)
 	if err != nil {
 		return nil, err
 	}
@@ -28,9 +28,9 @@ func JSON(resp *http.Response) (URLs []*url.URL, err error) {
 	return URLs, err
 }
 
-func GetURLsFromJSON(jsonString string) ([]string, error) {
+func GetURLsFromJSON(body []byte) ([]string, error) {
 	var data interface{}
-	err := json.Unmarshal([]byte(jsonString), &data)
+	err := json.Unmarshal(body, &data)
 	if err != nil {
 		return nil, err
 	}
