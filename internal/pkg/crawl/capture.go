@@ -53,41 +53,22 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 		time.Sleep(time.Second)
 	}
 
-	// TODO: re-implement host limitation
-	// Temporarily pause crawls for individual hosts if they are over our configured maximum concurrent requests per domain.
-	// If the request is a redirection, we do not pause the crawl because we want to follow the redirection.
-	// if !isRedirection {
-	// for c.shouldPause(item.Host) {
-	// 	time.Sleep(time.Millisecond * time.Duration(c.RateLimitDelay))
-	// }
-
-	// c.Queue.IncrHostActive(item.Host)
-	// defer c.Frontier.DecrHostActive(item.Host)
-	//}
-
 	// Retry on 429 error
 	for retry := uint8(0); retry < c.MaxRetry; retry++ {
 		// Execute GET request
 		if c.ClientProxied == nil || utils.StringContainsSliceElements(req.URL.Host, c.BypassProxy) {
 			resp, err = c.Client.Do(req)
-			if err != nil {
-				if retry+1 >= c.MaxRetry {
-					return resp, err
-				}
-			}
 		} else {
 			resp, err = c.ClientProxied.Do(req)
-			if err != nil {
-				if retry+1 >= c.MaxRetry {
-					return resp, err
-				}
-			}
 		}
 
 		// This is unused unless there is an error or a 429.
-		sleepTime := time.Second * time.Duration(retry*2) // Retry after 0s, 2s, 4s, ... this could be tweaked in the future to be more customizable.
+		sleepTime := time.Second * time.Duration(retry*2)
 
 		if err != nil {
+			if retry+1 >= c.MaxRetry {
+				return nil, err
+			}
 			if strings.Contains(err.Error(), "unsupported protocol scheme") || strings.Contains(err.Error(), "no such host") {
 				return nil, err
 			}
@@ -100,6 +81,12 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 		}
 
 		if resp.StatusCode == 429 {
+			// This is the last retry attempt
+			if retry+1 >= c.MaxRetry {
+				// Don't close the body, just return the response
+				return resp, nil
+			}
+
 			c.Log.WithFields(c.genLogFields(err, req.URL, map[string]interface{}{
 				"sleepTime":  sleepTime.String(),
 				"retryCount": retry,
@@ -121,13 +108,14 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 				"statusCode": resp.StatusCode,
 			})).Warn("URL is being rate limited")
 
+			time.Sleep(sleepTime)
 			continue
 		}
 		c.logCrawlSuccess(executionStart, resp.StatusCode, item)
 		break
 	}
 
-	// If a redirection is catched, then we execute the redirection
+	// If a redirection is caught, then we execute the redirection
 	if isStatusCodeRedirect(resp.StatusCode) {
 		if resp.Header.Get("location") == utils.URLToString(req.URL) || item.Redirect >= uint64(c.MaxRedirect) {
 			return resp, nil
@@ -181,7 +169,7 @@ func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bo
 			return nil, err
 		}
 
-		// Set new request headers on the new request :(
+		// Set new request headers on the new request
 		newReq.Header.Set("User-Agent", c.UserAgent)
 		newReq.Header.Set("Referer", utils.URLToString(newItem.ParentURL))
 
