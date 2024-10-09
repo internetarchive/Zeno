@@ -37,6 +37,7 @@ type Config struct {
 	DisableHTMLTag                 []string `mapstructure:"disable-html-tag"`
 	ExcludeHosts                   []string `mapstructure:"exclude-host"`
 	IncludeHosts                   []string `mapstructure:"include-host"`
+	IncludeString                  []string `mapstructure:"include-string"`
 	ExcludeString                  []string `mapstructure:"exclude-string"`
 	ElasticSearchURLs              []string `mapstructure:"es-url"`
 	WorkersCount                   int      `mapstructure:"workers"`

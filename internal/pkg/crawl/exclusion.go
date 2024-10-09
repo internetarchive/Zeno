@@ -27,6 +27,20 @@ func (c *Crawl) isExcluded(URL *url.URL) bool {
 		}
 	}
 
+	// If --include-string flag is used, only URLs
+	// containing the included strings are crawled
+	var includedStringMatch bool
+	for _, includedString := range c.IncludedStrings {
+		if strings.Contains(utils.URLToString(URL), includedString) {
+			includedStringMatch = true
+			break
+		}
+	}
+
+	if len(c.IncludedStrings) > 0 && !includedStringMatch {
+		return true
+	}
+
 	return false
 }
 

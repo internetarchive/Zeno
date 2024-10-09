@@ -49,6 +49,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("capture-alternate-pages", false, "If turned on, <link> HTML tags with \"alternate\" values for their \"rel\" attribute will be archived.")
 	getCmd.PersistentFlags().StringSlice("exclude-host", []string{}, "Exclude a specific host from the crawl, note that it will not exclude the domain if it is encountered as an asset for another web page.")
 	getCmd.PersistentFlags().StringSlice("include-host", []string{}, "Only crawl specific hosts, note that it will not include the domain if it is encountered as an asset for another web page.")
+	getCmd.PersistentFlags().StringSlice("include-string", []string{}, "Only crawl URLs containing this string.")
 	getCmd.PersistentFlags().Int("max-concurrent-per-domain", 16, "Maximum number of concurrent requests per domain.")
 	getCmd.PersistentFlags().Int("concurrent-sleep-length", 500, "Number of milliseconds to sleep when max concurrency per domain is reached.")
 	getCmd.PersistentFlags().Int("crawl-time-limit", 0, "Number of seconds until the crawl will automatically set itself into the finished state.")

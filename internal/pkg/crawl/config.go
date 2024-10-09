@@ -48,6 +48,7 @@ type Crawl struct {
 	DisabledHTMLTags               []string
 	ExcludedHosts                  []string
 	IncludedHosts                  []string
+	IncludedStrings                []string
 	ExcludedStrings                []string
 	UserAgent                      string
 	Job                            string
@@ -231,6 +232,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.IncludedHosts = config.IncludeHosts
 	c.CaptureAlternatePages = config.CaptureAlternatePages
 	c.ExcludedStrings = config.ExcludeString
+	c.IncludedStrings = config.IncludeString
 
 	c.MinSpaceRequired = config.MinSpaceRequired
 
