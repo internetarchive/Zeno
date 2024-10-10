@@ -79,6 +79,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("disable-assets-capture", false, "Disable assets capture.")
 	getCmd.PersistentFlags().Int("warc-dedupe-size", 1024, "Minimum size to deduplicate WARC records with revisit records.")
 	getCmd.PersistentFlags().String("cdx-cookie", "", "Pass custom cookie during CDX requests. Example: 'cdx_auth_token=test_value'")
+	getCmd.PersistentFlags().Int("warc-size", 1024, "Size of the WARC files in MB.")
 
 	// Logging flags
 	getCmd.PersistentFlags().Bool("live-stats", false, "Enable live stats but disable logging. (implies --no-stdout-log)")

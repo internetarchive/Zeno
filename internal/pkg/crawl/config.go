@@ -102,6 +102,7 @@ type Crawl struct {
 	WARCFullOnDisk     bool
 	WARCPoolSize       int
 	WARCDedupeSize     int
+	WARCSize           int
 	DisableLocalDedupe bool
 	CertValidation     bool
 	WARCCustomCookie   string
@@ -253,6 +254,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.WARCPoolSize = config.WARCPoolSize
 	c.WARCDedupeSize = config.WARCDedupeSize
 	c.WARCCustomCookie = config.CDXCookie
+	c.WARCSize = config.WARCSize
 
 	c.API = config.API
 	c.APIPort = config.APIPort

@@ -16,6 +16,7 @@ func (c *Crawl) initWARCRotatorSettings() *warc.RotatorSettings {
 	rotatorSettings.Prefix = c.WARCPrefix
 	rotatorSettings.WarcinfoContent.Set("software", fmt.Sprintf("Zeno %s", utils.GetVersion().Version))
 	rotatorSettings.WARCWriterPoolSize = c.WARCPoolSize
+	rotatorSettings.WarcSize = float64(c.WARCSize)
 
 	if len(c.WARCOperator) > 0 {
 		rotatorSettings.WarcinfoContent.Set("operator", c.WARCOperator)

@@ -24,6 +24,7 @@ type Config struct {
 	WARCOperator                   string   `mapstructure:"warc-operator"`
 	CDXDedupeServer                string   `mapstructure:"warc-cdx-dedupe-server"`
 	WARCTempDir                    string   `mapstructure:"warc-temp-dir"`
+	WARCSize                       int      `mapstructure:"warc-size"`
 	CDXCookie                      string   `mapstructure:"cdx-cookie"`
 	HQAddress                      string   `mapstructure:"hq-address"`
 	HQKey                          string   `mapstructure:"hq-key"`
