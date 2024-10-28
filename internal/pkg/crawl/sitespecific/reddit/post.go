@@ -3,6 +3,7 @@ package reddit
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -184,11 +185,16 @@ type Post struct {
 	} `json:"data"`
 }
 
-func IsRedditPostAPI(req *http.Request) bool {
+func IsPostAPI(req *http.Request) bool {
 	return strings.Contains(utils.URLToString(req.URL), "reddit.com/api/info.json?id=t3_")
 }
 
-func ExtractPost(body []byte) (permalinks []string, assets []string, err error) {
+func ExtractPost(resp *http.Response) (permalinks []string, assets []string, err error) {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return permalinks, assets, err
+	}
+
 	var data Post
 	err = json.Unmarshal(body, &data)
 	if err != nil {

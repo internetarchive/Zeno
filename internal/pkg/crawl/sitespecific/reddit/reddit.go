@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func IsRedditURL(URL string) bool {
+func IsURL(URL string) bool {
 	return strings.Contains(URL, "reddit.com")
 }
 
