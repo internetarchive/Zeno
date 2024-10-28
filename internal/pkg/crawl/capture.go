@@ -532,7 +532,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 			})).Info("URL archived")
 		}
 	} else if ina.IsURL(req) {
-		playerURLs := ina.ExtractPlayerURLs(doc)
+		playerURLs := ina.ExtractPlayerURLs(doc, c.Client)
 
 		for _, playerURL := range playerURLs {
 			playerItem, err := queue.NewItem(playerURL, item.URL, "seed", 0, "", false)

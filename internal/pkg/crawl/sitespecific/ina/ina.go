@@ -5,12 +5,25 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/CorentinB/warc"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
+
+var (
+	playerVersion     string
+	playerVersionLock sync.Mutex
+	playerRegex       *regexp.Regexp
+)
+
+func init() {
+	playerRegex = regexp.MustCompile(`"//ssl\.p\.jwpcdn\.com[^"]+\.js"`)
+}
 
 type APIResponse struct {
 	ID              string    `json:"id"`
@@ -69,7 +82,7 @@ func IsAPIURL(req *http.Request) bool {
 	return strings.Contains(utils.URLToString(req.URL), "apipartner.ina.fr") && !strings.Contains(utils.URLToString(req.URL), "playerConfigurations.json")
 }
 
-func ExtractPlayerURLs(doc *goquery.Document) []*url.URL {
+func ExtractPlayerURLs(doc *goquery.Document, c *warc.CustomHTTPClient) []*url.URL {
 	var assets []string
 
 	doc.Find("div[data-type=player]").Each(func(i int, s *goquery.Selection) {
@@ -86,7 +99,80 @@ func ExtractPlayerURLs(doc *goquery.Document) []*url.URL {
 		}
 	})
 
+	assets = append(assets, getJWPlayerURLs(c)...)
+
 	return utils.StringSliceToURLSlice(assets)
+}
+
+func getJWPlayerURLs(c *warc.CustomHTTPClient) (URLs []string) {
+	playerVersionLock.Lock()
+	defer playerVersionLock.Unlock()
+
+	if playerVersion == "" {
+		resp, err := c.Get("https://player-hub.ina.fr/version")
+		if err != nil {
+			return URLs
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return URLs
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return URLs
+		}
+
+		playerVersion = string(body)
+
+		URLs = append(URLs,
+			"https://player-hub.ina.fr/dist/ina-player.min.js?version="+playerVersion,
+			"https://player-hub.ina.fr/dist/player-default-skin.min.css?version="+playerVersion,
+			"https://player-hub.ina.fr/assets/player/svg/pause.svg",
+			"https://player-hub.ina.fr/assets/player/svg/play.svg",
+			"https://player-hub.ina.fr/assets/player/svg/backward.svg",
+			"https://player-hub.ina.fr/assets/player/svg/forward.svg",
+		)
+
+		// Get the JWPlayer JS code
+		playerResp, err := c.Get("https://player-hub.ina.fr/js/jwplayer/jwplayer.js?version=" + playerVersion)
+		if err != nil {
+			return URLs
+		}
+		defer playerResp.Body.Close()
+
+		if playerResp.StatusCode != http.StatusOK {
+			return URLs
+		}
+
+		// Find the JWPlayer assets in the JS file
+		body, err = io.ReadAll(playerResp.Body)
+		if err != nil {
+			return URLs
+		}
+
+		matches := playerRegex.FindAllString(string(body), -1)
+
+		// Clean up the matches (remove quotes)
+		for _, match := range matches {
+			URLs = append(URLs, "https:"+match[1:len(match)-1])
+		}
+
+		URLs = append(URLs, "https://ssl.p.jwpcdn.com/player/v/"+extractJWPlayerVersion(string(body))+"/jwplayer.core.controls.html5.js")
+	}
+
+	return URLs
+}
+
+func extractJWPlayerVersion(body string) string {
+	lines := strings.Split(body, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "JW Player version") {
+			return strings.Split(line, "JW Player version ")[1]
+		}
+	}
+	return ""
 }
 
 func ExtractMedias(resp *http.Response) ([]*url.URL, error) {
