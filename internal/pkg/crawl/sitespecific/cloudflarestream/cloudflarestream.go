@@ -59,6 +59,10 @@ type MPD struct {
 	} `xml:"Period"`
 }
 
+func IsURL(URL string) bool {
+	return strings.Contains(URL, "cloudflarestream.com")
+}
+
 func GetJSFiles(doc *goquery.Document, watchPageURL *url.URL, httpClient warc.CustomHTTPClient) (archivedURLs []string, err error) {
 	var latestJSURL string
 

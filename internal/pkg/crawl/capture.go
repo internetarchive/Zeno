@@ -15,6 +15,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/facebook"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/ina"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/libsyn"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/telegram"
@@ -309,7 +310,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		}
 	} else if vk.IsVKURL(utils.URLToString(item.URL)) {
 		vk.AddHeaders(req)
-	} else if reddit.IsRedditURL(utils.URLToString(item.URL)) {
+	} else if reddit.IsURL(utils.URLToString(item.URL)) {
 		reddit.AddCookies(req)
 	}
 
@@ -392,14 +393,11 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		}
 
 		return nil
-	} else if reddit.IsRedditPostAPI(req) {
-		body, err := io.ReadAll(resp.Body)
+	} else if reddit.IsPostAPI(req) {
+		permalinks, rawAssets, err := reddit.ExtractPost(resp)
 		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while reading response body")
-			return err
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract post from Reddit")
 		}
-
-		permalinks, rawAssets, err := reddit.ExtractPost(body)
 
 		// Queue the permalinks
 		waitGroup.Add(1)
@@ -416,6 +414,26 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		}
 
 		return nil
+	} else if ina.IsAPIURL(req) {
+		rawAssets, err := ina.ExtractMedias(resp)
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract medias from INA")
+		}
+
+		if len(rawAssets) != 0 {
+			assets = c.seencheckAssets(rawAssets, item)
+
+			if len(assets) != 0 {
+				for _, asset := range rawAssets {
+					playerItem, err := queue.NewItem(asset, item.URL, "seed", 0, "", false)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to create new item from asset")
+					} else {
+						c.Capture(playerItem)
+					}
+				}
+			}
+		}
 	}
 
 	// Scrape potential URLs from Link HTTP header
@@ -480,7 +498,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	}
 
 	// Execute site-specific code on the document
-	if strings.Contains(base.Host, "cloudflarestream.com") {
+	if cloudflarestream.IsURL(base.Host) {
 		// Look for JS files necessary for the playback of the video
 		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, base, *c.Client)
 		if err != nil {
@@ -512,6 +530,17 @@ func (c *Crawl) Capture(item *queue.Item) error {
 				"parentUrl": utils.URLToString(item.URL),
 				"type":      "asset",
 			})).Info("URL archived")
+		}
+	} else if ina.IsURL(req) {
+		playerURLs := ina.ExtractPlayerURLs(doc)
+
+		for _, playerURL := range playerURLs {
+			playerItem, err := queue.NewItem(playerURL, item.URL, "seed", 0, "", false)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to create new item from player URL")
+			} else {
+				c.Capture(playerItem)
+			}
 		}
 	}
 

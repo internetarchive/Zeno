@@ -164,6 +164,7 @@ func (c *Crawl) seencheckAssets(assets []*url.URL, item *queue.Item) []*url.URL 
 				if found {
 					continue
 				}
+
 				seencheckedBatch = append(seencheckedBatch, URL)
 			}
 
@@ -183,15 +184,13 @@ func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Docu
 	var URL = utils.URLToString(item.URL)
 
 	// Execute plugins on the response
-	if strings.Contains(base.Host, "cloudflarestream.com") {
+	if cloudflarestream.IsURL(URL) {
 		cloudflarestreamURLs, err := cloudflarestream.GetSegments(base, *c.Client)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Warn("error getting cloudflarestream segments")
 		}
 
-		if len(cloudflarestreamURLs) > 0 {
-			assets = append(assets, cloudflarestreamURLs...)
-		}
+		assets = append(assets, cloudflarestreamURLs...)
 	}
 
 	// Get assets from JSON payloads in data-item values
