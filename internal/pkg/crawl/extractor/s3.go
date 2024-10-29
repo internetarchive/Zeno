@@ -6,9 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"sync"
 
-	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
@@ -42,86 +40,54 @@ func IsS3(resp *http.Response) bool {
 	return utils.StringContainsSliceElements(resp.Header.Get("Server"), validS3Servers)
 }
 
-// S3 takes an initial response and custom HTTP client, returns all file URLs
-func S3(resp *http.Response, c *warc.CustomHTTPClient) ([]*url.URL, error) {
-	stringPtrs, err := S3CollectURLs(resp, c)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert []*string to []string
-	strings := make([]string, len(stringPtrs))
-	for i, ptr := range stringPtrs {
-		strings[i] = *ptr
-	}
-
-	// Convert to []*url.URL using the utility function
-	return utils.StringSliceToURLSlice(strings), nil
-}
-
-// S3CollectURLs collects all URLs as string pointers
-func S3CollectURLs(resp *http.Response, c *warc.CustomHTTPClient) ([]*string, error) {
-	var allFiles []*string
-
-	// Extract base URL from the response URL
-	reqURL := resp.Request.URL
-	baseURL := fmt.Sprintf("https://%s", reqURL.Host)
-
-	// Parse the base URL
-	parsedBase, err := url.Parse(baseURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid base URL: %v", err)
-	}
-
-	// Process the response
+// S3 takes an initial response and returns URLs of either files or prefixes at the current level,
+// plus continuation URL if more results exist
+func S3(resp *http.Response) ([]*url.URL, error) {
 	result, err := S3ProcessResponse(resp)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add initial files
-	for _, obj := range result.Contents {
-		if obj.Size > 0 {
-			fileURL := *parsedBase
-			fileURL.Path += "/" + obj.Key
-			urlStr := fileURL.String()
-			allFiles = append(allFiles, &urlStr)
+	// Extract base URL from the response URL
+	reqURL := resp.Request.URL
+	baseURL := fmt.Sprintf("https://%s", reqURL.Host)
+	parsedBase, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %v", err)
+	}
+
+	var urls []string
+
+	// If we have CommonPrefixes, return those
+	if len(result.CommonPrefixes) > 0 {
+		for _, prefix := range result.CommonPrefixes {
+			nextURL := *reqURL
+			q := nextURL.Query()
+			q.Set("prefix", prefix.Prefix)
+			nextURL.RawQuery = q.Encode()
+			urls = append(urls, nextURL.String())
+		}
+	} else {
+		// Otherwise return file URLs
+		for _, obj := range result.Contents {
+			if obj.Size > 0 {
+				fileURL := *parsedBase
+				fileURL.Path += "/" + obj.Key
+				urls = append(urls, fileURL.String())
+			}
 		}
 	}
 
-	// Process all common prefixes
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	errChan := make(chan error, len(result.CommonPrefixes))
-	sem := make(chan struct{}, 4) // Limit to 4 concurrent goroutines
-
-	for _, prefix := range result.CommonPrefixes {
-		wg.Add(1)
-		go func(prefix string) {
-			defer wg.Done()
-			sem <- struct{}{}        // Acquire semaphore
-			defer func() { <-sem }() // Release semaphore
-
-			files, err := S3ExplorePrefix(prefix, parsedBase, c)
-			if err != nil {
-				errChan <- fmt.Errorf("error exploring prefix %s: %v", prefix, err)
-				return
-			}
-
-			mu.Lock()
-			allFiles = append(allFiles, files...)
-			mu.Unlock()
-		}(prefix.Prefix)
+	// If there's a continuation token, add the continuation URL
+	if result.IsTruncated && result.NextContinuationToken != "" {
+		nextURL := *reqURL
+		q := nextURL.Query()
+		q.Set("continuation-token", result.NextContinuationToken)
+		nextURL.RawQuery = q.Encode()
+		urls = append(urls, nextURL.String())
 	}
 
-	wg.Wait()
-	close(errChan)
-
-	if len(errChan) > 0 {
-		return nil, <-errChan
-	}
-
-	return allFiles, nil
+	return utils.StringSliceToURLSlice(urls), nil
 }
 
 // S3ProcessResponse parses an HTTP response into an S3ListBucketResult
@@ -138,51 +104,4 @@ func S3ProcessResponse(resp *http.Response) (*S3ListBucketResult, error) {
 	}
 
 	return &result, nil
-}
-
-// S3ExplorePrefix explores a single prefix and returns all file URLs found
-func S3ExplorePrefix(prefix string, baseURL *url.URL, c *warc.CustomHTTPClient) ([]*string, error) {
-	var files []*string
-
-	// Create the request URL for this prefix
-	requestURL := *baseURL
-	q := requestURL.Query()
-	q.Set("list-type", "2")
-	q.Set("prefix", prefix)
-	q.Set("delimiter", "/")
-	requestURL.RawQuery = q.Encode()
-
-	// Make the HTTP request using the custom client
-	resp, err := c.Get(requestURL.String())
-	if err != nil {
-		return nil, fmt.Errorf("error making HTTP request: %v", err)
-	}
-
-	result, err := S3ProcessResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	// Process files in this prefix
-	for _, obj := range result.Contents {
-		if obj.Size > 0 {
-			fileURL := *baseURL
-			fileURL.Path += "/" + obj.Key
-			urlStr := fileURL.String()
-			files = append(files, &urlStr)
-		}
-	}
-
-	// Recursively explore all sub-prefixes
-	if len(result.CommonPrefixes) > 0 {
-		for _, subPrefix := range result.CommonPrefixes {
-			subFiles, err := S3ExplorePrefix(subPrefix.Prefix, baseURL, c)
-			if err != nil {
-				return nil, err
-			}
-			files = append(files, subFiles...)
-		}
-	}
-
-	return files, nil
 }

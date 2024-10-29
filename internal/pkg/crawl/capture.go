@@ -457,23 +457,22 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	}
 
 	// If the response is an XML document, we want to scrape it for links
+	var outlinks []*url.URL
 	if strings.Contains(resp.Header.Get("Content-Type"), "xml") {
 		if extractor.IsS3(resp) {
-			URLsFromS3, err := extractor.S3(resp, c.Client)
+			URLsFromS3, err := extractor.S3(resp)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting URLs from S3")
-			} else {
-				waitGroup.Add(1)
-				go c.queueOutlinks(URLsFromS3, item, &waitGroup)
 			}
+
+			outlinks = append(outlinks, URLsFromS3...)
 		} else {
 			URLsFromXML, isSitemap, err := extractor.XML(resp)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from XML")
 			} else {
 				if isSitemap {
-					waitGroup.Add(1)
-					go c.queueOutlinks(URLsFromXML, item, &waitGroup)
+					outlinks = append(outlinks, URLsFromXML...)
 				} else {
 					assets = append(assets, URLsFromXML...)
 				}
@@ -498,111 +497,106 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		}
 
 		return err
-	}
-
-	// Turn the response into a doc that we will scrape for outlinks and assets.
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating goquery document")
-		return err
-	}
-
-	// Execute site-specific code on the document
-	if cloudflarestream.IsURL(base.Host) {
-		// Look for JS files necessary for the playback of the video
-		cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, base, *c.Client)
+	} else {
+		// Turn the response into a doc that we will scrape for outlinks and assets.
+		doc, err := goquery.NewDocumentFromReader(resp.Body)
 		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting JS files from cloudflarestream")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating goquery document")
 			return err
 		}
 
-		// Seencheck the URLs we captured, we ignore the returned value here
-		// because we already archived the URLs, we just want them to be added
-		// to the seencheck table.
-		if c.UseSeencheck {
-			if c.UseHQ {
-				_, err := c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
-				if err != nil {
-					c.Log.WithFields(c.genLogFields(err, item.URL, map[string]interface{}{
-						"urls": cfstreamURLs,
-					})).Error("error while seenchecking assets via HQ")
-				}
-			} else {
-				for _, cfstreamURL := range cfstreamURLs {
-					c.Seencheck.SeencheckURL(cfstreamURL, "asset")
-				}
-			}
-		}
-		// Log the archived URLs
-		for _, cfstreamURL := range cfstreamURLs {
-			c.Log.WithFields(c.genLogFields(err, cfstreamURL, map[string]interface{}{
-				"parentHop": item.Hop,
-				"parentUrl": utils.URLToString(item.URL),
-				"type":      "asset",
-			})).Info("URL archived")
-		}
-	} else if ina.IsURL(req) {
-		playerURLs := ina.ExtractPlayerURLs(doc, c.Client)
-
-		for _, playerURL := range playerURLs {
-			playerItem, err := queue.NewItem(playerURL, item.URL, "seed", 0, "", false)
+		// Execute site-specific code on the document
+		if cloudflarestream.IsURL(utils.URLToString(item.URL)) {
+			// Look for JS files necessary for the playback of the video
+			cfstreamURLs, err := cloudflarestream.GetJSFiles(doc, base, *c.Client)
 			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to create new item from player URL")
-			} else {
-				c.Capture(playerItem)
-			}
-		}
-	}
-
-	// Websites can use a <base> tag to specify a base for relative URLs in every other tags.
-	// This checks for the "base" tag and resets the "base" URL variable with the new base URL specified
-	// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-	if !utils.StringInSlice("base", c.DisabledHTMLTags) {
-		oldBase := base
-
-		doc.Find("base").Each(func(index int, goitem *goquery.Selection) {
-			// If a new base got scraped, stop looking for one
-			if oldBase != base {
-				return
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while getting JS files from cloudflarestream")
+				return err
 			}
 
-			// Attempt to get a new base value from the base HTML tag
-			link, exists := goitem.Attr("href")
-			if exists {
-				baseTagValue, err := url.Parse(link)
-				if err != nil {
-					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base tag value")
+			// Seencheck the URLs we captured, we ignore the returned value here
+			// because we already archived the URLs, we just want them to be added
+			// to the seencheck table.
+			if c.UseSeencheck {
+				if c.UseHQ {
+					_, err := c.HQSeencheckURLs(utils.StringSliceToURLSlice(cfstreamURLs))
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, map[string]interface{}{
+							"urls": cfstreamURLs,
+						})).Error("error while seenchecking assets via HQ")
+					}
 				} else {
-					base = baseTagValue
+					for _, cfstreamURL := range cfstreamURLs {
+						c.Seencheck.SeencheckURL(cfstreamURL, "asset")
+					}
 				}
 			}
-		})
-	}
+			// Log the archived URLs
+			for _, cfstreamURL := range cfstreamURLs {
+				c.Log.WithFields(c.genLogFields(err, cfstreamURL, map[string]interface{}{
+					"parentHop": item.Hop,
+					"parentUrl": utils.URLToString(item.URL),
+					"type":      "asset",
+				})).Info("URL archived")
+			}
+		} else if ina.IsURL(req) {
+			playerURLs := ina.ExtractPlayerURLs(doc, c.Client)
 
-	// Extract outlinks
-	outlinks, err := c.extractOutlinks(base, doc)
-	if err != nil {
-		c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting outlinks")
-		return err
+			for _, playerURL := range playerURLs {
+				playerItem, err := queue.NewItem(playerURL, item.URL, "seed", 0, "", false)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to create new item from player URL")
+				} else {
+					c.Capture(playerItem)
+				}
+			}
+		}
+
+		// Websites can use a <base> tag to specify a base for relative URLs in every other tags.
+		// This checks for the "base" tag and resets the "base" URL variable with the new base URL specified
+		// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+		if !utils.StringInSlice("base", c.DisabledHTMLTags) {
+			oldBase := base
+
+			doc.Find("base").Each(func(index int, goitem *goquery.Selection) {
+				// If a new base got scraped, stop looking for one
+				if oldBase != base {
+					return
+				}
+
+				// Attempt to get a new base value from the base HTML tag
+				link, exists := goitem.Attr("href")
+				if exists {
+					baseTagValue, err := url.Parse(link)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing base tag value")
+					} else {
+						base = baseTagValue
+					}
+				}
+			})
+		}
+
+		// Extract outlinks
+		outlinks, err = c.extractOutlinks(base, doc)
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting outlinks")
+			return err
+		}
+
+		if !c.DisableAssetsCapture {
+			assets, err = c.extractAssets(base, item, doc)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting assets")
+				return err
+			}
+		}
 	}
 
 	waitGroup.Add(1)
 	go c.queueOutlinks(outlinks, item, &waitGroup)
 
-	if c.DisableAssetsCapture {
-		return err
-	}
-
-	// Extract and capture assets (only if we didn't use an extractor that produce assets)
-	if len(assets) == 0 {
-		assets, err = c.extractAssets(base, item, doc)
-		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting assets")
-			return err
-		}
-	}
-
-	if len(assets) != 0 {
+	if !c.DisableAssetsCapture && len(assets) != 0 {
 		assets = c.seencheckAssets(assets, item)
 		if len(assets) != 0 {
 			c.captureAssets(item, assets, resp.Cookies(), nil)
