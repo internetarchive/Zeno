@@ -12,6 +12,10 @@ import (
 
 var validS3Servers = []string{
 	"AmazonS3",
+	"WasabiS3",
+	"UploadServer", // Google Cloud Storage
+	"Windows-Azure-Blob",
+	"AliyunOSS", // Alibaba Object Storage Service
 }
 
 // S3ListBucketResult represents the XML structure of an S3 bucket listing
