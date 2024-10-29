@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"git.archive.org/wb/gocrawlhq"
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/dependencies/ytdlp"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/gocrawlhq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/telanflow/cookiejar"
 	"mvdan.cc/xurls/v2"

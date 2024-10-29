@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"git.archive.org/wb/gocrawlhq"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/gocrawlhq"
 )
 
 // This function connects to HQ's websocket and listen for messages.
