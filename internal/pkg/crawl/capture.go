@@ -458,15 +458,25 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 	// If the response is an XML document, we want to scrape it for links
 	if strings.Contains(resp.Header.Get("Content-Type"), "xml") {
-		URLsFromXML, isSitemap, err := extractor.XML(resp)
-		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from XML")
-		} else {
-			if isSitemap {
-				waitGroup.Add(1)
-				go c.queueOutlinks(URLsFromXML, item, &waitGroup)
+		if extractor.IsS3(resp) {
+			URLsFromS3, err := extractor.S3(resp, c.Client)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while extracting URLs from S3")
 			} else {
-				assets = append(assets, URLsFromXML...)
+				waitGroup.Add(1)
+				go c.queueOutlinks(URLsFromS3, item, &waitGroup)
+			}
+		} else {
+			URLsFromXML, isSitemap, err := extractor.XML(resp)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from XML")
+			} else {
+				if isSitemap {
+					waitGroup.Add(1)
+					go c.queueOutlinks(URLsFromXML, item, &waitGroup)
+				} else {
+					assets = append(assets, URLsFromXML...)
+				}
 			}
 		}
 	} else if strings.Contains(resp.Header.Get("Content-Type"), "json") {

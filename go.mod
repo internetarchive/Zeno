@@ -3,7 +3,6 @@ module github.com/internetarchive/Zeno
 go 1.22.4
 
 require (
-	github.com/internetarchive/gocrawlhq v1.2.14
 	github.com/CorentinB/warc v0.8.53
 	github.com/PuerkitoBio/goquery v1.9.3
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
@@ -14,6 +13,7 @@ require (
 	github.com/gosuri/uilive v0.0.4
 	github.com/gosuri/uitable v0.0.4
 	github.com/grafov/m3u8 v0.12.0
+	github.com/internetarchive/gocrawlhq v1.2.14
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.20.4
@@ -32,6 +32,7 @@ require (
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/aws/aws-sdk-go v1.55.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.4.0 // indirect
@@ -49,6 +50,7 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.10 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
