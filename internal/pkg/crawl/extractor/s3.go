@@ -53,12 +53,6 @@ func S3(resp *http.Response) ([]*url.URL, error) {
 		return nil, err
 	}
 
-	if result.Marker == "" {
-
-	}
-
-	println(result.Marker)
-
 	// Extract base URL from the response URL
 	reqURL := resp.Request.URL
 	requestQuery := reqURL.Query()
