@@ -23,6 +23,7 @@ type S3ListBucketResult struct {
 	XMLName               xml.Name       `xml:"ListBucketResult"`
 	Name                  string         `xml:"Name"`
 	Prefix                string         `xml:"Prefix"`
+	Marker                string         `xml:"Marker"`
 	Contents              []S3Object     `xml:"Contents"`
 	CommonPrefixes        []CommonPrefix `xml:"CommonPrefixes"`
 	IsTruncated           bool           `xml:"IsTruncated"`
@@ -52,8 +53,15 @@ func S3(resp *http.Response) ([]*url.URL, error) {
 		return nil, err
 	}
 
+	if result.Marker == "" {
+
+	}
+
+	println(result.Marker)
+
 	// Extract base URL from the response URL
 	reqURL := resp.Request.URL
+	requestQuery := reqURL.Query()
 	baseURL := fmt.Sprintf("https://%s", reqURL.Host)
 	parsedBase, err := url.Parse(baseURL)
 	if err != nil {
@@ -62,7 +70,18 @@ func S3(resp *http.Response) ([]*url.URL, error) {
 
 	var urls []string
 
-	// If we have CommonPrefixes, return those
+	// Ensure we can add marker
+	// ListObjects
+	if requestQuery.Get("list-type") != "2" && len(result.Contents) > 0 {
+		// If we can, iterate through S3 using the marker field
+		nextURL := *reqURL
+		q := nextURL.Query()
+		q.Set("marker", result.Contents[len(result.Contents)-1].Key)
+		nextURL.RawQuery = q.Encode()
+		urls = append(urls, nextURL.String())
+	}
+
+	// If we are using list-type 2/ListObjectsV2
 	if len(result.CommonPrefixes) > 0 {
 		for _, prefix := range result.CommonPrefixes {
 			nextURL := *reqURL
