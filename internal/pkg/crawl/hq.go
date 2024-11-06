@@ -246,7 +246,7 @@ func (c *Crawl) HQFinisher() {
 
 		if len(finishedArray) == int(math.Ceil(float64(c.Workers.Count)/2)) {
 			for {
-				_, err := c.HQClient.Delete(finishedArray, locallyCrawledTotal)
+				err := c.HQClient.Delete(finishedArray, locallyCrawledTotal)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 						"finishedArray": finishedArray,
@@ -265,7 +265,7 @@ func (c *Crawl) HQFinisher() {
 	// send remaining finished URLs
 	if len(finishedArray) > 0 {
 		for {
-			_, err := c.HQClient.Delete(finishedArray, locallyCrawledTotal)
+			err := c.HQClient.Delete(finishedArray, locallyCrawledTotal)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 					"finishedArray": finishedArray,
