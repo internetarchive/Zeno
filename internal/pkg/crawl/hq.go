@@ -70,7 +70,7 @@ func (c *Crawl) HQProducer() {
 				// is already closed, so no other goroutine can write to the slice
 				if len(discoveredArray) > 0 {
 					for {
-						_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
+						_, err := c.HQClient.Add(discoveredArray, false)
 						if err != nil {
 							c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{})).Error("error sending payload to crawl HQ, waiting 1s then retrying..")
 							time.Sleep(time.Second)
@@ -85,7 +85,7 @@ func (c *Crawl) HQProducer() {
 				mutex.Lock()
 				if (len(discoveredArray) >= int(math.Ceil(float64(c.Workers.Count)/2)) || time.Since(HQLastSent) >= time.Second*10) && len(discoveredArray) > 0 {
 					for {
-						_, err := c.HQClient.Discovered(discoveredArray, "seed", false, false)
+						_, err := c.HQClient.Add(discoveredArray, false)
 						if err != nil {
 							c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{})).Error("error sending payload to crawl HQ, waiting 1s then retrying..")
 							time.Sleep(time.Second)
@@ -123,7 +123,7 @@ func (c *Crawl) HQProducer() {
 		// gob's encode/decode doesn't properly support booleans
 		if discoveredItem.BypassSeencheck {
 			for {
-				_, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "seed", true, false)
+				_, err := c.HQClient.Add([]gocrawlhq.URL{discoveredURL}, true)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 						"bypassSeencheck": discoveredItem.BypassSeencheck,
@@ -177,7 +177,7 @@ func (c *Crawl) HQConsumer() {
 
 		// get batch from crawl HQ
 		c.HQConsumerState = "waitingOnFeed"
-		batch, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
+		URLs, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
@@ -188,9 +188,9 @@ func (c *Crawl) HQConsumer() {
 		c.HQConsumerState = "feedCompleted"
 
 		// send all URLs received in the batch to the queue
-		var items = make([]*queue.Item, 0, len(batch.URLs))
-		if len(batch.URLs) > 0 {
-			for _, URL := range batch.URLs {
+		var items = make([]*queue.Item, 0, len(URLs))
+		if len(URLs) > 0 {
+			for _, URL := range URLs {
 				c.HQConsumerState = "urlParse"
 				newURL, err := url.Parse(URL.Value)
 				if err != nil {
@@ -246,7 +246,7 @@ func (c *Crawl) HQFinisher() {
 
 		if len(finishedArray) == int(math.Ceil(float64(c.Workers.Count)/2)) {
 			for {
-				_, err := c.HQClient.Finished(finishedArray, locallyCrawledTotal)
+				_, err := c.HQClient.Delete(finishedArray, locallyCrawledTotal)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 						"finishedArray": finishedArray,
@@ -265,7 +265,7 @@ func (c *Crawl) HQFinisher() {
 	// send remaining finished URLs
 	if len(finishedArray) > 0 {
 		for {
-			_, err := c.HQClient.Finished(finishedArray, locallyCrawledTotal)
+			_, err := c.HQClient.Delete(finishedArray, locallyCrawledTotal)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 					"finishedArray": finishedArray,
@@ -286,10 +286,11 @@ func (c *Crawl) HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, e
 	for _, URL := range URLs {
 		discoveredURLs = append(discoveredURLs, gocrawlhq.URL{
 			Value: utils.URLToString(URL),
+			Type:  "asset",
 		})
 	}
 
-	discoveredResponse, err := c.HQClient.Discovered(discoveredURLs, "asset", false, true)
+	outputURLs, err := c.HQClient.Seencheck(discoveredURLs)
 	if err != nil {
 		c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 			"batchLen": len(URLs),
@@ -298,8 +299,8 @@ func (c *Crawl) HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, e
 		return seencheckedBatch, err
 	}
 
-	if discoveredResponse.URLs != nil {
-		for _, URL := range discoveredResponse.URLs {
+	if outputURLs != nil {
+		for _, URL := range outputURLs {
 			// the returned payload only contain new URLs to be crawled by Zeno
 			newURL, err := url.Parse(URL.Value)
 			if err != nil {
@@ -324,16 +325,17 @@ func (c *Crawl) HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, e
 func (c *Crawl) HQSeencheckURL(URL *url.URL) (bool, error) {
 	discoveredURL := gocrawlhq.URL{
 		Value: utils.URLToString(URL),
+		Type:  "asset",
 	}
 
-	discoveredResponse, err := c.HQClient.Discovered([]gocrawlhq.URL{discoveredURL}, "asset", false, true)
+	outputURLs, err := c.HQClient.Seencheck([]gocrawlhq.URL{discoveredURL})
 	if err != nil {
 		c.Log.Error("error sending seencheck payload to crawl HQ", "err", err, "url", utils.URLToString(URL))
 		return true, err // return true, don't discard the URL if there's an error
 	}
 
-	if discoveredResponse.URLs != nil {
-		for _, URL := range discoveredResponse.URLs {
+	if outputURLs != nil {
+		for _, URL := range outputURLs {
 			// the returned payload only contain new URLs to be crawled by Zeno
 			if URL.Value == discoveredURL.Value {
 				return true, nil
