@@ -182,7 +182,7 @@ func (c *Crawl) HQConsumer() {
 			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 				"batchSize": HQBatchSize,
 				"err":       err,
-			})).Error("error getting new URLs from crawl HQ")
+			})).Debug("error getting new URLs from crawl HQ")
 			continue
 		}
 		c.HQConsumerState = "feedCompleted"
