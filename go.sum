@@ -86,6 +86,8 @@ github.com/internetarchive/gocrawlhq v1.2.14 h1:g3MPMonpA6mTkCpjBvW3paeBHiH+gGgw
 github.com/internetarchive/gocrawlhq v1.2.14/go.mod h1:IOHVfWsptADzh+r2J+UnSm22EB9r8TiVVeAuP9WRFoc=
 github.com/internetarchive/gocrawlhq v1.2.15 h1:Llv6tvxxRUxoC9G4GsjkpbfKX0anbQUU+pwFiROlxzg=
 github.com/internetarchive/gocrawlhq v1.2.15/go.mod h1:Rjkyx2ttWDG4vzXOrl7ilzdtbODJ3XSe2PkO77bxSTs=
+github.com/internetarchive/gocrawlhq v1.2.16 h1:D9JJdLL8uqpHUDU3SxxcXUjQETbxnk08e9xo929xrlE=
+github.com/internetarchive/gocrawlhq v1.2.16/go.mod h1:Rjkyx2ttWDG4vzXOrl7ilzdtbODJ3XSe2PkO77bxSTs=
 github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
