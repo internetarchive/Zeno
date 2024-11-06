@@ -179,10 +179,10 @@ func (c *Crawl) HQConsumer() {
 		c.HQConsumerState = "waitingOnFeed"
 		URLs, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
 		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-				"batchSize": HQBatchSize,
-				"err":       err,
-			})).Debug("error getting new URLs from crawl HQ")
+			// c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+			// 	"batchSize": HQBatchSize,
+			// 	"err":       err,
+			// })).Debug("error getting new URLs from crawl HQ")
 			continue
 		}
 		c.HQConsumerState = "feedCompleted"
