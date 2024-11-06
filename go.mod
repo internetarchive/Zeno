@@ -13,7 +13,7 @@ require (
 	github.com/gosuri/uilive v0.0.4
 	github.com/gosuri/uitable v0.0.4
 	github.com/grafov/m3u8 v0.12.0
-	github.com/internetarchive/gocrawlhq v1.2.16
+	github.com/internetarchive/gocrawlhq v1.2.17
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.20.4

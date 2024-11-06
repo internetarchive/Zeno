@@ -70,7 +70,7 @@ func (c *Crawl) HQProducer() {
 				// is already closed, so no other goroutine can write to the slice
 				if len(discoveredArray) > 0 {
 					for {
-						_, err := c.HQClient.Add(discoveredArray, false)
+						err := c.HQClient.Add(discoveredArray, false)
 						if err != nil {
 							c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{})).Error("error sending payload to crawl HQ, waiting 1s then retrying..")
 							time.Sleep(time.Second)
@@ -85,7 +85,7 @@ func (c *Crawl) HQProducer() {
 				mutex.Lock()
 				if (len(discoveredArray) >= int(math.Ceil(float64(c.Workers.Count)/2)) || time.Since(HQLastSent) >= time.Second*10) && len(discoveredArray) > 0 {
 					for {
-						_, err := c.HQClient.Add(discoveredArray, false)
+						err := c.HQClient.Add(discoveredArray, false)
 						if err != nil {
 							c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{})).Error("error sending payload to crawl HQ, waiting 1s then retrying..")
 							time.Sleep(time.Second)
@@ -123,7 +123,7 @@ func (c *Crawl) HQProducer() {
 		// gob's encode/decode doesn't properly support booleans
 		if discoveredItem.BypassSeencheck {
 			for {
-				_, err := c.HQClient.Add([]gocrawlhq.URL{discoveredURL}, true)
+				err := c.HQClient.Add([]gocrawlhq.URL{discoveredURL}, true)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
 						"bypassSeencheck": discoveredItem.BypassSeencheck,
