@@ -43,6 +43,14 @@ func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
 		case xml.StartElement:
 			startElement = tok
 			currentNode = &LeafNode{Path: startElement.Name.Local}
+			for _, attr := range tok.Attr {
+				if strings.HasPrefix(attr.Value, "http") {
+					parsedURL, err := url.Parse(attr.Value)
+					if err == nil {
+						URLs = append(URLs, parsedURL)
+					}
+				}
+			}
 		case xml.EndElement:
 			if currentNode != nil {
 				leafNodes = append(leafNodes, *currentNode)
