@@ -23,12 +23,24 @@ func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
 		sitemap = true
 	}
 
-	decoder := xml.NewDecoder(strings.NewReader(string(xmlBody)))
+	reader := strings.NewReader(string(xmlBody))
+	decoder := xml.NewDecoder(reader)
+
 	var (
 		startElement xml.StartElement
 		currentNode  *LeafNode
 		leafNodes    []LeafNode
 	)
+
+	// try to decode one token to see if stream is open
+	_, err = decoder.Token()
+	if err != nil {
+		return nil, sitemap, err
+	}
+
+	// seek back to 0 if we are still here
+	reader.Seek(0, 0)
+	decoder = xml.NewDecoder(reader)
 
 	for {
 		tok, err := decoder.Token()
