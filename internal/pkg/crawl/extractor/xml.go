@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"bytes"
 	"encoding/xml"
 	"io"
 	"net/http"
@@ -23,7 +24,7 @@ func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
 		sitemap = true
 	}
 
-	reader := strings.NewReader(string(xmlBody))
+	reader := bytes.NewReader(xmlBody)
 	decoder := xml.NewDecoder(reader)
 
 	var (
