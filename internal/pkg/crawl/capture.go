@@ -470,7 +470,8 @@ func (c *Crawl) Capture(item *queue.Item) error {
 			URLsFromXML, isSitemap, err := extractor.XML(resp, false)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from XML")
-			} else {
+			}
+			if len(URLsFromXML) > 0 {
 				if isSitemap {
 					outlinks = append(outlinks, URLsFromXML...)
 				} else {
