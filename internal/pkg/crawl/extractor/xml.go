@@ -11,7 +11,7 @@ import (
 
 var sitemapMarker = []byte("sitemaps.org/schemas/sitemap/")
 
-func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
+func XML(resp *http.Response, strict bool) (URLs []*url.URL, sitemap bool, err error) {
 	xmlBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, sitemap, err
@@ -21,22 +21,19 @@ func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
 		sitemap = true
 	}
 
-	reader := bytes.NewReader(xmlBody)
-	decoder := xml.NewDecoder(reader)
+	decoder := xml.NewDecoder(bytes.NewReader(xmlBody))
+	decoder.Strict = strict
 
-	// try to decode one token to see if stream is open
-	_, err = decoder.Token()
-	if err != nil {
-		return nil, sitemap, err
-	}
-
-	// seek back to 0 if we are still here
-	reader.Seek(0, 0)
-	decoder = xml.NewDecoder(reader)
-
+	var tok xml.Token
 	for {
-		tok, err := decoder.Token()
-		if err == io.EOF {
+		if strict {
+			tok, err = decoder.Token()
+		} else {
+			tok, err = decoder.RawToken()
+		}
+
+		if tok == nil && err == io.EOF {
+			// normal EOF
 			break
 		}
 		if err != nil {

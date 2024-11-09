@@ -467,7 +467,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 			outlinks = append(outlinks, URLsFromS3...)
 		} else {
-			URLsFromXML, isSitemap, err := extractor.XML(resp)
+			URLsFromXML, isSitemap, err := extractor.XML(resp, false)
 			if err != nil {
 				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from XML")
 			} else {
