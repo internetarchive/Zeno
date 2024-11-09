@@ -9,13 +9,15 @@ import (
 	"strings"
 )
 
+var sitemapMarker = []byte("sitemaps.org/schemas/sitemap/")
+
 func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
 	xmlBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, sitemap, err
 	}
 
-	if strings.Contains(string(xmlBody), "sitemaps.org/schemas/sitemap/") {
+	if bytes.Contains(xmlBody, sitemapMarker) {
 		sitemap = true
 	}
 
@@ -52,7 +54,7 @@ func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
 				}
 			}
 		case xml.CharData:
-			if strings.HasPrefix(string(tok), "http") {
+			if bytes.HasPrefix(tok, []byte("http")) {
 				parsedURL, err := url.Parse(string(tok))
 				if err == nil {
 					URLs = append(URLs, parsedURL)
