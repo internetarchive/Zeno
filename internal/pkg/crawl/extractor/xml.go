@@ -36,8 +36,10 @@ func XML(resp *http.Response, strict bool) (URLs []*url.URL, sitemap bool, err e
 			// normal EOF
 			break
 		}
+
 		if err != nil {
-			return nil, sitemap, err
+			// return URLs we got so far when error occurs
+			return URLs, sitemap, err
 		}
 
 		switch tok := tok.(type) {
