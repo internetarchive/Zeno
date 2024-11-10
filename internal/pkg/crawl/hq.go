@@ -177,13 +177,53 @@ func (c *Crawl) HQConsumer() {
 
 		// get batch from crawl HQ
 		c.HQConsumerState = "waitingOnFeed"
-		URLs, err := c.HQClient.Feed(HQBatchSize, c.HQStrategy)
-		if err != nil {
-			// c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-			// 	"batchSize": HQBatchSize,
-			// 	"err":       err,
-			// })).Debug("error getting new URLs from crawl HQ")
-			continue
+		var URLs []gocrawlhq.URL
+		var err error
+		if c.HQBatchConcurrency == 1 {
+			URLs, err = c.HQClient.Get(HQBatchSize, c.HQStrategy)
+			if err != nil {
+				// c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+				// 	"batchSize": HQBatchSize,
+				// 	"err":       err,
+				// })).Debug("error getting new URLs from crawl HQ")
+				continue
+			}
+		} else {
+			var mu sync.Mutex
+			var wg sync.WaitGroup
+			batchSize := HQBatchSize / c.HQBatchConcurrency
+			URLsChan := make(chan []gocrawlhq.URL, c.HQBatchConcurrency)
+
+			// Start goroutines to get URLs from crawl HQ, each will request
+			// HQBatchSize / HQConcurrentBatch URLs
+			for i := 0; i < c.HQBatchConcurrency; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					URLs, err := c.HQClient.Get(batchSize, c.HQStrategy)
+					if err != nil {
+						// c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+						// 	"batchSize": batchSize,
+						// 	"err":       err,
+						// })).Debug("error getting new URLs from crawl HQ")
+						return
+					}
+					URLsChan <- URLs
+				}()
+			}
+
+			// Wait for all goroutines to finish
+			go func() {
+				wg.Wait()
+				close(URLsChan)
+			}()
+
+			// Collect all URLs from the channels
+			for URLsFromChan := range URLsChan {
+				mu.Lock()
+				URLs = append(URLs, URLsFromChan...)
+				mu.Unlock()
+			}
 		}
 		c.HQConsumerState = "feedCompleted"
 

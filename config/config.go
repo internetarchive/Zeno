@@ -31,6 +31,8 @@ type Config struct {
 	HQSecret                       string   `mapstructure:"hq-secret"`
 	HQProject                      string   `mapstructure:"hq-project"`
 	HQStrategy                     string   `mapstructure:"hq-strategy"`
+	HQBatchSize                    int64    `mapstructure:"hq-batch-size"`
+	HQBatchConcurrency             int      `mapstructure:"hq-batch-concurrency"`
 	LogFileOutputDir               string   `mapstructure:"log-file-output-dir"`
 	ElasticSearchUsername          string   `mapstructure:"es-user"`
 	ElasticSearchPassword          string   `mapstructure:"es-password"`
@@ -54,7 +56,6 @@ type Config struct {
 	MinSpaceRequired               int      `mapstructure:"min-space-required"`
 	WARCPoolSize                   int      `mapstructure:"warc-pool-size"`
 	WARCDedupeSize                 int      `mapstructure:"warc-dedupe-size"`
-	HQBatchSize                    int64    `mapstructure:"hq-batch-size"`
 	KeepCookies                    bool     `mapstructure:"keep-cookies"`
 	Headless                       bool     `mapstructure:"headless"`
 	DisableSeencheck               bool     `mapstructure:"disable-seencheck"`

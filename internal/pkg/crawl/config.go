@@ -114,6 +114,7 @@ type Crawl struct {
 	HQKey                  string
 	HQSecret               string
 	HQStrategy             string
+	HQBatchConcurrency     int
 	HQBatchSize            int
 	HQContinuousPull       bool
 	HQClient               *gocrawlhq.Client
@@ -319,6 +320,7 @@ func GenerateCrawlConfig(config *config.Config) (*Crawl, error) {
 	c.HQSecret = config.HQSecret
 	c.HQStrategy = config.HQStrategy
 	c.HQBatchSize = int(config.HQBatchSize)
+	c.HQBatchConcurrency = config.HQBatchConcurrency
 	c.HQContinuousPull = config.HQContinuousPull
 	c.HQRateLimitingSendBack = config.HQRateLimitSendBack
 
