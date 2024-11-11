@@ -1,12 +1,12 @@
 package extractor
 
 import (
+	"bytes"
+	"encoding/xml"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/clbanning/mxj/v2"
 )
 
 func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
@@ -19,25 +19,43 @@ func XML(resp *http.Response) (URLs []*url.URL, sitemap bool, err error) {
 		sitemap = true
 	}
 
-	mv, err := mxj.NewMapXml(xmlBody)
+	reader := bytes.NewReader(xmlBody)
+	decoder := xml.NewDecoder(reader)
+
+	// try to decode one token to see if stream is open
+	_, err = decoder.Token()
 	if err != nil {
 		return nil, sitemap, err
 	}
 
-	// Try to find if it's a sitemap
-	for _, node := range mv.LeafNodes() {
-		if strings.Contains(node.Path, "sitemap") {
-			sitemap = true
+	// seek back to 0 if we are still here
+	reader.Seek(0, 0)
+	decoder = xml.NewDecoder(reader)
+
+	for {
+		tok, err := decoder.Token()
+		if err == io.EOF {
 			break
 		}
-	}
+		if err != nil {
+			return nil, sitemap, err
+		}
 
-	for _, value := range mv.LeafValues() {
-		if _, ok := value.(string); ok {
-			if strings.HasPrefix(value.(string), "http") {
-				URL, err := url.Parse(value.(string))
+		switch tok := tok.(type) {
+		case xml.StartElement:
+			for _, attr := range tok.Attr {
+				if strings.HasPrefix(attr.Value, "http") {
+					parsedURL, err := url.Parse(attr.Value)
+					if err == nil {
+						URLs = append(URLs, parsedURL)
+					}
+				}
+			}
+		case xml.CharData:
+			if strings.HasPrefix(string(tok), "http") {
+				parsedURL, err := url.Parse(string(tok))
 				if err == nil {
-					URLs = append(URLs, URL)
+					URLs = append(URLs, parsedURL)
 				}
 			}
 		}
