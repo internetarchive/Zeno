@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/internetarchive/Zeno/internal/pkg/crawl"
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -14,29 +14,14 @@ var getHQCmd = &cobra.Command{
 		if cfg == nil {
 			return fmt.Errorf("viper config is nil")
 		}
+
 		cfg.HQ = true
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Init crawl using the flags provided
-		crawl, err := crawl.GenerateCrawlConfig(cfg)
+		_, err := config.GenerateCrawlConfig(cfg)
 		if err != nil {
-			if crawl != nil && crawl.Log != nil {
-				crawl.Log.WithFields(map[string]interface{}{
-					"crawl": crawl,
-					"err":   err.Error(),
-				}).Error("'get hq' exited due to error")
-			}
-			return err
-		}
-
-		// start crawl
-		err = crawl.Start()
-		if err != nil {
-			crawl.Log.WithFields(map[string]interface{}{
-				"crawl": crawl,
-				"err":   err.Error(),
-			}).Error("'get hq' Crawl() exited due to error")
 			return err
 		}
 

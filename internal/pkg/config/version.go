@@ -1,4 +1,4 @@
-package utils
+package config
 
 import (
 	"runtime/debug"
@@ -11,7 +11,7 @@ type Version struct {
 	ZenoVersion string
 }
 
-func GetVersion() (version Version) {
+func getVersion() (version Version) {
 	// Defaults to "unknown_version"
 	version.Version = "unknown_version"
 
