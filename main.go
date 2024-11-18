@@ -13,7 +13,7 @@ import (
 func main() {
 	// Initialize the reactor with a maximum of 5 tokens
 	outputChan := make(chan *models.Seed)
-	err := reactor.Start(5, outputChan)
+	err := reactor.Start(100, outputChan)
 	if err != nil {
 		fmt.Println("Error starting reactor:", err)
 		return
@@ -21,7 +21,7 @@ func main() {
 	defer reactor.Stop()
 
 	// Consume items from the output channel, start 5 goroutines
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 100; i++ {
 		go func() {
 			for {
 				select {
@@ -32,7 +32,7 @@ func main() {
 					if item.Source != models.SeedSourceFeedback {
 						err := reactor.ReceiveFeedback(item)
 						if err != nil {
-							fmt.Println("Error sending feedback:", err)
+							fmt.Println("Error sending feedback:", err, item.UUID.String())
 						}
 						continue
 					}
@@ -52,21 +52,15 @@ func main() {
 	}
 
 	// Create mock seeds
-	uuid1 := uuid.New()
-	uuid2 := uuid.New()
-	mockSeeds := []*models.Seed{
-		{
-			UUID:   &uuid1,
-			URL:    &gocrawlhq.URL{Value: "http://example.com/1"},
+	mockSeeds := []*models.Seed{}
+	for i := 0; i <= 1000; i++ {
+		uuid := uuid.New()
+		mockSeeds = append(mockSeeds, &models.Seed{
+			UUID:   &uuid,
+			URL:    &gocrawlhq.URL{Value: fmt.Sprintf("http://example.com/%d", i)},
 			Status: models.SeedFresh,
-			Source: models.SeedSourceQueue,
-		},
-		{
-			UUID:   &uuid2,
-			URL:    &gocrawlhq.URL{Value: "http://example.com/2"},
-			Status: models.SeedFresh,
-			Source: models.SeedSourceQueue,
-		},
+			Source: models.SeedSourceHQ,
+		})
 	}
 
 	// Queue mock seeds to the source channel
@@ -78,5 +72,6 @@ func main() {
 	}
 
 	// Allow some time for processing
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
+	fmt.Println("State table:", reactor.GetStateTable())
 }

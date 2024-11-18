@@ -68,14 +68,14 @@ func ReceiveFeedback(item *models.Seed) error {
 		return ErrReactorNotInitialized
 	}
 
+	item.Source = models.SeedSourceFeedback
+	_, loaded := globalReactor.stateTable.Swap(item.UUID.String(), item)
+	if !loaded {
+		// An item sent to the feedback channel should be present on the state table, if not present reactor should error out
+		return ErrFeedbackItemNotPresent
+	}
 	select {
 	case globalReactor.input <- item:
-		item.Source = models.SeedSourceFeedback
-		_, loaded := globalReactor.stateTable.Swap(item.UUID, item)
-		if !loaded {
-			// An item sent to the feedback channel should be present on the state table, if not present reactor should error out
-			return ErrFeedbackItemNotPresent
-		}
 		return nil
 	case <-globalReactor.ctx.Done():
 		return ErrReactorShuttingDown
@@ -90,8 +90,8 @@ func ReceiveSource(item *models.Seed) error {
 
 	select {
 	case globalReactor.tokenPool <- struct{}{}:
+		globalReactor.stateTable.Store(item.UUID.String(), item)
 		globalReactor.input <- item
-		globalReactor.stateTable.Store(item.UUID, item)
 		return nil
 	case <-globalReactor.ctx.Done():
 		return ErrReactorShuttingDown
@@ -104,7 +104,7 @@ func MarkAsFinished(item *models.Seed) error {
 		return ErrReactorNotInitialized
 	}
 
-	if _, loaded := globalReactor.stateTable.LoadAndDelete(item.UUID); loaded {
+	if _, loaded := globalReactor.stateTable.LoadAndDelete(item.UUID.String()); loaded {
 		<-globalReactor.tokenPool
 		return nil
 	}
