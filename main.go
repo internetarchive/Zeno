@@ -13,7 +13,7 @@ import (
 func main() {
 	// Initialize the reactor with a maximum of 5 tokens
 	outputChan := make(chan *models.Seed)
-	err := reactor.Start(100, outputChan)
+	err := reactor.Start(10, outputChan)
 	if err != nil {
 		fmt.Println("Error starting reactor:", err)
 		return
@@ -21,7 +21,7 @@ func main() {
 	defer reactor.Stop()
 
 	// Consume items from the output channel, start 5 goroutines
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 5; i++ {
 		go func() {
 			for {
 				select {

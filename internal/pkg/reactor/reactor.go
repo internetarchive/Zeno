@@ -36,7 +36,7 @@ func Start(maxTokens int, outputChan chan *models.Seed) error {
 			tokenPool:  make(chan struct{}, maxTokens),
 			ctx:        ctx,
 			cancelFunc: cancel,
-			input:      make(chan *models.Seed),
+			input:      make(chan *models.Seed, maxTokens),
 			output:     outputChan,
 		}
 		globalReactor.wg.Add(1)
