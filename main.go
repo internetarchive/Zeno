@@ -10,6 +10,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/internetarchive/Zeno/cmd"
@@ -20,4 +21,6 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	slog.Info("and here we COOK")
 }

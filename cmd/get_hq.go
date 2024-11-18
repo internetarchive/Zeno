@@ -19,13 +19,8 @@ var getHQCmd = &cobra.Command{
 
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		_, err := config.GenerateCrawlConfig(cfg)
-		if err != nil {
-			return err
-		}
-
-		return nil
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		return config.GenerateCrawlConfig()
 	},
 }
 

@@ -24,7 +24,7 @@ func getCMDs() *cobra.Command {
 }
 
 func getCMDsFlags(getCmd *cobra.Command) {
-	getCmd.PersistentFlags().String("user-agent", "Zeno", "User agent to use when requesting URLs.")
+	getCmd.PersistentFlags().String("user-agent", "", "User agent to use when requesting URLs.")
 	getCmd.PersistentFlags().String("job", "", "Job name to use, will determine the path for the persistent queue, seencheck database, and WARC files.")
 	getCmd.PersistentFlags().IntP("workers", "w", 1, "Number of concurrent workers to run.")
 	getCmd.PersistentFlags().Int("max-concurrent-assets", 8, "Max number of concurrent assets to fetch PER worker. E.g. if you have 100 workers and this setting at 8, Zeno could do up to 800 concurrent requests at any time.")
@@ -48,8 +48,6 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().StringSlice("exclude-host", []string{}, "Exclude a specific host from the crawl, note that it will not exclude the domain if it is encountered as an asset for another web page.")
 	getCmd.PersistentFlags().StringSlice("include-host", []string{}, "Only crawl specific hosts, note that it will not include the domain if it is encountered as an asset for another web page.")
 	getCmd.PersistentFlags().StringSlice("include-string", []string{}, "Only crawl URLs containing this string.")
-	getCmd.PersistentFlags().Int("max-concurrent-per-domain", 16, "Maximum number of concurrent requests per domain.")
-	getCmd.PersistentFlags().Int("concurrent-sleep-length", 500, "Number of milliseconds to sleep when max concurrency per domain is reached.")
 	getCmd.PersistentFlags().Int("crawl-time-limit", 0, "Number of seconds until the crawl will automatically set itself into the finished state.")
 	getCmd.PersistentFlags().Int("crawl-max-time-limit", 0, "Number of seconds until the crawl will automatically panic itself. Default to crawl-time-limit + (crawl-time-limit / 10)")
 	getCmd.PersistentFlags().StringSlice("exclude-string", []string{}, "Discard any (discovered) URLs containing this string.")
