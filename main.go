@@ -13,8 +13,10 @@ import (
 	"os"
 
 	"github.com/internetarchive/Zeno/cmd"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -52,4 +54,20 @@ func main() {
 		return
 	}
 	defer preprocessor.Stop()
+
+	archiverOutputChan := make(chan *models.Item)
+	err = archiver.Start(preprocessorOutputChan, archiverOutputChan)
+	if err != nil {
+		logger.Error("error starting archiver", "err", err.Error())
+		return
+	}
+	defer archiver.Stop()
+
+	postprocessorOutputChan := make(chan *models.Item)
+	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan)
+	if err != nil {
+		logger.Error("error starting postprocessor", "err", err.Error())
+		return
+	}
+	defer postprocessor.Stop()
 }

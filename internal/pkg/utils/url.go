@@ -13,7 +13,7 @@ func DedupeURLs(URLs []*models.URL) []*models.URL {
 		if _, value := keys[entry.String()]; !value {
 			keys[entry.String()] = true
 
-			if entry.Parsed().Scheme == "http" || entry.Parsed().Scheme == "https" {
+			if entry.GetParsed().Scheme == "http" || entry.GetParsed().Scheme == "https" {
 				list = append(list, entry)
 			}
 		}

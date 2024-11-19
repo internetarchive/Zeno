@@ -13,7 +13,7 @@ import (
 // It also sends and "identify" message to the HQ to let it know that
 // Zeno is connected. This "identify" message is sent every second and
 // contains the crawler's stats and details.
-func HQWebsocket() {
+func Websocket() {
 	var identifyTicker = time.NewTicker(time.Second)
 
 	defer func() {

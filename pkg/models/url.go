@@ -3,6 +3,7 @@ package models
 import (
 	"log/slog"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -10,9 +11,10 @@ import (
 )
 
 type URL struct {
-	Raw    string
-	parsed *url.URL
-	hop    int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
+	Raw     string
+	parsed  *url.URL
+	request *http.Request
+	hop     int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
 }
 
 func (u *URL) Parse() (err error) {
@@ -20,11 +22,19 @@ func (u *URL) Parse() (err error) {
 	return err
 }
 
-func (u *URL) Parsed() *url.URL {
+func (u *URL) SetRequest(r *http.Request) {
+	u.request = r
+}
+
+func (u *URL) GetRequest() *http.Request {
+	return u.request
+}
+
+func (u *URL) GetParsed() *url.URL {
 	return u.parsed
 }
 
-func (u *URL) Hop() int {
+func (u *URL) GetHop() int {
 	return u.hop
 }
 

@@ -2,6 +2,7 @@ package preprocessor
 
 import (
 	"context"
+	"net/http"
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -44,7 +45,7 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			output: outputChan,
 		}
 		globalPreprocessor.wg.Add(1)
-		go globalPreprocessor.run()
+		go run()
 		logger.Info("started")
 		done = true
 	})
@@ -65,8 +66,8 @@ func Stop() {
 	}
 }
 
-func (p *preprocessor) run() {
-	defer p.wg.Done()
+func run() {
+	defer globalPreprocessor.wg.Done()
 
 	var (
 		wg    sync.WaitGroup
@@ -76,24 +77,24 @@ func (p *preprocessor) run() {
 	for {
 		select {
 		// Closes the run routine when context is canceled
-		case <-p.ctx.Done():
+		case <-globalPreprocessor.ctx.Done():
 			logger.Info("shutting down")
 			return
-		case item, ok := <-p.input:
+		case item, ok := <-globalPreprocessor.input:
 			if ok {
 				guard <- struct{}{}
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
 					defer func() { <-guard }()
-					p.preprocess(item)
+					preprocess(item)
 				}()
 			}
 		}
 	}
 }
 
-func (p *preprocessor) preprocess(item *models.Item) {
+func preprocess(item *models.Item) {
 	// Validate the URL of either the item itself and/or its childs
 	// TODO: if an error happen and it's a fresh item, we should mark it as failed in HQ (if it's a HQ-based crawl)
 
@@ -110,7 +111,7 @@ func (p *preprocessor) preprocess(item *models.Item) {
 		// Validate the item's URL itself
 		err = validateURL(item.URL, nil)
 		if err != nil {
-			logger.Warn("unable to validate URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Warn("unable to validate URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocessor")
 			return
 		}
 
@@ -125,7 +126,7 @@ func (p *preprocessor) preprocess(item *models.Item) {
 			err = validateURL(item.Childs[i], item.URL)
 			if err != nil {
 				// If we can't validate an URL, we remove it from the list of childs
-				logger.Warn("unable to validate URL", "url", item.Childs[i].Raw, "err", err.Error(), "func", "preprocessor.preprocess")
+				logger.Warn("unable to validate URL", "url", item.Childs[i].Raw, "err", err.Error(), "func", "preprocessor.preprocessor")
 				item.Childs = append(item.Childs[:i], item.Childs[i+1:]...)
 			} else {
 				if config.Get().UseSeencheck {
@@ -136,7 +137,7 @@ func (p *preprocessor) preprocess(item *models.Item) {
 			}
 		}
 	} else {
-		logger.Error("item got into preprocessing without anything to preprocess")
+		logger.Error("item got into preprocessoring without anything to preprocessor")
 	}
 
 	// If we have URLs to seencheck, we do it
@@ -168,6 +169,29 @@ func (p *preprocessor) preprocess(item *models.Item) {
 		}
 	}
 
-	// Final step, send the preprocessed item to the output chan of the preprocessor
-	p.output <- item
+	// Finally, we build the requests, applying any site-specific behavior needed
+	if URLType == "seed" {
+		// TODO: apply site-specific stuff
+		req, err := http.NewRequest(http.MethodGet, item.URL.String(), nil)
+		if err != nil {
+			logger.Error("unable to create new request for URL", "url", item.URL.String(), "err", err.Error(), "func", "preprocessor.preprocess")
+			return
+		}
+
+		item.URL.SetRequest(req)
+	} else {
+		for i, child := range item.Childs {
+			// TODO: apply site-specific stuff
+			req, err := http.NewRequest(http.MethodGet, child.String(), nil)
+			if err != nil {
+				logger.Error("unable to create new request for URL", "url", item.URL.String(), "err", err.Error(), "func", "preprocessor.preprocess")
+				return
+			}
+
+			item.Childs[i].SetRequest(req)
+		}
+	}
+
+	// Final step, send the preprocessored item to the output chan of the preprocessor
+	globalPreprocessor.output <- item
 }

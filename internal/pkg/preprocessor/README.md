@@ -1,8 +1,8 @@
 # Preprocessor Package Documentation
 ## Overview
-The preprocessor package provides functionality to prepare seeds for capture. It includes mechanisms for validating URLs and preprocessing items before they are sent for capture. The package ensures that operations are atomic and synchronized, maintaining consistency and avoiding race conditions.
+The preprocessor package provides functionality to prepare seeds for capture. It includes mechanisms for validating URLs and preprocessoring items before they are sent for capture. The package ensures that operations are atomic and synchronized, maintaining consistency and avoiding race conditions.
 
-The preprocessor package is designed to be used in a concurrent environment, where multiple goroutines may interact with the preprocessor. It uses channels to manage the flow of items and their preprocessing status. The package is thread-safe and provides error handling for common scenarios.
+The preprocessor package is designed to be used in a concurrent environment, where multiple goroutines may interact with the preprocessor. It uses channels to manage the flow of items and their preprocessoring status. The package is thread-safe and provides error handling for common scenarios.
 
 ## Installation
 To use the preprocessor package, import it into your package:
@@ -27,8 +27,8 @@ The initialization should happen once or it will error out with
 ErrPreprocessorAlreadyInitialized || ErrPreprocessorNotInitialized
 ```
 
-### Preprocessing Items
-To preprocess an item, send it to the input channel:
+### Preprocessoring Items
+To preprocessor an item, send it to the input channel:
 ```go
 item := &models.Item{
     UUID:   uuid.New(),
@@ -37,11 +37,11 @@ item := &models.Item{
 }
 inputChan <- item
 ```
-The preprocessed item will be sent to the output channel after preprocessing.
+The preprocessored item will be sent to the output channel after preprocessoring.
 
 ## Internals
 ### Preprocessor Struct
-The preprocessor struct holds the state and channels for managing item preprocessing:
+The preprocessor struct holds the state and channels for managing item preprocessoring:
 ```go
 type preprocessor struct {
     wg     sync.WaitGroup
