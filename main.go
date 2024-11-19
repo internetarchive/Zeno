@@ -15,6 +15,7 @@ import (
 	"github.com/internetarchive/Zeno/cmd"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/finisher"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
@@ -38,6 +39,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	seedErrorChan := make(chan *models.Item)
+
 	// Start the reactor that will receive
 	reactorOutputChan := make(chan *models.Item)
 	err := reactor.Start(config.Get().WorkersCount, reactorOutputChan)
@@ -48,7 +51,7 @@ func main() {
 	defer reactor.Stop()
 
 	preprocessorOutputChan := make(chan *models.Item)
-	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan)
+	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan, seedErrorChan)
 	if err != nil {
 		logger.Error("error starting preprocessor", "err", err.Error())
 		return
@@ -56,7 +59,7 @@ func main() {
 	defer preprocessor.Stop()
 
 	archiverOutputChan := make(chan *models.Item)
-	err = archiver.Start(preprocessorOutputChan, archiverOutputChan)
+	err = archiver.Start(preprocessorOutputChan, archiverOutputChan, seedErrorChan)
 	if err != nil {
 		logger.Error("error starting archiver", "err", err.Error())
 		return
@@ -64,10 +67,16 @@ func main() {
 	defer archiver.Stop()
 
 	postprocessorOutputChan := make(chan *models.Item)
-	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan)
+	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan, seedErrorChan)
 	if err != nil {
 		logger.Error("error starting postprocessor", "err", err.Error())
 		return
 	}
 	defer postprocessor.Stop()
+
+	err = finisher.Start(postprocessorOutputChan, seedErrorChan)
+	if err != nil {
+		logger.Error("error starting finisher", "err", err.Error())
+		return
+	}
 }
