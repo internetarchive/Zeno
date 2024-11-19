@@ -3,7 +3,7 @@ package reactor
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -41,7 +41,7 @@ func Start(maxTokens int, outputChan chan *models.Seed) error {
 		}
 		globalReactor.wg.Add(1)
 		go globalReactor.run()
-		fmt.Println("Reactor started")
+		slog.Info("reactor started")
 		done = true
 	})
 
@@ -58,7 +58,7 @@ func Stop() {
 		globalReactor.cancel()
 		globalReactor.wg.Wait()
 		close(globalReactor.output)
-		fmt.Println("Reactor stopped")
+		slog.Info("reactor stopped")
 	}
 }
 
@@ -123,7 +123,7 @@ func (r *reactor) run() {
 		select {
 		// Closes the run routine when context is canceled
 		case <-r.ctx.Done():
-			fmt.Println("Reactor shutting down...")
+			slog.Info("reactor shutting down")
 			return
 
 		// Feeds items to the output channel
