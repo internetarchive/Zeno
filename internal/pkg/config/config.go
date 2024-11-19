@@ -175,14 +175,12 @@ func BindFlags(flagSet *pflag.FlagSet) {
 	})
 }
 
-// GetConfig returns the config struct
-func GetConfig() *Config {
+// Get returns the config struct
+func Get() *Config {
 	return config
 }
 
 func GenerateCrawlConfig() error {
-	config.LiveStats = config.LiveStats
-
 	// If the job name isn't specified, we generate a random name
 	if config.Job == "" {
 		if config.HQProject != "" {
@@ -196,8 +194,6 @@ func GenerateCrawlConfig() error {
 
 			config.Job = UUID.String()
 		}
-	} else {
-		config.Job = config.Job
 	}
 
 	config.JobPath = path.Join("jobs", config.Job)

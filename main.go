@@ -14,6 +14,10 @@ import (
 	"os"
 
 	"github.com/internetarchive/Zeno/cmd"
+	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
+	"github.com/internetarchive/Zeno/internal/pkg/reactor"
+	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 func main() {
@@ -22,5 +26,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.Info("and here we COOK")
+	fmt.Printf("%+v\n", config.Get())
+
+	// Start the reactor that will receive
+	reactorOutputChan := make(chan *models.Item)
+	err := reactor.Start(config.Get().WorkersCount, reactorOutputChan)
+	if err != nil {
+		slog.Error("error starting reactor", "err", err.Error())
+		return
+	}
+	defer reactor.Stop()
+
+	preprocessorOutputChan := make(chan *models.Item)
+	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan)
+	if err != nil {
+		slog.Error("error starting preprocessor", "err", err.Error())
+		return
+	}
+	defer preprocessor.Stop()
 }

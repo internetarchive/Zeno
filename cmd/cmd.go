@@ -27,7 +27,7 @@ Authors:
 			return fmt.Errorf("error initializing config: %s", err)
 		}
 
-		cfg = config.GetConfig()
+		cfg = config.Get()
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {

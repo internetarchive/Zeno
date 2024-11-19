@@ -12,7 +12,7 @@ import (
 
 func TestReactorE2E(t *testing.T) {
 	// Initialize the reactor with a maximum of 5 tokens
-	outputChan := make(chan *models.Seed)
+	outputChan := make(chan *models.Item)
 	err := Start(1, outputChan)
 	if err != nil {
 		t.Logf("Error starting reactor: %s", err)
@@ -30,7 +30,7 @@ func TestReactorE2E(t *testing.T) {
 						continue
 					}
 					// Send feedback for the consumed item
-					if item.Source != models.SeedSourceFeedback {
+					if item.Source != models.ItemSourceFeedback {
 						err := ReceiveFeedback(item)
 						if err != nil {
 							t.Fatalf("Error sending feedback: %s - %s", err, item.UUID.String())
@@ -39,7 +39,7 @@ func TestReactorE2E(t *testing.T) {
 					}
 
 					// Mark the item as finished
-					if item.Source == models.SeedSourceFeedback {
+					if item.Source == models.ItemSourceFeedback {
 						err := MarkAsFinished(item)
 						if err != nil {
 							t.Fatalf("Error marking item as finished: %s", err)
@@ -52,19 +52,19 @@ func TestReactorE2E(t *testing.T) {
 	}
 
 	// Create mock seeds
-	mockSeeds := []*models.Seed{}
+	mockItems := []*models.Item{}
 	for i := 0; i <= 1000; i++ {
 		uuid := uuid.New()
-		mockSeeds = append(mockSeeds, &models.Seed{
+		mockItems = append(mockItems, &models.Item{
 			UUID:   &uuid,
 			URL:    &gocrawlhq.URL{Value: fmt.Sprintf("http://example.com/%d", i)},
-			Status: models.SeedFresh,
-			Source: models.SeedSourceHQ,
+			Status: models.ItemFresh,
+			Source: models.ItemSourceHQ,
 		})
 	}
 
 	// Queue mock seeds to the source channel
-	for _, seed := range mockSeeds {
+	for _, seed := range mockItems {
 		err := ReceiveInsert(seed)
 		if err != nil {
 			t.Fatalf("Error queuing seed to source channel: %s", err)

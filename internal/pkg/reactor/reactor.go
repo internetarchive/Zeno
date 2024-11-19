@@ -14,8 +14,8 @@ type reactor struct {
 	tokenPool  chan struct{}      // Token pool to control asset count
 	ctx        context.Context    // Context for stopping the reactor
 	cancel     context.CancelFunc // Context's cancel func
-	input      chan *models.Seed  // Combined input channel for source and feedback
-	output     chan *models.Seed  // Output channel
+	input      chan *models.Item  // Combined input channel for source and feedback
+	output     chan *models.Item  // Output channel
 	stateTable sync.Map           // State table for tracking seeds by UUID
 	wg         sync.WaitGroup     // WaitGroup to manage goroutines
 }
@@ -27,7 +27,7 @@ var (
 
 // Start initializes the global reactor with the given maximum tokens.
 // This method can only be called once.
-func Start(maxTokens int, outputChan chan *models.Seed) error {
+func Start(maxTokens int, outputChan chan *models.Item) error {
 	var done bool
 
 	once.Do(func() {
@@ -36,7 +36,7 @@ func Start(maxTokens int, outputChan chan *models.Seed) error {
 			tokenPool: make(chan struct{}, maxTokens),
 			ctx:       ctx,
 			cancel:    cancel,
-			input:     make(chan *models.Seed, maxTokens),
+			input:     make(chan *models.Item, maxTokens),
 			output:    outputChan,
 		}
 		globalReactor.wg.Add(1)
@@ -64,12 +64,12 @@ func Stop() {
 
 // ReceiveFeedback sends an item to the feedback channel.
 // If the item is not present on the state table it gets discarded
-func ReceiveFeedback(item *models.Seed) error {
+func ReceiveFeedback(item *models.Item) error {
 	if globalReactor == nil {
 		return ErrReactorNotInitialized
 	}
 
-	item.Source = models.SeedSourceFeedback
+	item.Source = models.ItemSourceFeedback
 	_, loaded := globalReactor.stateTable.Swap(item.UUID.String(), item)
 	if !loaded {
 		// An item sent to the feedback channel should be present on the state table, if not present reactor should error out
@@ -84,16 +84,16 @@ func ReceiveFeedback(item *models.Seed) error {
 }
 
 // ReceiveInsert sends an item to the input channel consuming a token.
-// It is the responsibility of the sender to set either SeedSourceQueue or SeedSourceHQ, if not set seed will get forced SeedSourceInsert
-func ReceiveInsert(item *models.Seed) error {
+// It is the responsibility of the sender to set either ItemSourceQueue or ItemSourceHQ, if not set seed will get forced ItemSourceInsert
+func ReceiveInsert(item *models.Item) error {
 	if globalReactor == nil {
 		return ErrReactorNotInitialized
 	}
 
 	select {
 	case globalReactor.tokenPool <- struct{}{}:
-		if item.Source != models.SeedSourceQueue && item.Source != models.SeedSourceHQ {
-			item.Source = models.SeedSourceInsert
+		if item.Source != models.ItemSourceQueue && item.Source != models.ItemSourceHQ {
+			item.Source = models.ItemSourceInsert
 		}
 		globalReactor.stateTable.Store(item.UUID.String(), item)
 		globalReactor.input <- item
@@ -104,7 +104,7 @@ func ReceiveInsert(item *models.Seed) error {
 }
 
 // MarkAsFinished marks an item as finished and releases a token if found in the state table.
-func MarkAsFinished(item *models.Seed) error {
+func MarkAsFinished(item *models.Item) error {
 	if globalReactor == nil {
 		return ErrReactorNotInitialized
 	}
