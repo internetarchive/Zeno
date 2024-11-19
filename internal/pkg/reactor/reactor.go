@@ -13,7 +13,7 @@ import (
 type reactor struct {
 	tokenPool  chan struct{}      // Token pool to control asset count
 	ctx        context.Context    // Context for stopping the reactor
-	cancelFunc context.CancelFunc // Context's cancel func
+	cancel     context.CancelFunc // Context's cancel func
 	input      chan *models.Seed  // Combined input channel for source and feedback
 	output     chan *models.Seed  // Output channel
 	stateTable sync.Map           // State table for tracking seeds by UUID
@@ -33,11 +33,11 @@ func Start(maxTokens int, outputChan chan *models.Seed) error {
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		globalReactor = &reactor{
-			tokenPool:  make(chan struct{}, maxTokens),
-			ctx:        ctx,
-			cancelFunc: cancel,
-			input:      make(chan *models.Seed, maxTokens),
-			output:     outputChan,
+			tokenPool: make(chan struct{}, maxTokens),
+			ctx:       ctx,
+			cancel:    cancel,
+			input:     make(chan *models.Seed, maxTokens),
+			output:    outputChan,
 		}
 		globalReactor.wg.Add(1)
 		go globalReactor.run()
@@ -55,7 +55,7 @@ func Start(maxTokens int, outputChan chan *models.Seed) error {
 // Stop stops the global reactor and waits for all goroutines to finish.
 func Stop() {
 	if globalReactor != nil {
-		globalReactor.cancelFunc()
+		globalReactor.cancel()
 		globalReactor.wg.Wait()
 		close(globalReactor.output)
 		fmt.Println("Reactor stopped")
