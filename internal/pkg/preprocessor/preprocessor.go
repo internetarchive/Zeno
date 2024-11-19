@@ -118,7 +118,7 @@ func preprocess(item *models.Item) {
 		URLType = "seed"
 
 		// Validate the item's URL itself
-		err = validateURL(item.URL, nil)
+		err = normalizeURL(item.URL, nil)
 		if err != nil {
 			logger.Warn("unable to validate URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocessor")
 			return
@@ -132,7 +132,7 @@ func preprocess(item *models.Item) {
 
 		// Validate the URLs of the child items
 		for i := 0; i < len(item.Childs); {
-			err = validateURL(item.Childs[i], item.URL)
+			err = normalizeURL(item.Childs[i], item.URL)
 			if err != nil {
 				// If we can't validate an URL, we remove it from the list of childs
 				logger.Warn("unable to validate URL", "url", item.Childs[i].Raw, "err", err.Error(), "func", "preprocessor.preprocessor")
