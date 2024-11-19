@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"sync"
 
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -59,6 +60,11 @@ func Stop() {
 func (p *preprocessor) run() {
 	defer p.wg.Done()
 
+	var (
+		wg    sync.WaitGroup
+		guard = make(chan struct{}, config.Get().WorkersCount)
+	)
+
 	for {
 		select {
 		// Closes the run routine when context is canceled
@@ -67,16 +73,19 @@ func (p *preprocessor) run() {
 			return
 		case item, ok := <-p.input:
 			if ok {
-				globalPreprocessor.wg.Add(1)
-				go p.preprocess(item)
+				guard <- struct{}{}
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					defer func() { <-guard }()
+					p.preprocess(item)
+				}()
 			}
 		}
 	}
 }
 
 func (p *preprocessor) preprocess(item *models.Item) {
-	defer globalPreprocessor.wg.Done()
-
 	// Validate the URL of either the item itself and/or its childs
 	var err error
 	if item.Status == models.ItemFresh {
