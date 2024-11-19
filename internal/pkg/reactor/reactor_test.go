@@ -6,17 +6,44 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func TestReactorE2E(t *testing.T) {
+func TestReactor_E2E_Balanced(t *testing.T) {
+	_testerFunc(50, 50, 1000, t)
+}
+
+func TestReactor_E2E_Unbalanced_MoreConsumers(t *testing.T) {
+	_testerFunc(10, 50, 1000, t)
+}
+
+func TestReactor_E2E_Unbalanced_MoreTokens(t *testing.T) {
+	_testerFunc(50, 10, 1000, t)
+}
+
+func TestReactor_E2E_BalancedBig(t *testing.T) {
+	_testerFunc(5000, 5000, 1000000, t)
+}
+
+func TestReactor_E2E_UnbalancedBig_MoreConsumers(t *testing.T) {
+	_testerFunc(50, 5000, 1000000, t)
+}
+
+func TestReactor_E2E_UnbalancedBig_MoreTokens(t *testing.T) {
+	_testerFunc(50, 5000, 1000000, t)
+}
+
+func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 	// Initialize the reactor with a maximum of 5 tokens
 	outputChan := make(chan *models.Item)
 	err := Start(1, outputChan)
+
 	if err != nil {
 		t.Logf("Error starting reactor: %s", err)
 		return
 	}
+	defer log.Shutdown()
 	defer Stop()
 
 	// Channel to collect errors from goroutines
@@ -82,8 +109,17 @@ func TestReactorE2E(t *testing.T) {
 	}
 
 	// Allow some time for processing
-	time.Sleep(5 * time.Second)
-	if len(GetStateTable()) > 0 {
-		t.Fatalf("State table is not empty: %s", GetStateTable())
+	for {
+		select {
+		case <-time.After(5 * time.Second):
+			if len(GetStateTable()) > 0 {
+				t.Fatalf("State table is not empty: %s", GetStateTable())
+			}
+			t.Fatalf("Timeout waiting for reactor to finish processing")
+		default:
+			if len(GetStateTable()) == 0 {
+				return
+			}
+		}
 	}
 }
