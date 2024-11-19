@@ -3,9 +3,9 @@ package reactor
 
 import (
 	"context"
-	"log/slog"
 	"sync"
 
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -23,7 +23,15 @@ type reactor struct {
 var (
 	globalReactor *reactor
 	once          sync.Once
+	logger        *log.FieldedLogger
 )
+
+func init() {
+	log.Init()
+	logger = log.NewFieldedLogger(&log.Fields{
+		"component": "reactor",
+	})
+}
 
 // Start initializes the global reactor with the given maximum tokens.
 // This method can only be called once.
@@ -41,7 +49,7 @@ func Start(maxTokens int, outputChan chan *models.Item) error {
 		}
 		globalReactor.wg.Add(1)
 		go globalReactor.run()
-		slog.Info("reactor started")
+		logger.Info("started")
 		done = true
 	})
 
@@ -58,7 +66,7 @@ func Stop() {
 		globalReactor.cancel()
 		globalReactor.wg.Wait()
 		close(globalReactor.output)
-		slog.Info("reactor stopped")
+		logger.Info("stopped")
 	}
 }
 
@@ -123,7 +131,7 @@ func (r *reactor) run() {
 		select {
 		// Closes the run routine when context is canceled
 		case <-r.ctx.Done():
-			slog.Info("reactor shutting down")
+			logger.Info("shutting down")
 			return
 
 		// Feeds items to the output channel

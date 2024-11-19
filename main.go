@@ -10,15 +10,26 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/internetarchive/Zeno/cmd"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
+
+var (
+	logger *log.FieldedLogger
+)
+
+func init() {
+	log.Init()
+	logger = log.NewFieldedLogger(&log.Fields{
+		"component": "main",
+	})
+}
 
 func main() {
 	if err := cmd.Run(); err != nil {
@@ -32,7 +43,7 @@ func main() {
 	reactorOutputChan := make(chan *models.Item)
 	err := reactor.Start(config.Get().WorkersCount, reactorOutputChan)
 	if err != nil {
-		slog.Error("error starting reactor", "err", err.Error())
+		logger.Error("error starting reactor", "err", err.Error())
 		return
 	}
 	defer reactor.Stop()
@@ -40,7 +51,7 @@ func main() {
 	preprocessorOutputChan := make(chan *models.Item)
 	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan)
 	if err != nil {
-		slog.Error("error starting preprocessor", "err", err.Error())
+		logger.Error("error starting preprocessor", "err", err.Error())
 		return
 	}
 	defer preprocessor.Stop()
