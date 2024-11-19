@@ -74,7 +74,7 @@ func formatArgs(args []any) string {
 			sb.WriteString(fmt.Sprintf("%v", args[i]))
 		}
 		if i+2 < len(args) {
-			sb.WriteString(" ")
+			sb.WriteString("\t")
 		}
 	}
 
@@ -84,5 +84,5 @@ func formatArgs(args []any) string {
 // Helper function to format log entries
 func formatLogEntry(entry *logEntry) string {
 
-	return fmt.Sprintf("%s [%s] %s %s", entry.timestamp.Format(time.RFC3339), entry.level.String(), entry.msg, formatArgs(entry.args))
+	return fmt.Sprintf("%s [%s] %s\t%s", entry.timestamp.Format(time.RFC3339), entry.level.String(), entry.msg, formatArgs(entry.args))
 }
