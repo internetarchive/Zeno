@@ -216,7 +216,7 @@ func GenerateCrawlConfig() error {
 	}
 
 	if config.UserAgent == "" {
-		version := getVersion()
+		version := utils.GetVersion()
 
 		// If Version is a commit hash, we only take the first 7 characters
 		if len(version.Version) >= 40 {

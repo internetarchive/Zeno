@@ -2,17 +2,16 @@ package models
 
 import (
 	"github.com/google/uuid"
-	"github.com/internetarchive/gocrawlhq"
 )
 
 // Item represents a URL, it's childs (e.g. discovered assets) and it's state in the pipeline
 type Item struct {
-	UUID           *uuid.UUID       // UUID is the unique identifier of the item
-	URL            *gocrawlhq.URL   // URL is the URL of the item
-	Status         ItemState        // Status is the state of the item in the pipeline
-	Source         ItemSource       // Source is the source of the item in the pipeline
-	ChildsCaptured bool             // ChildsCaptured is the flag to indicate if the child URLs of the item have been captured
-	Childs         []*gocrawlhq.URL // Childs is the list of URLs that have been discovered via the item's URL
+	UUID           *uuid.UUID // UUID is the unique identifier of the item
+	URL            *URL       // URL is the URL of the item
+	Status         ItemState  // Status is the state of the item in the pipeline
+	Source         ItemSource // Source is the source of the item in the pipeline
+	ChildsCaptured bool       // ChildsCaptured is the flag to indicate if the child URLs of the item have been captured
+	Childs         []*URL     // Childs is the list of URLs that have been discovered via the item's URL
 }
 
 // ItemState qualifies the state of a item in the pipeline

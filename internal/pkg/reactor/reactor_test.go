@@ -20,9 +20,12 @@ func TestReactorE2E(t *testing.T) {
 	}
 	defer Stop()
 
+	// Channel to collect errors from goroutines
+	errorChan := make(chan error)
+
 	// Consume items from the output channel, start 5 goroutines
 	for i := 0; i < 5; i++ {
-		go func(t *testing.T) {
+		go func() {
 			for {
 				select {
 				case item := <-outputChan:
@@ -33,7 +36,7 @@ func TestReactorE2E(t *testing.T) {
 					if item.Source != models.ItemSourceFeedback {
 						err := ReceiveFeedback(item)
 						if err != nil {
-							t.Fatalf("Error sending feedback: %s - %s", err, item.UUID.String())
+							errorChan <- fmt.Errorf("Error sending feedback: %s - %s", err, item.UUID.String())
 						}
 						continue
 					}
@@ -42,14 +45,21 @@ func TestReactorE2E(t *testing.T) {
 					if item.Source == models.ItemSourceFeedback {
 						err := MarkAsFinished(item)
 						if err != nil {
-							t.Fatalf("Error marking item as finished: %s", err)
+							errorChan <- fmt.Errorf("Error marking item as finished: %s", err)
 						}
 						continue
 					}
 				}
 			}
-		}(t)
+		}()
 	}
+
+	// Handle errors from goroutines
+	go func() {
+		for err := range errorChan {
+			t.Error(err)
+		}
+	}()
 
 	// Create mock seeds
 	mockItems := []*models.Item{}
@@ -57,7 +67,7 @@ func TestReactorE2E(t *testing.T) {
 		uuid := uuid.New()
 		mockItems = append(mockItems, &models.Item{
 			UUID:   &uuid,
-			URL:    &gocrawlhq.URL{Value: fmt.Sprintf("http://example.com/%d", i)},
+			URL:    &models.URL{URL: gocrawlhq.URL{Value: fmt.Sprintf("http://example.com/%d", i)}},
 			Status: models.ItemFresh,
 			Source: models.ItemSourceHQ,
 		})
