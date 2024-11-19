@@ -24,6 +24,7 @@ var (
 )
 
 func init() {
+	log.Init()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor",
 	})
@@ -61,6 +62,7 @@ func Stop() {
 		globalPreprocessor.wg.Wait()
 		close(globalPreprocessor.output)
 		logger.Info("stopped")
+		log.Shutdown()
 	}
 }
 

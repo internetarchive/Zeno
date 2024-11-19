@@ -18,7 +18,7 @@ type logEntry struct {
 
 func setupLogger() {
 	// Initialize the log queue
-	logQueue = make(chan *logEntry, 1000)
+	logQueue = make(chan *logEntry, 10000)
 
 	// Create a cancellable context
 	var ctx context.Context
