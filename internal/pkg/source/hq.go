@@ -6,6 +6,7 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 )
 
@@ -14,17 +15,12 @@ import (
 // Zeno is connected. This "identify" message is sent every second and
 // contains the crawler's stats and details.
 func HQWebsocket() {
-	var (
-		// the "identify" message will be sent every second
-		// to the crawl HQ
-		identifyTicker = time.NewTicker(time.Second)
-	)
+	var identifyTicker = time.NewTicker(time.Second)
 
 	defer func() {
 		identifyTicker.Stop()
 	}()
 
-	// send an "identify" message to the crawl HQ every second
 	for {
 		err := HQClient.Identify(&gocrawlhq.IdentifyMessage{
 			Project:   config.Get().HQProject,
@@ -44,6 +40,73 @@ func HQWebsocket() {
 
 		<-identifyTicker.C
 	}
+}
+
+// func HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, err error) {
+// 	var (
+// 		discoveredURLs []gocrawlhq.URL
+// 	)
+
+// 	for _, URL := range URLs {
+// 		discoveredURLs = append(discoveredURLs, gocrawlhq.URL{
+// 			Value: utils.URLToString(URL),
+// 			Type:  "asset",
+// 		})
+// 	}
+
+// 	outputURLs, err := HQClient.Seencheck(discoveredURLs)
+// 	if err != nil {
+// 		c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+// 			"batchLen": len(URLs),
+// 			"urls":     discoveredURLs,
+// 		})).Error("error sending seencheck payload to crawl HQ")
+// 		return seencheckedBatch, err
+// 	}
+
+// 	if outputURLs != nil {
+// 		for _, URL := range outputURLs {
+// 			// the returned payload only contain new URLs to be crawled by Zeno
+// 			newURL, err := url.Parse(URL.Value)
+// 			if err != nil {
+// 				c.Log.WithFields(c.genLogFields(err, URL, map[string]interface{}{
+// 					"batchLen": len(URLs),
+// 				})).Error("error parsing URL from HQ seencheck response")
+// 				return seencheckedBatch, err
+// 			}
+
+// 			seencheckedBatch = append(seencheckedBatch, newURL)
+// 		}
+// 	}
+
+// 	return seencheckedBatch, nil
+// }
+
+// HQSeencheckURL uses Crawl HQ to determine if an URL has been seen before
+// in the current crawl project. If the URL is new, it returns true, otherwise
+// it returns false. If there's an error sending the payload to Crawl HQ, it
+// returns an error and the URL is considered new.
+func HQSeencheck(URL *models.URL) (bool, error) {
+	discoveredURL := gocrawlhq.URL{
+		Value: URL.String(),
+		Type:  URL.Type(),
+	}
+
+	outputURLs, err := HQClient.Seencheck([]gocrawlhq.URL{discoveredURL})
+	if err != nil {
+		slog.Error("error sending seencheck payload to crawl HQ", "err", err, "url", URL.String())
+		return true, err // return true, don't discard the URL if there's an error
+	}
+
+	if outputURLs != nil {
+		for _, URL := range outputURLs {
+			// the returned payload only contain new URLs to be crawled by Zeno
+			if URL.Value == discoveredURL.Value {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
 
 // func HQProducer() {
@@ -313,72 +376,4 @@ func HQWebsocket() {
 // 			break
 // 		}
 // 	}
-// }
-
-// func HQSeencheckURLs(URLs []*url.URL) (seencheckedBatch []*url.URL, err error) {
-// 	var (
-// 		discoveredURLs []gocrawlhq.URL
-// 	)
-
-// 	for _, URL := range URLs {
-// 		discoveredURLs = append(discoveredURLs, gocrawlhq.URL{
-// 			Value: utils.URLToString(URL),
-// 			Type:  "asset",
-// 		})
-// 	}
-
-// 	outputURLs, err := c.HQClient.Seencheck(discoveredURLs)
-// 	if err != nil {
-// 		c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-// 			"batchLen": len(URLs),
-// 			"urls":     discoveredURLs,
-// 		})).Error("error sending seencheck payload to crawl HQ")
-// 		return seencheckedBatch, err
-// 	}
-
-// 	if outputURLs != nil {
-// 		for _, URL := range outputURLs {
-// 			// the returned payload only contain new URLs to be crawled by Zeno
-// 			newURL, err := url.Parse(URL.Value)
-// 			if err != nil {
-// 				c.Log.WithFields(c.genLogFields(err, URL, map[string]interface{}{
-// 					"batchLen": len(URLs),
-// 				})).Error("error parsing URL from HQ seencheck response")
-// 				return seencheckedBatch, err
-// 			}
-
-// 			seencheckedBatch = append(seencheckedBatch, newURL)
-// 		}
-// 	}
-
-// 	return seencheckedBatch, nil
-// }
-
-// returns:
-//   - bool: true if the URL is new, false if it has been seen before
-//   - error: if there's an error sending the payload to crawl HQ
-//
-// NOTE: if there's an error, the URL is considered new
-// func HQSeencheckURL(URL *url.URL) (bool, error) {
-// 	discoveredURL := gocrawlhq.URL{
-// 		Value: utils.URLToString(URL),
-// 		Type:  "asset",
-// 	}
-
-// 	outputURLs, err := HQClient.Seencheck([]gocrawlhq.URL{discoveredURL})
-// 	if err != nil {
-// 		Log.Error("error sending seencheck payload to crawl HQ", "err", err, "url", utils.URLToString(URL))
-// 		return true, err // return true, don't discard the URL if there's an error
-// 	}
-
-// 	if outputURLs != nil {
-// 		for _, URL := range outputURLs {
-// 			// the returned payload only contain new URLs to be crawled by Zeno
-// 			if URL.Value == discoveredURL.Value {
-// 				return true, nil
-// 			}
-// 		}
-// 	}
-
-// 	return false, nil
 // }

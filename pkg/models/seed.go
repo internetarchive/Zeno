@@ -7,7 +7,7 @@ import (
 // Item represents a URL, it's childs (e.g. discovered assets) and it's state in the pipeline
 type Item struct {
 	UUID           *uuid.UUID // UUID is the unique identifier of the item
-	URL            *URL       // URL is the URL of the item
+	URL            *URL       // URL is a struct that contains the URL, the parsed URL, and its hop
 	Status         ItemState  // Status is the state of the item in the pipeline
 	Source         ItemSource // Source is the source of the item in the pipeline
 	ChildsCaptured bool       // ChildsCaptured is the flag to indicate if the child URLs of the item have been captured

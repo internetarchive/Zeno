@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/pkg/models"
-	"github.com/internetarchive/gocrawlhq"
 )
 
 func TestReactorE2E(t *testing.T) {
@@ -32,6 +31,7 @@ func TestReactorE2E(t *testing.T) {
 					if item == nil {
 						continue
 					}
+
 					// Send feedback for the consumed item
 					if item.Source != models.ItemSourceFeedback {
 						err := ReceiveFeedback(item)
@@ -67,7 +67,7 @@ func TestReactorE2E(t *testing.T) {
 		uuid := uuid.New()
 		mockItems = append(mockItems, &models.Item{
 			UUID:   &uuid,
-			URL:    &models.URL{URL: gocrawlhq.URL{Value: fmt.Sprintf("http://example.com/%d", i)}},
+			URL:    &models.URL{Raw: fmt.Sprintf("http://example.com/%d", i)},
 			Status: models.ItemFresh,
 			Source: models.ItemSourceHQ,
 		})

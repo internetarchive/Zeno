@@ -99,19 +99,18 @@ func (p *preprocessor) preprocess(item *models.Item) {
 	var err error
 	if item.Status == models.ItemFresh {
 		// Preprocess the item's URL itself
-		item.URL.Value, err = validateURL(item.URL.Value, nil)
+		err = validateURL(item.URL, nil)
 		if err != nil {
-			logger.Warn("unable to validate URL", "url", item.URL.Value, "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Warn("unable to validate URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 			return
 		}
 	} else if len(item.Childs) > 0 {
 		// Preprocess the childs
 		for i := 0; i < len(item.Childs); {
-			child := item.Childs[i]
-			item.Childs[i].Value, err = validateURL(child.Value, item.URL)
+			err = validateURL(item.Childs[i], item.URL)
 			if err != nil {
 				// If we can't validate an URL, we remove it from the list of childs
-				logger.Warn("unable to validate URL", "url", child.Value, "err", err.Error(), "func", "preprocessor.preprocess")
+				logger.Warn("unable to validate URL", "url", item.Childs[i].Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 				item.Childs = append(item.Childs[:i], item.Childs[i+1:]...)
 			} else {
 				i++
