@@ -3,11 +3,12 @@ module github.com/internetarchive/Zeno
 go 1.23.3
 
 require (
-	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
+	github.com/CorentinB/warc v0.8.53
 	github.com/elastic/go-elasticsearch v0.0.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/google/uuid v1.6.0
 	github.com/internetarchive/gocrawlhq v1.2.20
+	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
@@ -16,7 +17,6 @@ require (
 )
 
 require (
-	github.com/CorentinB/warc v0.8.53 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/cloudflare/circl v1.4.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -24,7 +24,6 @@ require (
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.17.10 // indirect
@@ -34,7 +33,6 @@ require (
 	github.com/paulbellamy/ratecounter v0.2.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/philippgille/gokv/encoding v0.7.0 // indirect
-	github.com/philippgille/gokv/leveldb v0.7.0 // indirect
 	github.com/philippgille/gokv/util v0.7.0 // indirect
 	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect

@@ -34,3 +34,9 @@ func (rps *rate) get() uint64 {
 func (rps *rate) getTotal() uint64 {
 	return atomic.LoadUint64(&rps.count)
 }
+
+func (rps *rate) reset() {
+	atomic.StoreUint64(&rps.count, 0)
+	atomic.StoreUint64(&rps.lastCount, 0)
+	atomic.StoreInt64(&rps.lastUpdate, 0)
+}
