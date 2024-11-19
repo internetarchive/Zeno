@@ -24,10 +24,6 @@ func (u *URL) Parsed() *url.URL {
 	return u.parsed
 }
 
-func (u *URL) Type() string {
-	return u.String()
-}
-
 func (u *URL) Hop() int {
 	return u.hop
 }

@@ -36,8 +36,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("%+v\n", config.Get())
-
 	// Start the reactor that will receive
 	reactorOutputChan := make(chan *models.Item)
 	err := reactor.Start(config.Get().WorkersCount, reactorOutputChan)

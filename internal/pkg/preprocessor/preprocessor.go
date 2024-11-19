@@ -6,6 +6,8 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
+	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -93,16 +95,32 @@ func (p *preprocessor) run() {
 
 func (p *preprocessor) preprocess(item *models.Item) {
 	// Validate the URL of either the item itself and/or its childs
-	var err error
+	// TODO: if an error happen and it's a fresh item, we should mark it as failed in HQ (if it's a HQ-based crawl)
+
+	var (
+		err             error
+		URLsToSeencheck []*models.URL
+		URLType         string
+	)
+
+	// Validate the URLs, either the item's URL or its childs if it has any
 	if item.Status == models.ItemFresh {
-		// Preprocess the item's URL itself
+		URLType = "seed"
+
+		// Validate the item's URL itself
 		err = validateURL(item.URL, nil)
 		if err != nil {
 			logger.Warn("unable to validate URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 			return
 		}
+
+		if config.Get().UseSeencheck {
+			URLsToSeencheck = append(URLsToSeencheck, item.URL)
+		}
 	} else if len(item.Childs) > 0 {
-		// Preprocess the childs
+		URLType = "asset"
+
+		// Validate the URLs of the child items
 		for i := 0; i < len(item.Childs); {
 			err = validateURL(item.Childs[i], item.URL)
 			if err != nil {
@@ -110,11 +128,44 @@ func (p *preprocessor) preprocess(item *models.Item) {
 				logger.Warn("unable to validate URL", "url", item.Childs[i].Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 				item.Childs = append(item.Childs[:i], item.Childs[i+1:]...)
 			} else {
+				if config.Get().UseSeencheck {
+					URLsToSeencheck = append(URLsToSeencheck, item.Childs[i])
+				}
+
 				i++
 			}
 		}
 	} else {
 		logger.Error("item got into preprocessing without anything to preprocess")
+	}
+
+	// If we have URLs to seencheck, we do it
+	if len(URLsToSeencheck) > 0 {
+		var seencheckedURLs []*models.URL
+
+		if config.Get().HQ {
+			seencheckedURLs, err = hq.SeencheckURLs(URLType, item.URL)
+			if err != nil {
+				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
+				return
+			}
+		} else {
+			seencheckedURLs, err = seencheck.SeencheckURLs(URLType, item.URL)
+			if err != nil {
+				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
+				return
+			}
+		}
+
+		if len(seencheckedURLs) == 0 {
+			return
+		}
+
+		if URLType == "seed" {
+			item.URL = seencheckedURLs[0]
+		} else {
+			item.Childs = seencheckedURLs
+		}
 	}
 
 	// Final step, send the preprocessed item to the output chan of the preprocessor
