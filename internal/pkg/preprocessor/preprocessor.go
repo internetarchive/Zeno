@@ -60,7 +60,6 @@ func Stop() {
 		globalPreprocessor.wg.Wait()
 		close(globalPreprocessor.output)
 		logger.Info("stopped")
-		log.Shutdown()
 	}
 }
 

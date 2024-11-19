@@ -62,8 +62,8 @@ func logWithLevel(level slog.Level, msg string, args ...any) {
 	}
 }
 
-// Shutdown gracefully shuts down the logging system
-func Shutdown() {
+// Stop gracefully shuts down the logging system
+func Stop() {
 	if cancelFunc != nil {
 		cancelFunc()
 	}

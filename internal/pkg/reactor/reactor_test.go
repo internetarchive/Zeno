@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -43,7 +42,6 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 		t.Logf("Error starting reactor: %s", err)
 		return
 	}
-	defer log.Shutdown()
 	defer Stop()
 
 	// Channel to collect errors from goroutines
