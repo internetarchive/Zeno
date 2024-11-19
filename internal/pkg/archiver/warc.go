@@ -77,3 +77,23 @@ func startWARCWriter() {
 		}()
 	}
 }
+
+func GetClients() (clients []*warc.CustomHTTPClient) {
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			clients = append(clients, c)
+		}
+	}
+
+	return clients
+}
+
+func GetWARCWritingQueueSize() (total int) {
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			total += c.WaitGroup.Size()
+		}
+	}
+
+	return total
+}

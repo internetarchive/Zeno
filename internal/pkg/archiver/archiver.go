@@ -142,6 +142,14 @@ func archive(item *models.Item) {
 			} else {
 				resp, err = globalArchiver.Client.Do(URL.GetRequest())
 			}
+			if err != nil {
+				logger.Error("unable to execute request", "err", err.Error(), "func", "archiver.archive")
+				return
+			}
+
+			if resp.StatusCode != 200 {
+				logger.Warn("non-200 status code", "status_code", resp.StatusCode)
+			}
 
 			// For now, we only consume it
 			_, err = io.Copy(io.Discard, resp.Body)
@@ -150,6 +158,8 @@ func archive(item *models.Item) {
 			}
 		}()
 	}
+
+	wg.Wait()
 
 	globalArchiver.outputCh <- item
 }

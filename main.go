@@ -45,20 +45,20 @@ func main() {
 	// Start the reactor that will receive
 	reactorOutputChan := make(chan *models.Item)
 	// err := reactor.Start(config.Get().WorkersCount, reactorOutputChan)
-	err := reactor.Start(5, reactorOutputChan)
+	err := reactor.Start(300, reactorOutputChan)
 	if err != nil {
 		logger.Error("error starting reactor", "err", err.Error())
 		return
 	}
 
 	// Create mock seeds
-	seeds := 5
-	mockItems := make([]*models.Item, 5)
+	seeds := 10000
+	mockItems := make([]*models.Item, 10000)
 	for i := 0; i < seeds; i++ {
 		uuid := uuid.New()
 		mockItems[i] = &models.Item{
 			UUID:   &uuid,
-			URL:    &models.URL{Raw: fmt.Sprintf("https://www.deezer.fr/%d", i)},
+			URL:    &models.URL{Raw: fmt.Sprintf("https://www.deezer.com/%d", i)},
 			Status: models.ItemFresh,
 			Source: models.ItemSourceHQ,
 		}
@@ -95,7 +95,7 @@ func main() {
 	for _, seed := range mockItems {
 		err := reactor.ReceiveInsert(seed)
 		if err != nil {
-			logger.Error("Error queuing seed to source channel", "error", err.Error())
+			logger.Error("Error queuing seed to source channel", "err", err.Error())
 			return
 		}
 	}
@@ -103,6 +103,10 @@ func main() {
 	for {
 		time.Sleep(1 * time.Second)
 		if len(reactor.GetStateTable()) == 0 {
+			for archiver.GetWARCWritingQueueSize() != 0 {
+				logger.Info("waiting for WARC client(s) to finish writing to disk", "queue_size", archiver.GetWARCWritingQueueSize())
+			}
+
 			finisher.Stop()
 			postprocessor.Stop()
 			archiver.Stop()
