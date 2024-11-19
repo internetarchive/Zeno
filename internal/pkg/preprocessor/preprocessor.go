@@ -96,6 +96,7 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PreprocessorRoutinesDecr()
 					preprocess(item)
+					globalPreprocessor.outputCh <- item
 				}()
 			}
 		}
@@ -199,7 +200,4 @@ func preprocess(item *models.Item) {
 			item.Childs[i].SetRequest(req)
 		}
 	}
-
-	// Final step, send the preprocessored item to the output chan of the preprocessor
-	globalPreprocessor.outputCh <- item
 }

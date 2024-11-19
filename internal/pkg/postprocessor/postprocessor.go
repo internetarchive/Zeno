@@ -84,6 +84,7 @@ func run() {
 			return
 		case item, ok := <-globalPostprocessor.inputCh:
 			if ok {
+				logger.Info("received item", "item", item.UUID.String())
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.PostprocessorRoutinesIncr()
@@ -92,6 +93,7 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
 					postprocess(item)
+					globalPostprocessor.outputCh <- item
 				}()
 			}
 		}
@@ -100,5 +102,4 @@ func run() {
 
 func postprocess(item *models.Item) {
 	// TODO
-	globalPostprocessor.outputCh <- item
 }
