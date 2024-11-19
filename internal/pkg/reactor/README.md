@@ -83,38 +83,20 @@ type reactor struct {
 }
 ```
 
-Start Function
-The Start function initializes the global reactor with the given maximum tokens and output channel. It starts the reactor's main loop in a goroutine:
+### Maintaining Equilibrium
+The reactor maintains equilibrium in the system through the following mechanisms:
 
-Stop Function
-The Stop function stops the global reactor and waits for all goroutines to finish:
+1. Token-Based Concurrency Control:
+    - The token pool limits the number of concurrent seeds being processed.
+    - Each seed consumes a token when inserted and releases it when marked as finished.
+    - This prevents overloading the system and ensures efficient resource utilization.
+2. Channel Operations:
+    - The reactor uses a channel-based synchronization mechanism with a buffer on the input channel ensuring that no deadlock can happen.
+    - The output channel is expected to be unbuffered.
+3. State Management:
+    - The state table tracks the state of each seed by its UUID.
+    - The state map is held to check that every seed that goes into feedback was already ingested first, ensuring a fixed amount of seeds in the system.
+    - This allows the reactor to manage seeds efficiently and handle feedback and completion correctly.
 
-Atomic Store and Send
-The atomicStoreAndSend function performs a sync.Map store and a channel send atomically:
-
-ReceiveFeedback Function
-The ReceiveFeedback function sends an item to the feedback channel and ensures it is present in the state table:
-
-ReceiveInsert Function
-The ReceiveInsert function sends an item to the input channel and consumes a token:
-
-MarkAsFinished Function
-The MarkAsFinished function marks an item as finished and releases a token if found in the state table:
-
-Run Function
-The run function is the main loop of the reactor, which processes items from the input channel and sends them to the output channel:
-
-GetStateTable Function
-The GetStateTable function returns a slice of all the seeds UUIDs as strings in the state table:
-
-Error Handling
-The reactor package defines several error variables for common error scenarios:
-
-Testing
-End-to-End Test
-The TestReactorE2E function provides an end-to-end test for the reactor package:
-
-This test initializes the reactor, inserts mock seeds, processes them, and verifies that the state table is empty after processing.
-
-Conclusion
-The reactor package provides a robust and synchronized mechanism for managing seed processing. By following the usage instructions and understanding the internals, you can effectively integrate and utilize the reactor in your application.
+## Conclusion
+The `reactor` package provides a robust and synchronized mechanism for managing seed processing in a concurrent environment. By using channels, a state table, and a token-based system, it ensures efficient resource utilization and maintains equilibrium in the system. This architecture allows for scalable and reliable seed processing without sacrificing efficiency
