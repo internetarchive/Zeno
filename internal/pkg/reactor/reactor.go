@@ -11,13 +11,13 @@ import (
 
 // reactor struct holds the state and channels for managing seeds processing.
 type reactor struct {
-	tokenPool  chan struct{}   // Token pool to control asset count
-	ctx        context.Context // Context for stopping the reactor
-	cancelFunc context.CancelFunc
-	input      chan *models.Seed // Combined input channel for source and feedback
-	output     chan *models.Seed // Output channel
-	stateTable sync.Map          // State table for tracking seeds by UUID
-	wg         sync.WaitGroup    // WaitGroup to manage goroutines
+	tokenPool  chan struct{}      // Token pool to control asset count
+	ctx        context.Context    // Context for stopping the reactor
+	cancelFunc context.CancelFunc // Context's cancel func
+	input      chan *models.Seed  // Combined input channel for source and feedback
+	output     chan *models.Seed  // Output channel
+	stateTable sync.Map           // State table for tracking seeds by UUID
+	wg         sync.WaitGroup     // WaitGroup to manage goroutines
 }
 
 var (
