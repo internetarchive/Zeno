@@ -90,6 +90,16 @@ func (f *finisher) run() {
 			reactor.MarkAsFinished(item)
 
 			logger.Info("item finished", "item", item.UUID.String())
+		case item := <-f.errorCh:
+			if item == nil {
+				panic("received nil item")
+			}
+
+			logger.Info("received item with error", "item", item.UUID.String(), "error", item.Error)
+
+			reactor.MarkAsFinished(item)
+
+			logger.Info("item with error finished", "item", item.UUID.String())
 		}
 	}
 }
