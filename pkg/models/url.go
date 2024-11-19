@@ -10,10 +10,9 @@ import (
 )
 
 type URL struct {
-	Raw     string
-	parsed  *url.URL
-	hop     int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
-	urlType URLType
+	Raw    string
+	parsed *url.URL
+	hop    int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
 }
 
 func (u *URL) Parse() (err error) {
