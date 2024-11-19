@@ -93,6 +93,7 @@ func run() {
 			return
 		case item, ok := <-globalArchiver.inputCh:
 			if ok {
+				logger.Info("received item", "item", item.UUID.String())
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.ArchiverRoutinesIncr()

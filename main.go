@@ -21,7 +21,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -51,19 +50,18 @@ func main() {
 		logger.Error("error starting reactor", "err", err.Error())
 		return
 	}
-	defer reactor.Stop()
 
 	// Create mock seeds
 	seeds := 5
-	mockItems := []*models.Item{}
-	for i := 0; i <= seeds; i++ {
+	mockItems := make([]*models.Item, 5)
+	for i := 0; i < seeds; i++ {
 		uuid := uuid.New()
-		mockItems = append(mockItems, &models.Item{
+		mockItems[i] = &models.Item{
 			UUID:   &uuid,
 			URL:    &models.URL{Raw: fmt.Sprintf("https://www.deezer.fr/%d", i)},
 			Status: models.ItemFresh,
 			Source: models.ItemSourceHQ,
-		})
+		}
 	}
 
 	preprocessorOutputChan := make(chan *models.Item)
@@ -72,7 +70,6 @@ func main() {
 		logger.Error("error starting preprocessor", "err", err.Error())
 		return
 	}
-	defer preprocessor.Stop()
 
 	archiverOutputChan := make(chan *models.Item)
 	err = archiver.Start(preprocessorOutputChan, archiverOutputChan, seedErrorChan)
@@ -80,7 +77,6 @@ func main() {
 		logger.Error("error starting archiver", "err", err.Error())
 		return
 	}
-	defer archiver.Stop()
 
 	postprocessorOutputChan := make(chan *models.Item)
 	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan, seedErrorChan)
@@ -88,7 +84,6 @@ func main() {
 		logger.Error("error starting postprocessor", "err", err.Error())
 		return
 	}
-	defer postprocessor.Stop()
 
 	err = finisher.Start(postprocessorOutputChan, seedErrorChan)
 	if err != nil {
@@ -108,12 +103,12 @@ func main() {
 	for {
 		time.Sleep(1 * time.Second)
 		if len(reactor.GetStateTable()) == 0 {
+			finisher.Stop()
+			postprocessor.Stop()
+			archiver.Stop()
+			preprocessor.Stop()
+			reactor.Stop()
 			return
 		}
-		fmt.Println("URLsCrawledGet" + string(stats.URLsCrawledGet()))
-		fmt.Println("SeedsFinishedGet" + string(stats.SeedsFinishedGet()))
-		fmt.Println("PreprocessorRoutinesGet" + string(stats.PreprocessorRoutinesGet()))
-		fmt.Println("ArchiverRoutinesGet" + string(stats.ArchiverRoutinesGet()))
-		fmt.Println("PostprocessorRoutinesGet" + string(stats.PostprocessorRoutinesGet()))
 	}
 }
