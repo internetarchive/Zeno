@@ -113,7 +113,7 @@ func archive(item *models.Item) {
 	var (
 		URLsToCapture []*models.URL
 		guard         = make(chan struct{}, config.Get().MaxConcurrentAssets)
-		wg            *sync.WaitGroup
+		wg            sync.WaitGroup
 	)
 
 	// Determines the URLs that need to be captured, if the item's status is fresh we need
@@ -136,7 +136,7 @@ func archive(item *models.Item) {
 				resp *http.Response
 			)
 
-			if config.Get().Proxy == "" {
+			if config.Get().Proxy != "" {
 				resp, err = globalArchiver.ClientWithProxy.Do(URL.GetRequest())
 			} else {
 				resp, err = globalArchiver.Client.Do(URL.GetRequest())

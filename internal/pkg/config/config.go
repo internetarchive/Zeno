@@ -198,9 +198,6 @@ func GenerateCrawlConfig() error {
 
 	config.JobPath = path.Join("jobs", config.Job)
 
-	// TODO
-	// Crawl.Workers = NewPool(uint(config.WorkersCount), time.Second*60, c)
-
 	config.UseSeencheck = !config.DisableSeencheck
 
 	// Defaults --max-crawl-time-limit to 10% more than --crawl-time-limit

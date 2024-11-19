@@ -66,15 +66,6 @@ func main() {
 		})
 	}
 
-	// Queue mock seeds to the source channel
-	for _, seed := range mockItems {
-		err := reactor.ReceiveInsert(seed)
-		if err != nil {
-			logger.Error("Error queuing seed to source channel", "error", err.Error())
-			return
-		}
-	}
-
 	preprocessorOutputChan := make(chan *models.Item)
 	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan, seedErrorChan)
 	if err != nil {
@@ -103,6 +94,15 @@ func main() {
 	if err != nil {
 		logger.Error("error starting finisher", "err", err.Error())
 		return
+	}
+
+	// Queue mock seeds to the source channel
+	for _, seed := range mockItems {
+		err := reactor.ReceiveInsert(seed)
+		if err != nil {
+			logger.Error("Error queuing seed to source channel", "error", err.Error())
+			return
+		}
 	}
 
 	for {
