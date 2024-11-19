@@ -17,17 +17,27 @@ var (
 	cancelFunc context.CancelFunc
 )
 
-// Init initializes the logging package with the given configuration.
+// Start initializes the logging package with the given configuration.
 // If no configuration is provided, it uses the default configuration.
-func Init(cfgs ...*Config) {
+func Start(cfgs ...*Config) error {
+	var done = false
+
 	once.Do(func() {
+		logQueue = make(chan *logEntry, 1000)
 		if len(cfgs) > 0 && cfgs[0] != nil {
 			config = cfgs[0]
 		} else {
 			config = defaultConfig()
 		}
 		setupLogger()
+		done = true
 	})
+
+	if !done {
+		return ErrLoggerAlreadyInitialized
+	}
+
+	return nil
 }
 
 // Public logging methods
@@ -68,4 +78,6 @@ func Stop() {
 		cancelFunc()
 	}
 	wg.Wait()
+	close(logQueue)
+	once = sync.Once{}
 }

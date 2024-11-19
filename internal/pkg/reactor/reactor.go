@@ -18,6 +18,7 @@ type reactor struct {
 	output     chan *models.Item  // Output channel
 	stateTable sync.Map           // State table for tracking seeds by UUID
 	wg         sync.WaitGroup     // WaitGroup to manage goroutines
+	// stopChan   chan struct{}      // Channel to signal when stop is finished
 }
 
 var (
@@ -31,7 +32,7 @@ var (
 func Start(maxTokens int, outputChan chan *models.Item) error {
 	var done bool
 
-	log.Init()
+	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "reactor",
 	})
@@ -45,6 +46,7 @@ func Start(maxTokens int, outputChan chan *models.Item) error {
 			input:     make(chan *models.Item, maxTokens),
 			output:    outputChan,
 		}
+		logger.Info("initialized")
 		globalReactor.wg.Add(1)
 		go globalReactor.run()
 		logger.Info("started")
@@ -63,7 +65,9 @@ func Stop() {
 	if globalReactor != nil {
 		globalReactor.cancel()
 		globalReactor.wg.Wait()
-		close(globalReactor.output)
+		close(globalReactor.input)
+		close(globalReactor.tokenPool)
+		once = sync.Once{}
 		logger.Info("stopped")
 	}
 }

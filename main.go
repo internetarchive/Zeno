@@ -25,11 +25,11 @@ var (
 )
 
 func main() {
-	log.Init()
+	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor",
 	})
-	defer log.Shutdown()
+	defer log.Stop()
 
 	if err := cmd.Run(); err != nil {
 		fmt.Println(err)

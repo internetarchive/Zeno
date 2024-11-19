@@ -28,7 +28,7 @@ var (
 func Start(inputChan, outputChan chan *models.Item) error {
 	var done bool
 
-	log.Init()
+	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor",
 	})
