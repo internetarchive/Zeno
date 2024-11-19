@@ -37,8 +37,10 @@ const (
 type SeedSource int
 
 const (
+	// SeedSourceInsert is for seeds which source is not defined when inserted on reactor
+	SeedSourceInsert SeedSource = iota
 	// SeedSourceQueue is for seeds that are from the Queue
-	SeedSourceQueue SeedSource = iota
+	SeedSourceQueue
 	// SeedSourceHQ is for seeds that are from the HQ
 	SeedSourceHQ
 	// SeedSourceFeedback is for seeds that are from the Feedback

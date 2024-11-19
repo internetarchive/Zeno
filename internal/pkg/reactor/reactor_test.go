@@ -13,7 +13,7 @@ import (
 func TestReactorE2E(t *testing.T) {
 	// Initialize the reactor with a maximum of 5 tokens
 	outputChan := make(chan *models.Seed)
-	err := Start(5, outputChan)
+	err := Start(1, outputChan)
 	if err != nil {
 		t.Logf("Error starting reactor: %s", err)
 		return
@@ -26,6 +26,9 @@ func TestReactorE2E(t *testing.T) {
 			for {
 				select {
 				case item := <-outputChan:
+					if item == nil {
+						continue
+					}
 					// Send feedback for the consumed item
 					if item.Source != models.SeedSourceFeedback {
 						err := ReceiveFeedback(item)
@@ -62,7 +65,7 @@ func TestReactorE2E(t *testing.T) {
 
 	// Queue mock seeds to the source channel
 	for _, seed := range mockSeeds {
-		err := ReceiveSource(seed)
+		err := ReceiveInsert(seed)
 		if err != nil {
 			t.Fatalf("Error queuing seed to source channel: %s", err)
 		}

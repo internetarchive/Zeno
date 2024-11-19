@@ -63,6 +63,7 @@ func Stop() {
 }
 
 // ReceiveFeedback sends an item to the feedback channel.
+// If the item is not present on the state table it gets discarded
 func ReceiveFeedback(item *models.Seed) error {
 	if globalReactor == nil {
 		return ErrReactorNotInitialized
@@ -82,14 +83,18 @@ func ReceiveFeedback(item *models.Seed) error {
 	}
 }
 
-// ReceiveSource sends an item to the source seeds channel.
-func ReceiveSource(item *models.Seed) error {
+// ReceiveInsert sends an item to the input channel consuming a token.
+// It is the responsibility of the sender to set either SeedSourceQueue or SeedSourceHQ, if not set seed will get forced SeedSourceInsert
+func ReceiveInsert(item *models.Seed) error {
 	if globalReactor == nil {
 		return ErrReactorNotInitialized
 	}
 
 	select {
 	case globalReactor.tokenPool <- struct{}{}:
+		if item.Source != models.SeedSourceQueue && item.Source != models.SeedSourceHQ {
+			item.Source = models.SeedSourceInsert
+		}
 		globalReactor.stateTable.Store(item.UUID.String(), item)
 		globalReactor.input <- item
 		return nil
