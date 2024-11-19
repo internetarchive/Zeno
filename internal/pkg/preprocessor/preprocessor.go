@@ -2,10 +2,10 @@ package preprocessor
 
 import (
 	"context"
-	"log/slog"
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -20,7 +20,15 @@ type preprocessor struct {
 var (
 	globalPreprocessor *preprocessor
 	once               sync.Once
+	logger             *log.FieldedLogger
 )
+
+func init() {
+	log.Init()
+	logger = log.NewFieldedLogger(&log.Fields{
+		"component": "preprocessor",
+	})
+}
 
 // This functions starts the preprocessor responsible for preparing
 // the seeds sent by the reactor for captures
@@ -37,7 +45,7 @@ func Start(inputChan, outputChan chan *models.Item) error {
 		}
 		globalPreprocessor.wg.Add(1)
 		go globalPreprocessor.run()
-		slog.Info("preprocessor started")
+		logger.Info("started")
 		done = true
 	})
 
@@ -53,7 +61,7 @@ func Stop() {
 		globalPreprocessor.cancel()
 		globalPreprocessor.wg.Wait()
 		close(globalPreprocessor.output)
-		slog.Info("preprocessor stopped")
+		logger.Info("stopped")
 	}
 }
 
@@ -69,7 +77,7 @@ func (p *preprocessor) run() {
 		select {
 		// Closes the run routine when context is canceled
 		case <-p.ctx.Done():
-			slog.Info("preprocessor shutting down")
+			logger.Info("shutting down")
 			return
 		case item, ok := <-p.input:
 			if ok {
@@ -92,7 +100,7 @@ func (p *preprocessor) preprocess(item *models.Item) {
 		// Preprocess the item's URL itself
 		item.URL.Value, err = validateURL(item.URL.Value, nil)
 		if err != nil {
-			slog.Warn("unable to validate URL", "url", item.URL.Value, "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Warn("unable to validate URL", "url", item.URL.Value, "err", err.Error(), "func", "preprocessor.preprocess")
 			return
 		}
 	} else if len(item.Childs) > 0 {
@@ -102,14 +110,14 @@ func (p *preprocessor) preprocess(item *models.Item) {
 			item.Childs[i].Value, err = validateURL(child.Value, item.URL)
 			if err != nil {
 				// If we can't validate an URL, we remove it from the list of childs
-				slog.Warn("unable to validate URL", "url", child.Value, "err", err.Error(), "func", "preprocessor.preprocess")
+				logger.Warn("unable to validate URL", "url", child.Value, "err", err.Error(), "func", "preprocessor.preprocess")
 				item.Childs = append(item.Childs[:i], item.Childs[i+1:]...)
 			} else {
 				i++
 			}
 		}
 	} else {
-		slog.Error("item got into preprocessing without anything to preprocess")
+		logger.Error("item got into preprocessing without anything to preprocess")
 	}
 
 	// Final step, send the preprocessed item to the output chan of the preprocessor
