@@ -14,7 +14,7 @@ type URL struct {
 	Raw     string
 	parsed  *url.URL
 	request *http.Request
-	hop     int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
+	Hop     int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
 }
 
 func (u *URL) Parse() (err error) {
@@ -34,8 +34,12 @@ func (u *URL) GetParsed() *url.URL {
 	return u.parsed
 }
 
+func (u *URL) SetHop(hop int) {
+	u.Hop = hop
+}
+
 func (u *URL) GetHop() int {
-	return u.hop
+	return u.Hop
 }
 
 // String exists to apply some custom stuff, in opposition of simply

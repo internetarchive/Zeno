@@ -32,8 +32,8 @@ func getHQCmdFlags(getHQCmd *cobra.Command) {
 	getHQCmd.PersistentFlags().String("hq-project", "", "Crawl HQ project.")
 	getHQCmd.PersistentFlags().Bool("hq-continuous-pull", false, "If turned on, the crawler will pull URLs from Crawl HQ continuously.")
 	getHQCmd.PersistentFlags().String("hq-strategy", "lifo", "Crawl HQ feeding strategy.")
-	getHQCmd.PersistentFlags().Int64("hq-batch-size", 0, "Crawl HQ feeding batch size.")
-	getHQCmd.PersistentFlags().Int64("hq-batch-concurrency", 1, "Number of concurrent requests to do to get the --hq-batch-size, if batch size is 300 and batch-concurrency is 10, 30 requests will be done concurrently.")
+	getHQCmd.PersistentFlags().Int("hq-batch-size", 0, "Crawl HQ feeding batch size.")
+	getHQCmd.PersistentFlags().Int("hq-batch-concurrency", 1, "Number of concurrent requests to do to get the --hq-batch-size, if batch size is 300 and batch-concurrency is 10, 30 requests will be done concurrently.")
 	getHQCmd.PersistentFlags().Bool("hq-rate-limiting-send-back", false, "If turned on, the crawler will send back URLs that hit a rate limit to crawl HQ.")
 
 	getHQCmd.MarkPersistentFlagRequired("hq-address")

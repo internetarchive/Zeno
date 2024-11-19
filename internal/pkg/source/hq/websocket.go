@@ -21,7 +21,7 @@ func Websocket() {
 	}()
 
 	for {
-		err := HQClient.Identify(&gocrawlhq.IdentifyMessage{
+		err := globalHQ.client.Identify(&gocrawlhq.IdentifyMessage{
 			Project:   config.Get().HQProject,
 			Job:       config.Get().Job,
 			IP:        utils.GetOutboundIP().String(),
@@ -31,7 +31,7 @@ func Websocket() {
 		if err != nil {
 			slog.Error("error sending identify payload to Crawl HQ, trying to reconnect", "err", err.Error())
 
-			err = HQClient.InitWebsocketConn()
+			err = globalHQ.client.InitWebsocketConn()
 			if err != nil {
 				slog.Error("error initializing websocket connection to crawl HQ", "err", err.Error())
 			}

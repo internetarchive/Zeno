@@ -47,7 +47,7 @@ type Config struct {
 	HQSecret                 string   `mapstructure:"hq-secret"`
 	HQProject                string   `mapstructure:"hq-project"`
 	HQStrategy               string   `mapstructure:"hq-strategy"`
-	HQBatchSize              int64    `mapstructure:"hq-batch-size"`
+	HQBatchSize              int      `mapstructure:"hq-batch-size"`
 	HQBatchConcurrency       int      `mapstructure:"hq-batch-concurrency"`
 	LogFileOutputDir         string   `mapstructure:"log-file-output-dir"`
 	ElasticSearchUsername    string   `mapstructure:"es-user"`
@@ -61,9 +61,9 @@ type Config struct {
 	ElasticSearchURLs        []string `mapstructure:"es-url"`
 	WorkersCount             int      `mapstructure:"workers"`
 	MaxConcurrentAssets      int      `mapstructure:"max-concurrent-assets"`
-	MaxHops                  uint8    `mapstructure:"max-hops"`
-	MaxRedirect              uint8    `mapstructure:"max-redirect"`
-	MaxRetry                 uint8    `mapstructure:"max-retry"`
+	MaxHops                  int      `mapstructure:"max-hops"`
+	MaxRedirect              int      `mapstructure:"max-redirect"`
+	MaxRetry                 int      `mapstructure:"max-retry"`
 	HTTPTimeout              int      `mapstructure:"http-timeout"`
 	CrawlTimeLimit           int      `mapstructure:"crawl-time-limit"`
 	CrawlMaxTimeLimit        int      `mapstructure:"crawl-max-time-limit"`
@@ -81,7 +81,6 @@ type Config struct {
 	CertValidation           bool     `mapstructure:"cert-validation"`
 	DisableAssetsCapture     bool     `mapstructure:"disable-assets-capture"`
 	HQ                       bool     // Special field to check if HQ is enabled depending on the command called
-	HQContinuousPull         bool     `mapstructure:"hq-continuous-pull"`
 	HQRateLimitSendBack      bool     `mapstructure:"hq-rate-limiting-send-back"`
 	NoStdoutLogging          bool     `mapstructure:"no-stdout-log"`
 	NoBatchWriteWAL          bool     `mapstructure:"ultrasafe-queue"`

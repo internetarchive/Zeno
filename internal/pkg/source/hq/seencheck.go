@@ -19,7 +19,7 @@ func SeencheckURLs(URLsType string, URLs ...*models.URL) (seencheckedURLs []*mod
 		})
 	}
 
-	outputURLs, err := HQClient.Seencheck(discoveredURLs)
+	outputURLs, err := globalHQ.client.Seencheck(discoveredURLs)
 	if err != nil {
 		slog.Error("error sending seencheck payload to crawl HQ", "err", err.Error())
 		return URLs, err

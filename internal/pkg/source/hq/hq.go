@@ -1,12 +1,73 @@
 package hq
 
 import (
+	"context"
+	"os"
+	"sync"
+
+	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/stats"
+	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 )
 
+type hq struct {
+	wg               sync.WaitGroup
+	ctx              context.Context
+	cancel           context.CancelFunc
+	inputChan        chan *models.Item
+	outputChan       chan *models.Item
+	client           *gocrawlhq.Client
+	consumerStopChan chan struct{}
+}
+
 var (
-	HQClient *gocrawlhq.Client
+	globalHQ *hq
+	once     sync.Once
+	logger   *log.FieldedLogger
 )
+
+func Start(outputChan chan *models.Item) error {
+	var done bool
+
+	log.Start()
+	logger = log.NewFieldedLogger(&log.Fields{
+		"component": "hq",
+	})
+
+	stats.Init()
+
+	once.Do(func() {
+		var err error
+
+		globalHQ.client, err = gocrawlhq.Init(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, "")
+		if err != nil {
+			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
+			os.Exit(1)
+		}
+
+		globalHQ.wg.Add(2)
+		go consumer()
+		// go Finisher()
+		done = true
+	})
+
+	if !done {
+		return ErrHQAlreadyInitialized
+	}
+
+	return nil
+}
+
+func Stop() {
+	if globalHQ != nil {
+		globalHQ.cancel()
+		globalHQ.wg.Wait()
+		close(globalHQ.outputChan)
+		logger.Info("stopped")
+	}
+}
 
 // func HQProducer() {
 // 	defer c.HQChannelsWg.Done()
@@ -103,127 +164,6 @@ var (
 // 	// if we are here, it means that the HQProducerChannel has been closed
 // 	// so we need to send the last payload to the crawl HQ
 // 	terminateProducer <- true
-// }
-
-// func HQConsumer() {
-// 	for {
-// 		c.HQConsumerState = "running"
-
-// 		// This is on purpose evaluated every time,
-// 		// because the value of workers will maybe change
-// 		// during the crawl in the future (to be implemented)
-// 		var HQBatchSize = int(c.Workers.Count)
-
-// 		if c.Finished.Get() {
-// 			c.HQConsumerState = "finished"
-// 			c.Log.Error("crawl finished, stopping HQ consumer")
-// 			break
-// 		}
-
-// 		// If HQContinuousPull is set to true, we will pull URLs from HQ continuously,
-// 		// otherwise we will only pull URLs when needed (and when the crawl is not paused)
-// 		for (c.Queue.GetStats().TotalElements > HQBatchSize && !c.HQContinuousPull) || c.Paused.Get() || c.Queue.HandoverOpen.Get() {
-// 			c.HQConsumerState = "waiting"
-// 			c.Log.Info("HQ producer waiting", "paused", c.Paused.Get(), "handoverOpen", c.Queue.HandoverOpen.Get(), "queueSize", c.Queue.GetStats().TotalElements)
-// 			time.Sleep(time.Millisecond * 50)
-// 			continue
-// 		}
-
-// 		// If a specific HQ batch size is set, use it
-// 		if c.HQBatchSize != 0 {
-// 			HQBatchSize = c.HQBatchSize
-// 		}
-
-// 		// get batch from crawl HQ
-// 		c.HQConsumerState = "waitingOnFeed"
-// 		var URLs []gocrawlhq.URL
-// 		var err error
-// 		if c.HQBatchConcurrency == 1 {
-// 			URLs, err = c.HQClient.Get(HQBatchSize, c.HQStrategy)
-// 			if err != nil {
-// 				// c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-// 				// 	"batchSize": HQBatchSize,
-// 				// 	"err":       err,
-// 				// })).Debug("error getting new URLs from crawl HQ")
-// 				continue
-// 			}
-// 		} else {
-// 			var mu sync.Mutex
-// 			var wg sync.WaitGroup
-// 			batchSize := HQBatchSize / c.HQBatchConcurrency
-// 			URLsChan := make(chan []gocrawlhq.URL, c.HQBatchConcurrency)
-
-// 			// Start goroutines to get URLs from crawl HQ, each will request
-// 			// HQBatchSize / HQConcurrentBatch URLs
-// 			for i := 0; i < c.HQBatchConcurrency; i++ {
-// 				wg.Add(1)
-// 				go func() {
-// 					defer wg.Done()
-// 					URLs, err := c.HQClient.Get(batchSize, c.HQStrategy)
-// 					if err != nil {
-// 						// c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-// 						// 	"batchSize": batchSize,
-// 						// 	"err":       err,
-// 						// })).Debug("error getting new URLs from crawl HQ")
-// 						return
-// 					}
-// 					URLsChan <- URLs
-// 				}()
-// 			}
-
-// 			// Wait for all goroutines to finish
-// 			go func() {
-// 				wg.Wait()
-// 				close(URLsChan)
-// 			}()
-
-// 			// Collect all URLs from the channels
-// 			for URLsFromChan := range URLsChan {
-// 				mu.Lock()
-// 				URLs = append(URLs, URLsFromChan...)
-// 				mu.Unlock()
-// 			}
-// 		}
-// 		c.HQConsumerState = "feedCompleted"
-
-// 		// send all URLs received in the batch to the queue
-// 		var items = make([]*queue.Item, 0, len(URLs))
-// 		if len(URLs) > 0 {
-// 			for _, URL := range URLs {
-// 				c.HQConsumerState = "urlParse"
-// 				newURL, err := url.Parse(URL.Value)
-// 				if err != nil {
-// 					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-// 						"url":       URL.Value,
-// 						"batchSize": HQBatchSize,
-// 						"err":       err,
-// 					})).Error("unable to parse URL received from crawl HQ, discarding")
-// 					continue
-// 				}
-
-// 				c.HQConsumerState = "newItem"
-// 				newItem, err := queue.NewItem(newURL, nil, "seed", uint64(strings.Count(URL.Path, "L")), URL.ID, false)
-// 				if err != nil {
-// 					c.Log.WithFields(c.genLogFields(err, newURL, map[string]interface{}{
-// 						"url":       URL.Value,
-// 						"batchSize": HQBatchSize,
-// 						"err":       err,
-// 					})).Error("unable to create new item from URL received from crawl HQ, discarding")
-// 					continue
-// 				}
-
-// 				c.HQConsumerState = "append"
-// 				items = append(items, newItem)
-// 			}
-// 		}
-
-// 		c.HQConsumerState = "enqueue"
-// 		err = c.Queue.BatchEnqueue(items...)
-// 		if err != nil {
-// 			c.Log.Error("unable to enqueue URL batch received from crawl HQ, discarding", "error", err)
-// 			continue
-// 		}
-// 	}
 // }
 
 // func HQFinisher() {
