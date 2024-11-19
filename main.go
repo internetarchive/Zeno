@@ -24,15 +24,13 @@ var (
 	logger *log.FieldedLogger
 )
 
-func init() {
+func main() {
 	log.Init()
 	logger = log.NewFieldedLogger(&log.Fields{
-		"component": "main",
+		"component": "preprocessor",
 	})
-}
-
-func main() {
 	defer log.Shutdown()
+
 	if err := cmd.Run(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

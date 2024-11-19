@@ -26,17 +26,15 @@ var (
 	logger        *log.FieldedLogger
 )
 
-func init() {
-	log.Init()
-	logger = log.NewFieldedLogger(&log.Fields{
-		"component": "reactor",
-	})
-}
-
 // Start initializes the global reactor with the given maximum tokens.
 // This method can only be called once.
 func Start(maxTokens int, outputChan chan *models.Item) error {
 	var done bool
+
+	log.Init()
+	logger = log.NewFieldedLogger(&log.Fields{
+		"component": "reactor",
+	})
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())

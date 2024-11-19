@@ -23,17 +23,15 @@ var (
 	logger             *log.FieldedLogger
 )
 
-func init() {
-	log.Init()
-	logger = log.NewFieldedLogger(&log.Fields{
-		"component": "preprocessor",
-	})
-}
-
 // This functions starts the preprocessor responsible for preparing
 // the seeds sent by the reactor for captures
 func Start(inputChan, outputChan chan *models.Item) error {
 	var done bool
+
+	log.Init()
+	logger = log.NewFieldedLogger(&log.Fields{
+		"component": "preprocessor",
+	})
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
