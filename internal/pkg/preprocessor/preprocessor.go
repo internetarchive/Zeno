@@ -9,6 +9,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
+	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -35,6 +36,8 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor",
 	})
+
+	stats.Init()
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -84,9 +87,11 @@ func run() {
 			if ok {
 				guard <- struct{}{}
 				wg.Add(1)
+				stats.PreprocessorRoutinesIncr()
 				go func() {
 					defer wg.Done()
 					defer func() { <-guard }()
+					defer stats.PreprocessorRoutinesDecr()
 					preprocess(item)
 				}()
 			}
