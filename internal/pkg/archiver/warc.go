@@ -52,28 +52,28 @@ func startWARCWriter() {
 			logger.Error("unable to init proxied WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
 			os.Exit(1)
 		}
+
+		go func() {
+			for err := range globalArchiver.ClientWithProxy.ErrChan {
+				logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
+			}
+		}()
 	}
 
 	// Even if a proxied client has been set, we want to create an non-proxied one
 	// if DomainsBypassProxy is used. The domains specified in this slice won't go
 	// through the proxied client, but through a "normal" client
 	if config.Get().Proxy == "" || len(config.Get().DomainsBypassProxy) > 0 {
-		globalArchiver.ClientWithProxy, err = warc.NewWARCWritingHTTPClient(WARCSettings)
+		globalArchiver.Client, err = warc.NewWARCWritingHTTPClient(WARCSettings)
 		if err != nil {
 			logger.Error("unable to init WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
 			os.Exit(1)
 		}
+
+		go func() {
+			for err := range globalArchiver.Client.ErrChan {
+				logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
+			}
+		}()
 	}
-
-	go func() {
-		for err := range globalArchiver.Client.ErrChan {
-			logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
-		}
-	}()
-
-	go func() {
-		for err := range globalArchiver.ClientWithProxy.ErrChan {
-			logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
-		}
-	}()
 }
