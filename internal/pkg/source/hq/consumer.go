@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 )
@@ -14,7 +15,7 @@ func consumer() {
 
 	for {
 		select {
-		case <-globalHQ.consumerStopChan:
+		case <-globalHQ.ctx.Done():
 			// Received signal to stop
 			// Wait for all batch-sending goroutines to finish
 			wg.Wait()
@@ -44,13 +45,13 @@ func consumer() {
 			wg.Add(1)
 
 			// Send the URLs to the reactor in a goroutine
-			go func(urls []gocrawlhq.URL) {
+			go func(URLs []gocrawlhq.URL) {
 				defer wg.Done() // Decrement the WaitGroup counter when done
 
-				totalURLs := len(urls)
-				for i, URL := range urls {
+				totalURLs := len(URLs)
+				for i, URL := range URLs {
 					UUID := uuid.New()
-					globalHQ.outputChan <- &models.Item{
+					newItem := &models.Item{
 						UUID: &UUID,
 						URL: &models.URL{
 							Raw: URL.Value,
@@ -58,6 +59,10 @@ func consumer() {
 						},
 						Status: models.ItemFresh,
 						Source: models.ItemSourceHQ,
+					}
+
+					if err := reactor.ReceiveInsert(newItem); err != nil {
+						panic("couldn't insert seed in reactor")
 					}
 
 					// When one-third of the URLs are left, send a pre-fetch signal
@@ -72,7 +77,7 @@ func consumer() {
 
 					// Check if stop signal is received to exit early
 					select {
-					case <-globalHQ.consumerStopChan:
+					case <-globalHQ.ctx.Done():
 						// Stop signal received, exit the goroutine
 						return
 					default:
@@ -86,7 +91,7 @@ func consumer() {
 			case <-prefetchSignal:
 				// Received pre-fetch signal; continue to fetch next batch
 				continue
-			case <-globalHQ.consumerStopChan:
+			case <-globalHQ.ctx.Done():
 				// Received signal to stop
 				// Wait for all batch-sending goroutines to finish
 				wg.Wait()

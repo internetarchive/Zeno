@@ -13,13 +13,11 @@ import (
 )
 
 type hq struct {
-	wg               sync.WaitGroup
-	ctx              context.Context
-	cancel           context.CancelFunc
-	inputChan        chan *models.Item
-	outputChan       chan *models.Item
-	client           *gocrawlhq.Client
-	consumerStopChan chan struct{}
+	wg      sync.WaitGroup
+	ctx     context.Context
+	cancel  context.CancelFunc
+	inputCh chan *models.Item
+	client  *gocrawlhq.Client
 }
 
 var (
@@ -28,7 +26,7 @@ var (
 	logger   *log.FieldedLogger
 )
 
-func Start(outputChan chan *models.Item) error {
+func Start(inputChan chan *models.Item) error {
 	var done bool
 
 	log.Start()
@@ -41,15 +39,25 @@ func Start(outputChan chan *models.Item) error {
 	once.Do(func() {
 		var err error
 
-		globalHQ.client, err = gocrawlhq.Init(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, "")
+		ctx, cancel := context.WithCancel(context.Background())
+		HQclient, err := gocrawlhq.Init(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, "")
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
 			os.Exit(1)
 		}
 
-		globalHQ.wg.Add(2)
+		globalHQ = &hq{
+			wg:      sync.WaitGroup{},
+			ctx:     ctx,
+			cancel:  cancel,
+			inputCh: inputChan,
+			client:  HQclient,
+		}
+
+		globalHQ.wg.Add(1)
 		go consumer()
-		// go Finisher()
+		// go producer()
+		// go finisher()
 		done = true
 	})
 
@@ -64,7 +72,6 @@ func Stop() {
 	if globalHQ != nil {
 		globalHQ.cancel()
 		globalHQ.wg.Wait()
-		close(globalHQ.outputChan)
 		logger.Info("stopped")
 	}
 }
