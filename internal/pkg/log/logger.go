@@ -25,11 +25,11 @@ func setupLogger() {
 	ctx, cancelFunc = context.WithCancel(context.Background())
 
 	// Start the log processing goroutine
-	wg.Add(1)
 	go processLogQueue(ctx)
 }
 
 func processLogQueue(ctx context.Context) {
+	wg.Add(1)
 	defer wg.Done()
 
 	// Initialize log destinations

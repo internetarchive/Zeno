@@ -24,7 +24,6 @@ var (
 )
 
 func init() {
-	log.Init()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor",
 	})

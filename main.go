@@ -32,6 +32,7 @@ func init() {
 }
 
 func main() {
+	defer log.Shutdown()
 	if err := cmd.Run(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
