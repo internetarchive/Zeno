@@ -46,6 +46,10 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			input:  inputChan,
 			output: outputChan,
 		}
+
+		// Setup WARC writing HTTP clients
+		startWARCWriter()
+
 		globalArchiver.wg.Add(1)
 		go run()
 		logger.Info("started")

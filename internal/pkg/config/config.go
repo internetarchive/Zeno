@@ -35,10 +35,13 @@ type Config struct {
 	PrometheusPrefix         string   `mapstructure:"prometheus-prefix"`
 	WARCPrefix               string   `mapstructure:"warc-prefix"`
 	WARCOperator             string   `mapstructure:"warc-operator"`
-	CDXDedupeServer          string   `mapstructure:"warc-cdx-dedupe-server"`
 	WARCTempDir              string   `mapstructure:"warc-temp-dir"`
 	WARCSize                 int      `mapstructure:"warc-size"`
-	CDXCookie                string   `mapstructure:"cdx-cookie"`
+	WARCOnDisk               bool     `mapstructure:"warc-on-disk"`
+	WARCPoolSize             int      `mapstructure:"warc-pool-size"`
+	WARCDedupeSize           int      `mapstructure:"warc-dedupe-size"`
+	CDXDedupeServer          string   `mapstructure:"warc-cdx-dedupe-server"`
+	CDXCookie                string   `mapstructure:"warc-cdx-cookie"`
 	HQAddress                string   `mapstructure:"hq-address"`
 	HQKey                    string   `mapstructure:"hq-key"`
 	HQSecret                 string   `mapstructure:"hq-secret"`
@@ -65,8 +68,6 @@ type Config struct {
 	CrawlTimeLimit           int      `mapstructure:"crawl-time-limit"`
 	CrawlMaxTimeLimit        int      `mapstructure:"crawl-max-time-limit"`
 	MinSpaceRequired         int      `mapstructure:"min-space-required"`
-	WARCPoolSize             int      `mapstructure:"warc-pool-size"`
-	WARCDedupeSize           int      `mapstructure:"warc-dedupe-size"`
 	KeepCookies              bool     `mapstructure:"keep-cookies"`
 	Headless                 bool     `mapstructure:"headless"`
 	JSON                     bool     `mapstructure:"json"`
@@ -76,7 +77,6 @@ type Config struct {
 	Prometheus               bool     `mapstructure:"prometheus"`
 	DomainsCrawl             bool     `mapstructure:"domains-crawl"`
 	CaptureAlternatePages    bool     `mapstructure:"capture-alternate-pages"`
-	WARCOnDisk               bool     `mapstructure:"warc-on-disk"`
 	DisableLocalDedupe       bool     `mapstructure:"disable-local-dedupe"`
 	CertValidation           bool     `mapstructure:"cert-validation"`
 	DisableAssetsCapture     bool     `mapstructure:"disable-assets-capture"`

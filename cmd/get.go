@@ -70,11 +70,11 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("warc-on-disk", false, "Do not use RAM to store payloads when recording traffic to WARCs, everything will happen on disk (usually used to reduce memory usage).")
 	getCmd.PersistentFlags().Int("warc-pool-size", 1, "Number of concurrent WARC files to write.")
 	getCmd.PersistentFlags().String("warc-temp-dir", "", "Custom directory to use for WARC temporary files.")
-	getCmd.PersistentFlags().Bool("disable-local-dedupe", false, "Disable local URL agonistic deduplication.")
+	getCmd.PersistentFlags().Bool("disable-local-dedupe", false, "Disable local URL agnostic deduplication.")
 	getCmd.PersistentFlags().Bool("cert-validation", false, "Enables certificate validation on HTTPS requests.")
 	getCmd.PersistentFlags().Bool("disable-assets-capture", false, "Disable assets capture.")
 	getCmd.PersistentFlags().Int("warc-dedupe-size", 1024, "Minimum size to deduplicate WARC records with revisit records.")
-	getCmd.PersistentFlags().String("cdx-cookie", "", "Pass custom cookie during CDX requests. Example: 'cdx_auth_token=test_value'")
+	getCmd.PersistentFlags().String("warc-cdx-cookie", "", "Pass custom cookie during CDX requests. Example: 'cdx_auth_token=test_value'")
 	getCmd.PersistentFlags().Int("warc-size", 1024, "Size of the WARC files in MB.")
 
 	// Logging flags
