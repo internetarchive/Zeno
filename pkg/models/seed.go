@@ -12,6 +12,7 @@ type Item struct {
 	Source         ItemSource // Source is the source of the item in the pipeline
 	ChildsCaptured bool       // ChildsCaptured is the flag to indicate if the child URLs of the item have been captured
 	Childs         []*URL     // Childs is the list of URLs that have been discovered via the item's URL
+	Error          error      // Error message of the seed
 }
 
 // ItemState qualifies the state of a item in the pipeline

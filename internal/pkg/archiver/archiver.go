@@ -14,11 +14,12 @@ import (
 )
 
 type archiver struct {
-	wg     sync.WaitGroup
-	ctx    context.Context
-	cancel context.CancelFunc
-	input  chan *models.Item
-	output chan *models.Item
+	wg       sync.WaitGroup
+	ctx      context.Context
+	cancel   context.CancelFunc
+	inputCh  chan *models.Item
+	outputCh chan *models.Item
+	errorCh  chan *models.Item
 
 	Client          *warc.CustomHTTPClient
 	ClientWithProxy *warc.CustomHTTPClient
@@ -31,7 +32,7 @@ var (
 )
 
 // This functions starts the archiver responsible for capturing the URLs
-func Start(inputChan, outputChan chan *models.Item) error {
+func Start(inputChan, outputChan, errorChan chan *models.Item) error {
 	var done bool
 
 	log.Start()
@@ -44,10 +45,11 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		globalArchiver = &archiver{
-			ctx:    ctx,
-			cancel: cancel,
-			input:  inputChan,
-			output: outputChan,
+			ctx:      ctx,
+			cancel:   cancel,
+			inputCh:  inputChan,
+			outputCh: outputChan,
+			errorCh:  errorChan,
 		}
 
 		// Setup WARC writing HTTP clients
@@ -70,7 +72,7 @@ func Stop() {
 	if globalArchiver != nil {
 		globalArchiver.cancel()
 		globalArchiver.wg.Wait()
-		close(globalArchiver.output)
+		close(globalArchiver.outputCh)
 		logger.Info("stopped")
 	}
 }
@@ -89,7 +91,7 @@ func run() {
 		case <-globalArchiver.ctx.Done():
 			logger.Info("shutting down")
 			return
-		case item, ok := <-globalArchiver.input:
+		case item, ok := <-globalArchiver.inputCh:
 			if ok {
 				guard <- struct{}{}
 				wg.Add(1)
@@ -148,5 +150,5 @@ func archive(item *models.Item) {
 		}()
 	}
 
-	globalArchiver.output <- item
+	globalArchiver.outputCh <- item
 }

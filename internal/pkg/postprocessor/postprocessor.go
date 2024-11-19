@@ -11,11 +11,12 @@ import (
 )
 
 type postprocessor struct {
-	wg     sync.WaitGroup
-	ctx    context.Context
-	cancel context.CancelFunc
-	input  chan *models.Item
-	output chan *models.Item
+	wg       sync.WaitGroup
+	ctx      context.Context
+	cancel   context.CancelFunc
+	inputCh  chan *models.Item
+	outputCh chan *models.Item
+	errorCh  chan *models.Item
 }
 
 var (
@@ -26,7 +27,7 @@ var (
 
 // This functions starts the preprocessor responsible for preparing
 // the seeds sent by the reactor for captures
-func Start(inputChan, outputChan chan *models.Item) error {
+func Start(inputChan, outputChan, errorChan chan *models.Item) error {
 	var done bool
 
 	log.Start()
@@ -39,10 +40,11 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		globalPostprocessor = &postprocessor{
-			ctx:    ctx,
-			cancel: cancel,
-			input:  inputChan,
-			output: outputChan,
+			ctx:      ctx,
+			cancel:   cancel,
+			inputCh:  inputChan,
+			outputCh: outputChan,
+			errorCh:  errorChan,
 		}
 		globalPostprocessor.wg.Add(1)
 		go run()
@@ -61,7 +63,7 @@ func Stop() {
 	if globalPostprocessor != nil {
 		globalPostprocessor.cancel()
 		globalPostprocessor.wg.Wait()
-		close(globalPostprocessor.output)
+		close(globalPostprocessor.outputCh)
 		logger.Info("stopped")
 	}
 }
@@ -80,7 +82,7 @@ func run() {
 		case <-globalPostprocessor.ctx.Done():
 			logger.Info("shutting down")
 			return
-		case item, ok := <-globalPostprocessor.input:
+		case item, ok := <-globalPostprocessor.inputCh:
 			if ok {
 				guard <- struct{}{}
 				wg.Add(1)
@@ -98,5 +100,5 @@ func run() {
 
 func postprocess(item *models.Item) {
 	// TODO
-	globalPostprocessor.output <- item
+	globalPostprocessor.outputCh <- item
 }

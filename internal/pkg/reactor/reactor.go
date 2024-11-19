@@ -46,7 +46,7 @@ func Start(maxTokens int, outputChan chan *models.Item) error {
 			input:     make(chan *models.Item, maxTokens),
 			output:    outputChan,
 		}
-		logger.Info("initialized")
+		logger.Debug("initialized")
 		globalReactor.wg.Add(1)
 		go globalReactor.run()
 		logger.Info("started")
@@ -63,11 +63,13 @@ func Start(maxTokens int, outputChan chan *models.Item) error {
 // Stop stops the global reactor and waits for all goroutines to finish.
 func Stop() {
 	if globalReactor != nil {
+		logger.Debug("received stop signal")
 		globalReactor.cancel()
 		globalReactor.wg.Wait()
 		close(globalReactor.input)
 		close(globalReactor.tokenPool)
 		once = sync.Once{}
+		globalReactor = nil
 		logger.Info("stopped")
 	}
 }
