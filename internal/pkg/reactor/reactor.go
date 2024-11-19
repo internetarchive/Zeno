@@ -98,6 +98,7 @@ func ReceiveFeedback(item *models.Item) error {
 // ReceiveInsert sends an item to the input channel consuming a token.
 // It is the responsibility of the sender to set either ItemSourceQueue or ItemSourceHQ, if not set seed will get forced ItemSourceInsert
 func ReceiveInsert(item *models.Item) error {
+	logger.Info("received seed", "seed", item.UUID.String())
 	if globalReactor == nil {
 		return ErrReactorNotInitialized
 	}
