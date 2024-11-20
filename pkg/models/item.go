@@ -77,6 +77,10 @@ func (i *Item) SetSource(source ItemSource) {
 	i.Source = source
 }
 
+func (i *Item) SetChilds(childs []*URL) {
+	i.Childs = childs
+}
+
 func (i *Item) SetChildsCaptured(captured bool) {
 	i.ChildsCaptured = captured
 }

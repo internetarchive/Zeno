@@ -110,105 +110,77 @@ func preprocess(item *models.Item) {
 	// TODO: if an error happen and it's a fresh item, we should mark it as failed in HQ (if it's a HQ-based crawl)
 
 	var (
-		err             error
-		URLsToSeencheck []*models.URL
-		URLType         string
+		URLsToPreprocess []*models.URL
+		URLType          models.URLType
+		err              error
 	)
 
-	// Validate the URLs, either the item's URL or its childs if it has any
 	if item.GetStatus() == models.ItemFresh {
-		URLType = "seed"
-
-		// Validate the item's URL itself
-		err = normalizeURL(item.URL, nil)
-		if err != nil {
-			logger.Warn("unable to validate URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocessor")
-			return
-		}
+		URLType = models.URLTypeSeed
+		URLsToPreprocess = append(URLsToPreprocess, item.GetURL())
 	} else if item.GetRedirection() != nil {
-		URLType = "seed"
-
-		// Validate the item's URL itself
-		err = normalizeURL(item.GetURL(), nil)
-		if err != nil {
-			logger.Warn("unable to validate URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocessor")
-			return
-		}
-
-		if config.Get().UseSeencheck {
-			URLsToSeencheck = append(URLsToSeencheck, item.URL)
-		}
+		URLType = models.URLTypeRedirection
+		URLsToPreprocess = append(URLsToPreprocess, item.GetRedirection())
 	} else if len(item.Childs) > 0 {
-		URLType = "asset"
-
-		// Validate the URLs of the child items
-		for i := 0; i < len(item.Childs); {
-			err = normalizeURL(item.Childs[i], item.URL)
-			if err != nil {
-				// If we can't validate an URL, we remove it from the list of childs
-				logger.Warn("unable to validate URL", "url", item.Childs[i].Raw, "err", err.Error(), "func", "preprocessor.preprocessor")
-				item.Childs = append(item.Childs[:i], item.Childs[i+1:]...)
-			} else {
-				if config.Get().UseSeencheck {
-					URLsToSeencheck = append(URLsToSeencheck, item.Childs[i])
-				}
-
-				i++
-			}
-		}
+		URLType = models.URLTypeAsset
+		URLsToPreprocess = append(URLsToPreprocess, item.GetChilds()...)
 	} else {
-		logger.Error("item got into preprocessoring without anything to preprocessor")
+		panic("item has no URL to preprocess")
 	}
 
-	// If we have URLs to seencheck, we do it
-	if len(URLsToSeencheck) > 0 {
+	// Validate the URLs
+	for i := 0; i < len(URLsToPreprocess); {
+		var parentURL *models.URL
+
+		if URLType != models.URLTypeSeed {
+			parentURL = item.GetURL()
+		}
+
+		err = normalizeURL(URLsToPreprocess[i], parentURL)
+		if err != nil {
+			// If we can't validate an URL, we remove it from the list of childs
+			logger.Warn("unable to validate URL", "url", URLsToPreprocess[i].Raw, "err", err.Error(), "func", "preprocessor.preprocess")
+			URLsToPreprocess = append(URLsToPreprocess[:i], URLsToPreprocess[i+1:]...)
+		} else {
+			i++
+		}
+	}
+
+	// If the item is a redirection or an asset, we need to seencheck it if needed
+	if config.Get().UseSeencheck && URLType != models.URLTypeSeed {
 		var seencheckedURLs []*models.URL
 
 		if config.Get().HQ {
-			seencheckedURLs, err = hq.SeencheckURLs(URLType, item.URL)
+			seencheckedURLs, err = hq.SeencheckURLs(string(URLType), item.URL)
 			if err != nil {
 				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 				return
 			}
 		} else {
-			seencheckedURLs, err = seencheck.SeencheckURLs(URLType, item.URL)
+			seencheckedURLs, err = seencheck.SeencheckURLs(string(URLType), item.URL)
 			if err != nil {
 				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 				return
 			}
 		}
 
-		if len(seencheckedURLs) == 0 {
-			return
-		}
-
-		if URLType == "seed" {
-			item.URL = seencheckedURLs[0]
-		} else {
-			item.Childs = seencheckedURLs
+		switch URLType {
+		case models.URLTypeRedirection:
+			item.SetRedirection(nil)
+		case models.URLTypeAsset:
+			item.SetChilds(seencheckedURLs)
 		}
 	}
 
 	// Finally, we build the requests, applying any site-specific behavior needed
-	if URLType == "seed" {
+	for _, URL := range URLsToPreprocess {
 		// TODO: apply site-specific stuff
-		req, err := http.NewRequest(http.MethodGet, item.URL.String(), nil)
+		req, err := http.NewRequest(http.MethodGet, URL.String(), nil)
 		if err != nil {
 			logger.Error("unable to create new request for URL", "url", item.URL.String(), "err", err.Error(), "func", "preprocessor.preprocess")
 			return
 		}
 
-		item.URL.SetRequest(req)
-	} else {
-		for i, child := range item.Childs {
-			// TODO: apply site-specific stuff
-			req, err := http.NewRequest(http.MethodGet, child.String(), nil)
-			if err != nil {
-				logger.Error("unable to create new request for URL", "url", item.URL.String(), "err", err.Error(), "func", "preprocessor.preprocess")
-				return
-			}
-
-			item.Childs[i].SetRequest(req)
-		}
+		URL.SetRequest(req)
 	}
 }
