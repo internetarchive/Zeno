@@ -102,6 +102,7 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.ArchiverRoutinesDecr()
 					archive(item)
+					globalArchiver.outputCh <- item
 				}()
 			}
 		}
@@ -120,9 +121,11 @@ func archive(item *models.Item) {
 	// Determines the URLs that need to be captured, if the item's status is fresh we need
 	// to capture the seed, else we need to capture the child URLs (assets), in parallel
 	if item.Status == models.ItemFresh {
-		URLsToCapture = append(URLsToCapture, item.URL)
+		URLsToCapture = append(URLsToCapture, item.GetURL())
+	} else if item.GetRedirection() != nil {
+		URLsToCapture = append(URLsToCapture, item.GetRedirection())
 	} else {
-		URLsToCapture = item.Childs
+		URLsToCapture = item.GetChilds()
 	}
 
 	for _, URL := range URLsToCapture {
@@ -160,6 +163,4 @@ func archive(item *models.Item) {
 	}
 
 	wg.Wait()
-
-	globalArchiver.outputCh <- item
 }

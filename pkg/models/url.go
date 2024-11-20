@@ -16,7 +16,7 @@ type URL struct {
 	request   *http.Request
 	response  *http.Response
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
-	redirects int
+	Redirects int
 }
 
 func (u *URL) Parse() (err error) {
@@ -45,18 +45,18 @@ func (u *URL) GetResponse() *http.Response {
 }
 
 func (u *URL) GetRedirects() int {
-	return u.redirects
+	return u.Redirects
 }
 
 func (u *URL) IncRedirects() {
-	u.redirects++
+	u.Redirects++
 }
 
 func (u *URL) SetHops(hops int) {
 	u.Hops = hops
 }
 
-func (u *URL) GetHop() int {
+func (u *URL) GetHops() int {
 	return u.Hops
 }
 
