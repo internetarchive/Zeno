@@ -99,6 +99,12 @@ func main() {
 	select {
 	case <-signalChan:
 		logger.Info("received shutdown signal, stopping services...")
+		// Catch a second signal to force exit
+		go func() {
+			<-signalChan
+			logger.Info("received second shutdown signal, forcing exit...")
+			os.Exit(1)
+		}()
 	case item := <-seedErrorChan:
 		logger.Error("received error from seedErrorChan", "err", item.GetError())
 	}
