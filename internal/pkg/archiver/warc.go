@@ -2,6 +2,7 @@ package archiver
 
 import (
 	"os"
+	"time"
 
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -75,6 +76,17 @@ func startWARCWriter() {
 				logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
 			}
 		}()
+	}
+
+	// Set the timeouts
+	if config.Get().HTTPTimeout > 0 {
+		if globalArchiver.Client != nil {
+			globalArchiver.Client.Timeout = time.Duration(config.Get().HTTPTimeout) * time.Second
+		}
+
+		if globalArchiver.ClientWithProxy != nil {
+			globalArchiver.ClientWithProxy.Timeout = time.Duration(config.Get().HTTPTimeout) * time.Second
+		}
 	}
 }
 
