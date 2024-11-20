@@ -116,4 +116,5 @@ func main() {
 	preprocessor.Stop()
 	reactor.Stop()
 	logger.Info("all services stopped, exiting")
+	return
 }

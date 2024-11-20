@@ -2,7 +2,6 @@ package hq
 
 import (
 	"context"
-	"os"
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -29,6 +28,7 @@ var (
 
 func Start(finishChan, produceChan chan *models.Item) error {
 	var done bool
+	var startErr error
 
 	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
@@ -38,13 +38,11 @@ func Start(finishChan, produceChan chan *models.Item) error {
 	stats.Init()
 
 	once.Do(func() {
-		var err error
-
 		ctx, cancel := context.WithCancel(context.Background())
 		HQclient, err := gocrawlhq.Init(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, "")
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
-			os.Exit(1)
+			startErr = err
 		}
 
 		globalHQ = &hq{
@@ -67,7 +65,7 @@ func Start(finishChan, produceChan chan *models.Item) error {
 		return ErrHQAlreadyInitialized
 	}
 
-	return nil
+	return startErr
 }
 
 func Stop() {
@@ -78,54 +76,3 @@ func Stop() {
 		logger.Info("stopped")
 	}
 }
-
-// func HQFinisher() {
-// 	defer c.HQChannelsWg.Done()
-
-// 	var (
-// 		finishedArray       = []gocrawlhq.URL{}
-// 		locallyCrawledTotal int
-// 	)
-
-// 	for finishedItem := range c.HQFinishedChannel {
-// 		if finishedItem.ID == "" {
-// 			c.Log.WithFields(c.genLogFields(nil, finishedItem.URL, nil)).Warn("URL has no ID, discarding")
-// 			continue
-// 		}
-
-// 		locallyCrawledTotal += int(finishedItem.LocallyCrawled)
-// 		finishedArray = append(finishedArray, gocrawlhq.URL{ID: finishedItem.ID, Value: utils.URLToString(finishedItem.URL)})
-
-// 		if len(finishedArray) == int(math.Ceil(float64(c.Workers.Count)/2)) {
-// 			for {
-// 				err := c.HQClient.Delete(finishedArray, locallyCrawledTotal)
-// 				if err != nil {
-// 					c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-// 						"finishedArray": finishedArray,
-// 					})).Error("error submitting finished urls to crawl HQ. retrying in one second...")
-// 					time.Sleep(time.Second)
-// 					continue
-// 				}
-// 				break
-// 			}
-
-// 			finishedArray = []gocrawlhq.URL{}
-// 			locallyCrawledTotal = 0
-// 		}
-// 	}
-
-// 	// send remaining finished URLs
-// 	if len(finishedArray) > 0 {
-// 		for {
-// 			err := c.HQClient.Delete(finishedArray, locallyCrawledTotal)
-// 			if err != nil {
-// 				c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-// 					"finishedArray": finishedArray,
-// 				})).Error("error submitting finished urls to crawl HQ. retrying in one second...")
-// 				time.Sleep(time.Second)
-// 				continue
-// 			}
-// 			break
-// 		}
-// 	}
-// }
