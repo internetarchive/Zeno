@@ -109,8 +109,17 @@ func main() {
 	postprocessor.Stop()
 	archiver.Stop()
 	preprocessor.Stop()
+	reactor.Freeze()
 	hq.Stop()
 	reactor.Stop()
+
+	close(reactorOutputChan)
+	close(preprocessorOutputChan)
+	close(archiverOutputChan)
+	close(postprocessorOutputChan)
+	close(hqFinishChan)
+	close(hqProduceChan)
+
 	logger.Info("all services stopped, exiting")
 	return
 }

@@ -62,24 +62,33 @@ func Stop() {
 	if globalPostprocessor != nil {
 		globalPostprocessor.cancel()
 		globalPostprocessor.wg.Wait()
-		close(globalPostprocessor.outputCh)
 		logger.Info("stopped")
 	}
 }
 
 func run() {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "postprocessor.run",
+	})
+
 	defer globalPostprocessor.wg.Done()
 
-	var (
-		wg    sync.WaitGroup
-		guard = make(chan struct{}, config.Get().WorkersCount)
-	)
+	// Create a context to manage goroutines
+	ctx, cancel := context.WithCancel(globalPostprocessor.ctx)
+	defer cancel()
+
+	// Create a wait group to wait for all goroutines to finish
+	var wg sync.WaitGroup
+
+	// Guard to limit the number of concurrent archiver routines
+	guard := make(chan struct{}, config.Get().WorkersCount)
 
 	for {
 		select {
 		// Closes the run routine when context is canceled
 		case <-globalPostprocessor.ctx.Done():
 			logger.Debug("shutting down")
+			wg.Wait()
 			return
 		case item, ok := <-globalPostprocessor.inputCh:
 			if ok {
@@ -87,13 +96,19 @@ func run() {
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.PostprocessorRoutinesIncr()
-				go func() {
+				go func(ctx context.Context) {
 					defer wg.Done()
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
+
 					postprocess(item)
-					globalPostprocessor.outputCh <- item
-				}()
+
+					select {
+					case <-ctx.Done():
+						return
+					case globalPostprocessor.outputCh <- item:
+					}
+				}(ctx)
 			}
 		}
 	}

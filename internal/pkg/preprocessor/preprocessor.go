@@ -65,18 +65,26 @@ func Stop() {
 	if globalPreprocessor != nil {
 		globalPreprocessor.cancel()
 		globalPreprocessor.wg.Wait()
-		close(globalPreprocessor.outputCh)
 		logger.Info("stopped")
 	}
 }
 
 func run() {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "preprocessor.run",
+	})
+
 	defer globalPreprocessor.wg.Done()
 
-	var (
-		wg    sync.WaitGroup
-		guard = make(chan struct{}, config.Get().WorkersCount)
-	)
+	// Create a context to manage goroutines
+	ctx, cancel := context.WithCancel(globalPreprocessor.ctx)
+	defer cancel()
+
+	// Create a wait group to wait for all goroutines to finish
+	var wg sync.WaitGroup
+
+	// Guard to limit the number of concurrent archiver routines
+	guard := make(chan struct{}, config.Get().WorkersCount)
 
 	for {
 		select {
@@ -90,13 +98,19 @@ func run() {
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.PreprocessorRoutinesIncr()
-				go func() {
+				go func(ctx context.Context) {
 					defer wg.Done()
 					defer func() { <-guard }()
 					defer stats.PreprocessorRoutinesDecr()
+
 					preprocess(item)
-					globalPreprocessor.outputCh <- item
-				}()
+
+					select {
+					case <-ctx.Done():
+						return
+					case globalPreprocessor.outputCh <- item:
+					}
+				}(ctx)
 			}
 		}
 	}

@@ -41,15 +41,13 @@ func finisher() {
 		select {
 		case <-globalHQ.ctx.Done():
 			logger.Debug("received done signal")
-			// Cancel the context to stop all goroutines.
-			cancel()
-
 			logger.Debug("waiting for goroutines to finish")
-			// Wait for the finisher and dispatcher to finish.
-			wg.Wait()
 
 			// Close the batch channel to signal the dispatcher to finish.
 			close(batchCh)
+
+			// Wait for the finisher and dispatcher to finish.
+			wg.Wait()
 
 			globalHQ.wg.Done()
 
@@ -80,11 +78,6 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 		select {
 		case <-ctx.Done():
 			logger.Debug("closing")
-			// Send any remaining URLs.
-			if len(batch.URLs) > 0 {
-				logger.Debug("while closing sending remaining batch to dispatcher", "size", len(batch.URLs))
-				batchCh <- batch // Blocks if batchCh is full.
-			}
 			return
 		case item := <-globalHQ.finishCh:
 			logger.Debug("received item", "item", item.GetShortID())
@@ -131,7 +124,19 @@ func finisherDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *f
 
 	for {
 		select {
-		case batch := <-batchCh:
+		case <-ctx.Done():
+			logger.Debug("closing")
+			// Wait for all sender routines to finish.
+			senderWg.Wait()
+			return
+		case batch, ok := <-batchCh:
+			if !ok {
+				logger.Debug("closing")
+				// Wait for all sender routines to finish.
+				senderWg.Wait()
+				return
+			}
+
 			senderSemaphore <- struct{}{} // Blocks if maxSenders reached.
 			senderWg.Add(1)
 			logger.Debug("dispatching batch to sender", "size", len(batch.URLs))
@@ -140,11 +145,6 @@ func finisherDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *f
 				defer func() { <-senderSemaphore }()
 				finisherSender(ctx, batch)
 			}(batch)
-		case <-ctx.Done():
-			logger.Debug("closing")
-			// Wait for all sender routines to finish.
-			senderWg.Wait()
-			return
 		}
 	}
 }

@@ -11,13 +11,15 @@ import (
 
 // reactor struct holds the state and channels for managing seeds processing.
 type reactor struct {
-	tokenPool  chan struct{}      // Token pool to control asset count
-	ctx        context.Context    // Context for stopping the reactor
-	cancel     context.CancelFunc // Context's cancel func
-	input      chan *models.Item  // Combined input channel for source and feedback
-	output     chan *models.Item  // Output channel
-	stateTable sync.Map           // State table for tracking seeds by UUID
-	wg         sync.WaitGroup     // WaitGroup to manage goroutines
+	tokenPool    chan struct{}      // Token pool to control asset count
+	ctx          context.Context    // Context for stopping the reactor
+	cancel       context.CancelFunc // Context's cancel func
+	freezeCtx    context.Context    // Context for freezing the reactor
+	freezeCancel context.CancelFunc // Freezing context's cancel func
+	input        chan *models.Item  // Combined input channel for source and feedback
+	output       chan *models.Item  // Output channel
+	stateTable   sync.Map           // State table for tracking seeds by UUID
+	wg           sync.WaitGroup     // WaitGroup to manage goroutines
 	// stopChan   chan struct{}      // Channel to signal when stop is finished
 }
 
@@ -39,12 +41,15 @@ func Start(maxTokens int, outputChan chan *models.Item) error {
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
+		freezeCtx, freezeCancel := context.WithCancel(ctx)
 		globalReactor = &reactor{
-			tokenPool: make(chan struct{}, maxTokens),
-			ctx:       ctx,
-			cancel:    cancel,
-			input:     make(chan *models.Item, maxTokens),
-			output:    outputChan,
+			tokenPool:    make(chan struct{}, maxTokens),
+			ctx:          ctx,
+			cancel:       cancel,
+			freezeCtx:    freezeCtx,
+			freezeCancel: freezeCancel,
+			input:        make(chan *models.Item, maxTokens),
+			output:       outputChan,
 		}
 		logger.Debug("initialized")
 		globalReactor.wg.Add(1)
@@ -67,10 +72,17 @@ func Stop() {
 		globalReactor.cancel()
 		globalReactor.wg.Wait()
 		close(globalReactor.input)
-		close(globalReactor.tokenPool)
 		once = sync.Once{}
 		globalReactor = nil
 		logger.Info("stopped")
+	}
+}
+
+// Freeze stops the global reactor from processing seeds.
+func Freeze() {
+	if globalReactor != nil {
+		logger.Debug("received freeze signal")
+		globalReactor.freezeCancel()
 	}
 }
 
@@ -88,10 +100,12 @@ func ReceiveFeedback(item *models.Item) error {
 		return ErrFeedbackItemNotPresent
 	}
 	select {
-	case globalReactor.input <- item:
-		return nil
 	case <-globalReactor.ctx.Done():
 		return ErrReactorShuttingDown
+	case <-globalReactor.freezeCtx.Done():
+		return ErrReactorFrozen
+	case globalReactor.input <- item:
+		return nil
 	}
 }
 
@@ -104,6 +118,10 @@ func ReceiveInsert(item *models.Item) error {
 	}
 
 	select {
+	case <-globalReactor.ctx.Done():
+		return ErrReactorShuttingDown
+	case <-globalReactor.freezeCtx.Done():
+		return ErrReactorFrozen
 	case globalReactor.tokenPool <- struct{}{}:
 		if item.Source != models.ItemSourceQueue && item.Source != models.ItemSourceHQ {
 			item.Source = models.ItemSourceInsert
@@ -111,8 +129,6 @@ func ReceiveInsert(item *models.Item) error {
 		globalReactor.stateTable.Store(item.ID, item)
 		globalReactor.input <- item
 		return nil
-	case <-globalReactor.ctx.Done():
-		return ErrReactorShuttingDown
 	}
 }
 

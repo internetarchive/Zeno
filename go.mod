@@ -8,7 +8,7 @@ require (
 	github.com/elastic/go-elasticsearch v0.0.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/google/uuid v1.6.0
-	github.com/internetarchive/gocrawlhq v1.2.20
+	github.com/internetarchive/gocrawlhq v1.2.21
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5

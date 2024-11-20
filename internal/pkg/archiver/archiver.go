@@ -71,24 +71,33 @@ func Stop() {
 	if globalArchiver != nil {
 		globalArchiver.cancel()
 		globalArchiver.wg.Wait()
-		close(globalArchiver.outputCh)
 		logger.Info("stopped")
 	}
 }
 
 func run() {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "archiver.run",
+	})
+
 	defer globalArchiver.wg.Done()
 
-	var (
-		wg    sync.WaitGroup
-		guard = make(chan struct{}, config.Get().WorkersCount)
-	)
+	// Create a context to manage goroutines
+	ctx, cancel := context.WithCancel(globalArchiver.ctx)
+	defer cancel()
+
+	// Create a wait group to wait for all goroutines to finish
+	var wg sync.WaitGroup
+
+	// Guard to limit the number of concurrent archiver routines
+	guard := make(chan struct{}, config.Get().WorkersCount)
 
 	for {
 		select {
 		// Closes the run routine when context is canceled
 		case <-globalArchiver.ctx.Done():
 			logger.Debug("shutting down")
+			wg.Wait()
 			return
 		case item, ok := <-globalArchiver.inputCh:
 			if ok {
@@ -96,13 +105,19 @@ func run() {
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.ArchiverRoutinesIncr()
-				go func() {
+				go func(ctx context.Context) {
 					defer wg.Done()
 					defer func() { <-guard }()
 					defer stats.ArchiverRoutinesDecr()
+
 					archive(item)
-					globalArchiver.outputCh <- item
-				}()
+
+					select {
+					case <-ctx.Done():
+						return
+					case globalArchiver.outputCh <- item:
+					}
+				}(ctx)
 			}
 		}
 	}

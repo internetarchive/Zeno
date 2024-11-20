@@ -127,24 +127,31 @@ func producerDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *p
 
 	maxSenders := getMaxProducerSenders()
 	senderSemaphore := make(chan struct{}, maxSenders)
-	var senderWg sync.WaitGroup
+	var producerWg sync.WaitGroup
 
 	for {
 		select {
-		case batch := <-batchCh:
-			senderSemaphore <- struct{}{} // Blocks if maxSenders reached.
-			senderWg.Add(1)
-			logger.Debug("dispatching batch to sender", "size", len(batch.URLs))
-			go func(batch *producerBatch) {
-				defer senderWg.Done()
-				defer func() { <-senderSemaphore }()
-				producerSender(ctx, batch)
-			}(batch)
 		case <-ctx.Done():
 			logger.Debug("closing")
 			// Wait for all sender routines to finish.
-			senderWg.Wait()
+			producerWg.Wait()
 			return
+		case batch, ok := <-batchCh:
+			if !ok {
+				logger.Debug("closing")
+				// Wait for all sender routines to finish.
+				producerWg.Wait()
+				return
+			}
+
+			senderSemaphore <- struct{}{} // Blocks if maxSenders reached.
+			producerWg.Add(1)
+			logger.Debug("dispatching batch to sender", "size", len(batch.URLs))
+			go func(batch *producerBatch) {
+				defer producerWg.Done()
+				defer func() { <-senderSemaphore }()
+				producerSender(ctx, batch)
+			}(batch)
 		}
 	}
 }

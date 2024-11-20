@@ -43,15 +43,12 @@ func consumer() {
 		select {
 		case <-globalHQ.ctx.Done():
 			logger.Debug("received done signal")
-			// Cancel the context to stop all goroutines
-			cancel()
-
 			logger.Debug("waiting for goroutines to finish")
-			// Wait for all goroutines to finish
-			wg.Wait()
-
 			// Close the urlBuffer to signal consumerSenders to finish
 			close(urlBuffer)
+
+			// Wait for all goroutines to finish
+			wg.Wait()
 
 			globalHQ.wg.Done()
 
@@ -62,11 +59,12 @@ func consumer() {
 }
 
 func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlhq.URL, batchSize int) {
+	defer wg.Done()
+
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "hq.consumerFetcher",
 	})
 
-	defer wg.Done()
 	for {
 		// Check for context cancellation
 		select {
@@ -92,20 +90,21 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		for _, URL := range URLs {
 			select {
 			case <-ctx.Done():
+				logger.Debug("closing")
 				return
 			case urlBuffer <- &URL:
-
 			}
 		}
 	}
 }
 
 func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *gocrawlhq.URL) {
+	defer wg.Done()
+
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "hq.consumerSender",
 	})
 
-	defer wg.Done()
 	for {
 		select {
 		case <-ctx.Done():
@@ -113,13 +112,13 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *g
 			return
 		case URL, ok := <-urlBuffer:
 			if !ok {
-				// Channel closed, exit the consumerSender
+				logger.Debug("closing")
 				return
 			}
 
 			// Process the URL and send to reactor
 			err := processAndSend(URL)
-			if err != nil {
+			if err != nil && err != reactor.ErrReactorFrozen {
 				panic(err)
 			}
 		}
