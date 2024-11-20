@@ -79,7 +79,11 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		// Fetch URLs from HQ
 		URLs, err := getURLs(batchSize)
 		if err != nil {
-			logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.consumerFetcher")
+			if err.Error() == "gocrawlhq: feed is empty" {
+				logger.Debug("feed is empty, waiting for new URLs")
+			} else {
+				logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.consumerFetcher")
+			}
 			time.Sleep(250 * time.Millisecond)
 			continue
 		}

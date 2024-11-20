@@ -39,7 +39,7 @@ type ElasticsearchConfig struct {
 func defaultConfig() *Config {
 	return &Config{
 		StdoutEnabled: true,
-		StdoutLevel:   slog.LevelInfo,
+		StdoutLevel:   slog.LevelDebug,
 		StderrEnabled: true,
 		StderrLevel:   slog.LevelError,
 	}

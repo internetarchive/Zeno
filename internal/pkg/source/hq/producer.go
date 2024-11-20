@@ -96,15 +96,21 @@ func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *pro
 			if len(batch.URLs) >= batchSize {
 				logger.Debug("sending batch to dispatcher", "size", len(batch.URLs))
 				// Send the batch to batchCh.
-				batchCh <- batch // Blocks if batchCh is full.
-				batch.URLs = make([]gocrawlhq.URL, 0, batchSize)
+				copyBatch := *batch
+				batchCh <- &copyBatch // Blocks if batchCh is full.
+				batch = &producerBatch{
+					URLs: make([]gocrawlhq.URL, 0, batchSize),
+				}
 				resetTimer(timer, maxWaitTime)
 			}
 		case <-timer.C:
 			if len(batch.URLs) > 0 {
 				logger.Debug("sending non-full batch to dispatcher", "size", len(batch.URLs))
-				batchCh <- batch // Blocks if batchCh is full.
-				batch.URLs = make([]gocrawlhq.URL, 0, batchSize)
+				copyBatch := *batch
+				batchCh <- &copyBatch // Blocks if batchCh is full.
+				batch = &producerBatch{
+					URLs: make([]gocrawlhq.URL, 0, batchSize),
+				}
 			}
 			resetTimer(timer, maxWaitTime)
 		}

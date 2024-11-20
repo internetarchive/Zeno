@@ -87,22 +87,30 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 			}
 			return
 		case item := <-globalHQ.finishCh:
+			logger.Debug("received item", "item", item.ID)
 			URL := gocrawlhq.URL{
-				ID: item.ID,
+				ID:   item.ID,
+				Type: "seed",
 			}
 			batch.URLs = append(batch.URLs, URL)
 			if len(batch.URLs) >= batchSize {
 				logger.Debug("sending batch to dispatcher", "size", len(batch.URLs))
 				// Send the batch to batchCh.
-				batchCh <- batch // Blocks if batchCh is full.
-				batch.URLs = make([]gocrawlhq.URL, 0, batchSize)
+				copyBatch := *batch
+				batchCh <- &copyBatch // Blocks if batchCh is full.
+				batch = &finishBatch{
+					URLs: make([]gocrawlhq.URL, 0, batchSize),
+				}
 				resetTimer(timer, maxWaitTime)
 			}
 		case <-timer.C:
 			if len(batch.URLs) > 0 {
 				logger.Debug("sending non-full batch to dispatcher", "size", len(batch.URLs))
-				batchCh <- batch // Blocks if batchCh is full.
-				batch.URLs = make([]gocrawlhq.URL, 0, batchSize)
+				copyBatch := *batch
+				batchCh <- &copyBatch // Blocks if batchCh is full.
+				batch = &finishBatch{
+					URLs: make([]gocrawlhq.URL, 0, batchSize),
+				}
 			}
 			resetTimer(timer, maxWaitTime)
 		}
@@ -130,7 +138,7 @@ func finisherDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *f
 			go func(batch *finishBatch) {
 				defer senderWg.Done()
 				defer func() { <-senderSemaphore }()
-				finishSender(ctx, batch)
+				finisherSender(ctx, batch)
 			}(batch)
 		case <-ctx.Done():
 			logger.Debug("closing")
@@ -141,14 +149,16 @@ func finisherDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *f
 	}
 }
 
-// finishSender sends a batch of URLs to HQ with retries and exponential backoff.
-func finishSender(ctx context.Context, batch *finishBatch) {
+// finisherSender sends a batch of URLs to HQ with retries and exponential backoff.
+func finisherSender(ctx context.Context, batch *finishBatch) {
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "hq.finishSender",
+		"component": "hq.finisherSender",
 	})
 
 	backoff := time.Second
 	maxBackoff := 5 * time.Second
+
+	logger.Debug("sending batch to HQ", "size", len(batch.URLs))
 
 	for {
 		err := globalHQ.client.Delete(batch.URLs, batch.ChildsCaptured)
