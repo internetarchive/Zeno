@@ -19,7 +19,6 @@ type preprocessor struct {
 	cancel   context.CancelFunc
 	inputCh  chan *models.Item
 	outputCh chan *models.Item
-	errorCh  chan *models.Item
 }
 
 var (
@@ -30,7 +29,7 @@ var (
 
 // This functions starts the preprocessor responsible for preparing
 // the seeds sent by the reactor for captures
-func Start(inputChan, outputChan, errorChan chan *models.Item) error {
+func Start(inputChan, outputChan chan *models.Item) error {
 	var done bool
 
 	log.Start()
@@ -47,7 +46,6 @@ func Start(inputChan, outputChan, errorChan chan *models.Item) error {
 			cancel:   cancel,
 			inputCh:  inputChan,
 			outputCh: outputChan,
-			errorCh:  errorChan,
 		}
 		logger.Debug("initialized")
 		globalPreprocessor.wg.Add(1)

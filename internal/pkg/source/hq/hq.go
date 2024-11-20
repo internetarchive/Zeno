@@ -75,6 +75,9 @@ func Stop() {
 	if globalHQ != nil {
 		globalHQ.cancel()
 		globalHQ.wg.Wait()
+		if err := globalHQ.client.Reset(); err != nil {
+			logger.Error("error while reseting", "err", err)
+		}
 		once = sync.Once{}
 		logger.Info("stopped")
 	}

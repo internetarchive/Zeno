@@ -13,7 +13,6 @@ type finisher struct {
 	ctx              context.Context
 	cancel           context.CancelFunc
 	inputCh          chan *models.Item
-	errorCh          chan *models.Item
 	sourceFinishedCh chan *models.Item
 	sourceProducedCh chan *models.Item
 	wg               sync.WaitGroup
@@ -27,7 +26,7 @@ var (
 
 // Start initializes the global finisher with the given input channel.
 // This method can only be called once.
-func Start(inputChan, errorChan, sourceFinishedChan, sourceProducedChan chan *models.Item) error {
+func Start(inputChan, sourceFinishedChan, sourceProducedChan chan *models.Item) error {
 	var done bool
 
 	log.Start()
@@ -41,7 +40,6 @@ func Start(inputChan, errorChan, sourceFinishedChan, sourceProducedChan chan *mo
 			ctx:              ctx,
 			cancel:           cancel,
 			inputCh:          inputChan,
-			errorCh:          errorChan,
 			sourceFinishedCh: sourceFinishedChan,
 			sourceProducedCh: sourceProducedChan,
 			wg:               sync.WaitGroup{},
@@ -86,11 +84,6 @@ func (f *finisher) run() {
 			}
 
 			logger.Debug("received item", "item", item.GetShortID())
-			if item.Error != nil {
-				logger.Error("received item with error", "item", item.GetShortID(), "err", item.Error)
-				f.errorCh <- item
-				continue
-			}
 
 			if item.GetStatus() == models.ItemFresh {
 				logger.Debug("fresh item received", "item", item)
@@ -118,16 +111,6 @@ func (f *finisher) run() {
 			}
 
 			logger.Debug("item finished", "item", item.GetShortID())
-		case item := <-f.errorCh:
-			if item == nil {
-				panic("received nil item")
-			}
-
-			logger.Debug("received item with error", "item", item.GetShortID(), "err", item.Error)
-
-			reactor.MarkAsFinished(item)
-
-			logger.Debug("item with error finished", "item", item.GetShortID())
 		}
 	}
 }

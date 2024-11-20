@@ -19,7 +19,6 @@ type archiver struct {
 	cancel   context.CancelFunc
 	inputCh  chan *models.Item
 	outputCh chan *models.Item
-	errorCh  chan *models.Item
 
 	Client          *warc.CustomHTTPClient
 	ClientWithProxy *warc.CustomHTTPClient
@@ -32,7 +31,7 @@ var (
 )
 
 // This functions starts the archiver responsible for capturing the URLs
-func Start(inputChan, outputChan, errorChan chan *models.Item) error {
+func Start(inputChan, outputChan chan *models.Item) error {
 	var done bool
 
 	log.Start()
@@ -49,7 +48,6 @@ func Start(inputChan, outputChan, errorChan chan *models.Item) error {
 			cancel:   cancel,
 			inputCh:  inputChan,
 			outputCh: outputChan,
-			errorCh:  errorChan,
 		}
 		logger.Debug("initialized")
 

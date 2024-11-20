@@ -51,28 +51,26 @@ func main() {
 		}
 	}
 
-	seedErrorChan := make(chan *models.Item)
-
 	// Start the reactor that will receive
 	reactorOutputChan := make(chan *models.Item)
 	err := reactor.Start(config.Get().WorkersCount, reactorOutputChan)
 
 	preprocessorOutputChan := make(chan *models.Item)
-	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan, seedErrorChan)
+	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting preprocessor", "err", err.Error())
 		return
 	}
 
 	archiverOutputChan := make(chan *models.Item)
-	err = archiver.Start(preprocessorOutputChan, archiverOutputChan, seedErrorChan)
+	err = archiver.Start(preprocessorOutputChan, archiverOutputChan)
 	if err != nil {
 		logger.Error("error starting archiver", "err", err.Error())
 		return
 	}
 
 	postprocessorOutputChan := make(chan *models.Item)
-	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan, seedErrorChan)
+	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting postprocessor", "err", err.Error())
 		return
@@ -86,7 +84,7 @@ func main() {
 		return
 	}
 
-	err = finisher.Start(postprocessorOutputChan, seedErrorChan, hqFinishChan, hqProduceChan)
+	err = finisher.Start(postprocessorOutputChan, hqFinishChan, hqProduceChan)
 	if err != nil {
 		logger.Error("error starting finisher", "err", err.Error())
 		return
@@ -105,15 +103,13 @@ func main() {
 			logger.Info("received second shutdown signal, forcing exit...")
 			os.Exit(1)
 		}()
-	case item := <-seedErrorChan:
-		logger.Error("received error from seedErrorChan", "err", item.GetError())
 	}
 
 	finisher.Stop()
-	hq.Stop()
 	postprocessor.Stop()
 	archiver.Stop()
 	preprocessor.Stop()
+	hq.Stop()
 	reactor.Stop()
 	logger.Info("all services stopped, exiting")
 	return
