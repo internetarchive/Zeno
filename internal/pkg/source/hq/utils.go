@@ -1,5 +1,7 @@
 package hq
 
+import "time"
+
 func pathToHops(path string) (hops int) {
 	// For each L in the path, add 1 hop
 	for _, c := range path {
@@ -18,4 +20,15 @@ func hopsToPath(hops int) (path string) {
 	}
 
 	return path
+}
+
+// resetTimer safely resets the timer to the specified duration.
+func resetTimer(timer *time.Timer, duration time.Duration) {
+	if !timer.Stop() {
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
+	timer.Reset(duration)
 }

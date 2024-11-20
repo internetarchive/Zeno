@@ -13,12 +13,12 @@ import (
 )
 
 type hq struct {
-	wg         sync.WaitGroup
-	ctx        context.Context
-	cancel     context.CancelFunc
-	finishCh   chan *models.Item
-	producedCh chan *models.Item
-	client     *gocrawlhq.Client
+	wg        sync.WaitGroup
+	ctx       context.Context
+	cancel    context.CancelFunc
+	finishCh  chan *models.Item
+	produceCh chan *models.Item
+	client    *gocrawlhq.Client
 }
 
 var (
@@ -27,7 +27,7 @@ var (
 	logger   *log.FieldedLogger
 )
 
-func Start(finishChan, producedChan chan *models.Item) error {
+func Start(finishChan, produceChan chan *models.Item) error {
 	var done bool
 
 	log.Start()
@@ -48,12 +48,12 @@ func Start(finishChan, producedChan chan *models.Item) error {
 		}
 
 		globalHQ = &hq{
-			wg:         sync.WaitGroup{},
-			ctx:        ctx,
-			cancel:     cancel,
-			finishCh:   finishChan,
-			producedCh: producedChan,
-			client:     HQclient,
+			wg:        sync.WaitGroup{},
+			ctx:       ctx,
+			cancel:    cancel,
+			finishCh:  finishChan,
+			produceCh: produceChan,
+			client:    HQclient,
 		}
 
 		globalHQ.wg.Add(1)

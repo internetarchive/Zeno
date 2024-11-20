@@ -68,11 +68,11 @@ func finishReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *finis
 				batchCh <- batch // Blocks if batchCh is full.
 			}
 			return
-		case url := <-globalHQ.finishCh:
-			URLToSend := gocrawlhq.URL{
-				ID: url.ID,
+		case item := <-globalHQ.finishCh:
+			URL := gocrawlhq.URL{
+				ID: item.ID,
 			}
-			batch.URLs = append(batch.URLs, URLToSend)
+			batch.URLs = append(batch.URLs, URL)
 			if len(batch.URLs) >= batchSize {
 				logger.Debug("sending batch to dispatcher", "size", len(batch.URLs))
 				// Send the batch to batchCh.
@@ -138,7 +138,7 @@ func finishSender(ctx context.Context, batch *finishBatch) {
 			return
 		default:
 			if err != nil {
-				logger.Error("Error sending batch to HQ", "err", err)
+				logger.Error("error sending batch to HQ", "err", err)
 				time.Sleep(backoff)
 				backoff *= 2
 				if backoff > maxBackoff {
@@ -149,17 +149,6 @@ func finishSender(ctx context.Context, batch *finishBatch) {
 			return
 		}
 	}
-}
-
-// resetTimer safely resets the timer to the specified duration.
-func resetTimer(timer *time.Timer, duration time.Duration) {
-	if !timer.Stop() {
-		select {
-		case <-timer.C:
-		default:
-		}
-	}
-	timer.Reset(duration)
 }
 
 // getMaxFinishSenders returns the maximum number of sender routines based on configuration.
