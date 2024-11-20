@@ -18,7 +18,7 @@ func TestPathToHop(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := pathToHop(test.path)
+		result := pathToHops(test.path)
 		if result != test.expected {
 			t.Errorf("For path %q, expected %d hops, but got %d", test.path, test.expected, result)
 		}

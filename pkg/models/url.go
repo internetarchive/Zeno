@@ -11,10 +11,12 @@ import (
 )
 
 type URL struct {
-	Raw     string
-	parsed  *url.URL
-	request *http.Request
-	Hop     int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
+	Raw       string
+	parsed    *url.URL
+	request   *http.Request
+	response  *http.Response
+	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
+	redirects int
 }
 
 func (u *URL) Parse() (err error) {
@@ -34,12 +36,28 @@ func (u *URL) GetParsed() *url.URL {
 	return u.parsed
 }
 
-func (u *URL) SetHop(hop int) {
-	u.Hop = hop
+func (u *URL) SetResponse(r *http.Response) {
+	u.response = r
+}
+
+func (u *URL) GetResponse() *http.Response {
+	return u.response
+}
+
+func (u *URL) GetRedirects() int {
+	return u.redirects
+}
+
+func (u *URL) IncRedirects() {
+	u.redirects++
+}
+
+func (u *URL) SetHops(hops int) {
+	u.Hops = hops
 }
 
 func (u *URL) GetHop() int {
-	return u.Hop
+	return u.Hops
 }
 
 // String exists to apply some custom stuff, in opposition of simply

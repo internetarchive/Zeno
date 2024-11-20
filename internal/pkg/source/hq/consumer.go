@@ -54,8 +54,8 @@ func consumer() {
 					newItem := &models.Item{
 						UUID: &UUID,
 						URL: &models.URL{
-							Raw: URL.Value,
-							Hop: pathToHop(URL.Path),
+							Raw:  URL.Value,
+							Hops: pathToHops(URL.Path),
 						},
 						Status: models.ItemFresh,
 						Source: models.ItemSourceHQ,
