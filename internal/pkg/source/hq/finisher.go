@@ -35,6 +35,9 @@ func finisher() {
 	// Wait for the context to be canceled.
 	<-ctx.Done()
 
+	// Cancel the context to stop all goroutines.
+	cancel()
+
 	// Wait for the finisher and dispatcher to finish.
 	wg.Wait()
 }
