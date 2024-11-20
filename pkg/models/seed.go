@@ -27,6 +27,8 @@ const (
 	ItemCaptured
 	// ItemPostProcessed is the state after the item has been post-processed
 	ItemPostProcessed
+	// ItemCanceled is the state after the item has been canceled, e.g. cancellation can come from exceeding the redirects limit
+	ItemCanceled
 	// ItemFailed is the state after the item has failed
 	ItemFailed
 	// ItemCompleted is the state after the item has been completed
