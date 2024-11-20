@@ -1,7 +1,9 @@
 package hq
 
 import (
+	"context"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -11,134 +13,145 @@ import (
 )
 
 func consumer() {
-	var wg sync.WaitGroup // WaitGroup to track batch-sending goroutines
+	// Create a context to manage goroutines
+	ctx, cancel := context.WithCancel(globalHQ.ctx)
+	defer cancel()
 
+	// Set the batch size for fetching URLs
+	batchSize := config.Get().HQBatchSize
+
+	// Create a fixed-size buffer (channel) for URLs
+	urlBuffer := make(chan *gocrawlhq.URL, batchSize)
+
+	// WaitGroup to wait for goroutines to finish on shutdown
+	var wg sync.WaitGroup
+
+	// Start the fetcher goroutine(s)
+	wg.Add(1)
+	go fetcher(ctx, &wg, urlBuffer, batchSize)
+
+	// Start the sender goroutine(s)
+	wg.Add(1)
+	go sender(ctx, &wg, urlBuffer)
+
+	// Wait for shutdown signal
+	<-globalHQ.ctx.Done()
+
+	// Cancel the context to stop all goroutines
+	cancel()
+
+	// Wait for all goroutines to finish
+	wg.Wait()
+
+	// Close the urlBuffer to signal senders to finish
+	close(urlBuffer)
+}
+
+func fetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlhq.URL, batchSize int) {
+	defer wg.Done()
 	for {
+		// Check for context cancellation
 		select {
-		case <-globalHQ.ctx.Done():
-			// Received signal to stop
-			// Wait for all batch-sending goroutines to finish
-			wg.Wait()
+		case <-ctx.Done():
 			return
 		default:
-			// This is purposely evaluated every time,
-			// because the value of workers might change
-			// during the crawl in the future (to be implemented)
-			var HQBatchSize = config.Get().WorkersCount
+		}
 
-			// If a specific HQ batch size is set, use it
-			if config.Get().HQBatchSize != 0 {
-				HQBatchSize = config.Get().HQBatchSize
-			}
+		// Fetch URLs from HQ
+		URLs, err := getURLs(batchSize)
+		if err != nil {
+			logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.fetcher")
+			time.Sleep(250 * time.Millisecond)
+			continue
+		}
 
-			// Get a batch of URLs from crawl HQ
-			URLs, err := getURLs(HQBatchSize)
-			if err != nil {
-				logger.Error("error getting new URLs from crawl HQ", "err", err.Error(), "func", "hq.Consumer")
-				continue
-			}
-
-			// Channel to receive pre-fetch signal
-			prefetchSignal := make(chan struct{}, 1)
-
-			// Increment the WaitGroup counter
-			wg.Add(1)
-
-			// Send the URLs to the reactor in a goroutine
-			go func(URLs []gocrawlhq.URL) {
-				defer wg.Done() // Decrement the WaitGroup counter when done
-
-				totalURLs := len(URLs)
-				for i, URL := range URLs {
-					UUID := uuid.New()
-					newItem := &models.Item{
-						UUID: &UUID,
-						URL: &models.URL{
-							Raw:  URL.Value,
-							Hops: pathToHops(URL.Path),
-						},
-						Status: models.ItemFresh,
-						Source: models.ItemSourceHQ,
-					}
-
-					if err := reactor.ReceiveInsert(newItem); err != nil {
-						panic("couldn't insert seed in reactor")
-					}
-
-					// When one-third of the URLs are left, send a pre-fetch signal
-					if i == totalURLs-totalURLs/3 {
-						// Send pre-fetch signal to Consumer
-						select {
-						case prefetchSignal <- struct{}{}:
-						default:
-							// Signal already sent; do nothing
-						}
-					}
-
-					// Check if stop signal is received to exit early
-					select {
-					case <-globalHQ.ctx.Done():
-						// Stop signal received, exit the goroutine
-						return
-					default:
-						// Continue sending URLs
-					}
-				}
-			}(URLs)
-
-			// Wait for pre-fetch signal or stop signal
+		// Enqueue URLs into the buffer
+		for _, URL := range URLs {
 			select {
-			case <-prefetchSignal:
-				// Received pre-fetch signal; continue to fetch next batch
-				continue
-			case <-globalHQ.ctx.Done():
-				// Received signal to stop
-				// Wait for all batch-sending goroutines to finish
-				wg.Wait()
+			case <-ctx.Done():
 				return
+			case urlBuffer <- &URL:
+
 			}
 		}
 	}
 }
 
-func getURLs(HQBatchSize int) ([]gocrawlhq.URL, error) {
-	if config.Get().HQBatchConcurrency == 1 {
-		return globalHQ.client.Get(HQBatchSize, config.Get().HQStrategy)
+func sender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *gocrawlhq.URL) {
+	defer wg.Done()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case URL, ok := <-urlBuffer:
+			if !ok {
+				// Channel closed, exit the sender
+				return
+			}
+
+			// Process the URL and send to reactor
+			err := processAndSend(URL)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+}
+
+func processAndSend(URL *gocrawlhq.URL) error {
+	UUID := uuid.New()
+	newItem := &models.Item{
+		UUID: &UUID,
+		URL: &models.URL{
+			Raw:  URL.Value,
+			Hops: 0,
+		},
+		Status: models.ItemFresh,
+		Source: models.ItemSourceHQ,
 	}
 
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-	batchSize := HQBatchSize / config.Get().HQBatchConcurrency
-	URLsChan := make(chan []gocrawlhq.URL, config.Get().HQBatchConcurrency)
-	var URLs []gocrawlhq.URL
+	// Send the item to the reactor
+	err := reactor.ReceiveInsert(newItem)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-	// Start goroutines to get URLs from crawl HQ, each will request
-	// HQBatchSize / HQConcurrentBatch URLs
-	for i := 0; i < config.Get().HQBatchConcurrency; i++ {
+func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
+	// Fetch URLs from CrawlHQ with optional concurrency
+	if config.Get().HQBatchConcurrency == 1 {
+		return globalHQ.client.Get(batchSize, config.Get().HQStrategy)
+	}
+
+	var wg sync.WaitGroup
+	concurrency := config.Get().HQBatchConcurrency
+	subBatchSize := batchSize / concurrency
+	urlsChan := make(chan []gocrawlhq.URL, concurrency)
+	var allURLs []gocrawlhq.URL
+
+	// Start concurrent fetches
+	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			URLs, err := globalHQ.client.Get(batchSize, config.Get().HQStrategy)
+			URLs, err := globalHQ.client.Get(subBatchSize, config.Get().HQStrategy)
 			if err != nil {
-				logger.Error("error getting new URLs from crawl HQ", "err", err.Error(), "func", "hq.getURLs")
+				logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.getURLs")
 				return
 			}
-			URLsChan <- URLs
+			urlsChan <- URLs
 		}()
 	}
 
-	// Wait for all goroutines to finish
-	go func() {
-		wg.Wait()
-		close(URLsChan)
-	}()
+	// Wait for all fetches to complete
+	wg.Wait()
+	close(urlsChan)
 
-	// Collect all URLs from the channels
-	for URLsFromChan := range URLsChan {
-		mu.Lock()
-		URLs = append(URLs, URLsFromChan...)
-		mu.Unlock()
+	// Collect URLs from all fetches
+	for URLs := range urlsChan {
+		allURLs = append(allURLs, URLs...)
 	}
 
-	return URLs, nil
+	return allURLs, nil
 }
