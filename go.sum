@@ -1,5 +1,7 @@
 github.com/CorentinB/warc v0.8.53 h1:xVz3RMdZ6faAqTtLfcK1/yl8ZTansy+B2en//EZLUlM=
 github.com/CorentinB/warc v0.8.53/go.mod h1:NblONkMtoBB4TIigew6F6vakzu0z3YQTKNFS8U2FIn8=
+github.com/ada-url/goada v0.0.0-20240402045241-5e45a5777313 h1:jdPBTZ3nZwBBZzz5SCFUMcTxoZr8t9ogwdvD3P27f/E=
+github.com/ada-url/goada v0.0.0-20240402045241-5e45a5777313/go.mod h1:+D/veNwI2mA1hDYLVrYSobYcLFWm6e3DJ/H/d/dxlu8=
 github.com/andybalholm/brotli v1.1.0 h1:eLKJA0d02Lf0mVpIDgYnqXcUn0GqVmEFny3VuID1U3M=
 github.com/andybalholm/brotli v1.1.0/go.mod h1:sms7XGricyQI9K10gOSf56VKKWS4oLer58Q+mhRPtnY=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=

@@ -4,6 +4,7 @@ go 1.23.3
 
 require (
 	github.com/CorentinB/warc v0.8.53
+	github.com/ada-url/goada v0.0.0-20240402045241-5e45a5777313
 	github.com/elastic/go-elasticsearch v0.0.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/google/uuid v1.6.0
