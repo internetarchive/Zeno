@@ -104,25 +104,32 @@ func postprocess(item *models.Item) {
 	defer item.SetStatus(models.ItemPostProcessed)
 
 	// TODO: execute assets redirection
+	var URL *models.URL
+
+	if item.GetRedirection() != nil {
+		URL = item.GetRedirection()
+	} else {
+		URL = item.GetURL()
+	}
 
 	// Verify if there is any redirection
-	if isStatusCodeRedirect(item.URL.GetResponse().StatusCode) {
-		logger.Info("detected redirect", "url", item.URL.String())
+	if isStatusCodeRedirect(URL.GetResponse().StatusCode) {
+		logger.Info("detected redirect", "url", URL.String())
 		// Check if the current redirections count doesn't exceed the max allowed
-		if item.URL.GetRedirects() >= config.Get().MaxRedirect {
+		if URL.GetRedirects() >= config.Get().MaxRedirect {
 			logger.Warn("max redirects reached", "item", item.ID)
 			return
 		}
 
 		// Prepare the new item resulting from the redirection
 		item.SetRedirection(&models.URL{
-			Raw:       item.URL.GetResponse().Header.Get("Location"),
-			Redirects: item.URL.GetRedirects() + 1,
-			Hops:      item.URL.GetHops(),
+			Raw:       URL.GetResponse().Header.Get("Location"),
+			Redirects: URL.GetRedirects() + 1,
+			Hops:      URL.GetHops(),
 		})
 
 		return
 	} else {
-		logger.Info("no redirect", "url", item.URL.String())
+		logger.Info("no redirect", "url", URL.String())
 	}
 }
