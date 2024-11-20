@@ -114,7 +114,6 @@ func postprocess(item *models.Item) {
 
 	// Verify if there is any redirection
 	if isStatusCodeRedirect(URL.GetResponse().StatusCode) {
-		logger.Info("detected redirect", "url", URL.String())
 		// Check if the current redirections count doesn't exceed the max allowed
 		if URL.GetRedirects() >= config.Get().MaxRedirect {
 			logger.Warn("max redirects reached", "item", item.ID)
@@ -130,6 +129,6 @@ func postprocess(item *models.Item) {
 
 		return
 	} else {
-		logger.Info("no redirect", "url", URL.String())
+		item.SetRedirection(nil)
 	}
 }
