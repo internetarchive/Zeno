@@ -56,10 +56,10 @@ func Start(finishChan, produceChan chan *models.Item) error {
 			client:    HQclient,
 		}
 
-		globalHQ.wg.Add(1)
+		globalHQ.wg.Add(3)
 		go consumer()
-		// go producer()
-		// go finisher()
+		go producer()
+		go finisher()
 		done = true
 	})
 
@@ -74,6 +74,7 @@ func Stop() {
 	if globalHQ != nil {
 		globalHQ.cancel()
 		globalHQ.wg.Wait()
+		once = sync.Once{}
 		logger.Info("stopped")
 	}
 }
