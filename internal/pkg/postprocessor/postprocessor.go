@@ -102,6 +102,11 @@ func run() {
 }
 
 func postprocess(item *models.Item) {
+	if item.GetStatus() != models.ItemFailed {
+		item.SetRedirection(nil)
+		return
+	}
+
 	defer item.SetStatus(models.ItemPostProcessed)
 
 	// TODO: execute assets redirection
