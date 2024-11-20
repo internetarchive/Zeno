@@ -122,13 +122,13 @@ func archive(item *models.Item) {
 	// Determines the URLs that need to be captured, if the item's status is fresh we need
 	// to capture the seed, else if it's a redirection we need to captue it, and
 	// else we need to capture the child URLs (assets), in parallel
-	if item.GetStatus() == models.ItemPreProcessed {
-		URLsToCapture = append(URLsToCapture, item.GetURL())
-	} else if item.GetRedirection() != nil {
+	if item.GetRedirection() != nil {
 		URLsToCapture = append(URLsToCapture, item.GetRedirection())
 		// We want to nil the redirection field when the capture of the redirection is done, we
 		// will eventually fill it back in postprocess if this capture leads to another redirection
 		defer item.SetRedirection(nil)
+	} else if item.GetStatus() == models.ItemPreProcessed {
+		URLsToCapture = append(URLsToCapture, item.GetURL())
 	} else {
 		URLsToCapture = item.GetChilds()
 	}
