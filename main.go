@@ -9,9 +9,10 @@
 package main
 
 import (
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/cmd"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -21,6 +22,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
+	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -55,18 +57,6 @@ func main() {
 	reactorOutputChan := make(chan *models.Item)
 	err := reactor.Start(config.Get().WorkersCount, reactorOutputChan)
 
-	// Create mock seeds
-	mockItems := make([]*models.Item, 1)
-	URL := "http://www.youtube.com/watch?v=stUqfrc1EFE"
-	UUID := uuid.New()
-
-	mockItems[0] = &models.Item{
-		ID:     UUID.String(),
-		URL:    &models.URL{Raw: URL},
-		Status: models.ItemFresh,
-		Source: models.ItemSourceHQ,
-	}
-
 	preprocessorOutputChan := make(chan *models.Item)
 	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan, seedErrorChan)
 	if err != nil {
@@ -88,34 +78,36 @@ func main() {
 		return
 	}
 
-	err = finisher.Start(postprocessorOutputChan, seedErrorChan)
+	hqFinishChan := make(chan *models.Item)
+	hqProduceChan := make(chan *models.Item)
+	err = hq.Start(hqFinishChan, hqProduceChan)
+	if err != nil {
+		logger.Error("error starting hq", "err", err.Error())
+		return
+	}
+
+	err = finisher.Start(postprocessorOutputChan, seedErrorChan, hqFinishChan, hqProduceChan)
 	if err != nil {
 		logger.Error("error starting finisher", "err", err.Error())
 		return
 	}
 
-	// Queue mock seeds to the source channel
-	for _, seed := range mockItems {
-		err := reactor.ReceiveInsert(seed)
-		if err != nil {
-			logger.Error("Error queuing seed to source channel", "err", err.Error())
-			return
-		}
+	// Handle OS signals for graceful shutdown
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case <-signalChan:
+		logger.Info("received shutdown signal, stopping services...")
+	case item := <-seedErrorChan:
+		logger.Error("received error from seedErrorChan", "err", item.GetError())
 	}
 
-	for {
-		time.Sleep(1 * time.Second)
-		if len(reactor.GetStateTable()) == 0 {
-			for archiver.GetWARCWritingQueueSize() != 0 {
-				logger.Info("waiting for WARC client(s) to finish writing to disk", "queue_size", archiver.GetWARCWritingQueueSize())
-			}
-
-			finisher.Stop()
-			postprocessor.Stop()
-			archiver.Stop()
-			preprocessor.Stop()
-			reactor.Stop()
-			return
-		}
-	}
+	finisher.Stop()
+	hq.Stop()
+	postprocessor.Stop()
+	archiver.Stop()
+	preprocessor.Stop()
+	reactor.Stop()
+	logger.Info("all services stopped, exiting")
 }

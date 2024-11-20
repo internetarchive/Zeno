@@ -10,11 +10,13 @@ import (
 )
 
 type finisher struct {
-	ctx     context.Context
-	cancel  context.CancelFunc
-	inputCh chan *models.Item
-	errorCh chan *models.Item
-	wg      sync.WaitGroup
+	ctx              context.Context
+	cancel           context.CancelFunc
+	inputCh          chan *models.Item
+	errorCh          chan *models.Item
+	sourceFinishedCh chan *models.Item
+	sourceProducedCh chan *models.Item
+	wg               sync.WaitGroup
 }
 
 var (
@@ -25,7 +27,7 @@ var (
 
 // Start initializes the global finisher with the given input channel.
 // This method can only be called once.
-func Start(inputChan, errorChan chan *models.Item) error {
+func Start(inputChan, errorChan, sourceFinishedChan, sourceProducedChan chan *models.Item) error {
 	var done bool
 
 	log.Start()
@@ -36,10 +38,13 @@ func Start(inputChan, errorChan chan *models.Item) error {
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		globalFinisher = &finisher{
-			ctx:     ctx,
-			cancel:  cancel,
-			inputCh: inputChan,
-			errorCh: errorChan,
+			ctx:              ctx,
+			cancel:           cancel,
+			inputCh:          inputChan,
+			errorCh:          errorChan,
+			sourceFinishedCh: sourceFinishedChan,
+			sourceProducedCh: sourceProducedChan,
+			wg:               sync.WaitGroup{},
 		}
 		logger.Debug("initialized")
 		globalFinisher.wg.Add(1)
@@ -82,24 +87,46 @@ func (f *finisher) run() {
 
 			logger.Debug("received item", "item", item.ID)
 			if item.Error != nil {
-				logger.Error("received item with error", "item", item.ID, "error", item.Error)
+				logger.Error("received item with error", "item", item.ID, "err", item.Error)
 				f.errorCh <- item
 				continue
 			}
 
-			reactor.MarkAsFinished(item)
+			if item.GetStatus() == models.ItemFresh {
+				logger.Debug("fresh item received", "item", item)
+				f.sourceProducedCh <- item
+			} else if item.GetRedirection() != nil {
+				logger.Debug("item has redirection", "item", item.ID)
+				err := reactor.ReceiveFeedback(item)
+				if err != nil {
+					panic(err)
+				}
+			} else if len(item.GetChilds()) != 0 {
+				logger.Debug("item has children", "item", item.ID)
+				err := reactor.ReceiveFeedback(item)
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				logger.Debug("item has no redirection or children", "item", item.ID)
+				err := reactor.MarkAsFinished(item)
+				if err != nil {
+					panic(err)
+				}
+				f.sourceFinishedCh <- item
+			}
 
-			logger.Info("item finished", "item", item.ID)
+			logger.Debug("item finished", "item", item.ID)
 		case item := <-f.errorCh:
 			if item == nil {
 				panic("received nil item")
 			}
 
-			logger.Info("received item with error", "item", item.ID, "error", item.Error)
+			logger.Info("received item with error", "item", item.ID, "err", item.Error)
 
 			reactor.MarkAsFinished(item)
 
-			logger.Info("item with error finished", "item", item.ID)
+			logger.Debug("item with error finished", "item", item.ID)
 		}
 	}
 }
