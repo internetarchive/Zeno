@@ -125,10 +125,6 @@ func preprocess(item *models.Item) {
 			logger.Warn("unable to validate URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocessor")
 			return
 		}
-
-		if config.Get().UseSeencheck {
-			URLsToSeencheck = append(URLsToSeencheck, item.URL)
-		}
 	} else if item.GetRedirection() != nil {
 		URLType = "seed"
 
