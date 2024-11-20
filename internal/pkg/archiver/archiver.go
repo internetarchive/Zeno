@@ -172,6 +172,8 @@ func archive(item *models.Item) {
 				return
 			}
 
+			stats.URLsCrawledIncr()
+
 			// Set the response in the item
 			URL.SetResponse(resp)
 

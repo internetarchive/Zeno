@@ -23,6 +23,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
+	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -41,6 +42,8 @@ func main() {
 		logger.Error("unable to run root command", "err", err.Error())
 		return
 	}
+
+	stats.Init()
 
 	// If needed, start the seencheck process
 	if config.Get().UseSeencheck {

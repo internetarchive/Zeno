@@ -6,6 +6,7 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
+	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -108,6 +109,7 @@ func (f *finisher) run() {
 				}
 				f.sourceFinishedCh <- item
 				logger.Info("crawled", "url", item.GetURL(), "item", item.GetShortID())
+				stats.SeedsFinishedIncr()
 			}
 
 			logger.Debug("item finished", "item", item.GetShortID())
