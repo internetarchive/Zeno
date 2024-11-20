@@ -1,169 +1,178 @@
 package hq
 
-// import (
-// 	"context"
-// 	"sync"
-// 	"time"
+import (
+	"context"
+	"sync"
+	"time"
 
-// 	"github.com/internetarchive/Zeno/internal/pkg/config"
-// 	"github.com/internetarchive/Zeno/internal/pkg/log"
-// 	"github.com/internetarchive/gocrawlhq"
-// )
+	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/gocrawlhq"
+)
 
-// var (
-// 	// batchCh is a buffered channel that holds batches ready to be sent to HQ.
-// 	// Its capacity is set to the maximum number of sender routines.
-// 	batchCh chan []*gocrawlhq.URL
-// )
+type finishBatch struct {
+	URLs           []gocrawlhq.URL
+	ChildsCaptured int
+}
 
-// // finisher initializes and starts the finisher and dispatcher processes.
-// func finisher() {
-// 	var wg sync.WaitGroup
+// finisher initializes and starts the finisher and dispatcher processes.
+func finisher() {
+	// Create a context to manage goroutines
+	ctx, cancel := context.WithCancel(globalHQ.ctx)
+	defer cancel()
 
-// 	maxSenders := getMaxFinishSenders()
-// 	batchCh = make(chan []*gocrawlhq.URL, maxSenders)
+	maxSenders := getMaxFinishSenders()
+	batchCh := make(chan *finishBatch, maxSenders)
 
-// 	wg.Add(1)
-// 	go receiver(ctx, &wg)
+	var wg sync.WaitGroup
 
-// 	wg.Add(1)
-// 	go dispatcher(ctx, &wg)
+	wg.Add(1)
+	go finishReceiver(ctx, &wg, batchCh)
 
-// 	// Wait for the context to be canceled.
-// 	<-ctx.Done()
+	wg.Add(1)
+	go finishDispatcher(ctx, &wg, batchCh)
 
-// 	// Wait for the finisher and dispatcher to finish.
-// 	wg.Wait()
-// }
+	// Wait for the context to be canceled.
+	<-ctx.Done()
 
-// // finishReceiver reads URLs from finishCh, accumulates them into batches, and sends the batches to batchCh.
-// func finishReceiver(ctx context.Context, wg *sync.WaitGroup) {
-// 	defer wg.Done()
+	// Wait for the finisher and dispatcher to finish.
+	wg.Wait()
+}
 
-// 	logger := log.NewFieldedLogger(&log.Fields{
-// 		"component": "hq/finishReceiver",
-// 	})
+// finishReceiver reads URLs from finishCh, accumulates them into batches, and sends the batches to batchCh.
+func finishReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *finishBatch) {
+	defer wg.Done()
 
-// 	batchSize := getBatchSize()
-// 	maxWaitTime := 5 * time.Second
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "hq.finishReceiver",
+	})
 
-// 	batch := make([]*gocrawlhq.URL, 0, batchSize)
-// 	timer := time.NewTimer(maxWaitTime)
-// 	defer timer.Stop()
+	batchSize := getBatchSize()
+	maxWaitTime := 5 * time.Second
 
-// 	for {
-// 		select {
-// 		case <-ctx.Done():
-// 			// Send any remaining URLs.
-// 			if len(batch) > 0 {
-// 				batchCh <- batch // Blocks if batchCh is full.
-// 			}
-// 			return
-// 		case url := <-globalHQ.finishCh:
-// 			URLToSend := &gocrawlhq.URL{
-// 				ID: url.ID,
-// 			}
-// 			batch = append(batch, &URLToSend)
-// 			if len(batch) >= batchSize {
-// 				// Send the batch to batchCh.
-// 				batchCh <- batch // Blocks if batchCh is full.
-// 				batch = make([]gocrawlhq.URL, 0, batchSize)
-// 				resetTimer(timer, maxWaitTime)
-// 			}
-// 		case <-timer.C:
-// 			if len(batch) > 0 {
-// 				batchCh <- batch // Blocks if batchCh is full.
-// 				batch = make([]gocrawlhq.URL, 0, batchSize)
-// 			}
-// 			resetTimer(timer, maxWaitTime)
-// 		}
-// 	}
-// }
+	batch := &finishBatch{
+		URLs: make([]gocrawlhq.URL, 0, batchSize),
+	}
+	timer := time.NewTimer(maxWaitTime)
+	defer timer.Stop()
 
-// // finishDispatcher receives batches from batchCh and dispatches them to sender routines.
-// func finishDispatcher(ctx context.Context, wg *sync.WaitGroup) {
-// 	defer wg.Done()
+	for {
+		select {
+		case <-ctx.Done():
+			// Send any remaining URLs.
+			if len(batch.URLs) > 0 {
+				logger.Debug("while closing sending remaining batch to dispatcher", "size", len(batch.URLs))
+				batchCh <- batch // Blocks if batchCh is full.
+			}
+			return
+		case url := <-globalHQ.finishCh:
+			URLToSend := gocrawlhq.URL{
+				ID: url.ID,
+			}
+			batch.URLs = append(batch.URLs, URLToSend)
+			if len(batch.URLs) >= batchSize {
+				logger.Debug("sending batch to dispatcher", "size", len(batch.URLs))
+				// Send the batch to batchCh.
+				batchCh <- batch // Blocks if batchCh is full.
+				batch.URLs = make([]gocrawlhq.URL, 0, batchSize)
+				resetTimer(timer, maxWaitTime)
+			}
+		case <-timer.C:
+			if len(batch.URLs) > 0 {
+				logger.Debug("sending non-full batch to dispatcher", "size", len(batch.URLs))
+				batchCh <- batch // Blocks if batchCh is full.
+				batch.URLs = make([]gocrawlhq.URL, 0, batchSize)
+			}
+			resetTimer(timer, maxWaitTime)
+		}
+	}
+}
 
-// 	logger := log.NewFieldedLogger(&log.Fields{
-// 		"component": "hq/dispatcher",
-// 	})
+// finishDispatcher receives batches from batchCh and dispatches them to sender routines.
+func finishDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *finishBatch) {
+	defer wg.Done()
 
-// 	maxSenders := getMaxFinishSenders()
-// 	senderSemaphore := make(chan struct{}, maxSenders)
-// 	var senderWg sync.WaitGroup
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "hq.finishDispatcher",
+	})
 
-// 	for {
-// 		select {
-// 		case batch := <-batchCh:
-// 			senderSemaphore <- struct{}{} // Blocks if maxSenders reached.
-// 			senderWg.Add(1)
-// 			go func(batch []gocrawlhq.URL) {
-// 				defer senderWg.Done()
-// 				defer func() { <-senderSemaphore }()
-// 				finishSender(ctx, batch)
-// 			}(batch)
-// 		case <-ctx.Done():
-// 			// Wait for all sender routines to finish.
-// 			senderWg.Wait()
-// 			return
-// 		}
-// 	}
-// }
+	maxSenders := getMaxFinishSenders()
+	senderSemaphore := make(chan struct{}, maxSenders)
+	var senderWg sync.WaitGroup
 
-// // finishSender sends a batch of URLs to HQ with retries and exponential backoff.
-// func finishSender(ctx context.Context, batch []gocrawlhq.URL) {
-// 	logger := log.NewFieldedLogger(&log.Fields{
-// 		"component": "hq/finishSender",
-// 	})
+	for {
+		select {
+		case batch := <-batchCh:
+			senderSemaphore <- struct{}{} // Blocks if maxSenders reached.
+			senderWg.Add(1)
+			logger.Debug("dispatching batch to sender", "size", len(batch.URLs))
+			go func(batch *finishBatch) {
+				defer senderWg.Done()
+				defer func() { <-senderSemaphore }()
+				finishSender(ctx, batch)
+			}(batch)
+		case <-ctx.Done():
+			// Wait for all sender routines to finish.
+			senderWg.Wait()
+			return
+		}
+	}
+}
 
-// 	backoff := time.Second
-// 	maxBackoff := 5 * time.Second
+// finishSender sends a batch of URLs to HQ with retries and exponential backoff.
+func finishSender(ctx context.Context, batch *finishBatch) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "hq.finishSender",
+	})
 
-// 	for {
-// 		err := globalHQ.client.Delete(batch)
-// 		select {
-// 		case <-ctx.Done():
-// 			return
-// 		default:
-// 			if err != nil {
-// 				logger.Error("Error sending batch to HQ", "err", err)
-// 				time.Sleep(backoff)
-// 				backoff *= 2
-// 				if backoff > maxBackoff {
-// 					backoff = maxBackoff
-// 				}
-// 				continue
-// 			}
-// 			return
-// 		}
-// 	}
-// }
+	backoff := time.Second
+	maxBackoff := 5 * time.Second
 
-// // resetTimer safely resets the timer to the specified duration.
-// func resetTimer(timer *time.Timer, duration time.Duration) {
-// 	if !timer.Stop() {
-// 		select {
-// 		case <-timer.C:
-// 		default:
-// 		}
-// 	}
-// 	timer.Reset(duration)
-// }
+	for {
+		err := globalHQ.client.Delete(batch.URLs, batch.ChildsCaptured)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if err != nil {
+				logger.Error("Error sending batch to HQ", "err", err)
+				time.Sleep(backoff)
+				backoff *= 2
+				if backoff > maxBackoff {
+					backoff = maxBackoff
+				}
+				continue
+			}
+			return
+		}
+	}
+}
 
-// // getMaxFinishSenders returns the maximum number of sender routines based on configuration.
-// func getMaxFinishSenders() int {
-// 	workersCount := config.Get().WorkersCount
-// 	if workersCount < 10 {
-// 		return 1
-// 	}
-// 	return workersCount / 10
-// }
+// resetTimer safely resets the timer to the specified duration.
+func resetTimer(timer *time.Timer, duration time.Duration) {
+	if !timer.Stop() {
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
+	timer.Reset(duration)
+}
 
-// // getBatchSize returns the batch size based on configuration.
-// func getBatchSize() int {
-// 	batchSize := config.Get().HQBatchSize
-// 	if batchSize == 0 {
-// 		batchSize = 100 // Default batch size.
-// 	}
-// 	return batchSize
-// }
+// getMaxFinishSenders returns the maximum number of sender routines based on configuration.
+func getMaxFinishSenders() int {
+	workersCount := config.Get().WorkersCount
+	if workersCount < 10 {
+		return 1
+	}
+	return workersCount / 10
+}
+
+// getBatchSize returns the batch size based on configuration.
+func getBatchSize() int {
+	batchSize := config.Get().WorkersCount
+	if batchSize == 0 {
+		batchSize = 100 // Default batch size.
+	}
+	return batchSize
+}
