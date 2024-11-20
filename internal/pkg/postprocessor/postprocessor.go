@@ -46,6 +46,7 @@ func Start(inputChan, outputChan, errorChan chan *models.Item) error {
 			outputCh: outputChan,
 			errorCh:  errorChan,
 		}
+		logger.Debug("initialized")
 		globalPostprocessor.wg.Add(1)
 		go run()
 		logger.Info("started")
@@ -80,11 +81,11 @@ func run() {
 		select {
 		// Closes the run routine when context is canceled
 		case <-globalPostprocessor.ctx.Done():
-			logger.Info("shutting down")
+			logger.Debug("shutting down")
 			return
 		case item, ok := <-globalPostprocessor.inputCh:
 			if ok {
-				logger.Info("received item", "item", item.ID)
+				logger.Debug("received item", "item", item.GetShortID())
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.PostprocessorRoutinesIncr()
@@ -116,7 +117,7 @@ func postprocess(item *models.Item) {
 	if isStatusCodeRedirect(URL.GetResponse().StatusCode) {
 		// Check if the current redirections count doesn't exceed the max allowed
 		if URL.GetRedirects() >= config.Get().MaxRedirect {
-			logger.Warn("max redirects reached", "item", item.ID)
+			logger.Warn("max redirects reached", "item", item.GetShortID())
 			return
 		}
 

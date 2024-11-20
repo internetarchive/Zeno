@@ -51,6 +51,7 @@ func Start(inputChan, outputChan, errorChan chan *models.Item) error {
 			outputCh: outputChan,
 			errorCh:  errorChan,
 		}
+		logger.Debug("initialized")
 
 		// Setup WARC writing HTTP clients
 		startWARCWriter()
@@ -89,11 +90,11 @@ func run() {
 		select {
 		// Closes the run routine when context is canceled
 		case <-globalArchiver.ctx.Done():
-			logger.Info("shutting down")
+			logger.Debug("shutting down")
 			return
 		case item, ok := <-globalArchiver.inputCh:
 			if ok {
-				logger.Info("received item", "item", item.ID)
+				logger.Debug("received item", "item", item.GetShortID())
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.ArchiverRoutinesIncr()
@@ -160,10 +161,6 @@ func archive(item *models.Item) {
 
 			// Set the response in the item
 			URL.SetResponse(resp)
-
-			if resp.StatusCode != 200 {
-				logger.Warn("non-200 status code", "status_code", resp.StatusCode)
-			}
 
 			// For now, we only consume it
 			_, err = io.Copy(io.Discard, resp.Body)

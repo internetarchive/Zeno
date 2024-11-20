@@ -158,6 +158,8 @@ func producerSender(ctx context.Context, batch *producerBatch) {
 	backoff := time.Second
 	maxBackoff := 5 * time.Second
 
+	logger.Debug("sending batch to HQ", "size", len(batch.URLs))
+
 	for {
 		err := globalHQ.client.Add(batch.URLs, false) // Use bypassSeencheck = false
 		select {

@@ -41,6 +41,10 @@ func (i *Item) GetID() string {
 	return i.ID
 }
 
+func (i *Item) GetShortID() string {
+	return i.ID[:5]
+}
+
 func (i *Item) GetURL() *URL {
 	return i.URL
 }

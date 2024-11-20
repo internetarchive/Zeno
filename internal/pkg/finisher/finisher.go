@@ -78,16 +78,16 @@ func (f *finisher) run() {
 	for {
 		select {
 		case <-f.ctx.Done():
-			logger.Info("shutting down")
+			logger.Debug("shutting down")
 			return
 		case item := <-f.inputCh:
 			if item == nil {
 				panic("received nil item")
 			}
 
-			logger.Debug("received item", "item", item.ID)
+			logger.Debug("received item", "item", item.GetShortID())
 			if item.Error != nil {
-				logger.Error("received item with error", "item", item.ID, "err", item.Error)
+				logger.Error("received item with error", "item", item.GetShortID(), "err", item.Error)
 				f.errorCh <- item
 				continue
 			}
@@ -96,37 +96,38 @@ func (f *finisher) run() {
 				logger.Debug("fresh item received", "item", item)
 				f.sourceProducedCh <- item
 			} else if item.GetRedirection() != nil {
-				logger.Debug("item has redirection", "item", item.ID)
+				logger.Debug("item has redirection", "item", item.GetShortID())
 				err := reactor.ReceiveFeedback(item)
 				if err != nil {
 					panic(err)
 				}
 			} else if len(item.GetChilds()) != 0 {
-				logger.Debug("item has children", "item", item.ID)
+				logger.Debug("item has children", "item", item.GetShortID())
 				err := reactor.ReceiveFeedback(item)
 				if err != nil {
 					panic(err)
 				}
 			} else {
-				logger.Debug("item has no redirection or children", "item", item.ID)
+				logger.Debug("item has no redirection or children", "item", item.GetShortID())
 				err := reactor.MarkAsFinished(item)
 				if err != nil {
 					panic(err)
 				}
 				f.sourceFinishedCh <- item
+				logger.Info("crawled", "url", item.GetURL(), "item", item.GetShortID())
 			}
 
-			logger.Debug("item finished", "item", item.ID)
+			logger.Debug("item finished", "item", item.GetShortID())
 		case item := <-f.errorCh:
 			if item == nil {
 				panic("received nil item")
 			}
 
-			logger.Info("received item with error", "item", item.ID, "err", item.Error)
+			logger.Debug("received item with error", "item", item.GetShortID(), "err", item.Error)
 
 			reactor.MarkAsFinished(item)
 
-			logger.Debug("item with error finished", "item", item.ID)
+			logger.Debug("item with error finished", "item", item.GetShortID())
 		}
 	}
 }

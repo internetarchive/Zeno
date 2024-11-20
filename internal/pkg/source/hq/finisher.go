@@ -87,7 +87,7 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 			}
 			return
 		case item := <-globalHQ.finishCh:
-			logger.Debug("received item", "item", item.ID)
+			logger.Debug("received item", "item", item.GetShortID())
 			URL := gocrawlhq.URL{
 				ID:   item.ID,
 				Type: "seed",

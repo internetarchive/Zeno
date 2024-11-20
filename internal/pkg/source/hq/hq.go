@@ -58,6 +58,9 @@ func Start(finishChan, produceChan chan *models.Item) error {
 		go consumer()
 		go producer()
 		go finisher()
+
+		logger.Info("started")
+
 		done = true
 	})
 

@@ -49,6 +49,7 @@ func Start(inputChan, outputChan, errorChan chan *models.Item) error {
 			outputCh: outputChan,
 			errorCh:  errorChan,
 		}
+		logger.Debug("initialized")
 		globalPreprocessor.wg.Add(1)
 		go run()
 		logger.Info("started")
@@ -83,11 +84,11 @@ func run() {
 		select {
 		// Closes the run routine when context is canceled
 		case <-globalPreprocessor.ctx.Done():
-			logger.Info("shutting down")
+			logger.Debug("shutting down")
 			return
 		case item, ok := <-globalPreprocessor.inputCh:
 			if ok {
-				logger.Info("received item", "item", item.ID)
+				logger.Debug("received item", "item", item.GetShortID())
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.PreprocessorRoutinesIncr()

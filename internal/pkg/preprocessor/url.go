@@ -1,7 +1,6 @@
 package preprocessor
 
 import (
-	"fmt"
 	"net/url"
 
 	"github.com/ada-url/goada"
@@ -19,7 +18,6 @@ func normalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 		if err != nil {
 			return err
 		}
-		fmt.Println(parsedURL.Scheme)
 		if parsedURL.Scheme == "" {
 			parsedURL.Scheme = "http"
 		}

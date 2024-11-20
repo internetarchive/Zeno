@@ -98,7 +98,7 @@ func ReceiveFeedback(item *models.Item) error {
 // ReceiveInsert sends an item to the input channel consuming a token.
 // It is the responsibility of the sender to set either ItemSourceQueue or ItemSourceHQ, if not set seed will get forced ItemSourceInsert
 func ReceiveInsert(item *models.Item) error {
-	logger.Info("received seed", "seed", item.ID)
+	logger.Debug("received item", "item", item.GetShortID())
 	if globalReactor == nil {
 		return ErrReactorNotInitialized
 	}
@@ -136,7 +136,7 @@ func (r *reactor) run() {
 		select {
 		// Closes the run routine when context is canceled
 		case <-r.ctx.Done():
-			logger.Info("shutting down")
+			logger.Debug("shutting down")
 			return
 
 		// Feeds items to the output channel
