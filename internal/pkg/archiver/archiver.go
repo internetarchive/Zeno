@@ -116,14 +116,19 @@ func archive(item *models.Item) {
 		URLsToCapture []*models.URL
 		guard         = make(chan struct{}, config.Get().MaxConcurrentAssets)
 		wg            sync.WaitGroup
+		itemState     = models.ItemCaptured
 	)
 
 	// Determines the URLs that need to be captured, if the item's status is fresh we need
-	// to capture the seed, else we need to capture the child URLs (assets), in parallel
-	if item.Status == models.ItemFresh {
+	// to capture the seed, else if it's a redirection we need to captue it, and
+	// else we need to capture the child URLs (assets), in parallel
+	if item.GetStatus() == models.ItemPreProcessed {
 		URLsToCapture = append(URLsToCapture, item.GetURL())
 	} else if item.GetRedirection() != nil {
 		URLsToCapture = append(URLsToCapture, item.GetRedirection())
+		// We want to nil the redirection field when the capture of the redirection is done, we
+		// will eventually fill it back in postprocess if this capture leads to another redirection
+		defer item.SetRedirection(nil)
 	} else {
 		URLsToCapture = item.GetChilds()
 	}
@@ -131,7 +136,7 @@ func archive(item *models.Item) {
 	for _, URL := range URLsToCapture {
 		guard <- struct{}{}
 		wg.Add(1)
-		go func() {
+		go func(URL *models.URL) {
 			defer wg.Done()
 			defer func() { <-guard }()
 
@@ -147,8 +152,17 @@ func archive(item *models.Item) {
 			}
 			if err != nil {
 				logger.Error("unable to execute request", "err", err.Error(), "func", "archiver.archive")
+
+				// Only mark the item as failed if we were processing a redirection or a new seed
+				if item.GetStatus() == models.ItemFresh || item.GetRedirection() != nil {
+					itemState = models.ItemFailed
+				}
+
 				return
 			}
+
+			// Set the response in the item
+			URL.SetResponse(resp)
 
 			if resp.StatusCode != 200 {
 				logger.Warn("non-200 status code", "status_code", resp.StatusCode)
@@ -159,8 +173,10 @@ func archive(item *models.Item) {
 			if err != nil {
 				logger.Error("unable to consume response body", "url", URL.String(), "err", err.Error(), "func", "archiver.archive")
 			}
-		}()
+		}(URL)
 	}
 
 	wg.Wait()
+
+	item.SetStatus(itemState)
 }

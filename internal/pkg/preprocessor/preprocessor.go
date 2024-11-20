@@ -104,6 +104,8 @@ func run() {
 }
 
 func preprocess(item *models.Item) {
+	defer item.SetStatus(models.ItemPreProcessed)
+
 	// Validate the URL of either the item itself and/or its childs
 	// TODO: if an error happen and it's a fresh item, we should mark it as failed in HQ (if it's a HQ-based crawl)
 
@@ -114,11 +116,24 @@ func preprocess(item *models.Item) {
 	)
 
 	// Validate the URLs, either the item's URL or its childs if it has any
-	if item.Status == models.ItemFresh {
+	if item.GetStatus() == models.ItemFresh {
 		URLType = "seed"
 
 		// Validate the item's URL itself
 		err = normalizeURL(item.URL, nil)
+		if err != nil {
+			logger.Warn("unable to validate URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocessor")
+			return
+		}
+
+		if config.Get().UseSeencheck {
+			URLsToSeencheck = append(URLsToSeencheck, item.URL)
+		}
+	} else if item.GetRedirection() != nil {
+		URLType = "seed"
+
+		// Validate the item's URL itself
+		err = normalizeURL(item.GetURL(), nil)
 		if err != nil {
 			logger.Warn("unable to validate URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocessor")
 			return

@@ -101,21 +101,22 @@ func run() {
 }
 
 func postprocess(item *models.Item) {
+	defer item.SetStatus(models.ItemPostProcessed)
+
 	// Verify if there is any redirection
 	if isStatusCodeRedirect(item.URL.GetResponse().StatusCode) {
 		// Check if the current redirections count doesn't exceed the max allowed
 		if item.URL.GetRedirects() >= config.Get().MaxRedirect {
 			logger.Warn("max redirects reached", "item", item.ID)
-			item.Status = models.ItemCanceled
 			return
 		}
 
 		// Prepare the new item resulting from the redirection
-		item.Redirection = &models.URL{
+		item.SetRedirection(&models.URL{
 			Raw:       item.URL.GetResponse().Header.Get("Location"),
 			Redirects: item.URL.GetRedirects() + 1,
 			Hops:      item.URL.GetHops(),
-		}
+		})
 
 		return
 	}

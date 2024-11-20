@@ -196,7 +196,6 @@ func GenerateCrawlConfig() error {
 	}
 
 	config.JobPath = path.Join("jobs", config.Job)
-
 	config.UseSeencheck = !config.DisableSeencheck
 
 	// Defaults --max-crawl-time-limit to 10% more than --crawl-time-limit

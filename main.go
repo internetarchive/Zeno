@@ -9,17 +9,17 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/cmd"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/finisher"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -31,37 +31,40 @@ var (
 func main() {
 	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
-		"component": "preprocessor",
+		"component": "main",
 	})
 	defer log.Stop()
 
 	if err := cmd.Run(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger.Error("unable to run root command", "err", err.Error())
+		return
+	}
+
+	// If needed, start the seencheck process
+	if config.Get().UseSeencheck {
+		err := seencheck.Start(config.Get().JobPath)
+		if err != nil {
+			logger.Error("unable to start seencheck", "err", err.Error())
+			return
+		}
 	}
 
 	seedErrorChan := make(chan *models.Item)
 
 	// Start the reactor that will receive
 	reactorOutputChan := make(chan *models.Item)
-	// err := reactor.Start(config.Get().WorkersCount, reactorOutputChan)
-	err := reactor.Start(300, reactorOutputChan)
-	if err != nil {
-		logger.Error("error starting reactor", "err", err.Error())
-		return
-	}
+	err := reactor.Start(config.Get().WorkersCount, reactorOutputChan)
 
 	// Create mock seeds
-	seeds := 10000
-	mockItems := make([]*models.Item, 10000)
-	for i := 0; i < seeds; i++ {
-		uuid := uuid.New().String()
-		mockItems[i] = &models.Item{
-			ID:     uuid,
-			URL:    &models.URL{Raw: fmt.Sprintf("https://www.deezer.com/%d", i)},
-			Status: models.ItemFresh,
-			Source: models.ItemSourceHQ,
-		}
+	mockItems := make([]*models.Item, 1)
+	URL := "http://www.youtube.com/watch?v=stUqfrc1EFE"
+	UUID := uuid.New()
+
+	mockItems[0] = &models.Item{
+		ID:     UUID.String(),
+		URL:    &models.URL{Raw: URL},
+		Status: models.ItemFresh,
+		Source: models.ItemSourceHQ,
 	}
 
 	preprocessorOutputChan := make(chan *models.Item)
