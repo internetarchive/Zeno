@@ -6,12 +6,17 @@ import (
 	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 )
 
 func consumer() {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "hq.consumer",
+	})
+
 	// Create a context to manage goroutines
 	ctx, cancel := context.WithCancel(globalHQ.ctx)
 	defer cancel()
@@ -25,33 +30,48 @@ func consumer() {
 	// WaitGroup to wait for goroutines to finish on shutdown
 	var wg sync.WaitGroup
 
-	// Start the fetcher goroutine(s)
+	// Start the consumerFetcher goroutine(s)
 	wg.Add(1)
-	go fetcher(ctx, &wg, urlBuffer, batchSize)
+	go consumerFetcher(ctx, &wg, urlBuffer, batchSize)
 
-	// Start the sender goroutine(s)
+	// Start the consumerSender goroutine(s)
 	wg.Add(1)
-	go sender(ctx, &wg, urlBuffer)
+	go consumerSender(ctx, &wg, urlBuffer)
 
 	// Wait for shutdown signal
-	<-globalHQ.ctx.Done()
+	for {
+		select {
+		case <-globalHQ.ctx.Done():
+			logger.Debug("received done signal")
+			// Cancel the context to stop all goroutines
+			cancel()
 
-	// Cancel the context to stop all goroutines
-	cancel()
+			logger.Debug("waiting for goroutines to finish")
+			// Wait for all goroutines to finish
+			wg.Wait()
 
-	// Wait for all goroutines to finish
-	wg.Wait()
+			// Close the urlBuffer to signal consumerSenders to finish
+			close(urlBuffer)
 
-	// Close the urlBuffer to signal senders to finish
-	close(urlBuffer)
+			globalHQ.wg.Done()
+
+			logger.Debug("closed")
+			return
+		}
+	}
 }
 
-func fetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlhq.URL, batchSize int) {
+func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlhq.URL, batchSize int) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "hq.consumerFetcher",
+	})
+
 	defer wg.Done()
 	for {
 		// Check for context cancellation
 		select {
 		case <-ctx.Done():
+			logger.Debug("closing")
 			return
 		default:
 		}
@@ -59,7 +79,7 @@ func fetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlh
 		// Fetch URLs from HQ
 		URLs, err := getURLs(batchSize)
 		if err != nil {
-			logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.fetcher")
+			logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.consumerFetcher")
 			time.Sleep(250 * time.Millisecond)
 			continue
 		}
@@ -76,15 +96,20 @@ func fetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlh
 	}
 }
 
-func sender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *gocrawlhq.URL) {
+func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *gocrawlhq.URL) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "hq.consumerSender",
+	})
+
 	defer wg.Done()
 	for {
 		select {
 		case <-ctx.Done():
+			logger.Debug("closing")
 			return
 		case URL, ok := <-urlBuffer:
 			if !ok {
-				// Channel closed, exit the sender
+				// Channel closed, exit the consumerSender
 				return
 			}
 

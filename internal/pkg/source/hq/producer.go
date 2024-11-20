@@ -17,6 +17,10 @@ type producerBatch struct {
 
 // producer initializes and starts the producer and dispatcher processes.
 func producer() {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "hq.producer",
+	})
+
 	// Create a context to manage goroutines
 	ctx, cancel := context.WithCancel(globalHQ.ctx)
 	defer cancel()
@@ -33,13 +37,26 @@ func producer() {
 	go producerDispatcher(ctx, &wg, batchCh)
 
 	// Wait for the context to be canceled.
-	<-ctx.Done()
+	for {
+		select {
+		case <-globalHQ.ctx.Done():
+			logger.Debug("received done signal")
+			// Cancel the context to stop all goroutines.
+			cancel()
 
-	// Cancel the context to stop all goroutines.
-	cancel()
+			logger.Debug("waiting for goroutines to finish")
+			// Wait for the producer and dispatcher to finish.
+			wg.Wait()
 
-	// Wait for the producer and dispatcher to finish.
-	wg.Wait()
+			// Close the batch channel to signal the dispatcher to finish.
+			close(batchCh)
+
+			globalHQ.wg.Done()
+
+			logger.Debug("closed")
+			return
+		}
+	}
 }
 
 // producerReceiver reads URLs from produceCh, accumulates them into batches, and sends the batches to batchCh.
@@ -62,6 +79,7 @@ func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *pro
 	for {
 		select {
 		case <-ctx.Done():
+			logger.Debug("closing")
 			// Send any remaining URLs.
 			if len(batch.URLs) > 0 {
 				logger.Debug("while closing, sending remaining batch to dispatcher", "size", len(batch.URLs))
@@ -117,6 +135,7 @@ func producerDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *p
 				producerSender(ctx, batch)
 			}(batch)
 		case <-ctx.Done():
+			logger.Debug("closing")
 			// Wait for all sender routines to finish.
 			senderWg.Wait()
 			return
@@ -137,6 +156,7 @@ func producerSender(ctx context.Context, batch *producerBatch) {
 		err := globalHQ.client.Add(batch.URLs, false) // Use bypassSeencheck = false
 		select {
 		case <-ctx.Done():
+			logger.Debug("closing")
 			return
 		default:
 			if err != nil {
