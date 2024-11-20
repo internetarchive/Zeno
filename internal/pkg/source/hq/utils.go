@@ -10,3 +10,12 @@ func pathToHops(path string) (hops int) {
 
 	return hops
 }
+
+func hopsToPath(hops int) (path string) {
+	// For each hop, add an L to the path
+	for i := 0; i < hops; i++ {
+		path += "L"
+	}
+
+	return path
+}

@@ -82,7 +82,7 @@ func ReceiveFeedback(item *models.Item) error {
 	}
 
 	item.Source = models.ItemSourceFeedback
-	_, loaded := globalReactor.stateTable.Swap(item.UUID.String(), item)
+	_, loaded := globalReactor.stateTable.Swap(item.ID, item)
 	if !loaded {
 		// An item sent to the feedback channel should be present on the state table, if not present reactor should error out
 		return ErrFeedbackItemNotPresent
@@ -98,7 +98,7 @@ func ReceiveFeedback(item *models.Item) error {
 // ReceiveInsert sends an item to the input channel consuming a token.
 // It is the responsibility of the sender to set either ItemSourceQueue or ItemSourceHQ, if not set seed will get forced ItemSourceInsert
 func ReceiveInsert(item *models.Item) error {
-	logger.Info("received seed", "seed", item.UUID.String())
+	logger.Info("received seed", "seed", item.ID)
 	if globalReactor == nil {
 		return ErrReactorNotInitialized
 	}
@@ -108,7 +108,7 @@ func ReceiveInsert(item *models.Item) error {
 		if item.Source != models.ItemSourceQueue && item.Source != models.ItemSourceHQ {
 			item.Source = models.ItemSourceInsert
 		}
-		globalReactor.stateTable.Store(item.UUID.String(), item)
+		globalReactor.stateTable.Store(item.ID, item)
 		globalReactor.input <- item
 		return nil
 	case <-globalReactor.ctx.Done():
@@ -122,7 +122,7 @@ func MarkAsFinished(item *models.Item) error {
 		return ErrReactorNotInitialized
 	}
 
-	if _, loaded := globalReactor.stateTable.LoadAndDelete(item.UUID.String()); loaded {
+	if _, loaded := globalReactor.stateTable.LoadAndDelete(item.ID); loaded {
 		<-globalReactor.tokenPool
 		return nil
 	}

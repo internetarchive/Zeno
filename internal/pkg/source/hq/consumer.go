@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -99,13 +98,13 @@ func sender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *gocrawlhq
 }
 
 func processAndSend(URL *gocrawlhq.URL) error {
-	UUID := uuid.New()
 	newItem := &models.Item{
-		UUID: &UUID,
+		ID: URL.ID,
 		URL: &models.URL{
 			Raw:  URL.Value,
-			Hops: 0,
+			Hops: pathToHops(URL.Path),
 		},
+		Via:    URL.Via,
 		Status: models.ItemFresh,
 		Source: models.ItemSourceHQ,
 	}

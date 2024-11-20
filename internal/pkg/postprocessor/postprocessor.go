@@ -84,7 +84,7 @@ func run() {
 			return
 		case item, ok := <-globalPostprocessor.inputCh:
 			if ok {
-				logger.Info("received item", "item", item.UUID.String())
+				logger.Info("received item", "item", item.ID)
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.PostprocessorRoutinesIncr()
@@ -105,7 +105,7 @@ func postprocess(item *models.Item) {
 	if isStatusCodeRedirect(item.URL.GetResponse().StatusCode) {
 		// Check if the current redirections count doesn't exceed the max allowed
 		if item.URL.GetRedirects() >= config.Get().MaxRedirect {
-			logger.Warn("max redirects reached", "item", item.UUID.String())
+			logger.Warn("max redirects reached", "item", item.ID)
 			item.Status = models.ItemCanceled
 			return
 		}

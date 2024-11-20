@@ -55,9 +55,9 @@ func main() {
 	seeds := 10000
 	mockItems := make([]*models.Item, 10000)
 	for i := 0; i < seeds; i++ {
-		uuid := uuid.New()
+		uuid := uuid.New().String()
 		mockItems[i] = &models.Item{
-			UUID:   &uuid,
+			ID:     uuid,
 			URL:    &models.URL{Raw: fmt.Sprintf("https://www.deezer.com/%d", i)},
 			Status: models.ItemFresh,
 			Source: models.ItemSourceHQ,

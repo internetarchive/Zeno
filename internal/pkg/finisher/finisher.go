@@ -80,26 +80,26 @@ func (f *finisher) run() {
 				panic("received nil item")
 			}
 
-			logger.Debug("received item", "item", item.UUID.String())
+			logger.Debug("received item", "item", item.ID)
 			if item.Error != nil {
-				logger.Error("received item with error", "item", item.UUID.String(), "error", item.Error)
+				logger.Error("received item with error", "item", item.ID, "error", item.Error)
 				f.errorCh <- item
 				continue
 			}
 
 			reactor.MarkAsFinished(item)
 
-			logger.Info("item finished", "item", item.UUID.String())
+			logger.Info("item finished", "item", item.ID)
 		case item := <-f.errorCh:
 			if item == nil {
 				panic("received nil item")
 			}
 
-			logger.Info("received item with error", "item", item.UUID.String(), "error", item.Error)
+			logger.Info("received item with error", "item", item.ID, "error", item.Error)
 
 			reactor.MarkAsFinished(item)
 
-			logger.Info("item with error finished", "item", item.UUID.String())
+			logger.Info("item with error finished", "item", item.ID)
 		}
 	}
 }

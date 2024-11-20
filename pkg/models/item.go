@@ -6,21 +6,22 @@ import (
 
 // Item represents a URL, it's childs (e.g. discovered assets) and it's state in the pipeline
 type Item struct {
-	UUID           *uuid.UUID // UUID is the unique identifier of the item
+	ID             string     // ID is the unique identifier of the item
 	URL            *URL       // URL is a struct that contains the URL, the parsed URL, and its hop
 	Status         ItemState  // Status is the state of the item in the pipeline
 	Source         ItemSource // Source is the source of the item in the pipeline
 	ChildsCaptured bool       // ChildsCaptured is the flag to indicate if the child URLs of the item have been captured
 	Redirection    *URL       // Redirection is the URL that the item has been redirected to, if it's not nil it need to be captured
+	Via            string     // Via is the URL that the item has been found from
 	Childs         []*URL     // Childs is the list of URLs that have been discovered via the item's URL
 	Error          error      // Error message of the seed
 }
 
 func NewItem(source ItemSource) (item *Item) {
-	UUID := uuid.New()
+	UUID := uuid.New().String()
 
 	item = &Item{
-		UUID:   &UUID,
+		ID:     UUID,
 		Status: ItemFresh,
 		Source: source,
 	}
@@ -36,8 +37,8 @@ func (i *Item) GetChilds() []*URL {
 	return i.Childs
 }
 
-func (i *Item) GetUUID() *uuid.UUID {
-	return i.UUID
+func (i *Item) GetID() string {
+	return i.ID
 }
 
 func (i *Item) GetURL() *URL {

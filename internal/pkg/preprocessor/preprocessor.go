@@ -87,7 +87,7 @@ func run() {
 			return
 		case item, ok := <-globalPreprocessor.inputCh:
 			if ok {
-				logger.Info("received item", "item", item.UUID.String())
+				logger.Info("received item", "item", item.ID)
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.PreprocessorRoutinesIncr()

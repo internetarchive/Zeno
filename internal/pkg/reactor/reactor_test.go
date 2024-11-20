@@ -61,7 +61,7 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 					if item.Source != models.ItemSourceFeedback {
 						err := ReceiveFeedback(item)
 						if err != nil {
-							fatalChan <- fmt.Errorf("Error sending feedback: %s - %s", err, item.UUID.String())
+							fatalChan <- fmt.Errorf("Error sending feedback: %s - %s", err, item.ID)
 						}
 						continue
 					}
@@ -82,9 +82,9 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 	// Create mock seeds
 	mockItems := []*models.Item{}
 	for i := 0; i <= seeds; i++ {
-		uuid := uuid.New()
+		uuid := uuid.New().String()
 		mockItems = append(mockItems, &models.Item{
-			UUID:   &uuid,
+			ID:     uuid,
 			URL:    &models.URL{Raw: fmt.Sprintf("http://example.com/%d", i)},
 			Status: models.ItemFresh,
 			Source: models.ItemSourceHQ,
