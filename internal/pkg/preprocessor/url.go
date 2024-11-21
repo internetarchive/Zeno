@@ -12,7 +12,7 @@ func normalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	// and converting relative URLs into absolute URLs. An error is returned if the URL
 	// cannot be normalized.
 
-	var ada_result *goada.Url
+	var adaParse *goada.Url
 	if parentURL == nil {
 		parsedURL, err := url.Parse(URL.Raw)
 		if err != nil {
@@ -21,17 +21,17 @@ func normalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 		if parsedURL.Scheme == "" {
 			parsedURL.Scheme = "http"
 		}
-		ada_result, err = goada.New(models.URLToString(parsedURL))
+		adaParse, err = goada.New(models.URLToString(parsedURL))
 		if err != nil {
 			return err
 		}
 	} else {
-		ada_result, err = goada.NewWithBase(URL.Raw, parentURL.Raw)
+		adaParse, err = goada.NewWithBase(URL.Raw, parentURL.Raw)
 		if err != nil {
 			return err
 		}
 	}
-	ada_result.SetHash("")
-	URL.Raw = ada_result.Href()
+	adaParse.SetHash("")
+	URL.Raw = adaParse.Href()
 	return URL.Parse()
 }
