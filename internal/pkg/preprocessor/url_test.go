@@ -39,6 +39,11 @@ func TestNormalizeURL(t *testing.T) {
 			expectedURL: "http://www.google.com/",
 		},
 		{
+			name:    "FTP url",
+			rawURL:  "ftp://ftp.example.com",
+			wantErr: true,
+		},
+		{
 			name:        "valid URL with path without scheme",
 			rawURL:      "www.google.com/dogs",
 			wantErr:     false,
@@ -53,6 +58,7 @@ func TestNormalizeURL(t *testing.T) {
 			var parentURL *models.URL
 			if tt.parentURL != "" {
 				parentURL = &models.URL{Raw: tt.parentURL}
+				parentURL.Parse()
 			}
 			err := normalizeURL(url, parentURL)
 			if (err != nil) != tt.wantErr {
