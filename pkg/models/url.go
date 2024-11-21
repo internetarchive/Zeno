@@ -60,29 +60,33 @@ func (u *URL) GetHops() int {
 	return u.Hops
 }
 
-// String exists to apply some custom stuff, in opposition of simply
-// using the u.parsed.String() method
 func (u *URL) String() string {
+	return URLToString(u.parsed)
+}
+
+// URLToString exists to apply some custom stuff, in opposition of simply
+// using the u.parsed.String() method
+func URLToString(URL *url.URL) string {
 	var err error
 
-	switch u.parsed.Host {
+	switch URL.Host {
 	case "external-preview.redd.it", "styles.redditmedia.com", "preview.redd.it":
 		// Do nothing. We don't want to encode the URL for signature purposes. :(
 		break
 	default:
-		q := u.parsed.Query()
-		u.parsed.RawQuery = encodeQuery(q)
+		q := URL.Query()
+		URL.RawQuery = encodeQuery(q)
 	}
-	u.parsed.Host, err = idna.ToASCII(u.parsed.Host)
+	URL.Host, err = idna.ToASCII(URL.Host)
 	if err != nil {
-		if strings.Contains(u.parsed.Host, ":") {
-			hostWithoutPort, port, err := net.SplitHostPort(u.parsed.Host)
+		if strings.Contains(URL.Host, ":") {
+			hostWithoutPort, port, err := net.SplitHostPort(URL.Host)
 			if err != nil {
 				slog.Warn("cannot split host and port", "error", err)
 			} else {
 				asciiHost, err := idna.ToASCII(hostWithoutPort)
 				if err == nil {
-					u.parsed.Host = asciiHost + ":" + port
+					URL.Host = asciiHost + ":" + port
 				} else {
 					slog.Warn("cannot encode punycode host without port to ASCII", "error", err)
 				}
@@ -92,7 +96,7 @@ func (u *URL) String() string {
 		}
 	}
 
-	return u.parsed.String()
+	return URL.String()
 }
 
 // Encode encodes the values into “URL encoded” form

@@ -21,7 +21,7 @@ func normalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 		if parsedURL.Scheme == "" {
 			parsedURL.Scheme = "http"
 		}
-		ada_result, err = goada.New(parsedURL.String())
+		ada_result, err = goada.New(models.URLToString(parsedURL))
 		if err != nil {
 			return err
 		}
