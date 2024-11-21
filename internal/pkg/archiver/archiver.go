@@ -71,6 +71,15 @@ func Stop() {
 	if globalArchiver != nil {
 		globalArchiver.cancel()
 		globalArchiver.wg.Wait()
+
+		// Wait for the WARC writing to finish
+		globalArchiver.Client.WaitGroup.Wait()
+		globalArchiver.Client.Close()
+		if globalArchiver.ClientWithProxy != nil {
+			globalArchiver.ClientWithProxy.WaitGroup.Wait()
+			globalArchiver.ClientWithProxy.Close()
+		}
+
 		logger.Info("stopped")
 	}
 }
