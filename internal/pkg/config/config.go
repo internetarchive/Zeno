@@ -80,7 +80,7 @@ type Config struct {
 	DisableLocalDedupe       bool     `mapstructure:"disable-local-dedupe"`
 	CertValidation           bool     `mapstructure:"cert-validation"`
 	DisableAssetsCapture     bool     `mapstructure:"disable-assets-capture"`
-	HQ                       bool     // Special field to check if HQ is enabled depending on the command called
+	UseHQ                    bool     // Special field to check if HQ is enabled depending on the command called
 	HQRateLimitSendBack      bool     `mapstructure:"hq-rate-limiting-send-back"`
 	NoStdoutLogging          bool     `mapstructure:"no-stdout-log"`
 	NoBatchWriteWAL          bool     `mapstructure:"ultrasafe-queue"`
@@ -97,6 +97,8 @@ type Config struct {
 	// Dependencies
 	NoYTDLP   bool   `mapstructure:"no-ytdlp"`
 	YTDLPPath string `mapstructure:"ytdlp-path"`
+
+	InputSeeds []string // Special field to store the input URLs
 }
 
 var (

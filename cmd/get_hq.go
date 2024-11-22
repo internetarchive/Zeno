@@ -15,7 +15,7 @@ var getHQCmd = &cobra.Command{
 			return fmt.Errorf("viper config is nil")
 		}
 
-		cfg.HQ = true
+		cfg.UseHQ = true
 
 		return nil
 	},

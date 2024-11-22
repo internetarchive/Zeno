@@ -15,9 +15,14 @@ var getURLCmd = &cobra.Command{
 		if cfg == nil {
 			return fmt.Errorf("viper config is nil")
 		}
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		for _, URL := range args {
+			config.Get().InputSeeds = append(config.Get().InputSeeds, URL)
+		}
+
 		return config.GenerateCrawlConfig()
 	},
 }

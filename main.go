@@ -79,18 +79,38 @@ func main() {
 		return
 	}
 
-	hqFinishChan := make(chan *models.Item)
-	hqProduceChan := make(chan *models.Item)
-	err = hq.Start(hqFinishChan, hqProduceChan)
-	if err != nil {
-		logger.Error("error starting hq", "err", err.Error())
-		return
+	var finisherFinishChan, finisherProduceChan chan *models.Item
+	if config.Get().UseHQ {
+		logger.Info("starting hq")
+
+		finisherFinishChan = make(chan *models.Item)
+		finisherProduceChan = make(chan *models.Item)
+
+		err = hq.Start(finisherFinishChan, finisherProduceChan)
+		if err != nil {
+			logger.Error("error starting hq", "err", err.Error())
+			return
+		}
 	}
 
-	err = finisher.Start(postprocessorOutputChan, hqFinishChan, hqProduceChan)
+	err = finisher.Start(postprocessorOutputChan, finisherFinishChan, finisherProduceChan)
 	if err != nil {
 		logger.Error("error starting finisher", "err", err.Error())
 		return
+	}
+
+	// Pipe in the reactor the input seeds if any
+	if len(config.Get().InputSeeds) > 0 {
+		for _, seed := range config.Get().InputSeeds {
+			item := models.NewItem(models.ItemSourceQueue)
+			item.SetURL(&models.URL{Raw: seed})
+
+			err = reactor.ReceiveInsert(item)
+			if err != nil {
+				logger.Error("unable to insert seed", "err", err.Error())
+				return
+			}
+		}
 	}
 
 	// Handle OS signals for graceful shutdown
@@ -120,8 +140,14 @@ func main() {
 	close(preprocessorOutputChan)
 	close(archiverOutputChan)
 	close(postprocessorOutputChan)
-	close(hqFinishChan)
-	close(hqProduceChan)
+
+	if finisherFinishChan != nil {
+		close(finisherFinishChan)
+	}
+
+	if finisherProduceChan != nil {
+		close(finisherProduceChan)
+	}
 
 	logger.Info("all services stopped, exiting")
 	return

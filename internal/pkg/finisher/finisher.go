@@ -107,7 +107,13 @@ func (f *finisher) run() {
 				if err != nil {
 					panic(err)
 				}
-				f.sourceFinishedCh <- item
+
+				// Notify the source that the item has been finished
+				// E.g.: to delete the item in Crawl HQ
+				if f.sourceFinishedCh != nil {
+					f.sourceFinishedCh <- item
+				}
+
 				logger.Info("crawled", "url", item.GetURL(), "item", item.GetShortID())
 				stats.SeedsFinishedIncr()
 			}

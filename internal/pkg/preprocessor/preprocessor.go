@@ -163,7 +163,7 @@ func preprocess(item *models.Item) {
 	if config.Get().UseSeencheck && URLType != models.URLTypeSeed {
 		var seencheckedURLs []*models.URL
 
-		if config.Get().HQ {
+		if config.Get().UseHQ {
 			seencheckedURLs, err = hq.SeencheckURLs(string(URLType), item.URL)
 			if err != nil {
 				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
