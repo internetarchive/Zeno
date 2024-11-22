@@ -46,7 +46,7 @@ func seen(hash, value string) {
 	atomic.AddInt64(globalSeencheck.Count, 1)
 }
 
-func SeencheckURLs(URLType string, URLs ...*models.URL) (seencheckedURLs []*models.URL, err error) {
+func SeencheckURLs(URLType models.URLType, URLs ...*models.URL) (seencheckedURLs []*models.URL, err error) {
 	h := fnv.New64a()
 
 	for _, URL := range URLs {
@@ -59,9 +59,11 @@ func SeencheckURLs(URLType string, URLs ...*models.URL) (seencheckedURLs []*mode
 
 		found, _ := isSeen(hash)
 		if !found {
-			seen(hash, URLType)
+			seen(hash, string(URLType))
 			seencheckedURLs = append(seencheckedURLs, URL)
 		}
+
+		h.Reset()
 	}
 
 	return seencheckedURLs, nil
