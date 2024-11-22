@@ -152,7 +152,7 @@ func preprocess(item *models.Item) {
 		err = normalizeURL(URLsToPreprocess[i], parentURL)
 		if err != nil {
 			// If we can't validate an URL, we remove it from the list of childs
-			logger.Warn("unable to validate URL", "url", URLsToPreprocess[i].Raw, "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Debug("unable to validate URL", "url", URLsToPreprocess[i].Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 			URLsToPreprocess = append(URLsToPreprocess[:i], URLsToPreprocess[i+1:]...)
 		} else {
 			i++
@@ -164,13 +164,13 @@ func preprocess(item *models.Item) {
 		var seencheckedURLs []*models.URL
 
 		if config.Get().UseHQ {
-			seencheckedURLs, err = hq.SeencheckURLs(string(URLType), URLsToPreprocess...)
+			seencheckedURLs, err = hq.SeencheckURLs(URLType, URLsToPreprocess...)
 			if err != nil {
 				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 				return
 			}
 		} else {
-			seencheckedURLs, err = seencheck.SeencheckURLs(string(URLType), URLsToPreprocess...)
+			seencheckedURLs, err = seencheck.SeencheckURLs(URLType, URLsToPreprocess...)
 			if err != nil {
 				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 				return

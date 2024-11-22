@@ -3,7 +3,6 @@ package postprocessor
 import (
 	"context"
 	"io"
-	"strings"
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -124,65 +123,60 @@ func postprocess(item *models.Item) {
 
 	defer item.SetStatus(models.ItemPostProcessed)
 
-	// The only post-processing for assets is to consume the response body
-	// TODO: execute assets redirection
-	if len(item.GetChilds()) > 0 {
-		for _, child := range item.GetChilds() {
-			if child.GetResponse() != nil {
-				_, err := io.Copy(io.Discard, child.GetResponse().Body)
-				if err != nil {
-					logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
-				}
-			}
-		}
-
-		item.SetChilds(nil)
-
-		return
-	}
-
-	var URL *models.URL
+	var (
+		URLs    []*models.URL
+		URLType models.URLType
+	)
 
 	if item.GetRedirection() != nil {
-		URL = item.GetRedirection()
+		URLType = models.URLTypeRedirection
+		URLs = append(URLs, item.GetRedirection())
+	} else if len(item.GetChilds()) > 0 {
+		URLType = models.URLTypeAsset
+		URLs = item.GetChilds()
+		item.SetChilds(nil)
 	} else {
-		URL = item.GetURL()
+		URLType = models.URLTypeSeed
+		URLs = append(URLs, item.GetURL())
 	}
 
-	// Verify if there is any redirection
-	if isStatusCodeRedirect(URL.GetResponse().StatusCode) {
-		// Check if the current redirections count doesn't exceed the max allowed
-		if URL.GetRedirects() >= config.Get().MaxRedirect {
-			logger.Warn("max redirects reached", "item", item.GetShortID())
+	for _, URL := range URLs {
+		// Verify if there is any redirection
+		// TODO: execute assets redirection
+		if URLType == models.URLTypeSeed && isStatusCodeRedirect(URL.GetResponse().StatusCode) {
+			// Check if the current redirections count doesn't exceed the max allowed
+			if URL.GetRedirects() >= config.Get().MaxRedirect {
+				logger.Warn("max redirects reached", "item", item.GetShortID())
+				return
+			}
+
+			// Prepare the new item resulting from the redirection
+			item.SetRedirection(&models.URL{
+				Raw:       URL.GetResponse().Header.Get("Location"),
+				Redirects: URL.GetRedirects() + 1,
+				Hops:      URL.GetHops(),
+			})
+
+			return
+		} else {
+			item.SetRedirection(nil)
+		}
+
+		if item.GetChildsCaptured() > 0 || (config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(URL.GetHops()))) {
+			_, err := io.Copy(io.Discard, URL.GetResponse().Body)
+			if err != nil {
+				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
+			}
+
+			item.SetStatus(models.ItemFailed)
 			return
 		}
 
-		// Prepare the new item resulting from the redirection
-		item.SetRedirection(&models.URL{
-			Raw:       URL.GetResponse().Header.Get("Location"),
-			Redirects: URL.GetRedirects() + 1,
-			Hops:      URL.GetHops(),
-		})
-
-		return
-	} else {
-		item.SetRedirection(nil)
-	}
-
-	// If the response isn't a text/*, we do not scrape it, and we also aren't going to scrape if assets and outlinks are turned off
-	if !strings.Contains(item.URL.GetResponse().Header.Get("Content-Type"), "text/") || (config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(item.URL.GetHops()))) {
-		_, err := io.Copy(io.Discard, item.URL.GetResponse().Body)
-		if err != nil {
-			logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
+		if URL.GetResponse() != nil {
+			err := extractAssets(URL, item)
+			if err != nil {
+				logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
+			}
 		}
-
-		item.SetStatus(models.ItemFailed)
-		return
-	}
-
-	// Extract assets
-	err := extractAssets(item)
-	if err != nil {
-		logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
 	}
 }

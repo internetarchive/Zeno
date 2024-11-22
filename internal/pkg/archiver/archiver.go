@@ -181,6 +181,8 @@ func archive(item *models.Item) {
 				return
 			}
 
+			logger.Info("captured URL", "url", URL.String(), "item", item.GetShortID())
+
 			// Set the response in the item
 			URL.SetResponse(resp)
 		}(URL)

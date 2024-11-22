@@ -2,8 +2,17 @@ package extractor
 
 import (
 	"net/url"
+	"regexp"
 	"sort"
 	"strings"
+
+	"mvdan.cc/xurls/v2"
+)
+
+var (
+	LinkRegexRelaxed = xurls.Relaxed()
+	LinkRegexStrict  = xurls.Strict()
+	LinkRegex        = regexp.MustCompile(`['"]((http|https)://[^'"]+)['"]`)
 )
 
 func isContentType(header, targetContentType string) bool {

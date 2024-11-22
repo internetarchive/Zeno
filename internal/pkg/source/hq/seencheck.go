@@ -7,7 +7,7 @@ import (
 	"github.com/internetarchive/gocrawlhq"
 )
 
-func SeencheckURLs(URLsType string, URLs ...*models.URL) (seencheckedURLs []*models.URL, err error) {
+func SeencheckURLs(URLsType models.URLType, URLs ...*models.URL) (seencheckedURLs []*models.URL, err error) {
 	var (
 		discoveredURLs []gocrawlhq.URL
 	)
@@ -15,7 +15,7 @@ func SeencheckURLs(URLsType string, URLs ...*models.URL) (seencheckedURLs []*mod
 	for _, URL := range URLs {
 		discoveredURLs = append(discoveredURLs, gocrawlhq.URL{
 			Value: URL.String(),
-			Type:  URLsType,
+			Type:  string(URLsType),
 		})
 	}
 
