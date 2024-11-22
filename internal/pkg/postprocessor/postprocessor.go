@@ -1,10 +1,12 @@
 package postprocessor
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"sync"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
@@ -173,7 +175,32 @@ func postprocess(item *models.Item) {
 		}
 
 		if URL.GetResponse() != nil {
-			err := extractAssets(URL, item)
+			var body = bytes.NewBuffer(nil)
+
+			// Read the body in a bytes buffer, then put a copy of it in the URL's response body
+			_, err := io.Copy(body, URL.GetResponse().Body)
+			if err != nil {
+				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID())
+				return
+			}
+
+			// Reset the response body to the beginning
+			URL.GetResponse().Body = io.NopCloser(bytes.NewReader(body.Bytes()))
+
+			// Save the body's buffer in the item
+			item.SetBody(body)
+
+			// Generate the goquery document from the response body
+			doc, err := goquery.NewDocumentFromReader(URL.GetResponse().Body)
+			if err != nil {
+				logger.Error("unable to create goquery document", "err", err.Error(), "item", item.GetShortID())
+				return
+			}
+
+			scrapeBaseTag(doc, item)
+
+			// Extract assets from the document
+			err = extractAssets(doc, URL, item)
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
 			}

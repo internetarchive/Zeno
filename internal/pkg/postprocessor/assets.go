@@ -1,40 +1,28 @@
 package postprocessor
 
 import (
-	"bytes"
-	"io"
 	"regexp"
 	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func extractAssets(URL *models.URL, item *models.Item) (err error) {
+func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (err error) {
 	var (
 		assets      []*models.URL
-		body        = bytes.NewBuffer(nil)
 		contentType = URL.GetResponse().Header.Get("Content-Type")
 		logger      = log.NewFieldedLogger(&log.Fields{
 			"component": "postprocessor.extractAssets",
 		})
 	)
-
-	// Read the body in a bytes buffer, then put a copy of it in the URL's response body
-	_, err = io.Copy(body, URL.GetResponse().Body)
-	if err != nil {
-		logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID())
-		return
-	}
-
-	URL.GetResponse().Body = io.NopCloser(bytes.NewReader(body.Bytes()))
-
 	// Extract assets from the body using the appropriate extractor
 	switch {
 	case strings.Contains(contentType, "html"):
-		assets, err = extractor.HTML(URL, item)
+		assets, err = extractor.HTML(doc, URL, item)
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
 			return err
@@ -46,7 +34,7 @@ func extractAssets(URL *models.URL, item *models.Item) (err error) {
 	// Extract URLs from the body using regex
 	var URLs []string
 	for _, regex := range []*regexp.Regexp{extractor.LinkRegexStrict, extractor.LinkRegex} {
-		URLs = append(URLs, regex.FindAllString(body.String(), -1)...)
+		URLs = append(URLs, regex.FindAllString(item.GetBody().String(), -1)...)
 	}
 
 	for _, URL := range utils.DedupeStrings(URLs) {

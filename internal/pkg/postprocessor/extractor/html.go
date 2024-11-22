@@ -17,18 +17,12 @@ var (
 	urlRegex             = regexp.MustCompile(`(?m)url\((.*?)\)`)
 )
 
-func HTML(URL *models.URL, seed *models.Item) (assets []*models.URL, err error) {
+func HTML(doc *goquery.Document, URL *models.URL, seed *models.Item) (assets []*models.URL, err error) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.extractor.HTML",
 	})
 
 	var rawAssets []string
-
-	// Build goquery doc from response
-	doc, err := goquery.NewDocumentFromReader(URL.GetResponse().Body)
-	if err != nil {
-		return assets, err
-	}
 
 	// Get assets from JSON payloads in data-item values
 	doc.Find("[data-item]").Each(func(index int, item *goquery.Selection) {

@@ -22,16 +22,28 @@ func normalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 		return err
 	}
 
-	if parsedURL.Scheme == "" {
-		parsedURL.Scheme = "http"
-	}
-
 	if parentURL != nil && !parsedURL.IsAbs() {
-		adaParse, err = goada.NewWithBase(URL.Raw, parentURL.String())
-		if err != nil {
-			return err
+		// Determine the base with the following logic:
+		// - always with the <base> tag found in the HTML document, if it exists (TBI)
+		// - if the URL starts with a slash, use the parent URL's scheme and host
+		// - if the URL does not start with a slash, use the parent URL's scheme, host, and path
+		baseURL := parentURL.GetParsed()
+		if strings.HasPrefix(parsedURL.Path, "/") {
+			adaParse, err = goada.NewWithBase(URL.Raw, baseURL.Scheme+"://"+baseURL.Host)
+			if err != nil {
+				return
+			}
+		} else {
+			adaParse, err = goada.NewWithBase(URL.Raw, baseURL.String())
+			if err != nil {
+				return
+			}
 		}
 	} else {
+		if parsedURL.Scheme == "" {
+			parsedURL.Scheme = "http"
+		}
+
 		adaParse, err = goada.New(models.URLToString(parsedURL))
 		if err != nil {
 			return err

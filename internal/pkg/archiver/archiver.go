@@ -185,6 +185,11 @@ func archive(item *models.Item) {
 
 			// Set the response in the item
 			URL.SetResponse(resp)
+
+			// If the URL was a child URL, we increment the number of captured childs
+			if item.GetRedirection() == nil && len(item.GetChilds()) > 0 {
+				item.IncChildsCaptured()
+			}
 		}(URL)
 	}
 
