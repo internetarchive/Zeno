@@ -10,10 +10,10 @@ type Item struct {
 	URL            *URL       // URL is a struct that contains the URL, the parsed URL, and its hop
 	Status         ItemState  // Status is the state of the item in the pipeline
 	Source         ItemSource // Source is the source of the item in the pipeline
-	ChildsCaptured bool       // ChildsCaptured is the flag to indicate if the child URLs of the item have been captured
 	Redirection    *URL       // Redirection is the URL that the item has been redirected to, if it's not nil it need to be captured
 	Via            string     // Via is the URL that the item has been found from
 	Childs         []*URL     // Childs is the list of URLs that have been discovered via the item's URL
+	ChildsCaptured int        // ChildsCaptured is the flag to indicate the number of child URLs that have been captured
 	Error          error      // Error message of the seed
 }
 
@@ -57,7 +57,7 @@ func (i *Item) GetSource() ItemSource {
 	return i.Source
 }
 
-func (i *Item) GetChildsCaptured() bool {
+func (i *Item) GetChildsCaptured() int {
 	return i.ChildsCaptured
 }
 
@@ -85,7 +85,7 @@ func (i *Item) SetChilds(childs []*URL) {
 	i.Childs = childs
 }
 
-func (i *Item) SetChildsCaptured(captured bool) {
+func (i *Item) SetChildsCaptured(captured int) {
 	i.ChildsCaptured = captured
 }
 

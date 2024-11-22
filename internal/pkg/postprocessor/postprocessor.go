@@ -2,6 +2,8 @@ package postprocessor
 
 import (
 	"context"
+	"io"
+	"strings"
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -115,14 +117,30 @@ func run() {
 }
 
 func postprocess(item *models.Item) {
-	if item.GetStatus() != models.ItemFailed {
-		item.SetRedirection(nil)
-		return
-	}
+	// if item.GetStatus() != models.ItemFailed {
+	// 	item.SetRedirection(nil)
+	// 	return
+	// }
 
 	defer item.SetStatus(models.ItemPostProcessed)
 
+	// The only post-processing for assets is to consume the response body
 	// TODO: execute assets redirection
+	if len(item.GetChilds()) > 0 {
+		for _, child := range item.GetChilds() {
+			if child.GetResponse() != nil {
+				_, err := io.Copy(io.Discard, child.GetResponse().Body)
+				if err != nil {
+					logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
+				}
+			}
+		}
+
+		item.SetChilds(nil)
+
+		return
+	}
+
 	var URL *models.URL
 
 	if item.GetRedirection() != nil {
@@ -149,5 +167,22 @@ func postprocess(item *models.Item) {
 		return
 	} else {
 		item.SetRedirection(nil)
+	}
+
+	// If the response isn't a text/*, we do not scrape it, and we also aren't going to scrape if assets and outlinks are turned off
+	if !strings.Contains(item.URL.GetResponse().Header.Get("Content-Type"), "text/") || (config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(item.URL.GetHops()))) {
+		_, err := io.Copy(io.Discard, item.URL.GetResponse().Body)
+		if err != nil {
+			logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
+		}
+
+		item.SetStatus(models.ItemFailed)
+		return
+	}
+
+	// Extract assets
+	err := extractAssets(item)
+	if err != nil {
+		logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
 	}
 }

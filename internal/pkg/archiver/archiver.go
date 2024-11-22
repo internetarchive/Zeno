@@ -2,7 +2,6 @@ package archiver
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"sync"
 
@@ -143,14 +142,14 @@ func archive(item *models.Item) {
 	)
 
 	// Determines the URLs that need to be captured, if the item's status is fresh we need
-	// to capture the seed, else if it's a redirection we need to captue it, and
+	// to capture the seed, else if it's a redirection we need to capture it, and
 	// else we need to capture the child URLs (assets), in parallel
 	if item.GetRedirection() != nil {
 		URLsToCapture = append(URLsToCapture, item.GetRedirection())
-	} else if item.GetStatus() == models.ItemPreProcessed {
-		URLsToCapture = append(URLsToCapture, item.GetURL())
-	} else {
+	} else if len(item.GetChilds()) > 0 {
 		URLsToCapture = item.GetChilds()
+	} else {
+		URLsToCapture = append(URLsToCapture, item.GetURL())
 	}
 
 	for _, URL := range URLsToCapture {
@@ -159,6 +158,7 @@ func archive(item *models.Item) {
 		go func(URL *models.URL) {
 			defer wg.Done()
 			defer func() { <-guard }()
+			defer stats.URLsCrawledIncr()
 
 			var (
 				err  error
@@ -181,16 +181,8 @@ func archive(item *models.Item) {
 				return
 			}
 
-			stats.URLsCrawledIncr()
-
 			// Set the response in the item
 			URL.SetResponse(resp)
-
-			// For now, we only consume it
-			_, err = io.Copy(io.Discard, resp.Body)
-			if err != nil {
-				logger.Error("unable to consume response body", "url", URL.String(), "err", err.Error(), "func", "archiver.archive")
-			}
 		}(URL)
 	}
 

@@ -134,7 +134,7 @@ func preprocess(item *models.Item) {
 	} else if item.GetRedirection() != nil {
 		URLType = models.URLTypeRedirection
 		URLsToPreprocess = append(URLsToPreprocess, item.GetRedirection())
-	} else if len(item.Childs) > 0 {
+	} else if len(item.GetChilds()) > 0 {
 		URLType = models.URLTypeAsset
 		URLsToPreprocess = append(URLsToPreprocess, item.GetChilds()...)
 	} else {
@@ -164,13 +164,13 @@ func preprocess(item *models.Item) {
 		var seencheckedURLs []*models.URL
 
 		if config.Get().UseHQ {
-			seencheckedURLs, err = hq.SeencheckURLs(string(URLType), item.URL)
+			seencheckedURLs, err = hq.SeencheckURLs(string(URLType), URLsToPreprocess...)
 			if err != nil {
 				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 				return
 			}
 		} else {
-			seencheckedURLs, err = seencheck.SeencheckURLs(string(URLType), item.URL)
+			seencheckedURLs, err = seencheck.SeencheckURLs(string(URLType), URLsToPreprocess...)
 			if err != nil {
 				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 				return

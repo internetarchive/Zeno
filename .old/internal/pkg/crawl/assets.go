@@ -1,183 +1,178 @@
 package crawl
 
 import (
-	"io"
-	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
-	"sync/atomic"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/remeh/sizedwaitgroup"
 )
 
-var backgroundImageRegex = regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
-var urlRegex = regexp.MustCompile(`(?m)url\((.*?)\)`)
+// var backgroundImageRegex = regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
+// var urlRegex = regexp.MustCompile(`(?m)url\((.*?)\)`)
 
-func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie, headers map[string]string) error {
-	var resp *http.Response
+// func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie, headers map[string]string) error {
+// 	var resp *http.Response
 
-	// Prepare GET request
-	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
-	if err != nil {
-		return err
-	}
+// 	// Prepare GET request
+// 	req, err := http.NewRequest("GET", utils.URLToString(item.URL), nil)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	req.Header.Set("Referer", utils.URLToString(item.ParentURL))
-	req.Header.Set("User-Agent", c.UserAgent)
+// 	req.Header.Set("Referer", utils.URLToString(item.ParentURL))
+// 	req.Header.Set("User-Agent", c.UserAgent)
 
-	// If headers are passed, apply them to the request
-	if headers != nil {
-		for key, value := range headers {
-			req.Header.Set(key, value)
-		}
-	}
+// 	// If headers are passed, apply them to the request
+// 	if headers != nil {
+// 		for key, value := range headers {
+// 			req.Header.Set(key, value)
+// 		}
+// 	}
 
-	// Apply cookies obtained from the original URL captured
-	for i := range cookies {
-		req.AddCookie(cookies[i])
-	}
+// 	// Apply cookies obtained from the original URL captured
+// 	for i := range cookies {
+// 		req.AddCookie(cookies[i])
+// 	}
 
-	resp, err = c.executeGET(item, req, false)
-	if err != nil && err.Error() == "URL from redirection has already been seen" {
-		return nil
-	} else if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+// 	resp, err = c.executeGET(item, req, false)
+// 	if err != nil && err.Error() == "URL from redirection has already been seen" {
+// 		return nil
+// 	} else if err != nil {
+// 		return err
+// 	}
+// 	defer resp.Body.Close()
 
-	if extractor.IsM3U8(resp) {
-		assets, err := extractor.M3U8(resp)
-		if err == nil {
-			assets = c.seencheckAssets(assets, item)
-			if len(assets) != 0 {
-				c.captureAssets(item, assets, cookies, headers)
-			}
-		} else {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")
-		}
-	}
+// 	if extractor.IsM3U8(resp) {
+// 		assets, err := extractor.M3U8(resp)
+// 		if err == nil {
+// 			assets = c.seencheckAssets(assets, item)
+// 			if len(assets) != 0 {
+// 				c.captureAssets(item, assets, cookies, headers)
+// 			}
+// 		} else {
+// 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract URLs from M3U8")
+// 		}
+// 	}
 
-	io.Copy(io.Discard, resp.Body)
+// 	io.Copy(io.Discard, resp.Body)
 
-	return nil
-}
+// 	return nil
+// }
 
-func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*http.Cookie, headers map[string]string) {
-	// TODO: implement a counter for the number of assets
-	// currently being processed
-	// c.Frontier.QueueCount.Incr(int64(len(assets)))
-	swg := sizedwaitgroup.New(int(c.MaxConcurrentAssets))
-	excluded := false
+// func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*http.Cookie, headers map[string]string) {
+// 	// TODO: implement a counter for the number of assets
+// 	// currently being processed
+// 	// c.Frontier.QueueCount.Incr(int64(len(assets)))
+// 	swg := sizedwaitgroup.New(int(c.MaxConcurrentAssets))
+// 	excluded := false
 
-	for _, asset := range assets {
-		// TODO: implement a counter for the number of assets
-		// currently being processed
-		// c.Frontier.QueueCount.Incr(-1)
+// 	for _, asset := range assets {
+// 		// TODO: implement a counter for the number of assets
+// 		// currently being processed
+// 		// c.Frontier.QueueCount.Incr(-1)
 
-		// Just making sure we do not over archive by archiving the original URL
-		if utils.URLToString(item.URL) == utils.URLToString(asset) {
-			continue
-		}
+// 		// Just making sure we do not over archive by archiving the original URL
+// 		if utils.URLToString(item.URL) == utils.URLToString(asset) {
+// 			continue
+// 		}
 
-		// If the URL match any excluded string, we ignore it
-		for _, excludedString := range c.ExcludedStrings {
-			if strings.Contains(utils.URLToString(asset), excludedString) {
-				excluded = true
-				break
-			}
-		}
+// 		// If the URL match any excluded string, we ignore it
+// 		for _, excludedString := range c.ExcludedStrings {
+// 			if strings.Contains(utils.URLToString(asset), excludedString) {
+// 				excluded = true
+// 				break
+// 			}
+// 		}
 
-		if excluded {
-			excluded = false
-			continue
-		}
+// 		if excluded {
+// 			excluded = false
+// 			continue
+// 		}
 
-		swg.Add()
-		c.URIsPerSecond.Incr(1)
+// 		swg.Add()
+// 		c.URIsPerSecond.Incr(1)
 
-		go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
-			defer swg.Done()
+// 		go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
+// 			defer swg.Done()
 
-			// Create the asset's item
-			newAsset, err := queue.NewItem(asset, item.URL, "asset", item.Hop, "", false)
-			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, asset, map[string]interface{}{
-					"parentHop": item.Hop,
-					"parentUrl": utils.URLToString(item.URL),
-					"type":      "asset",
-				})).Error("error while creating asset item")
-				return
-			}
+// 			// Create the asset's item
+// 			newAsset, err := queue.NewItem(asset, item.URL, "asset", item.Hop, "", false)
+// 			if err != nil {
+// 				c.Log.WithFields(c.genLogFields(err, asset, map[string]interface{}{
+// 					"parentHop": item.Hop,
+// 					"parentUrl": utils.URLToString(item.URL),
+// 					"type":      "asset",
+// 				})).Error("error while creating asset item")
+// 				return
+// 			}
 
-			// Capture the asset
-			err = c.captureAsset(newAsset, cookies, headers)
-			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
-					"parentHop": item.Hop,
-					"parentUrl": utils.URLToString(item.URL),
-					"type":      "asset",
-				})).Error("error while capturing asset")
-				return
-			}
+// 			// Capture the asset
+// 			err = c.captureAsset(newAsset, cookies, headers)
+// 			if err != nil {
+// 				c.Log.WithFields(c.genLogFields(err, &asset, map[string]interface{}{
+// 					"parentHop": item.Hop,
+// 					"parentUrl": utils.URLToString(item.URL),
+// 					"type":      "asset",
+// 				})).Error("error while capturing asset")
+// 				return
+// 			}
 
-			// If we made it to this point, it means that the asset have been crawled successfully,
-			// then we can increment the locallyCrawled variable
-			atomic.AddUint64(&item.LocallyCrawled, 1)
-		}(asset, &swg)
-	}
+// 			// If we made it to this point, it means that the asset have been crawled successfully,
+// 			// then we can increment the locallyCrawled variable
+// 			atomic.AddUint64(&item.LocallyCrawled, 1)
+// 		}(asset, &swg)
+// 	}
 
-	swg.Wait()
-}
+// 	swg.Wait()
+// }
 
-func (c *Crawl) seencheckAssets(assets []*url.URL, item *queue.Item) []*url.URL {
-	if c.UseSeencheck {
-		if c.UseHQ {
-			seencheckedURLs, err := c.HQSeencheckURLs(assets)
-			// We ignore the error here because we don't want to slow down the crawl
-			// if HQ is down or if the request failed. So if we get an error, we just
-			// continue with the original list of assets.
-			if err != nil {
-				c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
-					"urls":      assets,
-					"parentHop": item.Hop,
-					"parentUrl": utils.URLToString(item.URL),
-				})).Error("error while seenchecking assets via HQ")
-			} else {
-				assets = seencheckedURLs
-			}
+// func (c *Crawl) seencheckAssets(assets []*url.URL, item *queue.Item) []*url.URL {
+// 	if c.UseSeencheck {
+// 		if c.UseHQ {
+// 			seencheckedURLs, err := c.HQSeencheckURLs(assets)
+// 			// We ignore the error here because we don't want to slow down the crawl
+// 			// if HQ is down or if the request failed. So if we get an error, we just
+// 			// continue with the original list of assets.
+// 			if err != nil {
+// 				c.Log.WithFields(c.genLogFields(err, nil, map[string]interface{}{
+// 					"urls":      assets,
+// 					"parentHop": item.Hop,
+// 					"parentUrl": utils.URLToString(item.URL),
+// 				})).Error("error while seenchecking assets via HQ")
+// 			} else {
+// 				assets = seencheckedURLs
+// 			}
 
-			if len(assets) == 0 {
-				return []*url.URL{}
-			}
-		} else {
-			seencheckedBatch := []*url.URL{}
+// 			if len(assets) == 0 {
+// 				return []*url.URL{}
+// 			}
+// 		} else {
+// 			seencheckedBatch := []*url.URL{}
 
-			for _, URL := range assets {
-				found := c.Seencheck.SeencheckURL(utils.URLToString(URL), "asset")
-				if found {
-					continue
-				}
+// 			for _, URL := range assets {
+// 				found := c.Seencheck.SeencheckURL(utils.URLToString(URL), "asset")
+// 				if found {
+// 					continue
+// 				}
 
-				seencheckedBatch = append(seencheckedBatch, URL)
-			}
+// 				seencheckedBatch = append(seencheckedBatch, URL)
+// 			}
 
-			if len(seencheckedBatch) == 0 {
-				return []*url.URL{}
-			}
+// 			if len(seencheckedBatch) == 0 {
+// 				return []*url.URL{}
+// 			}
 
-			assets = seencheckedBatch
-		}
-	}
+// 			assets = seencheckedBatch
+// 		}
+// 	}
 
-	return assets
-}
+// 	return assets
+// }
 
 func (c *Crawl) extractAssets(base *url.URL, item *queue.Item, doc *goquery.Document) (assets []*url.URL, err error) {
 	var rawAssets []string
