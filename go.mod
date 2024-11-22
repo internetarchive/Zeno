@@ -3,13 +3,14 @@ module github.com/internetarchive/Zeno
 go 1.23.3
 
 require (
-	github.com/CorentinB/warc v0.8.53
+	github.com/CorentinB/warc v0.8.54
 	github.com/ada-url/goada v0.0.0-20240402045241-5e45a5777313
 	github.com/elastic/go-elasticsearch v0.0.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/google/uuid v1.6.0
 	github.com/internetarchive/gocrawlhq v1.2.21
 	github.com/philippgille/gokv/leveldb v0.7.0
+	github.com/rivo/tview v0.0.0-20241103174730-c76f7879f592
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
@@ -40,7 +41,6 @@ require (
 	github.com/philippgille/gokv/encoding v0.7.0 // indirect
 	github.com/philippgille/gokv/util v0.7.0 // indirect
 	github.com/refraction-networking/utls v1.6.7 // indirect
-	github.com/rivo/tview v0.0.0-20241103174730-c76f7879f592 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
