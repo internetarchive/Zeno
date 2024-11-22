@@ -159,6 +159,18 @@ func preprocess(item *models.Item) {
 		}
 	}
 
+	// If we are processing assets, then we need to remove childs that are just domains
+	// (which means that they are not assets, but false positives)
+	if URLType == models.URLTypeAsset {
+		for i := 0; i < len(URLsToPreprocess); {
+			if URLsToPreprocess[i].GetParsed().Path == "" || URLsToPreprocess[i].GetParsed().Path == "/" {
+				URLsToPreprocess = append(URLsToPreprocess[:i], URLsToPreprocess[i+1:]...)
+			} else {
+				i++
+			}
+		}
+	}
+
 	// If the item is a redirection or an asset, we need to seencheck it if needed
 	if config.Get().UseSeencheck && URLType != models.URLTypeSeed {
 		var seencheckedURLs []*models.URL
