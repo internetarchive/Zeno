@@ -136,6 +136,7 @@ func postprocess(item *models.Item) {
 	} else if len(item.GetChilds()) > 0 {
 		URLType = models.URLTypeAsset
 		URLs = item.GetChilds()
+		item.IncrChildsHops()
 		item.SetChilds(nil)
 	} else {
 		URLType = models.URLTypeSeed
@@ -164,13 +165,13 @@ func postprocess(item *models.Item) {
 			item.SetRedirection(nil)
 		}
 
-		if item.GetChildsCaptured() > 0 || (config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(URL.GetHops()))) {
+		if item.GetChildsHops() > 1 ||
+			config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(URL.GetHops())) {
 			_, err := io.Copy(io.Discard, URL.GetResponse().Body)
 			if err != nil {
 				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
 			}
 
-			item.SetStatus(models.ItemFailed)
 			return
 		}
 
@@ -188,7 +189,7 @@ func postprocess(item *models.Item) {
 			URL.GetResponse().Body = io.NopCloser(bytes.NewReader(body.Bytes()))
 
 			// Save the body's buffer in the item
-			item.SetBody(body)
+			URL.SetBody(body)
 
 			// Generate the goquery document from the response body
 			doc, err := goquery.NewDocumentFromReader(URL.GetResponse().Body)
@@ -197,7 +198,10 @@ func postprocess(item *models.Item) {
 				return
 			}
 
-			scrapeBaseTag(doc, item)
+			// If the URL is a seed, scrape the base tag
+			if URLType == models.URLTypeSeed {
+				scrapeBaseTag(doc, item)
+			}
 
 			// Extract assets from the document
 			err = extractAssets(doc, URL, item)

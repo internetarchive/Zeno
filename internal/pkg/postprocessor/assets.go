@@ -34,7 +34,7 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (e
 	// Extract URLs from the body using regex
 	var URLs []string
 	for _, regex := range []*regexp.Regexp{extractor.LinkRegexStrict, extractor.LinkRegex} {
-		URLs = append(URLs, regex.FindAllString(item.GetBody().String(), -1)...)
+		URLs = append(URLs, regex.FindAllString(URL.GetBody().String(), -1)...)
 	}
 
 	for _, URL := range utils.DedupeStrings(URLs) {
@@ -45,11 +45,7 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (e
 	}
 
 	for _, asset := range assets {
-		// If the item has a value of 0 for ChildsCaptured, it means that we are  on the first iteration
-		// of the postprocessor and we allow another iteration to capture the assets of assets
-		if item.GetChildsCaptured() == 0 {
-			item.AddChild(asset)
-		}
+		item.AddChild(asset)
 	}
 
 	return

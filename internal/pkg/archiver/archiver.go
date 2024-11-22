@@ -181,14 +181,14 @@ func archive(item *models.Item) {
 				return
 			}
 
-			logger.Info("captured URL", "url", URL.String(), "item", item.GetShortID())
+			logger.Info("captured URL", "url", URL.String(), "item", item.GetShortID(), "status", resp.StatusCode)
 
 			// Set the response in the item
 			URL.SetResponse(resp)
 
 			// If the URL was a child URL, we increment the number of captured childs
 			if item.GetRedirection() == nil && len(item.GetChilds()) > 0 {
-				item.IncChildsCaptured()
+				item.IncrChildsCaptured()
 			}
 		}(URL)
 	}
