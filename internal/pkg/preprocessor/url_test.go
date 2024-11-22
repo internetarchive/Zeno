@@ -49,6 +49,25 @@ func TestNormalizeURL(t *testing.T) {
 			wantErr:     false,
 			expectedURL: "http://www.google.com/dogs",
 		},
+		{
+			name:        "URL with leading and trailing quotes",
+			rawURL:      `"https://example.com/path"`,
+			wantErr:     false,
+			expectedURL: "https://example.com/path",
+		},
+		{
+			name:        "relative URL with leading and trailing quotes",
+			rawURL:      `'/path'`,
+			parentURL:   "https://example.com",
+			wantErr:     false,
+			expectedURL: "https://example.com/path",
+		},
+		{
+			name:        "relative URL without parent",
+			rawURL:      "/path",
+			wantErr:     true,
+			expectedURL: "",
+		},
 	}
 
 	for _, tt := range tests {
