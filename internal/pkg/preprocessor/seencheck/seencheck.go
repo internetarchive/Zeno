@@ -57,8 +57,8 @@ func SeencheckURLs(URLType models.URLType, URLs ...*models.URL) (seencheckedURLs
 
 		hash := strconv.FormatUint(h.Sum64(), 10)
 
-		found, _ := isSeen(hash)
-		if !found {
+		found, foundURLType := isSeen(hash)
+		if !found || (foundURLType == "asset" && URLType == "seed") {
 			seen(hash, string(URLType))
 			seencheckedURLs = append(seencheckedURLs, URL)
 		}
