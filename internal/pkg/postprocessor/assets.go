@@ -1,6 +1,7 @@
 package postprocessor
 
 import (
+	"io"
 	"regexp"
 	"strings"
 
@@ -34,8 +35,20 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (e
 	// Extract URLs from the body using regex
 	var URLs []string
 	for _, regex := range []*regexp.Regexp{extractor.LinkRegexStrict, extractor.LinkRegex} {
-		URLs = append(URLs, regex.FindAllString(URL.GetBody().String(), -1)...)
+		// Reset the read position to the beginning
+		URL.RewindBody()
+
+		// Second read
+		buf := make([]byte, URL.GetBody().Len())
+		if _, err := URL.GetBody().Read(buf); err != nil && err != io.EOF {
+			return err
+		}
+
+		URLs = append(URLs, regex.FindAllString(string(buf), -1)...)
 	}
+
+	// Reset the read position to the beginning
+	URL.RewindBody()
 
 	for _, URL := range utils.DedupeStrings(URLs) {
 		assets = append(assets, &models.URL{

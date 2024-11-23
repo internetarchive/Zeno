@@ -1,7 +1,9 @@
 package archiver
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"net/http"
 	"sync"
 
@@ -181,10 +183,23 @@ func archive(item *models.Item) {
 				return
 			}
 
-			logger.Info("captured URL", "url", URL.String(), "item", item.GetShortID(), "status", resp.StatusCode)
-
 			// Set the response in the item
 			URL.SetResponse(resp)
+
+			// Consumes the response body
+			var body = bytes.NewBuffer(nil)
+
+			// Read the body in a bytes buffer, then put a copy of it in the URL's response body
+			_, err = io.Copy(body, URL.GetResponse().Body)
+			if err != nil {
+				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID())
+				return
+			}
+
+			// Save the body's buffer in the item
+			URL.SetBody(bytes.NewReader(body.Bytes()))
+
+			logger.Info("captured URL", "url", URL.String(), "item", item.GetShortID(), "status", resp.StatusCode)
 
 			// If the URL was a child URL, we increment the number of captured childs
 			if item.GetRedirection() == nil && len(item.GetChilds()) > 0 {

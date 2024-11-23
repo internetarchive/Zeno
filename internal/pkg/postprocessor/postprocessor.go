@@ -1,9 +1,7 @@
 package postprocessor
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
@@ -167,36 +165,18 @@ func postprocess(item *models.Item) {
 
 		if item.GetChildsHops() > 1 ||
 			config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(URL.GetHops())) {
-			_, err := io.Copy(io.Discard, URL.GetResponse().Body)
-			if err != nil {
-				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
-			}
-
 			return
 		}
 
 		if URL.GetResponse() != nil {
-			var body = bytes.NewBuffer(nil)
-
-			// Read the body in a bytes buffer, then put a copy of it in the URL's response body
-			_, err := io.Copy(body, URL.GetResponse().Body)
-			if err != nil {
-				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID())
-				return
-			}
-
-			// Reset the response body to the beginning
-			URL.GetResponse().Body = io.NopCloser(bytes.NewReader(body.Bytes()))
-
-			// Save the body's buffer in the item
-			URL.SetBody(body)
-
 			// Generate the goquery document from the response body
-			doc, err := goquery.NewDocumentFromReader(URL.GetResponse().Body)
+			doc, err := goquery.NewDocumentFromReader(URL.GetBody())
 			if err != nil {
 				logger.Error("unable to create goquery document", "err", err.Error(), "item", item.GetShortID())
 				return
 			}
+
+			URL.RewindBody()
 
 			// If the URL is a seed, scrape the base tag
 			if URLType == models.URLTypeSeed {

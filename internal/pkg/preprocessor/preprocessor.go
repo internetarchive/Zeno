@@ -152,7 +152,7 @@ func preprocess(item *models.Item) {
 		err = normalizeURL(URLsToPreprocess[i], parentURL)
 		if err != nil {
 			// If we can't validate an URL, we remove it from the list of childs
-			logger.Warn("unable to validate URL", "url", URLsToPreprocess[i].Raw, "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Debug("unable to validate URL", "url", URLsToPreprocess[i].Raw, "err", err.Error(), "func", "preprocessor.preprocess")
 			URLsToPreprocess = append(URLsToPreprocess[:i], URLsToPreprocess[i+1:]...)
 		} else {
 			i++

@@ -2,6 +2,7 @@ package models
 
 import (
 	"bytes"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -16,7 +17,7 @@ type URL struct {
 	parsed    *url.URL
 	request   *http.Request
 	response  *http.Response
-	body      *bytes.Buffer
+	body      *bytes.Reader
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
 	Redirects int
 }
@@ -26,12 +27,19 @@ func (u *URL) Parse() (err error) {
 	return err
 }
 
-func (u *URL) GetBody() *bytes.Buffer {
+func (u *URL) GetBody() *bytes.Reader {
 	return u.body
 }
 
-func (u *URL) SetBody(body *bytes.Buffer) {
+func (u *URL) SetBody(body *bytes.Reader) {
 	u.body = body
+}
+
+func (u *URL) RewindBody() {
+	_, err := u.body.Seek(0, io.SeekStart)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (u *URL) SetRequest(r *http.Request) {
