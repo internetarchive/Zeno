@@ -190,6 +190,8 @@ func preprocess(item *models.Item) {
 			}
 		}
 
+		URLsToPreprocess = seencheckedURLs
+
 		switch URLType {
 		case models.URLTypeRedirection:
 			item.SetRedirection(nil)
