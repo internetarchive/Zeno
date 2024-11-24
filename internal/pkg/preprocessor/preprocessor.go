@@ -11,6 +11,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -171,6 +172,9 @@ func preprocess(item *models.Item) {
 			}
 		}
 	}
+
+	// Simply deduplicate the slice
+	URLsToPreprocess = utils.DedupeURLs(URLsToPreprocess)
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
 	if config.Get().UseSeencheck && URLType != models.URLTypeSeed {
