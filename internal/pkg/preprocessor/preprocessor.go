@@ -2,6 +2,7 @@ package preprocessor
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -202,8 +203,7 @@ func preprocess(item *models.Item) {
 		// TODO: apply site-specific stuff
 		req, err := http.NewRequest(http.MethodGet, URL.String(), nil)
 		if err != nil {
-			logger.Error("unable to create new request for URL", "url", item.URL.String(), "err", err.Error(), "func", "preprocessor.preprocess")
-			return
+			panic(fmt.Sprintf("unable to create request for URL %s: %s", URL.String(), err.Error()))
 		}
 
 		URL.SetRequest(req)
