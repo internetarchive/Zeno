@@ -45,8 +45,8 @@ func main() {
 
 	stats.Init()
 
-	// If needed, start the seencheck process
-	if config.Get().UseSeencheck {
+	// If needed, create the seencheck DB (only if not using HQ)
+	if config.Get().UseSeencheck && !config.Get().UseHQ {
 		err := seencheck.Start(config.Get().JobPath)
 		if err != nil {
 			logger.Error("unable to start seencheck", "err", err.Error())
