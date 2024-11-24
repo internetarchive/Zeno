@@ -174,29 +174,23 @@ func preprocess(item *models.Item) {
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
 	if config.Get().UseSeencheck && URLType != models.URLTypeSeed {
-		var seencheckedURLs []*models.URL
-
 		if config.Get().UseHQ {
-			seencheckedURLs, err = hq.SeencheckURLs(URLType, URLsToPreprocess...)
+			URLsToPreprocess, err = hq.SeencheckURLs(URLType, URLsToPreprocess...)
 			if err != nil {
 				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
-				return
 			}
 		} else {
-			seencheckedURLs, err = seencheck.SeencheckURLs(URLType, URLsToPreprocess...)
+			URLsToPreprocess, err = seencheck.SeencheckURLs(URLType, URLsToPreprocess...)
 			if err != nil {
 				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
-				return
 			}
 		}
-
-		URLsToPreprocess = seencheckedURLs
 
 		switch URLType {
 		case models.URLTypeRedirection:
 			item.SetRedirection(nil)
 		case models.URLTypeAsset:
-			item.SetChilds(seencheckedURLs)
+			item.SetChilds(URLsToPreprocess)
 		}
 	}
 

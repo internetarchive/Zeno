@@ -8,9 +8,7 @@ import (
 )
 
 func SeencheckURLs(URLsType models.URLType, URLs ...*models.URL) (seencheckedURLs []*models.URL, err error) {
-	var (
-		discoveredURLs []gocrawlhq.URL
-	)
+	var discoveredURLs []gocrawlhq.URL
 
 	for _, URL := range URLs {
 		discoveredURLs = append(discoveredURLs, gocrawlhq.URL{
