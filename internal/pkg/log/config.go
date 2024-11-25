@@ -2,6 +2,7 @@
 package log
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -49,6 +50,10 @@ func makeConfig() *Config {
 	elasticRotatePeriod, err := time.ParseDuration(config.Get().ElasticSearchRotation)
 	if err != nil && config.Get().ElasticSearchRotation != "" {
 		elasticRotatePeriod = 24 * time.Hour
+	}
+
+	if config.Get().LogFileOutputDir == "" {
+		config.Get().LogFileOutputDir = fmt.Sprintf("%s/logs", config.Get().JobPath)
 	}
 
 	return &Config{
