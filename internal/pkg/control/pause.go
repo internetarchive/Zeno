@@ -59,7 +59,7 @@ func Subscribe() <-chan Event {
 // Unsubscribe removes a subscriber from the list.
 func Unsubscribe(ch <-chan Event) {
 	// Find and delete the subscriber
-	manager.subscribers.Range(func(key, value interface{}) bool {
+	manager.subscribers.Range(func(key, _ interface{}) bool {
 		sub := key.(*subscriber)
 		if sub.ch == ch {
 			manager.subscribers.Delete(sub)
@@ -72,7 +72,7 @@ func Unsubscribe(ch <-chan Event) {
 
 // notifySubscribers sends an event to all subscribers.
 func (m *pauseManager) notifySubscribers(event Event) {
-	m.subscribers.Range(func(key, value interface{}) bool {
+	m.subscribers.Range(func(key, _ interface{}) bool {
 		sub := key.(*subscriber)
 		select {
 		case sub.ch <- event:
