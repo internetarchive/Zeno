@@ -2,6 +2,7 @@ package archiver
 
 import (
 	"os"
+	"path"
 	"time"
 
 	"github.com/CorentinB/warc"
@@ -14,7 +15,7 @@ func startWARCWriter() {
 	rotatorSettings.Prefix = config.Get().WARCPrefix
 	rotatorSettings.WARCWriterPoolSize = config.Get().WARCPoolSize
 	rotatorSettings.WarcSize = float64(config.Get().WARCSize)
-	rotatorSettings.OutputDirectory = config.Get().JobPath
+	rotatorSettings.OutputDirectory = path.Join(config.Get().JobPath, "warcs")
 
 	// Configure WARC dedupe settings
 	dedupeOptions := warc.DedupeOptions{LocalDedupe: !config.Get().DisableLocalDedupe, SizeThreshold: config.Get().WARCDedupeSize}
