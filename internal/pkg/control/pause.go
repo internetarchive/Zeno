@@ -1,6 +1,7 @@
 package control
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 )
@@ -94,6 +95,19 @@ func WaitIfPaused() {
 			if event == ResumeEvent {
 				break
 			}
+		}
+	}
+}
+
+// WaitUntilResume blocks until a ResumeEvent is received or the channel is closed.
+func WaitUntilResume(ch <-chan Event) error {
+	for {
+		event, ok := <-ch
+		if !ok {
+			return fmt.Errorf("subscription channel closed")
+		}
+		if event == ResumeEvent {
+			return nil
 		}
 	}
 }

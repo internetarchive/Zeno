@@ -283,3 +283,76 @@ func TestChannelClosure(t *testing.T) {
 		t.Error("Expected channel to be closed after Unsubscribe")
 	}
 }
+
+func TestPauseResumeE2E(t *testing.T) {
+	// Reset the state
+	atomic.StoreUint32(&manager.paused, 0)
+
+	var workCounter int32 // Counts the amount of work done
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// Start the worker goroutine
+	ch := Subscribe() // Subscribe and get the channel
+	go func() {
+		defer wg.Done()
+		defer Unsubscribe(ch) // Ensure we unsubscribe when the goroutine exits
+
+		for {
+			select {
+			case event, ok := <-ch:
+				if !ok {
+					return // Channel closed, exit goroutine
+				}
+				if event == PauseEvent {
+					err := WaitUntilResume(ch)
+					if err != nil {
+						panic(err)
+					}
+				}
+			default:
+				// Simulate work
+				atomic.AddInt32(&workCounter, 1)
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+
+	// Allow the worker to do some work
+	time.Sleep(1 * time.Second)
+	workBeforePause := atomic.LoadInt32(&workCounter)
+
+	// Pause the system
+	Pause()
+	pauseStart := time.Now()
+
+	// Sleep for 1 second to keep the system paused
+	time.Sleep(1 * time.Second)
+
+	// Resume the system
+	Resume()
+	pauseDuration := time.Since(pauseStart)
+
+	// Allow the worker to do more work
+	time.Sleep(1 * time.Second)
+	workAfterResume := atomic.LoadInt32(&workCounter)
+
+	// Calculate the amount of work done during the pause
+	workDuringPause := workAfterResume - workBeforePause - 10 // 10 units of work before and after pause
+
+	// Check that no work was done during the pause
+	if workDuringPause != 0 {
+		t.Errorf("Expected no work during pause, but got %d units of work", workDuringPause)
+	}
+
+	// Verify that the pause duration is approximately 1 second
+	if pauseDuration < 900*time.Millisecond || pauseDuration > 1100*time.Millisecond {
+		t.Errorf("Expected pause duration around 1 second, but got %v", pauseDuration)
+	}
+
+	// Stop the worker goroutine by unsubscribing
+	Unsubscribe(ch)
+
+	// Wait for the worker goroutine to finish
+	wg.Wait()
+}
