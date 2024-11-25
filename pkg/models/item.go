@@ -135,8 +135,8 @@ const (
 	ItemFresh ItemState = iota
 	// ItemPreProcessed is the state after the item has been pre-processed
 	ItemPreProcessed
-	// ItemCaptured is the state after the item has been captured
-	ItemCaptured
+	// ItemArchived is the state after the item has been archived
+	ItemArchived
 	// ItemPostProcessed is the state after the item has been post-processed
 	ItemPostProcessed
 	// ItemFailed is the state after the item has failed

@@ -119,8 +119,6 @@ func run() {
 }
 
 func preprocess(item *models.Item) {
-	defer item.SetStatus(models.ItemPreProcessed)
-
 	// Validate the URL of either the item itself and/or its childs
 	// TODO: if an error happen and it's a fresh item, we should mark it as failed in HQ (if it's a HQ-based crawl)
 
@@ -133,6 +131,7 @@ func preprocess(item *models.Item) {
 	if item.GetStatus() == models.ItemFresh {
 		URLType = models.URLTypeSeed
 		URLsToPreprocess = append(URLsToPreprocess, item.GetURL())
+		defer item.SetStatus(models.ItemPreProcessed)
 	} else if item.GetRedirection() != nil {
 		URLType = models.URLTypeRedirection
 		URLsToPreprocess = append(URLsToPreprocess, item.GetRedirection())

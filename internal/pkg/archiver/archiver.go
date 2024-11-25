@@ -143,7 +143,7 @@ func archive(item *models.Item) {
 		URLsToCapture []*models.URL
 		guard         = make(chan struct{}, config.Get().MaxConcurrentAssets)
 		wg            sync.WaitGroup
-		itemState     = models.ItemCaptured
+		itemState     = models.ItemArchived
 	)
 
 	// Determine the URLs that need to be captured
@@ -181,7 +181,7 @@ func archive(item *models.Item) {
 				logger.Error("unable to execute request", "err", err.Error(), "func", "archiver.archive")
 
 				// Only mark the item as failed if processing a redirection or a new seed
-				if item.GetStatus() == models.ItemFresh || item.GetRedirection() != nil {
+				if item.GetStatus() == models.ItemPreProcessed || item.GetRedirection() != nil {
 					itemState = models.ItemFailed
 				}
 
