@@ -4,19 +4,19 @@ import (
 	"github.com/google/uuid"
 )
 
-// Item represents a URL, it's childs (e.g. discovered assets) and it's state in the pipeline
+// Item represents a URL, it's children (e.g. discovered assets) and it's state in the pipeline
 type Item struct {
-	ID             string     // ID is the unique identifier of the item
-	URL            *URL       // URL is a struct that contains the URL, the parsed URL, and its hop
-	Status         ItemState  // Status is the state of the item in the pipeline
-	Source         ItemSource // Source is the source of the item in the pipeline
-	Redirection    *URL       // Redirection is the URL that the item has been redirected to, if it's not nil it need to be captured
-	Via            string     // Via is the URL that the item has been found from
-	childs         []*URL     // Childs is the list of URLs that have been discovered via the item's URL
-	childsHops     int        // ChildsHops is the number of hops of the childs
-	childsBase     string     // ChildsBase is the base URL of the childs, extracted from a <base> tag
-	childsCaptured int        // ChildsCaptured is the flag to indicate the number of child URLs that have been captured
-	Error          error      // Error message of the seed
+	ID               string     // ID is the unique identifier of the item
+	URL              *URL       // URL is a struct that contains the URL, the parsed URL, and its hop
+	Status           ItemState  // Status is the state of the item in the pipeline
+	Source           ItemSource // Source is the source of the item in the pipeline
+	Redirection      *URL       // Redirection is the URL that the item has been redirected to, if it's not nil it need to be captured
+	Via              string     // Via is the URL that the item has been found from
+	children         []*URL     // Children is the list of URLs that have been discovered via the item's URL
+	childrenHops     int        // ChildrenHops is the number of hops of the children
+	childrenBase     string     // ChildrenBase is the base URL of the children, extracted from a <base> tag
+	childrenCaptured int        // ChildrenCaptured is the flag to indicate the number of child URLs that have been captured
+	Error            error      // Error message of the seed
 }
 
 func NewItem(source ItemSource) (item *Item) {
@@ -32,27 +32,27 @@ func NewItem(source ItemSource) (item *Item) {
 }
 
 func (i *Item) AddChild(child *URL) {
-	i.childs = append(i.childs, child)
+	i.children = append(i.children, child)
 }
 
-func (i *Item) GetChilds() []*URL {
-	return i.childs
+func (i *Item) GetChildren() []*URL {
+	return i.children
 }
 
-func (i *Item) GetChildsHops() int {
-	return i.childsHops
+func (i *Item) GetChildrenHops() int {
+	return i.childrenHops
 }
 
-func (i *Item) IncrChildsHops() {
-	i.childsHops++
+func (i *Item) IncrChildrenHops() {
+	i.childrenHops++
 }
 
-func (i *Item) GetChildsBase() string {
-	return i.childsBase
+func (i *Item) GetChildrenBase() string {
+	return i.childrenBase
 }
 
-func (i *Item) SetChildsBase(base string) {
-	i.childsBase = base
+func (i *Item) SetChildrenBase(base string) {
+	i.childrenBase = base
 }
 
 func (i *Item) GetID() string {
@@ -75,8 +75,8 @@ func (i *Item) GetSource() ItemSource {
 	return i.Source
 }
 
-func (i *Item) GetChildsCaptured() int {
-	return i.childsCaptured
+func (i *Item) GetChildrenCaptured() int {
+	return i.childrenCaptured
 }
 
 func (i *Item) GetRedirection() *URL {
@@ -103,16 +103,16 @@ func (i *Item) SetSource(source ItemSource) {
 	i.Source = source
 }
 
-func (i *Item) SetChilds(childs []*URL) {
-	i.childs = childs
+func (i *Item) SetChildren(children []*URL) {
+	i.children = children
 }
 
-func (i *Item) SetChildsCaptured(captured int) {
-	i.childsCaptured = captured
+func (i *Item) SetChildrenCaptured(captured int) {
+	i.childrenCaptured = captured
 }
 
-func (i *Item) IncrChildsCaptured() {
-	i.childsCaptured++
+func (i *Item) IncrChildrenCaptured() {
+	i.childrenCaptured++
 }
 
 func (i *Item) SetVia(via string) {

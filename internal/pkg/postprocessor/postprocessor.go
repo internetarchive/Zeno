@@ -131,11 +131,11 @@ func postprocess(item *models.Item) {
 	if item.GetRedirection() != nil {
 		URLType = models.URLTypeRedirection
 		URLs = append(URLs, item.GetRedirection())
-	} else if len(item.GetChilds()) > 0 {
+	} else if len(item.GetChildren()) > 0 {
 		URLType = models.URLTypeAsset
-		URLs = item.GetChilds()
-		item.IncrChildsHops()
-		item.SetChilds(nil)
+		URLs = item.GetChildren()
+		item.IncrChildrenHops()
+		item.SetChildren(nil)
 	} else {
 		URLType = models.URLTypeSeed
 		URLs = append(URLs, item.GetURL())
@@ -163,7 +163,7 @@ func postprocess(item *models.Item) {
 			item.SetRedirection(nil)
 		}
 
-		if item.GetChildsHops() > 1 ||
+		if item.GetChildrenHops() > 1 ||
 			config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(URL.GetHops())) {
 			return
 		}

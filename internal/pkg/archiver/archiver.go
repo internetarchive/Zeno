@@ -209,7 +209,7 @@ func archive(item *models.Item) {
 			// Send the successful URL to the channel
 			successfulURLsChan <- URL
 
-			// If the URL is a child URL, increment the captured count
+			// If the URL is a child UChildRL, increment the captured count
 			if containsURL(item.GetChilds(), URL) {
 				item.IncrChildsCaptured()
 			}

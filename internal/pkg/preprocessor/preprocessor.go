@@ -136,9 +136,9 @@ func preprocess(item *models.Item) {
 	} else if item.GetRedirection() != nil {
 		URLType = models.URLTypeRedirection
 		URLsToPreprocess = append(URLsToPreprocess, item.GetRedirection())
-	} else if len(item.GetChilds()) > 0 {
+	} else if len(item.GetChildren()) > 0 {
 		URLType = models.URLTypeAsset
-		URLsToPreprocess = append(URLsToPreprocess, item.GetChilds()...)
+		URLsToPreprocess = append(URLsToPreprocess, item.GetChildren()...)
 	} else {
 		panic("item has no URL to preprocess")
 	}
@@ -194,7 +194,7 @@ func preprocess(item *models.Item) {
 		case models.URLTypeRedirection:
 			item.SetRedirection(nil)
 		case models.URLTypeAsset:
-			item.SetChilds(URLsToPreprocess)
+			item.SetChildren(URLsToPreprocess)
 		}
 	}
 
