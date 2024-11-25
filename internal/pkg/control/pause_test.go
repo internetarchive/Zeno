@@ -1,358 +1,420 @@
 package control
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 )
 
-func TestBasicFunctionality(t *testing.T) {
-	// Ensure the system is not paused initially
-	atomic.StoreUint32(&manager.paused, 0)
+func TestBasicPauseResume(t *testing.T) {
+	manager = &pauseManager{}
 
-	if IsPaused() {
-		t.Error("Expected IsPaused() to be false initially")
-	}
+	var wg sync.WaitGroup
+	wg.Add(1)
 
-	// Pause the system
+	subscribed := make(chan struct{})
+	pausedCh := make(chan struct{})
+	resumedCh := make(chan struct{})
+
+	go func() {
+		defer wg.Done()
+		controlChans := Subscribe()
+		defer Unsubscribe(controlChans)
+
+		subscribed <- struct{}{}
+
+		for {
+			select {
+			case <-controlChans.PauseCh:
+				// Signal that we have received the pause signal
+				pausedCh <- struct{}{}
+				// Attempt to send to ResumeCh; blocks until Resume() reads from it.
+				controlChans.ResumeCh <- struct{}{}
+				// Signal that we have resumed
+				resumedCh <- struct{}{}
+				return // Exit after resuming.
+			default:
+				time.Sleep(10 * time.Millisecond) // Simulate work.
+			}
+		}
+	}()
+
+	// Wait for the goroutine to subscribe
+	<-subscribed
+
+	// Pause the system.
 	Pause()
-	if !IsPaused() {
-		t.Error("Expected IsPaused() to be true after Pause()")
+
+	// Wait for the goroutine to signal that it has paused
+	select {
+	case <-pausedCh:
+		// Paused successfully
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("Subscriber did not receive pause signal")
 	}
 
-	// Resume the system
+	// Resume the system.
 	Resume()
-	if IsPaused() {
-		t.Error("Expected IsPaused() to be false after Resume()")
-	}
-}
 
-func TestSubscribeUnsubscribe(t *testing.T) {
-	// Reset the state
-	atomic.StoreUint32(&manager.paused, 0)
-
-	ch := Subscribe()
-	defer Unsubscribe(ch)
-
-	// Read the initial state event
+	// Wait for the goroutine to signal that it has resumed
 	select {
-	case event := <-ch:
-		if event != ResumeEvent {
-			t.Errorf("Expected initial event to be ResumeEvent, got %v", event)
-		}
-	default:
-		t.Error("Expected to receive initial state event")
+	case <-resumedCh:
+		// Resumed successfully
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("Subscriber did not resume")
 	}
 
-	// Pause the system and check for the event
-	Pause()
-	select {
-	case event := <-ch:
-		if event != PauseEvent {
-			t.Errorf("Expected PauseEvent, got %v", event)
-		}
-	default:
-		t.Error("Expected to receive PauseEvent")
-	}
-
-	// Resume the system and check for the event
-	Resume()
-	select {
-	case event := <-ch:
-		if event != ResumeEvent {
-			t.Errorf("Expected ResumeEvent, got %v", event)
-		}
-	default:
-		t.Error("Expected to receive ResumeEvent")
-	}
-
-	// Unsubscribe and ensure no more events are received
-	Unsubscribe(ch)
-
-	// Attempt to read from the channel; it should be closed
-	select {
-	case _, ok := <-ch:
-		if ok {
-			t.Error("Expected channel to be closed after Unsubscribe")
-		}
-	default:
-		t.Error("Expected channel to be closed after Unsubscribe")
-	}
+	wg.Wait()
 }
 
 func TestMultipleSubscribers(t *testing.T) {
-	// Reset the state
-	atomic.StoreUint32(&manager.paused, 0)
-
+	manager = &pauseManager{}
 	const numSubscribers = 10
-	subs := make([]<-chan Event, numSubscribers)
-
-	// Subscribe multiple subscribers
-	for i := 0; i < numSubscribers; i++ {
-		ch := Subscribe()
-		subs[i] = ch
-		defer Unsubscribe(ch)
-
-		// Read the initial state event
-		select {
-		case event := <-ch:
-			if event != ResumeEvent {
-				t.Errorf("Subscriber %d: Expected initial event to be ResumeEvent, got %v", i, event)
-			}
-		default:
-			t.Errorf("Subscriber %d: Expected to receive initial state event", i)
-		}
-	}
-
-	// Pause the system
-	Pause()
-
-	// Check that all subscribers received the PauseEvent
-	for i, ch := range subs {
-		select {
-		case event := <-ch:
-			if event != PauseEvent {
-				t.Errorf("Subscriber %d: Expected PauseEvent, got %v", i, event)
-			}
-		default:
-			t.Errorf("Subscriber %d: Expected to receive PauseEvent", i)
-		}
-	}
-
-	// Resume the system
-	Resume()
-
-	// Check that all subscribers received the ResumeEvent
-	for i, ch := range subs {
-		select {
-		case event := <-ch:
-			if event != ResumeEvent {
-				t.Errorf("Subscriber %d: Expected ResumeEvent, got %v", i, event)
-			}
-		default:
-			t.Errorf("Subscriber %d: Expected to receive ResumeEvent", i)
-		}
-	}
-}
-
-func TestConcurrentPauseResume(t *testing.T) {
-	const numGoroutines = 50
-	const numOperations = 100
-
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
-		go func(id int) {
+	subscribedChans := make([]chan struct{}, numSubscribers)
+	pausedChans := make([]chan struct{}, numSubscribers)
+	resumedChans := make([]chan struct{}, numSubscribers)
+
+	// Create multiple subscribers.
+	for i := 0; i < numSubscribers; i++ {
+		wg.Add(1)
+		subscribedChans[i] = make(chan struct{})
+		pausedChans[i] = make(chan struct{})
+		resumedChans[i] = make(chan struct{})
+
+		go func(idx int) {
 			defer wg.Done()
-			for j := 0; j < numOperations; j++ {
-				if j%2 == 0 {
-					Pause()
-				} else {
-					Resume()
+			controlChans := Subscribe()
+			defer Unsubscribe(controlChans)
+
+			subscribedChans[idx] <- struct{}{}
+
+			for {
+				select {
+				case <-controlChans.PauseCh:
+					// Signal that we have paused
+					pausedChans[idx] <- struct{}{}
+					// Attempt to send to ResumeCh; blocks until Resume() reads from it.
+					controlChans.ResumeCh <- struct{}{}
+					// Signal that we have resumed
+					resumedChans[idx] <- struct{}{}
+					return // Exit after resuming.
+				default:
+					time.Sleep(10 * time.Millisecond) // Simulate work.
 				}
 			}
 		}(i)
 	}
 
-	// Wait for all goroutines to finish
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		// Test completed
-	case <-time.After(5 * time.Second):
-		t.Fatal("Test timed out; possible deadlock or issue with concurrent Pause/Resume")
-	}
-
-	// Ensure the system is in a consistent state
-	if IsPaused() {
-		t.Log("System is paused at the end of TestConcurrentPauseResume")
-	} else {
-		t.Log("System is not paused at the end of TestConcurrentPauseResume")
-	}
-}
-
-func TestWaitIfPaused(t *testing.T) {
-	// Ensure the system is paused before calling WaitIfPaused()
-	atomic.StoreUint32(&manager.paused, 1) // Set paused state to true
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		WaitIfPaused()
-		// Indicate that WaitIfPaused() has returned
-	}()
-
-	time.Sleep(100 * time.Millisecond) // Give some time for WaitIfPaused() to block
-
-	// Now resume the system
-	Resume()
-
-	// Wait for the goroutine to finish
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		// Expected behavior
-	case <-time.After(2 * time.Second):
-		t.Error("WaitIfPaused() did not return after Resume()")
-	}
-}
-
-func TestEdgeCases(t *testing.T) {
-	const numSubscribers = 100
-	subs := make([]<-chan Event, numSubscribers)
-
-	// Subscribe multiple subscribers
+	// Wait for all subscribers to subscribe
 	for i := 0; i < numSubscribers; i++ {
-		ch := Subscribe()
-		subs[i] = ch
-
-		// Read the initial state event
-		select {
-		case event := <-ch:
-			// We accept both ResumeEvent and PauseEvent depending on current state
-			if event != ResumeEvent && event != PauseEvent {
-				t.Errorf("Subscriber %d: Expected initial event to be ResumeEvent or PauseEvent, got %v", i, event)
-			}
-		default:
-			t.Errorf("Subscriber %d: Expected to receive initial state event", i)
-		}
+		<-subscribedChans[i]
 	}
 
-	// Rapid pause/resume cycles
-	for i := 0; i < 50; i++ {
-		Pause()
-		Resume()
-	}
-
-	// Unsubscribe half of the subscribers during notification
-	for i := 0; i < numSubscribers/2; i++ {
-		Unsubscribe(subs[i])
-	}
-
-	// Pause the system
+	// Pause the system.
 	Pause()
 
-	// Check that remaining subscribers receive the PauseEvent
-	for i := numSubscribers / 2; i < numSubscribers; i++ {
-		ch := subs[i]
+	// Wait for all subscribers to acknowledge the pause
+	for i := 0; i < numSubscribers; i++ {
 		select {
-		case event := <-ch:
-			if event != PauseEvent {
-				t.Errorf("Subscriber %d: Expected PauseEvent, got %v", i, event)
-			}
-		default:
-			t.Errorf("Subscriber %d: Expected to receive PauseEvent", i)
+		case <-pausedChans[i]:
+			// Subscriber paused
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("Subscriber %d did not receive pause signal", i)
 		}
 	}
-}
 
-func TestChannelClosure(t *testing.T) {
-	ch := Subscribe()
+	// Resume the system.
+	Resume()
 
-	// Read the initial event
-	select {
-	case <-ch:
-		// Initial event received
-	default:
-		t.Error("Expected to receive initial state event")
-	}
-
-	Unsubscribe(ch)
-
-	// Check that the channel is closed
-	select {
-	case _, ok := <-ch:
-		if ok {
-			t.Error("Expected channel to be closed after Unsubscribe")
+	// Wait for all subscribers to acknowledge the resume
+	for i := 0; i < numSubscribers; i++ {
+		select {
+		case <-resumedChans[i]:
+			// Subscriber resumed
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("Subscriber %d did not resume", i)
 		}
-	default:
-		t.Error("Expected channel to be closed after Unsubscribe")
 	}
+
+	wg.Wait()
 }
 
-func TestPauseResumeE2E(t *testing.T) {
-	// Reset the state
-	atomic.StoreUint32(&manager.paused, 0)
-
-	var workCounter int32 // Counts the amount of work done
+func TestSubscriberUnsubscribeDuringPause(t *testing.T) {
+	manager = &pauseManager{}
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	// Start the worker goroutine
-	ch := Subscribe() // Subscribe and get the channel
+	subscribedCh := make(chan struct{})
+	pausedCh := make(chan struct{})
+
 	go func() {
 		defer wg.Done()
-		defer Unsubscribe(ch) // Ensure we unsubscribe when the goroutine exits
+		controlChans := Subscribe()
+		defer Unsubscribe(controlChans)
+
+		subscribedCh <- struct{}{}
 
 		for {
 			select {
-			case event, ok := <-ch:
-				if !ok {
-					return // Channel closed, exit goroutine
-				}
-				if event == PauseEvent {
-					err := WaitUntilResume(ch)
-					if err != nil {
-						panic(err)
-					}
-				}
+			case <-controlChans.PauseCh:
+				// Signal that we have paused
+				pausedCh <- struct{}{}
+				// Unsubscribe during pause.
+				Unsubscribe(controlChans)
+				return
 			default:
-				// Simulate work
+				time.Sleep(10 * time.Millisecond) // Simulate work.
+			}
+		}
+	}()
+
+	// Wait for the subscriber to subscribe
+	<-subscribedCh
+
+	// Pause the system.
+	Pause()
+
+	// Wait for the subscriber to acknowledge the pause
+	select {
+	case <-pausedCh:
+		// Subscriber paused and unsubscribed
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("Subscriber did not receive pause signal")
+	}
+
+	// Resume the system.
+	Resume()
+	time.Sleep(100 * time.Millisecond) // Allow any processing.
+
+	wg.Wait()
+}
+
+func TestConcurrentPauseResume(t *testing.T) {
+	manager = &pauseManager{}
+	const numSubscribers = 5
+	const numCycles = 10
+
+	var wg sync.WaitGroup
+	wg.Add(numSubscribers)
+
+	// Channels to signal pause and resume completions
+	subscribedCh := make(chan struct{})
+	pauseComplete := make(chan struct{})
+	resumeComplete := make(chan struct{})
+
+	// Channel to receive counts from goroutines
+	countsCh := make(chan struct {
+		pauses  int32
+		resumes int32
+	}, numSubscribers)
+
+	// Create subscribers
+	for i := 0; i < numSubscribers; i++ {
+		go func() {
+			defer wg.Done()
+			controlChans := Subscribe()
+			defer Unsubscribe(controlChans)
+
+			subscribedCh <- struct{}{}
+
+			var pauses, resumes int32
+
+			for j := 0; j < numCycles; j++ {
+				// Wait for pause signal
+				<-controlChans.PauseCh
+				pauses++
+
+				// Signal that we've received the pause
+				pauseComplete <- struct{}{}
+
+				// Block until resumed
+				controlChans.ResumeCh <- struct{}{}
+				resumes++
+
+				// Signal that we've resumed
+				resumeComplete <- struct{}{}
+			}
+
+			// Send counts back to main goroutine
+			countsCh <- struct {
+				pauses  int32
+				resumes int32
+			}{pauses, resumes}
+		}()
+	}
+
+	// Wait for all subscribers to subscribe
+	for i := 0; i < numSubscribers; i++ {
+		<-subscribedCh
+	}
+
+	// Perform pause and resume cycles
+	for i := 0; i < numCycles; i++ {
+		// Perform pause
+		Pause()
+
+		// Wait for all subscribers to acknowledge the pause
+		for j := 0; j < numSubscribers; j++ {
+			<-pauseComplete
+		}
+
+		// Perform resume
+		Resume()
+
+		// Wait for all subscribers to acknowledge the resume
+		for j := 0; j < numSubscribers; j++ {
+			<-resumeComplete
+		}
+	}
+
+	// Wait for all subscribers to finish
+	wg.Wait()
+	close(countsCh)
+
+	// Verify that all subscribers have processed the correct number of pauses and resumes
+	for counts := range countsCh {
+		if counts.pauses != numCycles {
+			t.Fatalf("Subscriber expected to process %d pauses, but processed %d", numCycles, counts.pauses)
+		}
+		if counts.resumes != numCycles {
+			t.Fatalf("Subscriber expected to process %d resumes, but processed %d", numCycles, counts.resumes)
+		}
+	}
+}
+
+func TestPauseResumeWithUnsubscribe(t *testing.T) {
+	manager = &pauseManager{}
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	subscribedCh := make(chan struct{})
+	pausedCh := make(chan struct{})
+	resumedCh := make(chan struct{})
+
+	go func() {
+		defer wg.Done()
+		controlChans := Subscribe()
+		subscribedCh <- struct{}{}
+		// Unsubscribe after resuming.
+
+		for {
+			select {
+			case <-controlChans.PauseCh:
+				// Signal that we have paused
+				pausedCh <- struct{}{}
+				// Attempt to send to ResumeCh; blocks until Resume() reads from it.
+				controlChans.ResumeCh <- struct{}{}
+				// Signal that we have resumed
+				resumedCh <- struct{}{}
+				// Unsubscribe after resuming.
+				Unsubscribe(controlChans)
+				return
+			default:
+				time.Sleep(10 * time.Millisecond) // Simulate work.
+			}
+		}
+	}()
+
+	// Wait for the subscriber to subscribe
+	<-subscribedCh
+
+	// Pause the system.
+	Pause()
+
+	// Wait for the subscriber to acknowledge pause
+	select {
+	case <-pausedCh:
+		// Subscriber paused
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("Subscriber did not receive pause signal")
+	}
+
+	// Resume the system.
+	Resume()
+
+	// Wait for the subscriber to acknowledge resume
+	select {
+	case <-resumedCh:
+		// Subscriber resumed
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("Subscriber did not resume")
+	}
+
+	wg.Wait()
+}
+
+func TestNoSubscribers(t *testing.T) {
+	manager = &pauseManager{}
+	// Call Pause() and Resume() when there are no subscribers.
+	// If no panic occurs, the test passes.
+	Pause()
+	Resume()
+}
+
+func TestPauseResumeE2E(t *testing.T) {
+	manager = &pauseManager{}
+	var workCounter int32 // Counts the amount of work done.
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Start the worker goroutine.
+	go func() {
+		controlChans := Subscribe()
+		defer Unsubscribe(controlChans)
+		defer wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-controlChans.PauseCh:
+				// Attempt to send to ResumeCh; blocks until Resume() reads from it.
+				controlChans.ResumeCh <- struct{}{}
+			default:
+				// Simulate work.
 				atomic.AddInt32(&workCounter, 1)
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()
 
-	// Allow the worker to do some work
+	// Allow the worker to do some work.
 	time.Sleep(1 * time.Second)
 	workBeforePause := atomic.LoadInt32(&workCounter)
 
-	// Pause the system
+	// Pause the system.
 	Pause()
 	pauseStart := time.Now()
 
-	// Sleep for 1 second to keep the system paused
+	// Sleep for 1 second to keep the system paused.
 	time.Sleep(1 * time.Second)
 
-	// Resume the system
+	// Resume the system.
 	Resume()
 	pauseDuration := time.Since(pauseStart)
 
-	// Allow the worker to do more work
+	// Allow the worker to do more work.
 	time.Sleep(1 * time.Second)
 	workAfterResume := atomic.LoadInt32(&workCounter)
 
-	// Calculate the amount of work done during the pause
-	workDuringPause := workAfterResume - workBeforePause - 10 // 10 units of work before and after pause
+	// Calculate the amount of work done during the pause.
+	workDuringPause := workAfterResume - workBeforePause - 10 // Expected 10 units of work after resume.
 
-	// Check that no work was done during the pause
+	// Check that no work was done during the pause.
 	if workDuringPause != 0 {
-		t.Errorf("Expected no work during pause, but got %d units of work", workDuringPause)
+		t.Fatalf("Expected no work during pause, but got %d units of work", workDuringPause)
 	}
 
-	// Verify that the pause duration is approximately 1 second
+	// Verify that the pause duration is approximately 1 second.
 	if pauseDuration < 900*time.Millisecond || pauseDuration > 1100*time.Millisecond {
-		t.Errorf("Expected pause duration around 1 second, but got %v", pauseDuration)
+		t.Fatalf("Expected pause duration around 1 second, but got %v", pauseDuration)
 	}
 
-	// Stop the worker goroutine by unsubscribing
-	Unsubscribe(ch)
-
-	// Wait for the worker goroutine to finish
+	cancel()
 	wg.Wait()
 }

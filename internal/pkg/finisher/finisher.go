@@ -73,8 +73,8 @@ func Stop() {
 }
 
 func (f *finisher) run() {
-	controlCh := control.Subscribe()
-	defer control.Unsubscribe(controlCh)
+	controlChans := control.Subscribe()
+	defer control.Unsubscribe(controlChans)
 	defer f.wg.Done()
 
 	for {

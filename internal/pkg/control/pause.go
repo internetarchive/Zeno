@@ -1,113 +1,73 @@
 package control
 
 import (
-	"fmt"
 	"sync"
-	"sync/atomic"
 )
 
-// subscriber represents a goroutine subscribed to pause/resume events.
-type subscriber struct {
-	ch chan Event
+type ControlChans struct {
+	PauseCh  chan struct{}
+	ResumeCh chan struct{}
 }
 
-// pauseManager manages the paused state and subscribers.
 type pauseManager struct {
-	paused      uint32
-	subscribers sync.Map // Map of *subscriber to struct{}
+	subscribers sync.Map // Map of *ControlChans to struct{}
 }
 
 var manager = &pauseManager{}
 
-// IsPaused returns true if the system is currently paused.
-func IsPaused() bool {
-	return atomic.LoadUint32(&manager.paused) == 1
+// Subscribe returns a ControlChans struct for the subscriber to use.
+func Subscribe() *ControlChans {
+	chans := &ControlChans{
+		PauseCh:  make(chan struct{}, 1), // Buffered to ensure non-blocking sends
+		ResumeCh: make(chan struct{}),    // Unbuffered, will block on send
+	}
+	manager.subscribers.Store(chans, struct{}{})
+	return chans
 }
 
-// Pause sets the paused state to true and notifies all subscribers.
+// Unsubscribe removes the subscriber and closes its channels.
+func Unsubscribe(chans *ControlChans) {
+	manager.subscribers.Delete(chans)
+	// Close channels safely (deferred to avoid panic if already closed).
+	defer func() {
+		recover()
+	}()
+	close(chans.PauseCh)
+	close(chans.ResumeCh)
+}
+
+// Pause sends a pause signal to all subscribers.
 func Pause() {
-	if atomic.CompareAndSwapUint32(&manager.paused, 0, 1) {
-		manager.notifySubscribers(PauseEvent)
-	}
-}
-
-// Resume sets the paused state to false and notifies all subscribers.
-func Resume() {
-	if atomic.CompareAndSwapUint32(&manager.paused, 1, 0) {
-		manager.notifySubscribers(ResumeEvent)
-	}
-}
-
-// Subscribe returns a channel to receive pause and resume events.
-func Subscribe() <-chan Event {
-	sub := &subscriber{
-		ch: make(chan Event, 1),
-	}
-
-	// Store the subscriber in the sync.Map
-	manager.subscribers.Store(sub, struct{}{})
-
-	// Send the current state immediately to the subscriber.
-	if IsPaused() {
-		sub.ch <- PauseEvent
-	} else {
-		sub.ch <- ResumeEvent
-	}
-
-	return sub.ch
-}
-
-// Unsubscribe removes a subscriber from the list.
-func Unsubscribe(ch <-chan Event) {
-	// Find and delete the subscriber
-	manager.subscribers.Range(func(key, _ interface{}) bool {
-		sub := key.(*subscriber)
-		if sub.ch == ch {
-			manager.subscribers.Delete(sub)
-			close(sub.ch)
-			return false // Stop iterating
-		}
-		return true // Continue iterating
-	})
-}
-
-// notifySubscribers sends an event to all subscribers.
-func (m *pauseManager) notifySubscribers(event Event) {
-	m.subscribers.Range(func(key, _ interface{}) bool {
-		sub := key.(*subscriber)
+	manager.subscribers.Range(func(key, value interface{}) bool {
+		chans := key.(*ControlChans)
+		// Send pause signal (non-blocking since PauseCh is buffered).
 		select {
-		case sub.ch <- event:
-			// Event sent successfully
+		case chans.PauseCh <- struct{}{}:
+			// Signal sent.
 		default:
-			// Subscriber's channel is full; skip to prevent blocking
+			// PauseCh already has a signal.
 		}
-		return true // Continue iterating
+		return true
 	})
 }
 
-// WaitIfPaused blocks the caller if the system is paused until it is resumed.
-func WaitIfPaused() {
-	if IsPaused() {
-		ch := Subscribe()
-		defer Unsubscribe(ch)
-
-		for event := range ch {
-			if event == ResumeEvent {
-				break
+// Resume reads from each subscriber's ResumeCh to unblock them.
+func Resume() {
+	var wg sync.WaitGroup
+	manager.subscribers.Range(func(key, value interface{}) bool {
+		chans := key.(*ControlChans)
+		wg.Add(1)
+		go func(chans *ControlChans) {
+			defer wg.Done()
+			// Read from ResumeCh to unblock subscriber.
+			_, ok := <-chans.ResumeCh
+			if !ok {
+				// Channel closed; subscriber may have unsubscribed.
+				return
 			}
-		}
-	}
-}
-
-// WaitUntilResume blocks until a ResumeEvent is received or the channel is closed.
-func WaitUntilResume(ch <-chan Event) error {
-	for {
-		event, ok := <-ch
-		if !ok {
-			return fmt.Errorf("subscription channel closed")
-		}
-		if event == ResumeEvent {
-			return nil
-		}
-	}
+		}(chans)
+		return true
+	})
+	// Wait for all subscribers to send on their ResumeCh.
+	wg.Wait()
 }
