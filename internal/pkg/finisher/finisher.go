@@ -82,15 +82,10 @@ func (f *finisher) run() {
 		case <-f.ctx.Done():
 			logger.Debug("shutting down")
 			return
-		case event := <-controlCh:
-			if event == control.PauseEvent {
-				logger.Debug("received pause event")
-				err := control.WaitUntilResume(controlCh)
-				if err != nil {
-					panic(err)
-				}
-				logger.Debug("received resume event")
-			}
+		case <-controlChans.PauseCh:
+			logger.Debug("received pause event")
+			controlChans.ResumeCh <- struct{}{}
+			logger.Debug("received resume event")
 		case item := <-f.inputCh:
 			if item == nil {
 				panic("received nil item")
