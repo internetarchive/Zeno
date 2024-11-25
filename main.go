@@ -149,6 +149,15 @@ func main() {
 		close(finisherProduceChan)
 	}
 
+	// Deleting temp directory (only if it's empty, else we keep it for debugging)
+	// Note: it should NEVER contain anything
+	if config.Get().WARCTempDir != "" {
+		err := os.Remove(config.Get().WARCTempDir)
+		if err != nil {
+			logger.Error("unable to remove temp dir", "err", err.Error())
+		}
+	}
+
 	logger.Info("all services stopped, exiting")
 	return
 }
