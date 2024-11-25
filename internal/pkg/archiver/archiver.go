@@ -146,16 +146,17 @@ func archive(item *models.Item) {
 		itemState     = models.ItemCaptured
 	)
 
-	// Determines the URLs that need to be captured, if the item's status is fresh we need
-	// to capture the seed, else if it's a redirection we need to capture it, and
-	// else we need to capture the child URLs (assets), in parallel
+	// Determine the URLs that need to be captured
 	if item.GetRedirection() != nil {
 		URLsToCapture = append(URLsToCapture, item.GetRedirection())
 	} else if len(item.GetChilds()) > 0 {
-		URLsToCapture = item.GetChilds()
+		URLsToCapture = append(URLsToCapture, item.GetChilds()...)
 	} else {
 		URLsToCapture = append(URLsToCapture, item.GetURL())
 	}
+
+	// Create a channel to collect successful URLs
+	successfulURLsChan := make(chan *models.URL, len(URLsToCapture))
 
 	for _, URL := range URLsToCapture {
 		guard <- struct{}{}
@@ -170,6 +171,7 @@ func archive(item *models.Item) {
 				resp *http.Response
 			)
 
+			// Execute the request
 			if config.Get().Proxy != "" {
 				resp, err = globalArchiver.ClientWithProxy.Do(URL.GetRequest())
 			} else {
@@ -178,40 +180,76 @@ func archive(item *models.Item) {
 			if err != nil {
 				logger.Error("unable to execute request", "err", err.Error(), "func", "archiver.archive")
 
-				// Only mark the item as failed if we were processing a redirection or a new seed
+				// Only mark the item as failed if processing a redirection or a new seed
 				if item.GetStatus() == models.ItemFresh || item.GetRedirection() != nil {
 					itemState = models.ItemFailed
 				}
 
+				// Do not send URL to successfulURLsChan, effectively removing it
 				return
 			}
 
-			// Set the response in the item
+			// Set the response in the URL
 			URL.SetResponse(resp)
 
-			// Consumes the response body
-			var body = bytes.NewBuffer(nil)
-
-			// Read the body in a bytes buffer, then put a copy of it in the URL's response body
-			_, err = io.Copy(body, URL.GetResponse().Body)
+			// Consume the response body
+			body := bytes.NewBuffer(nil)
+			_, err = io.Copy(body, resp.Body)
 			if err != nil {
 				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID())
+				// Do not send URL to successfulURLsChan, effectively removing it
 				return
 			}
 
-			// Save the body's buffer in the item
+			// Set the body in the URL
 			URL.SetBody(bytes.NewReader(body.Bytes()))
 
 			logger.Info("url archived", "url", URL.String(), "item", item.GetShortID(), "status", resp.StatusCode)
 
-			// If the URL was a child URL, we increment the number of captured childs
-			if item.GetRedirection() == nil && len(item.GetChilds()) > 0 {
+			// Send the successful URL to the channel
+			successfulURLsChan <- URL
+
+			// If the URL is a child URL, increment the captured count
+			if containsURL(item.GetChilds(), URL) {
 				item.IncrChildsCaptured()
 			}
 		}(URL)
 	}
 
+	// Wait for all goroutines to finish
 	wg.Wait()
 
+	// Close the channel since all sends are done
+	close(successfulURLsChan)
+
+	// Collect successful URLs from the channel
+	var successfulURLs []*models.URL
+	for URL := range successfulURLsChan {
+		successfulURLs = append(successfulURLs, URL)
+	}
+
+	// Update URLsToCapture to only include successful URLs
+	URLsToCapture = successfulURLs
+
+	// Update item.Childs if necessary
+	if len(item.GetChilds()) > 0 {
+		var successfulChilds []*models.URL
+		for _, child := range item.GetChilds() {
+			if containsURL(successfulURLs, child) {
+				successfulChilds = append(successfulChilds, child)
+			}
+		}
+		item.SetChilds(successfulChilds)
+	}
+
 	item.SetStatus(itemState)
+}
+
+func containsURL(urls []*models.URL, target *models.URL) bool {
+	for _, url := range urls {
+		if url == target {
+			return true
+		}
+	}
+	return false
 }
