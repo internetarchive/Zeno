@@ -1,4 +1,4 @@
-package control
+package controler
 
 // Event represents events that are handled by the control package.
 type Event int

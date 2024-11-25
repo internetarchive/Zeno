@@ -1,4 +1,4 @@
-package control
+package controler
 
 import (
 	"context"

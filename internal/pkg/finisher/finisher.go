@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/internetarchive/Zeno/internal/pkg/control"
+	"github.com/internetarchive/Zeno/internal/pkg/controler"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
@@ -73,8 +73,8 @@ func Stop() {
 }
 
 func (f *finisher) run() {
-	controlChans := control.Subscribe()
-	defer control.Unsubscribe(controlChans)
+	controlChans := controler.Subscribe()
+	defer controler.Unsubscribe(controlChans)
 	defer f.wg.Done()
 
 	for {
