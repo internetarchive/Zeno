@@ -85,7 +85,10 @@ func (f *finisher) run() {
 		case event := <-controlCh:
 			if event == control.PauseEvent {
 				logger.Debug("received pause event")
-				control.WaitUntilResume(controlCh)
+				err := control.WaitUntilResume(controlCh)
+				if err != nil {
+					panic(err)
+				}
 				logger.Debug("received resume event")
 			}
 		case item := <-f.inputCh:
