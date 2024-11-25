@@ -149,8 +149,8 @@ func archive(item *models.Item) {
 	// Determine the URLs that need to be captured
 	if item.GetRedirection() != nil {
 		URLsToCapture = append(URLsToCapture, item.GetRedirection())
-	} else if len(item.GetChilds()) > 0 {
-		URLsToCapture = append(URLsToCapture, item.GetChilds()...)
+	} else if len(item.GetChildren()) > 0 {
+		URLsToCapture = append(URLsToCapture, item.GetChildren()...)
 	} else {
 		URLsToCapture = append(URLsToCapture, item.GetURL())
 	}
@@ -210,8 +210,8 @@ func archive(item *models.Item) {
 			successfulURLsChan <- URL
 
 			// If the URL is a child UChildRL, increment the captured count
-			if containsURL(item.GetChilds(), URL) {
-				item.IncrChildsCaptured()
+			if containsURL(item.GetChildren(), URL) {
+				item.IncrChildrenCaptured()
 			}
 		}(URL)
 	}
@@ -231,15 +231,15 @@ func archive(item *models.Item) {
 	// Update URLsToCapture to only include successful URLs
 	URLsToCapture = successfulURLs
 
-	// Update item.Childs if necessary
-	if len(item.GetChilds()) > 0 {
-		var successfulChilds []*models.URL
-		for _, child := range item.GetChilds() {
+	// Update item.Children if necessary
+	if len(item.GetChildren()) > 0 {
+		var successfulChildren []*models.URL
+		for _, child := range item.GetChildren() {
 			if containsURL(successfulURLs, child) {
-				successfulChilds = append(successfulChilds, child)
+				successfulChildren = append(successfulChildren, child)
 			}
 		}
-		item.SetChilds(successfulChilds)
+		item.SetChildren(successfulChildren)
 	}
 
 	item.SetStatus(itemState)
