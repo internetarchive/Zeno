@@ -123,6 +123,11 @@ func postprocess(item *models.Item) {
 
 	defer item.SetStatus(models.ItemPostProcessed)
 
+	// If the item failed, there is no need to postprocess it
+	if item.GetStatus() == models.ItemFailed {
+		return
+	}
+
 	var (
 		URLs    []*models.URL
 		URLType models.URLType
