@@ -174,7 +174,7 @@ func preprocess(item *models.Item) {
 	}
 
 	// Simply deduplicate the slice
-	URLsToPreprocess = utils.DedupeURLs(URLsToPreprocess)
+	utils.DedupeURLs(&URLsToPreprocess)
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
 	if config.Get().UseSeencheck && URLType != models.URLTypeSeed {

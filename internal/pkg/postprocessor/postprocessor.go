@@ -184,9 +184,18 @@ func postprocess(item *models.Item) {
 			}
 
 			// Extract assets from the document
-			err = extractAssets(doc, URL, item)
+			assets, err := extractAssets(doc, URL, item)
 			if err != nil {
-				logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
+				logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+			}
+
+			for _, asset := range assets {
+				if assets == nil {
+					logger.Warn("nil asset", "item", item.GetShortID())
+					continue
+				}
+
+				item.AddChild(asset)
 			}
 		}
 	}

@@ -135,6 +135,9 @@ func run() {
 
 func archive(item *models.Item) {
 	// TODO: rate limiting handling
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "archiver.archive",
+	})
 
 	var (
 		URLsToCapture []*models.URL
@@ -199,7 +202,7 @@ func archive(item *models.Item) {
 			// Save the body's buffer in the item
 			URL.SetBody(bytes.NewReader(body.Bytes()))
 
-			logger.Info("captured URL", "url", URL.String(), "item", item.GetShortID(), "status", resp.StatusCode)
+			logger.Info("url archived", "url", URL.String(), "item", item.GetShortID(), "status", resp.StatusCode)
 
 			// If the URL was a child URL, we increment the number of captured childs
 			if item.GetRedirection() == nil && len(item.GetChilds()) > 0 {

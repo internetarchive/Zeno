@@ -114,11 +114,10 @@ func (f *finisher) run() {
 					f.sourceFinishedCh <- item
 				}
 
-				logger.Info("crawled", "url", item.GetURL(), "item", item.GetShortID())
 				stats.SeedsFinishedIncr()
 			}
 
-			logger.Debug("item finished", "item", item.GetShortID())
+			logger.Info("item finished", "item", item.GetShortID())
 		}
 	}
 }
