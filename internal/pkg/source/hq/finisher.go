@@ -82,8 +82,9 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 		case item := <-globalHQ.finishCh:
 			logger.Debug("received item", "item", item.GetShortID())
 			URL := gocrawlhq.URL{
-				ID:   item.ID,
-				Type: "seed",
+				ID:    item.ID,
+				Value: item.GetURL().String(),
+				Type:  "seed",
 			}
 			batch.URLs = append(batch.URLs, URL)
 			if len(batch.URLs) >= batchSize {
