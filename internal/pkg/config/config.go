@@ -19,8 +19,6 @@ import (
 // Config holds all configuration for our program, parsed from various sources
 // The `mapstructure` tags are used to map the fields to the viper configuration
 type Config struct {
-	LogLevel string `mapstructure:"log-level"`
-
 	Job     string `mapstructure:"job"`
 	JobPath string
 
@@ -29,62 +27,54 @@ type Config struct {
 	DisableSeencheck bool `mapstructure:"disable-seencheck"`
 	UseSeencheck     bool
 
-	UserAgent                string   `mapstructure:"user-agent"`
-	Cookies                  string   `mapstructure:"cookies"`
-	APIPort                  string   `mapstructure:"api-port"`
-	PrometheusPrefix         string   `mapstructure:"prometheus-prefix"`
-	WARCPrefix               string   `mapstructure:"warc-prefix"`
-	WARCOperator             string   `mapstructure:"warc-operator"`
-	WARCTempDir              string   `mapstructure:"warc-temp-dir"`
-	WARCSize                 int      `mapstructure:"warc-size"`
-	WARCOnDisk               bool     `mapstructure:"warc-on-disk"`
-	WARCPoolSize             int      `mapstructure:"warc-pool-size"`
-	WARCDedupeSize           int      `mapstructure:"warc-dedupe-size"`
-	CDXDedupeServer          string   `mapstructure:"warc-cdx-dedupe-server"`
-	CDXCookie                string   `mapstructure:"warc-cdx-cookie"`
-	HQAddress                string   `mapstructure:"hq-address"`
-	HQKey                    string   `mapstructure:"hq-key"`
-	HQSecret                 string   `mapstructure:"hq-secret"`
-	HQProject                string   `mapstructure:"hq-project"`
-	HQStrategy               string   `mapstructure:"hq-strategy"`
-	HQBatchSize              int      `mapstructure:"hq-batch-size"`
-	HQBatchConcurrency       int      `mapstructure:"hq-batch-concurrency"`
-	LogFileOutputDir         string   `mapstructure:"log-file-output-dir"`
-	ElasticSearchUsername    string   `mapstructure:"es-user"`
-	ElasticSearchPassword    string   `mapstructure:"es-password"`
-	ElasticSearchIndexPrefix string   `mapstructure:"es-index-prefix"`
-	DisableHTMLTag           []string `mapstructure:"disable-html-tag"`
-	ExcludeHosts             []string `mapstructure:"exclude-host"`
-	IncludeHosts             []string `mapstructure:"include-host"`
-	IncludeString            []string `mapstructure:"include-string"`
-	ExcludeString            []string `mapstructure:"exclude-string"`
-	ElasticSearchURLs        []string `mapstructure:"es-url"`
-	WorkersCount             int      `mapstructure:"workers"`
-	MaxConcurrentAssets      int      `mapstructure:"max-concurrent-assets"`
-	MaxHops                  int      `mapstructure:"max-hops"`
-	MaxRedirect              int      `mapstructure:"max-redirect"`
-	MaxRetry                 int      `mapstructure:"max-retry"`
-	HTTPTimeout              int      `mapstructure:"http-timeout"`
-	CrawlTimeLimit           int      `mapstructure:"crawl-time-limit"`
-	CrawlMaxTimeLimit        int      `mapstructure:"crawl-max-time-limit"`
-	MinSpaceRequired         int      `mapstructure:"min-space-required"`
-	KeepCookies              bool     `mapstructure:"keep-cookies"`
-	Headless                 bool     `mapstructure:"headless"`
-	JSON                     bool     `mapstructure:"json"`
-	Debug                    bool     `mapstructure:"debug"`
-	LiveStats                bool     `mapstructure:"live-stats"`
-	API                      bool     `mapstructure:"api"`
-	Prometheus               bool     `mapstructure:"prometheus"`
-	DomainsCrawl             bool     `mapstructure:"domains-crawl"`
-	CaptureAlternatePages    bool     `mapstructure:"capture-alternate-pages"`
-	DisableLocalDedupe       bool     `mapstructure:"disable-local-dedupe"`
-	CertValidation           bool     `mapstructure:"cert-validation"`
-	DisableAssetsCapture     bool     `mapstructure:"disable-assets-capture"`
-	UseHQ                    bool     // Special field to check if HQ is enabled depending on the command called
-	HQRateLimitSendBack      bool     `mapstructure:"hq-rate-limiting-send-back"`
-	NoStdoutLogging          bool     `mapstructure:"no-stdout-log"`
-	NoBatchWriteWAL          bool     `mapstructure:"ultrasafe-queue"`
-	Handover                 bool     `mapstructure:"handover"`
+	UserAgent             string   `mapstructure:"user-agent"`
+	Cookies               string   `mapstructure:"cookies"`
+	APIPort               string   `mapstructure:"api-port"`
+	PrometheusPrefix      string   `mapstructure:"prometheus-prefix"`
+	WARCPrefix            string   `mapstructure:"warc-prefix"`
+	WARCOperator          string   `mapstructure:"warc-operator"`
+	WARCTempDir           string   `mapstructure:"warc-temp-dir"`
+	WARCSize              int      `mapstructure:"warc-size"`
+	WARCOnDisk            bool     `mapstructure:"warc-on-disk"`
+	WARCPoolSize          int      `mapstructure:"warc-pool-size"`
+	WARCDedupeSize        int      `mapstructure:"warc-dedupe-size"`
+	CDXDedupeServer       string   `mapstructure:"warc-cdx-dedupe-server"`
+	CDXCookie             string   `mapstructure:"warc-cdx-cookie"`
+	HQAddress             string   `mapstructure:"hq-address"`
+	HQKey                 string   `mapstructure:"hq-key"`
+	HQSecret              string   `mapstructure:"hq-secret"`
+	HQProject             string   `mapstructure:"hq-project"`
+	HQStrategy            string   `mapstructure:"hq-strategy"`
+	HQBatchSize           int      `mapstructure:"hq-batch-size"`
+	HQBatchConcurrency    int      `mapstructure:"hq-batch-concurrency"`
+	DisableHTMLTag        []string `mapstructure:"disable-html-tag"`
+	ExcludeHosts          []string `mapstructure:"exclude-host"`
+	IncludeHosts          []string `mapstructure:"include-host"`
+	IncludeString         []string `mapstructure:"include-string"`
+	ExcludeString         []string `mapstructure:"exclude-string"`
+	WorkersCount          int      `mapstructure:"workers"`
+	MaxConcurrentAssets   int      `mapstructure:"max-concurrent-assets"`
+	MaxHops               int      `mapstructure:"max-hops"`
+	MaxRedirect           int      `mapstructure:"max-redirect"`
+	MaxRetry              int      `mapstructure:"max-retry"`
+	HTTPTimeout           int      `mapstructure:"http-timeout"`
+	CrawlTimeLimit        int      `mapstructure:"crawl-time-limit"`
+	CrawlMaxTimeLimit     int      `mapstructure:"crawl-max-time-limit"`
+	MinSpaceRequired      int      `mapstructure:"min-space-required"`
+	KeepCookies           bool     `mapstructure:"keep-cookies"`
+	Headless              bool     `mapstructure:"headless"`
+	JSON                  bool     `mapstructure:"json"`
+	API                   bool     `mapstructure:"api"`
+	Prometheus            bool     `mapstructure:"prometheus"`
+	DomainsCrawl          bool     `mapstructure:"domains-crawl"`
+	CaptureAlternatePages bool     `mapstructure:"capture-alternate-pages"`
+	DisableLocalDedupe    bool     `mapstructure:"disable-local-dedupe"`
+	CertValidation        bool     `mapstructure:"cert-validation"`
+	DisableAssetsCapture  bool     `mapstructure:"disable-assets-capture"`
+	UseHQ                 bool     // Special field to check if HQ is enabled depending on the command called
+	HQRateLimitSendBack   bool     `mapstructure:"hq-rate-limiting-send-back"`
+	NoBatchWriteWAL       bool     `mapstructure:"ultrasafe-queue"`
+	Handover              bool     `mapstructure:"handover"`
 
 	// Network
 	Proxy              string   `mapstructure:"proxy"`
@@ -97,6 +87,22 @@ type Config struct {
 	// Dependencies
 	NoYTDLP   bool   `mapstructure:"no-ytdlp"`
 	YTDLPPath string `mapstructure:"ytdlp-path"`
+
+	// Logging
+	NoStdoutLogging          bool   `mapstructure:"no-stdout-log"`
+	NoStderrLogging          bool   `mapstructure:"no-stderr-log"`
+	StdoutLogLevel           string `mapstructure:"log-level"`
+	LiveStats                bool   `mapstructure:"live-stats"`
+	LogFileLevel             string `mapstructure:"log-file-level"`
+	LogFileOutputDir         string `mapstructure:"log-file-output-dir"`
+	LogFilePrefix            string `mapstructure:"log-file-prefix"`
+	LogFileRotation          string `mapstructure:"log-file-rotation"`
+	ElasticSearchURLs        string `mapstructure:"es-urls"`
+	ElasticSearchUsername    string `mapstructure:"es-user"`
+	ElasticSearchPassword    string `mapstructure:"es-password"`
+	ElasticSearchLogLevel    string `mapstructure:"es-log-level"`
+	ElasticSearchIndexPrefix string `mapstructure:"es-index-prefix"`
+	ElasticSearchRotation    string `mapstructure:"es-rotation"`
 
 	InputSeeds []string // Special field to store the input URLs
 }
@@ -244,6 +250,7 @@ func handleFlagsEdgeCases() {
 	if viper.GetBool("live-stats") {
 		// If live-stats is true, set no-stdout-log to true
 		viper.Set("no-stdout-log", true)
+		viper.Set("no-stderr-log", true)
 	}
 
 	if viper.GetBool("prometheus") {

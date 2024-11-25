@@ -35,7 +35,6 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("headless", false, "Use headless browsers instead of standard GET requests.")
 	getCmd.PersistentFlags().Bool("disable-seencheck", false, "Disable the (remote or local) seencheck that avoid re-crawling of URIs.")
 	getCmd.PersistentFlags().Bool("json", false, "Output logs in JSON")
-	getCmd.PersistentFlags().Bool("debug", false, "")
 	getCmd.PersistentFlags().Bool("api", false, "Enable API")
 	getCmd.PersistentFlags().String("api-port", "9443", "Port to listen on for the API.")
 	getCmd.PersistentFlags().Bool("prometheus", false, "Export metrics in Prometheus format. (implies --api)")
@@ -79,12 +78,18 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("warc-size", 1024, "Size of the WARC files in MB.")
 
 	// Logging flags
-	getCmd.PersistentFlags().Bool("live-stats", false, "Enable live stats but disable logging. (implies --no-stdout-log)")
+	getCmd.PersistentFlags().Bool("live-stats", false, "Enable live stats but disable stdout logging. (implies --no-stdout-log)")
 	getCmd.PersistentFlags().String("log-file-output-dir", "", "Directory to write log files to.")
-	getCmd.PersistentFlags().String("es-url", "", "comma-separated ElasticSearch URL to use for indexing crawl logs.")
+	getCmd.PersistentFlags().String("log-file-prefix", "ZENO", "Prefix to use when naming the log files. Default is : `ZENO`, without '-'")
+	getCmd.PersistentFlags().String("log-file-level", "info", "Log level for the log file.")
+	getCmd.PersistentFlags().String("log-file-rotation", "1h", "Log file rotation period. Default is : `1h`")
+	getCmd.PersistentFlags().String("es-urls", "", "comma-separated ElasticSearch URL to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-user", "", "ElasticSearch username to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-password", "", "ElasticSearch password to use for indexing crawl logs.")
 	getCmd.PersistentFlags().String("es-index-prefix", "zeno", "ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno`, without `-`")
+	getCmd.PersistentFlags().String("es-rotation", "1d", "ElasticSearch index rotation period. Default is : `1d`. Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'.")
+	// log-level is defined in the root command
+	// no-stdout-log is defined in the root command
 
 	// Dependencies flags
 	getCmd.PersistentFlags().Bool("no-ytdlp", false, "Disable youtube-dlp usage for video extraction.")

@@ -18,16 +18,16 @@ type FileDestination struct {
 	closeChan chan struct{}
 }
 
-func NewFileDestination(cfg *LogfileConfig) *FileDestination {
+func NewFileDestination() *FileDestination {
 	fd := &FileDestination{
-		level:     cfg.Level,
-		config:    cfg,
+		level:     globalConfig.FileConfig.Level,
+		config:    globalConfig.FileConfig,
 		closeChan: make(chan struct{}),
 	}
 
 	fd.rotateFile()
-	if config.RotateLogFile && config.RotatePeriod > 0 {
-		fd.ticker = time.NewTicker(config.RotatePeriod)
+	if globalConfig.FileConfig.Rotate && globalConfig.FileConfig.RotatePeriod > 0 {
+		fd.ticker = time.NewTicker(globalConfig.FileConfig.RotatePeriod)
 		go fd.rotationWorker()
 	}
 

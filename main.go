@@ -32,16 +32,16 @@ var (
 )
 
 func main() {
+	if err := cmd.Run(); err != nil {
+		logger.Error("unable to run root command", "err", err.Error())
+		return
+	}
+
 	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "main",
 	})
 	defer log.Stop()
-
-	if err := cmd.Run(); err != nil {
-		logger.Error("unable to run root command", "err", err.Error())
-		return
-	}
 
 	stats.Init()
 

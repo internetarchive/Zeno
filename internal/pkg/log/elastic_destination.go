@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,11 +24,17 @@ type ElasticsearchDestination struct {
 	closeChan chan struct{}
 }
 
-func NewElasticsearchDestination(cfg *ElasticsearchConfig) *ElasticsearchDestination {
+func NewElasticsearchDestination() *ElasticsearchDestination {
+	// parse comma-separated list of Elasticsearch addresses
+	// e.g. "http://localhost:9200,http://localhost:9201"
+	addresses := strings.Split(globalConfig.ElasticsearchConfig.Addresses, ",")
+	if len(addresses) == 0 {
+		return nil
+	}
 	es, err := elastic.NewClient(elastic.Config{
-		Addresses: cfg.Addresses,
-		Username:  cfg.Username,
-		Password:  cfg.Password,
+		Addresses: addresses,
+		Username:  globalConfig.ElasticsearchConfig.Username,
+		Password:  globalConfig.ElasticsearchConfig.Password,
 	})
 	if err != nil {
 		// Handle error (for simplicity, we'll just ignore it here)
@@ -35,15 +42,15 @@ func NewElasticsearchDestination(cfg *ElasticsearchConfig) *ElasticsearchDestina
 	}
 
 	ed := &ElasticsearchDestination{
-		level:     cfg.Level,
-		config:    cfg,
+		level:     globalConfig.ElasticsearchConfig.Level,
+		config:    globalConfig.ElasticsearchConfig,
 		client:    es,
-		index:     cfg.IndexPrefix + "-" + time.Now().Format("2006.01.02"),
+		index:     globalConfig.ElasticsearchConfig.IndexPrefix + "-" + time.Now().Format("2006.01.02"),
 		closeChan: make(chan struct{}),
 	}
 
-	if config.RotateElasticSearchIndex && config.RotatePeriod > 0 {
-		ed.ticker = time.NewTicker(config.RotatePeriod)
+	if globalConfig.ElasticsearchConfig.Rotate && globalConfig.ElasticsearchConfig.RotatePeriod > 0 {
+		ed.ticker = time.NewTicker(globalConfig.ElasticsearchConfig.RotatePeriod)
 		go ed.rotationWorker()
 	}
 
