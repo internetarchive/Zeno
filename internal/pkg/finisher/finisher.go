@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/internetarchive/Zeno/internal/pkg/control"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
@@ -72,6 +73,8 @@ func Stop() {
 }
 
 func (f *finisher) run() {
+	controlCh := control.Subscribe()
+	defer control.Unsubscribe(controlCh)
 	defer f.wg.Done()
 
 	for {
@@ -79,6 +82,12 @@ func (f *finisher) run() {
 		case <-f.ctx.Done():
 			logger.Debug("shutting down")
 			return
+		case event := <-controlCh:
+			if event == control.PauseEvent {
+				logger.Debug("received pause event")
+				control.WaitUntilResume(controlCh)
+				logger.Debug("received resume event")
+			}
 		case item := <-f.inputCh:
 			if item == nil {
 				panic("received nil item")
