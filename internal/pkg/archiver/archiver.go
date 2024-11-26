@@ -3,11 +3,13 @@ package archiver
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
 
 	"github.com/CorentinB/warc"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
@@ -175,6 +177,15 @@ func archive(item *models.Item) {
 			if config.Get().Proxy != "" {
 				resp, err = globalArchiver.ClientWithProxy.Do(URL.GetRequest())
 			} else {
+				if URL == nil {
+					fmt.Printf("URL is nil\n")
+					spew.Dump(URL)
+					spew.Dump(item)
+				} else if URL.GetRequest() == nil {
+					fmt.Printf("URL.GetRequest() is nil\n")
+					spew.Dump(URL)
+					spew.Dump(item)
+				}
 				resp, err = globalArchiver.Client.Do(URL.GetRequest())
 			}
 			if err != nil {
