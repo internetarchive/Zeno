@@ -82,9 +82,9 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 		case item := <-globalHQ.finishCh:
 			logger.Debug("received item", "item", item.GetShortID())
 
-			// There might be case where the item.URL is nil, like if the preprocessing failed.
 			var value string
-			if item.GetURL() != nil {
+			// If preprocessing failed, there will be nil values here
+			if item.GetURL() != nil && item.GetURL().GetParsed() != nil {
 				value = item.GetURL().String()
 			}
 
