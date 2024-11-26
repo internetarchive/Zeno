@@ -116,15 +116,11 @@ func run() {
 }
 
 func postprocess(item *models.Item) {
-	// if item.GetStatus() != models.ItemFailed {
-	// 	item.SetRedirection(nil)
-	// 	return
-	// }
-
 	defer item.SetStatus(models.ItemPostProcessed)
 
-	// If the item failed, there is no need to postprocess it
-	if item.GetStatus() == models.ItemFailed {
+	// If the item failed (or if we don't capture assets), there is no need to postprocess it
+	// TODO: handle hops even with disable assets capture
+	if item.GetStatus() == models.ItemFailed || config.Get().DisableAssetsCapture {
 		return
 	}
 
