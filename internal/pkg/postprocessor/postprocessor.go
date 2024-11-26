@@ -102,7 +102,9 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
 
-					postprocess(item)
+					if item.GetStatus() == models.ItemFailed {
+						postprocess(item)
+					}
 
 					select {
 					case <-ctx.Done():
@@ -118,9 +120,9 @@ func run() {
 func postprocess(item *models.Item) {
 	defer item.SetStatus(models.ItemPostProcessed)
 
-	// If the item failed (or if we don't capture assets), there is no need to postprocess it
+	// If we don't capture assets, there is no need to postprocess the item
 	// TODO: handle hops even with disable assets capture
-	if item.GetStatus() == models.ItemFailed || config.Get().DisableAssetsCapture {
+	if config.Get().DisableAssetsCapture {
 		return
 	}
 

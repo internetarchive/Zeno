@@ -122,7 +122,9 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.ArchiverRoutinesDecr()
 
-					archive(item)
+					if item.GetStatus() != models.ItemFailed {
+						archive(item)
+					}
 
 					select {
 					case <-ctx.Done():

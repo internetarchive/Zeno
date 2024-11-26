@@ -31,12 +31,12 @@ func normalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 		if strings.HasPrefix(parsedURL.Path, "/") {
 			adaParse, err = goada.NewWithBase(URL.Raw, baseURL.Scheme+"://"+baseURL.Host)
 			if err != nil {
-				return
+				return err
 			}
 		} else {
 			adaParse, err = goada.NewWithBase(URL.Raw, baseURL.String())
 			if err != nil {
-				return
+				return err
 			}
 		}
 	} else {
