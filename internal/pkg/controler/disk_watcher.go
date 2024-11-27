@@ -3,16 +3,18 @@ package controler
 import (
 	"context"
 	"fmt"
-	"log"
 	"syscall"
 	"time"
+
+	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/stats"
 )
 
 var (
 	diskWatcherCtx, diskWatcherCancel = context.WithCancel(context.Background())
 )
 
-// StartDiskWatcher starts a goroutine that checks the disk space
 // Implements f(x)={ if total <= 256GB then threshold = 20GB * (total / 256GB) else threshold = 20GB }
 func checkDiskUsage(total, free uint64) error {
 	const (
@@ -35,6 +37,11 @@ func checkDiskUsage(total, free uint64) error {
 }
 
 func watchDiskSpace(path string, interval time.Duration) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "controler.diskWatcher",
+	})
+
+	paused := false
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -45,15 +52,25 @@ func watchDiskSpace(path string, interval time.Duration) {
 		case <-ticker.C:
 			var stat syscall.Statfs_t
 			if err := syscall.Statfs(path, &stat); err != nil {
-				log.Printf("Error retrieving disk stats: %v\n", err)
+				logger.Error("Error retrieving disk stats: %v\n", err)
 				continue
 			}
 
 			total := stat.Blocks * uint64(stat.Bsize)
 			free := stat.Bavail * uint64(stat.Bsize)
 
-			if err := checkDiskUsage(total, free); err != nil {
-				log.Printf("Error checking disk usage: %v\n", err)
+			err := checkDiskUsage(total, free)
+
+			if err != nil && !paused {
+				logger.Warn("Low disk space, pausing the pipeline", "err", err.Error())
+				pause.Pause()
+				paused = true
+				stats.PausedSet()
+			} else if err == nil && paused {
+				logger.Info("Disk space is sufficient, resuming the pipeline")
+				pause.Resume()
+				paused = false
+				stats.PausedUnset()
 			}
 		}
 	}

@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/controler"
+	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
@@ -89,9 +89,9 @@ func run() {
 	// Guard to limit the number of concurrent archiver routines
 	guard := make(chan struct{}, config.Get().WorkersCount)
 
-	// Subscribe to the controler
-	controlChans := controler.Subscribe()
-	defer controler.Unsubscribe(controlChans)
+	// Subscribe to the pause controler
+	controlChans := pause.Subscribe()
+	defer pause.Unsubscribe(controlChans)
 
 	for {
 		select {
