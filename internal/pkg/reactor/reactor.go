@@ -83,6 +83,7 @@ func Freeze() {
 	if globalReactor != nil {
 		logger.Debug("received freeze signal")
 		globalReactor.freezeCancel()
+		logger.Info("frozen")
 	}
 }
 
