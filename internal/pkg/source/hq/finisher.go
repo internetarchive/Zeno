@@ -2,9 +2,11 @@ package hq
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/gocrawlhq"
@@ -47,11 +49,11 @@ func finisher() {
 
 			logger.Debug("waiting for goroutines to finish")
 
-			// Close the batch channel to signal the dispatcher to finish.
-			close(batchCh)
-
 			// Wait for the finisher and dispatcher to finish.
 			wg.Wait()
+
+			// Close the batch channel to signal the dispatcher to finish.
+			close(batchCh)
 
 			globalHQ.wg.Done()
 
@@ -81,7 +83,7 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Debug("closing")
+			logger.Debug("closed")
 			return
 		case item := <-globalHQ.finishCh:
 			logger.Debug("received item", "item", item.GetShortID())
@@ -103,7 +105,12 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 				logger.Debug("sending batch to dispatcher", "size", len(batch.URLs))
 				// Send the batch to batchCh.
 				copyBatch := *batch
-				batchCh <- &copyBatch // Blocks if batchCh is full.
+				select {
+				case <-ctx.Done():
+					logger.Debug("closed")
+					return
+				case batchCh <- &copyBatch: // Blocks if batchCh is full.
+				}
 				batch = &finishBatch{
 					URLs: make([]gocrawlhq.URL, 0, batchSize),
 				}
@@ -113,7 +120,12 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 			if len(batch.URLs) > 0 {
 				logger.Debug("sending non-full batch to dispatcher", "size", len(batch.URLs))
 				copyBatch := *batch
-				batchCh <- &copyBatch // Blocks if batchCh is full.
+				select {
+				case <-ctx.Done():
+					logger.Debug("closed")
+					return
+				case batchCh <- &copyBatch: // Blocks if batchCh is full.
+				}
 				batch = &finishBatch{
 					URLs: make([]gocrawlhq.URL, 0, batchSize),
 				}
@@ -138,35 +150,31 @@ func finisherDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *f
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Debug("closing")
+			logger.Debug("waiting for sender routines to finish")
 			// Wait for all sender routines to finish.
 			senderWg.Wait()
+			logger.Debug("closed")
 			return
-		case batch, ok := <-batchCh:
-			if !ok {
-				logger.Debug("closing")
-				// Wait for all sender routines to finish.
-				senderWg.Wait()
-				return
-			}
-
+		case batch := <-batchCh:
+			batchUUID := uuid.NewString()[:6]
 			senderSemaphore <- struct{}{} // Blocks if maxSenders reached.
 			senderWg.Add(1)
 			logger.Debug("dispatching batch to sender", "size", len(batch.URLs))
-			go func(batch *finishBatch) {
+			go func(batch *finishBatch, batchUUID string) {
 				defer senderWg.Done()
 				defer func() { <-senderSemaphore }()
-				finisherSender(ctx, batch)
-			}(batch)
+				finisherSender(ctx, batch, batchUUID)
+			}(batch, batchUUID)
 		}
 	}
 }
 
 // finisherSender sends a batch of URLs to HQ with retries and exponential backoff.
-func finisherSender(ctx context.Context, batch *finishBatch) {
+func finisherSender(ctx context.Context, batch *finishBatch, batchUUID string) {
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "hq.finisherSender",
+		"component": fmt.Sprintf("hq.finisherSender.%s", batchUUID),
 	})
+	defer logger.Debug("done")
 
 	backoff := time.Second
 	maxBackoff := 5 * time.Second

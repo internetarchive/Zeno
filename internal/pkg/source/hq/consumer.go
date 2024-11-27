@@ -48,11 +48,12 @@ func consumer() {
 			cancel()
 
 			logger.Debug("waiting for goroutines to finish")
-			// Close the urlBuffer to signal consumerSenders to finish
-			close(urlBuffer)
 
 			// Wait for all goroutines to finish
 			wg.Wait()
+
+			// Close the urlBuffer to signal consumerSenders to finish
+			close(urlBuffer)
 
 			globalHQ.wg.Done()
 
@@ -73,7 +74,7 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		// Check for context cancellation
 		select {
 		case <-ctx.Done():
-			logger.Debug("closing")
+			logger.Debug("closed")
 			return
 		default:
 		}
@@ -94,7 +95,7 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		for _, URL := range URLs {
 			select {
 			case <-ctx.Done():
-				logger.Debug("closing")
+				logger.Debug("closed")
 				return
 			case urlBuffer <- &URL:
 			}
@@ -112,14 +113,9 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *g
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Debug("closing")
+			logger.Debug("closed")
 			return
-		case URL, ok := <-urlBuffer:
-			if !ok {
-				logger.Debug("closing")
-				return
-			}
-
+		case URL := <-urlBuffer:
 			// Process the URL and send to reactor
 			err := processAndSend(URL)
 			if err != nil && err != reactor.ErrReactorFrozen {

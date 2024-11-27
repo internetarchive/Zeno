@@ -2,9 +2,11 @@ package hq
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/gocrawlhq"
@@ -82,11 +84,6 @@ func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *pro
 		select {
 		case <-ctx.Done():
 			logger.Debug("closing")
-			// Send any remaining URLs.
-			if len(batch.URLs) > 0 {
-				logger.Debug("while closing, sending remaining batch to dispatcher", "size", len(batch.URLs))
-				batchCh <- batch // Blocks if batchCh is full.
-			}
 			return
 		case item := <-globalHQ.produceCh:
 			URL := gocrawlhq.URL{
@@ -99,7 +96,12 @@ func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *pro
 				logger.Debug("sending batch to dispatcher", "size", len(batch.URLs))
 				// Send the batch to batchCh.
 				copyBatch := *batch
-				batchCh <- &copyBatch // Blocks if batchCh is full.
+				select {
+				case <-ctx.Done():
+					logger.Debug("closed")
+					return
+				case batchCh <- &copyBatch: // Blocks if batchCh is full.
+				}
 				batch = &producerBatch{
 					URLs: make([]gocrawlhq.URL, 0, batchSize),
 				}
@@ -109,7 +111,12 @@ func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *pro
 			if len(batch.URLs) > 0 {
 				logger.Debug("sending non-full batch to dispatcher", "size", len(batch.URLs))
 				copyBatch := *batch
-				batchCh <- &copyBatch // Blocks if batchCh is full.
+				select {
+				case <-ctx.Done():
+					logger.Debug("closed")
+					return
+				case batchCh <- &copyBatch: // Blocks if batchCh is full.
+				}
 				batch = &producerBatch{
 					URLs: make([]gocrawlhq.URL, 0, batchSize),
 				}
@@ -134,34 +141,29 @@ func producerDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *p
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Debug("closing")
+			logger.Debug("waiting for sender routines to finish")
 			// Wait for all sender routines to finish.
 			producerWg.Wait()
+			logger.Debug("closed")
 			return
-		case batch, ok := <-batchCh:
-			if !ok {
-				logger.Debug("closing")
-				// Wait for all sender routines to finish.
-				producerWg.Wait()
-				return
-			}
-
+		case batch := <-batchCh:
+			batchUUID := uuid.NewString()[:6]
 			senderSemaphore <- struct{}{} // Blocks if maxSenders reached.
 			producerWg.Add(1)
 			logger.Debug("dispatching batch to sender", "size", len(batch.URLs))
-			go func(batch *producerBatch) {
+			go func(batch *producerBatch, batchUUID string) {
 				defer producerWg.Done()
 				defer func() { <-senderSemaphore }()
-				producerSender(ctx, batch)
-			}(batch)
+				producerSender(ctx, batch, batchUUID)
+			}(batch, batchUUID)
 		}
 	}
 }
 
 // producerSender sends a batch of URLs to HQ with retries and exponential backoff.
-func producerSender(ctx context.Context, batch *producerBatch) {
+func producerSender(ctx context.Context, batch *producerBatch, batchUUID string) {
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "hq.producerSender",
+		"component": fmt.Sprintf("hq.producerSender.%s", batchUUID),
 	})
 
 	backoff := time.Second
