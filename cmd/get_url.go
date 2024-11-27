@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/controler"
 	"github.com/spf13/cobra"
 )
 
@@ -11,18 +12,29 @@ var getURLCmd = &cobra.Command{
 	Use:   "url [URL...]",
 	Short: "Archive given URLs",
 	Args:  cobra.MinimumNArgs(1),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(_ *cobra.Command, args []string) error {
 		if cfg == nil {
 			return fmt.Errorf("viper config is nil")
 		}
 
+		if len(args) == 0 {
+			return fmt.Errorf("no URLs provided")
+		}
+
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		for _, URL := range args {
 			config.Get().InputSeeds = append(config.Get().InputSeeds, URL)
 		}
 
-		return config.GenerateCrawlConfig()
+		err := config.GenerateCrawlConfig()
+		if err != nil {
+			return err
+		}
+
+		controler.Start()
+		controler.WatchSignals()
+		return nil
 	},
 }

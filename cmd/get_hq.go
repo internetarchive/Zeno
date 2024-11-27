@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/controler"
 	"github.com/spf13/cobra"
 )
 
 var getHQCmd = &cobra.Command{
 	Use:   "hq",
 	Short: "Start crawling with the crawl HQ connector.",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(_ *cobra.Command, _ []string) error {
 		if cfg == nil {
 			return fmt.Errorf("viper config is nil")
 		}
@@ -19,8 +20,15 @@ var getHQCmd = &cobra.Command{
 
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		return config.GenerateCrawlConfig()
+	RunE: func(_ *cobra.Command, _ []string) (err error) {
+		err = config.GenerateCrawlConfig()
+		if err != nil {
+			return
+		}
+
+		controler.Start()
+		controler.WatchSignals()
+		return
 	},
 }
 

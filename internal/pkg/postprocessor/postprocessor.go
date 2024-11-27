@@ -6,6 +6,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -84,8 +85,16 @@ func run() {
 	// Guard to limit the number of concurrent archiver routines
 	guard := make(chan struct{}, config.Get().WorkersCount)
 
+	// Subscribe to the pause controler
+	controlChans := pause.Subscribe()
+	defer pause.Unsubscribe(controlChans)
+
 	for {
 		select {
+		case <-controlChans.PauseCh:
+			logger.Debug("received pause event")
+			controlChans.ResumeCh <- struct{}{}
+			logger.Debug("received resume event")
 		// Closes the run routine when context is canceled
 		case <-globalPostprocessor.ctx.Done():
 			logger.Debug("shutting down")
@@ -102,7 +111,7 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
 
-					if item.GetStatus() == models.ItemFailed {
+					if item.GetStatus() != models.ItemFailed {
 						postprocess(item)
 					}
 
