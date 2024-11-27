@@ -41,6 +41,10 @@ func finisher() {
 		select {
 		case <-globalHQ.ctx.Done():
 			logger.Debug("received done signal")
+
+			// Cancel the context to stop all goroutines.
+			cancel()
+
 			logger.Debug("waiting for goroutines to finish")
 
 			// Close the batch channel to signal the dispatcher to finish.
