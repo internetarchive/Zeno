@@ -6,6 +6,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -84,8 +85,16 @@ func run() {
 	// Guard to limit the number of concurrent archiver routines
 	guard := make(chan struct{}, config.Get().WorkersCount)
 
+	// Subscribe to the pause controler
+	controlChans := pause.Subscribe()
+	defer pause.Unsubscribe(controlChans)
+
 	for {
 		select {
+		case <-controlChans.PauseCh:
+			logger.Debug("received pause event")
+			controlChans.ResumeCh <- struct{}{}
+			logger.Debug("received resume event")
 		// Closes the run routine when context is canceled
 		case <-globalPostprocessor.ctx.Done():
 			logger.Debug("shutting down")
@@ -102,7 +111,9 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
 
-					postprocess(item)
+					if item.GetStatus() != models.ItemFailed {
+						postprocess(item)
+					}
 
 					select {
 					case <-ctx.Done():
@@ -116,15 +127,11 @@ func run() {
 }
 
 func postprocess(item *models.Item) {
-	// if item.GetStatus() != models.ItemFailed {
-	// 	item.SetRedirection(nil)
-	// 	return
-	// }
-
 	defer item.SetStatus(models.ItemPostProcessed)
 
-	// If the item failed, there is no need to postprocess it
-	if item.GetStatus() == models.ItemFailed {
+	// If we don't capture assets, there is no need to postprocess the item
+	// TODO: handle hops even with disable assets capture
+	if config.Get().DisableAssetsCapture {
 		return
 	}
 

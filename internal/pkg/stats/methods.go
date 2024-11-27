@@ -73,3 +73,19 @@ func PostprocessorRoutinesGet() uint64 { return globalStats.PostprocessorRoutine
 
 // PostprocessorRoutinesReset resets the PostprocessorRoutines counter to 0.
 func PostprocessorRoutinesReset() { globalStats.PostprocessorRoutines.reset() }
+
+//////////////////////////
+//         Paused       //
+//////////////////////////
+
+// PausedSet sets the Paused flag to true.
+func PausedSet() { globalStats.Paused.CompareAndSwap(false, true) }
+
+// PausedUnset sets the Paused flag to false.
+func PausedUnset() { globalStats.Paused.CompareAndSwap(true, false) }
+
+// PausedGet returns the current value of the Paused flag.
+func PausedGet() bool { return globalStats.Paused.Load() }
+
+// PausedReset resets the Paused flag to false.
+func PausedReset() { globalStats.Paused.Store(false) }

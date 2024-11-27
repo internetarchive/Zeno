@@ -1,6 +1,9 @@
 package stats
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 type stats struct {
 	URLsCrawled           *rate
@@ -8,6 +11,7 @@ type stats struct {
 	PreprocessorRoutines  *counter
 	ArchiverRoutines      *counter
 	PostprocessorRoutines *counter
+	Paused                atomic.Bool
 }
 
 var (

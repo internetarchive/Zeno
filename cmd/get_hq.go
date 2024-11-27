@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/controler"
 	"github.com/spf13/cobra"
 )
 
 var getHQCmd = &cobra.Command{
 	Use:   "hq",
 	Short: "Start crawling with the crawl HQ connector.",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(_ *cobra.Command, _ []string) error {
 		if cfg == nil {
 			return fmt.Errorf("viper config is nil")
 		}
@@ -19,8 +20,15 @@ var getHQCmd = &cobra.Command{
 
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		return config.GenerateCrawlConfig()
+	RunE: func(_ *cobra.Command, _ []string) (err error) {
+		err = config.GenerateCrawlConfig()
+		if err != nil {
+			return
+		}
+
+		controler.Start()
+		controler.WatchSignals()
+		return
 	},
 }
 
@@ -32,7 +40,7 @@ func getHQCmdFlags(getHQCmd *cobra.Command) {
 	getHQCmd.PersistentFlags().String("hq-project", "", "Crawl HQ project.")
 	getHQCmd.PersistentFlags().Bool("hq-continuous-pull", false, "If turned on, the crawler will pull URLs from Crawl HQ continuously.")
 	getHQCmd.PersistentFlags().String("hq-strategy", "lifo", "Crawl HQ feeding strategy.")
-	getHQCmd.PersistentFlags().Int("hq-batch-size", 0, "Crawl HQ feeding batch size.")
+	getHQCmd.PersistentFlags().Int("hq-batch-size", 500, "Crawl HQ feeding batch size.")
 	getHQCmd.PersistentFlags().Int("hq-batch-concurrency", 1, "Number of concurrent requests to do to get the --hq-batch-size, if batch size is 300 and batch-concurrency is 10, 30 requests will be done concurrently.")
 	getHQCmd.PersistentFlags().Bool("hq-rate-limiting-send-back", false, "If turned on, the crawler will send back URLs that hit a rate limit to crawl HQ.")
 

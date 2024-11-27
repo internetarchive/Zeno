@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
@@ -88,8 +89,16 @@ func run() {
 	// Guard to limit the number of concurrent archiver routines
 	guard := make(chan struct{}, config.Get().WorkersCount)
 
+	// Subscribe to the pause controler
+	controlChans := pause.Subscribe()
+	defer pause.Unsubscribe(controlChans)
+
 	for {
 		select {
+		case <-controlChans.PauseCh:
+			logger.Debug("received pause event")
+			controlChans.ResumeCh <- struct{}{}
+			logger.Debug("received resume event")
 		// Closes the run routine when context is canceled
 		case <-globalPreprocessor.ctx.Done():
 			logger.Debug("shutting down")
@@ -131,7 +140,6 @@ func preprocess(item *models.Item) {
 	if item.GetStatus() == models.ItemFresh {
 		URLType = models.URLTypeSeed
 		URLsToPreprocess = append(URLsToPreprocess, item.GetURL())
-		defer item.SetStatus(models.ItemPreProcessed)
 	} else if item.GetRedirection() != nil {
 		URLType = models.URLTypeRedirection
 		URLsToPreprocess = append(URLsToPreprocess, item.GetRedirection())
@@ -197,6 +205,13 @@ func preprocess(item *models.Item) {
 		}
 	}
 
+	if len(URLsToPreprocess) == 0 {
+		logger.Warn("no valid URLs to preprocess", "item", item.ID)
+		// Set item status to indicate failure or remove the item from further processing
+		item.SetStatus(models.ItemFailed)
+		return
+	}
+
 	// Finally, we build the requests, applying any site-specific behavior needed
 	for _, URL := range URLsToPreprocess {
 		// TODO: apply site-specific stuff
@@ -207,4 +222,6 @@ func preprocess(item *models.Item) {
 
 		URL.SetRequest(req)
 	}
+
+	item.SetStatus(models.ItemPreProcessed)
 }
