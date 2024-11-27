@@ -1,6 +1,7 @@
 package controler
 
 import (
+	"os"
 	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
@@ -106,6 +107,10 @@ func startPipeline() {
 }
 
 func stopPipeline() {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "controler.StopPipeline",
+	})
+
 	diskWatcherCancel()
 
 	finisher.Stop()
@@ -127,6 +132,13 @@ func stopPipeline() {
 	}
 
 	reactor.Stop()
+
+	if config.Get().WARCTempDir != "" {
+		err := os.Remove(config.Get().WARCTempDir)
+		if err != nil {
+			logger.Error("unable to remove temp dir", "err", err.Error())
+		}
+	}
 
 	log.Stop()
 

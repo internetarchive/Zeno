@@ -111,7 +111,7 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
 
-					if item.GetStatus() == models.ItemFailed {
+					if item.GetStatus() != models.ItemFailed {
 						postprocess(item)
 					}
 
