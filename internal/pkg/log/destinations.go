@@ -16,25 +16,25 @@ type Destination interface {
 func initDestinations() []Destination {
 	var destinations []Destination
 
-	if config.StdoutEnabled {
+	if globalConfig.StdoutEnabled {
 		destinations = append(destinations, &StdoutDestination{
-			level: config.StdoutLevel,
+			level: globalConfig.StdoutLevel,
 		})
 	}
 
-	if config.StderrEnabled {
+	if globalConfig.StderrEnabled {
 		destinations = append(destinations, &StderrDestination{
-			level: config.StderrLevel,
+			level: globalConfig.StderrLevel,
 		})
 	}
 
-	if config.FileConfig != nil {
-		fileDest := NewFileDestination(config.FileConfig)
+	if globalConfig.FileConfig != nil {
+		fileDest := NewFileDestination()
 		destinations = append(destinations, fileDest)
 	}
 
-	if config.ElasticsearchConfig != nil {
-		esDest := NewElasticsearchDestination(config.ElasticsearchConfig)
+	if globalConfig.ElasticsearchConfig != nil {
+		esDest := NewElasticsearchDestination()
 		destinations = append(destinations, esDest)
 	}
 

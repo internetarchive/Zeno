@@ -1,6 +1,7 @@
 package controler
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -18,13 +19,17 @@ import (
 )
 
 func startPipeline() {
-	log.Start()
+	err := log.Start()
+	if err != nil {
+		fmt.Println("error starting logger", "err", err.Error())
+		return
+	}
 
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "controler.StartPipeline",
 	})
 
-	err := stats.Init()
+	err = stats.Init()
 	if err != nil {
 		logger.Error("error initializing stats", "err", err.Error())
 		return
