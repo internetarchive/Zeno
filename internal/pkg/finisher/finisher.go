@@ -102,7 +102,7 @@ func (f *finisher) run() {
 				if err != nil {
 					panic(err)
 				}
-			} else if len(item.GetChilds()) != 0 {
+			} else if len(item.GetChildren()) != 0 {
 				logger.Debug("item has children", "item", item.GetShortID())
 				err := reactor.ReceiveFeedback(item)
 				if err != nil {
@@ -121,11 +121,10 @@ func (f *finisher) run() {
 					f.sourceFinishedCh <- item
 				}
 
-				logger.Info("crawled", "url", item.GetURL(), "item", item.GetShortID())
 				stats.SeedsFinishedIncr()
 			}
 
-			logger.Debug("item finished", "item", item.GetShortID())
+			logger.Info("item finished", "item", item.GetShortID())
 		}
 	}
 }

@@ -128,8 +128,6 @@ func run() {
 }
 
 func preprocess(item *models.Item) {
-	defer item.SetStatus(models.ItemPreProcessed)
-
 	// Validate the URL of either the item itself and/or its childs
 	// TODO: if an error happen and it's a fresh item, we should mark it as failed in HQ (if it's a HQ-based crawl)
 
@@ -145,9 +143,9 @@ func preprocess(item *models.Item) {
 	} else if item.GetRedirection() != nil {
 		URLType = models.URLTypeRedirection
 		URLsToPreprocess = append(URLsToPreprocess, item.GetRedirection())
-	} else if len(item.GetChilds()) > 0 {
+	} else if len(item.GetChildren()) > 0 {
 		URLType = models.URLTypeAsset
-		URLsToPreprocess = append(URLsToPreprocess, item.GetChilds()...)
+		URLsToPreprocess = append(URLsToPreprocess, item.GetChildren()...)
 	} else {
 		panic("item has no URL to preprocess")
 	}
@@ -183,7 +181,7 @@ func preprocess(item *models.Item) {
 	}
 
 	// Simply deduplicate the slice
-	URLsToPreprocess = utils.DedupeURLs(URLsToPreprocess)
+	utils.DedupeURLs(&URLsToPreprocess)
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
 	if config.Get().UseSeencheck && URLType != models.URLTypeSeed {
@@ -203,8 +201,15 @@ func preprocess(item *models.Item) {
 		case models.URLTypeRedirection:
 			item.SetRedirection(nil)
 		case models.URLTypeAsset:
-			item.SetChilds(URLsToPreprocess)
+			item.SetChildren(URLsToPreprocess)
 		}
+	}
+
+	if len(URLsToPreprocess) == 0 {
+		logger.Warn("no valid URLs to preprocess", "item", item.ID)
+		// Set item status to indicate failure or remove the item from further processing
+		item.SetStatus(models.ItemFailed)
+		return
 	}
 
 	// Finally, we build the requests, applying any site-specific behavior needed
@@ -217,4 +222,6 @@ func preprocess(item *models.Item) {
 
 		URL.SetRequest(req)
 	}
+
+	item.SetStatus(models.ItemPreProcessed)
 }

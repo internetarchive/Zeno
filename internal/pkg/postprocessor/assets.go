@@ -12,9 +12,8 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (err error) {
+func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (assets []*models.URL, err error) {
 	var (
-		assets      []*models.URL
 		contentType = URL.GetResponse().Header.Get("Content-Type")
 		logger      = log.NewFieldedLogger(&log.Fields{
 			"component": "postprocessor.extractAssets",
@@ -26,7 +25,7 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (e
 		assets, err = extractor.HTML(doc, URL, item)
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
-			return err
+			return assets, err
 		}
 	default:
 		logger.Debug("no extractor found for content type", "content-type", contentType, "item", item.GetShortID())
@@ -41,7 +40,7 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (e
 		// Second read
 		buf := make([]byte, URL.GetBody().Len())
 		if _, err := URL.GetBody().Read(buf); err != nil && err != io.EOF {
-			return err
+			return assets, err
 		}
 
 		URLs = append(URLs, regex.FindAllString(string(buf), -1)...)
@@ -55,10 +54,6 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (e
 			Raw:  URL,
 			Hops: item.URL.GetHops(),
 		})
-	}
-
-	for _, asset := range assets {
-		item.AddChild(asset)
 	}
 
 	return

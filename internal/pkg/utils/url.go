@@ -5,11 +5,11 @@ import (
 )
 
 // DedupeURLs take a slice of *url.URL and dedupe it
-func DedupeURLs(URLs []*models.URL) []*models.URL {
+func DedupeURLs(URLs *[]*models.URL) {
 	keys := make(map[string]bool)
-	list := make([]*models.URL, 0, len(URLs))
+	list := make([]*models.URL, 0, len(*URLs))
 
-	for _, entry := range URLs {
+	for _, entry := range *URLs {
 		if _, value := keys[entry.String()]; !value {
 			keys[entry.String()] = true
 
@@ -19,5 +19,5 @@ func DedupeURLs(URLs []*models.URL) []*models.URL {
 		}
 	}
 
-	return list
+	*URLs = list
 }

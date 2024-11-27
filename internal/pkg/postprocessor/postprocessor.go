@@ -111,7 +111,9 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
 
-					postprocess(item)
+					if item.GetStatus() == models.ItemFailed {
+						postprocess(item)
+					}
 
 					select {
 					case <-ctx.Done():
@@ -125,12 +127,13 @@ func run() {
 }
 
 func postprocess(item *models.Item) {
-	// if item.GetStatus() != models.ItemFailed {
-	// 	item.SetRedirection(nil)
-	// 	return
-	// }
-
 	defer item.SetStatus(models.ItemPostProcessed)
+
+	// If we don't capture assets, there is no need to postprocess the item
+	// TODO: handle hops even with disable assets capture
+	if config.Get().DisableAssetsCapture {
+		return
+	}
 
 	var (
 		URLs    []*models.URL
@@ -140,11 +143,11 @@ func postprocess(item *models.Item) {
 	if item.GetRedirection() != nil {
 		URLType = models.URLTypeRedirection
 		URLs = append(URLs, item.GetRedirection())
-	} else if len(item.GetChilds()) > 0 {
+	} else if len(item.GetChildren()) > 0 {
 		URLType = models.URLTypeAsset
-		URLs = item.GetChilds()
-		item.IncrChildsHops()
-		item.SetChilds(nil)
+		URLs = item.GetChildren()
+		item.IncrChildrenHops()
+		item.SetChildren(nil)
 	} else {
 		URLType = models.URLTypeSeed
 		URLs = append(URLs, item.GetURL())
@@ -172,7 +175,7 @@ func postprocess(item *models.Item) {
 			item.SetRedirection(nil)
 		}
 
-		if item.GetChildsHops() > 1 ||
+		if item.GetChildrenHops() > 1 ||
 			config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(URL.GetHops())) {
 			return
 		}
@@ -193,9 +196,18 @@ func postprocess(item *models.Item) {
 			}
 
 			// Extract assets from the document
-			err = extractAssets(doc, URL, item)
+			assets, err := extractAssets(doc, URL, item)
 			if err != nil {
-				logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID(), "func", "postprocessor.postprocess")
+				logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+			}
+
+			for _, asset := range assets {
+				if assets == nil {
+					logger.Warn("nil asset", "item", item.GetShortID())
+					continue
+				}
+
+				item.AddChild(asset)
 			}
 		}
 	}
