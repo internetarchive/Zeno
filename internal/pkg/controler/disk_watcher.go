@@ -15,7 +15,7 @@ var (
 	diskWatcherCtx, diskWatcherCancel = context.WithCancel(context.Background())
 )
 
-// Implements f(x)={ if total <= 256GB then threshold = 20GB * (total / 256GB) else threshold = 20GB }
+// Implements f(x)={ if total <= 256GB then threshold = 50GB * (total / 256GB) else threshold = 50GB }
 func checkDiskUsage(total, free uint64) error {
 	const (
 		GB = 1024 * 1024 * 1024
@@ -23,9 +23,9 @@ func checkDiskUsage(total, free uint64) error {
 	var threshold float64
 
 	if total <= 256*GB {
-		threshold = float64(20*GB) * (float64(total) / float64(256*GB))
+		threshold = float64(50*GB) * (float64(total) / float64(256*GB))
 	} else {
-		threshold = 20 * GB
+		threshold = 50 * GB
 	}
 
 	// Compare free space with threshold
