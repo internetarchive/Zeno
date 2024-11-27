@@ -41,6 +41,7 @@ func producer() {
 		select {
 		case <-globalHQ.ctx.Done():
 			logger.Debug("received done signal")
+
 			// Cancel the context to stop all goroutines.
 			cancel()
 
