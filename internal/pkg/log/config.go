@@ -52,13 +52,14 @@ func makeConfig() *Config {
 		elasticRotatePeriod = 24 * time.Hour
 	}
 
-	if config.Get().LogFileOutputDir == "" {
-		config.Get().LogFileOutputDir = fmt.Sprintf("%s/logs", config.Get().JobPath)
+	var logFileOutputDir string
+	if logFileOutputDir = config.Get().LogFileOutputDir; logFileOutputDir == "" {
+		logFileOutputDir = fmt.Sprintf("%s/logs", config.Get().JobPath)
 	}
 
 	return &Config{
 		FileConfig: &LogfileConfig{
-			Dir:          config.Get().LogFileOutputDir,
+			Dir:          logFileOutputDir,
 			Prefix:       config.Get().LogFilePrefix,
 			Level:        parseLevel(config.Get().LogFileLevel),
 			Rotate:       config.Get().LogFileRotation != "",

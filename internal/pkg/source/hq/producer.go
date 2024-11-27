@@ -46,6 +46,7 @@ func producer() {
 			cancel()
 
 			logger.Debug("waiting for goroutines to finish")
+
 			// Wait for the producer and dispatcher to finish.
 			wg.Wait()
 
