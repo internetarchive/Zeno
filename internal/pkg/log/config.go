@@ -42,6 +42,16 @@ type ElasticsearchConfig struct {
 
 // makeConfig returns the default configuration
 func makeConfig() *Config {
+	if config.Get() == nil {
+		return &Config{
+			FileConfig:          nil,
+			StdoutEnabled:       true,
+			StdoutLevel:         slog.LevelInfo,
+			StderrEnabled:       true,
+			StderrLevel:         slog.LevelError,
+			ElasticsearchConfig: nil,
+		}
+	}
 	fileRotatePeriod, err := time.ParseDuration(config.Get().LogFileRotation)
 	if err != nil && config.Get().LogFileRotation != "" {
 		fileRotatePeriod = 1 * time.Hour
