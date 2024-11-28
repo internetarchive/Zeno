@@ -8,3 +8,5 @@ zeno.log
 *.py
 .DS_Store
 ZENO-*
+start.sh
+output.log
