@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
@@ -177,7 +178,19 @@ func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 
 	// Collect URLs from all fetches
 	for URLs := range urlsChan {
-		allURLs = append(allURLs, URLs...)
+		if len(URLs) != 0 {
+			allURLs = append(allURLs, URLs...)
+		}
+	}
+
+	// Check for duplicates based on URL ID, panic if found
+	seen := make(map[string]struct{})
+	for _, URL := range allURLs {
+		if _, ok := seen[URL.ID]; ok {
+			spew.Dump(allURLs)
+			panic("duplicate URL ID found in CrawlHQ response")
+		}
+		seen[URL.ID] = struct{}{}
 	}
 
 	return allURLs, nil

@@ -6,6 +6,7 @@ require (
 	github.com/CorentinB/warc v0.8.54
 	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/ada-url/goada v0.0.0-20240402045241-5e45a5777313
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/elastic/go-elasticsearch v0.0.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/google/uuid v1.6.0
