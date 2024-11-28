@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -154,8 +155,10 @@ func archive(item *models.Item) {
 		URLsToCapture []*models.URL
 		guard         = make(chan struct{}, config.Get().MaxConcurrentAssets)
 		wg            sync.WaitGroup
-		itemState     = models.ItemArchived
+		itemState     atomic.Int64
 	)
+
+	itemState.Store(int64(models.ItemArchived))
 
 	// Determine the URLs that need to be captured
 	if item.GetRedirection() != nil {
@@ -193,7 +196,7 @@ func archive(item *models.Item) {
 
 				// Only mark the item as failed if processing a redirection or a new seed
 				if item.GetStatus() == models.ItemPreProcessed || item.GetRedirection() != nil {
-					itemState = models.ItemFailed
+					itemState.Store(int64(models.ItemFailed))
 				}
 
 				// Do not send URL to successfulURLsChan, effectively removing it
@@ -253,7 +256,7 @@ func archive(item *models.Item) {
 		item.SetChildren(successfulChildren)
 	}
 
-	item.SetStatus(itemState)
+	item.SetStatus(models.ItemState(itemState.Load()))
 }
 
 func containsURL(urls []*models.URL, target *models.URL) bool {

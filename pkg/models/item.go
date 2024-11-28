@@ -1,6 +1,8 @@
 package models
 
 import (
+	"sync/atomic"
+
 	"github.com/google/uuid"
 )
 
@@ -13,9 +15,9 @@ type Item struct {
 	Redirection      *URL       // Redirection is the URL that the item has been redirected to, if it's not nil it need to be captured
 	Via              string     // Via is the URL that the item has been found from
 	children         []*URL     // Children is the list of URLs that have been discovered via the item's URL
-	childrenHops     int        // ChildrenHops is the number of hops of the children
+	childrenHops     int64      // ChildrenHops is the number of hops of the children
 	childrenBase     string     // ChildrenBase is the base URL of the children, extracted from a <base> tag
-	childrenCaptured int        // ChildrenCaptured is the flag to indicate the number of child URLs that have been captured
+	childrenCaptured int64      // ChildrenCaptured is the flag to indicate the number of child URLs that have been captured
 	Error            error      // Error message of the seed
 }
 
@@ -39,12 +41,12 @@ func (i *Item) GetChildren() []*URL {
 	return i.children
 }
 
-func (i *Item) GetChildrenHops() int {
-	return i.childrenHops
+func (i *Item) GetChildrenHops() int64 {
+	return atomic.LoadInt64(&i.childrenHops)
 }
 
 func (i *Item) IncrChildrenHops() {
-	i.childrenHops++
+	atomic.AddInt64(&i.childrenHops, 1)
 }
 
 func (i *Item) GetChildrenBase() string {
@@ -75,8 +77,16 @@ func (i *Item) GetSource() ItemSource {
 	return i.Source
 }
 
-func (i *Item) GetChildrenCaptured() int {
-	return i.childrenCaptured
+func (i *Item) GetChildrenCaptured() int64 {
+	return atomic.LoadInt64(&i.childrenCaptured)
+}
+
+func (i *Item) SetChildrenCaptured(captured int64) {
+	atomic.StoreInt64(&i.childrenCaptured, captured)
+}
+
+func (i *Item) IncrChildrenCaptured() {
+	atomic.AddInt64(&i.childrenCaptured, 1)
 }
 
 func (i *Item) GetRedirection() *URL {
@@ -107,14 +117,6 @@ func (i *Item) SetChildren(children []*URL) {
 	i.children = children
 }
 
-func (i *Item) SetChildrenCaptured(captured int) {
-	i.childrenCaptured = captured
-}
-
-func (i *Item) IncrChildrenCaptured() {
-	i.childrenCaptured++
-}
-
 func (i *Item) SetVia(via string) {
 	i.Via = via
 }
@@ -128,7 +130,7 @@ func (i *Item) SetError(err error) {
 }
 
 // ItemState qualifies the state of a item in the pipeline
-type ItemState int
+type ItemState int64
 
 const (
 	// ItemFresh is the initial state of a item either it's from HQ, the Queue or Feedback
