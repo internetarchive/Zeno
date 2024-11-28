@@ -71,6 +71,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/internetarchive/gocrawlhq v1.2.20 h1:0mIIt9lhPacKr6L2JeISoopQ8EgzC3dISJ3ITGGbOp4=
 github.com/internetarchive/gocrawlhq v1.2.20/go.mod h1:gHrdMewIi5OBWE/xEZGqSrNHyTXPbt+h+XUWpp9fZek=
+github.com/internetarchive/gocrawlhq v1.2.22 h1:2WDj6zx+MCfQp1bG8x7R1kayXZYS4XqsUs/GE/YpxEU=
+github.com/internetarchive/gocrawlhq v1.2.22/go.mod h1:gHrdMewIi5OBWE/xEZGqSrNHyTXPbt+h+XUWpp9fZek=
 github.com/klauspost/compress v1.17.10 h1:oXAz+Vh0PMUvJczoi+flxpnBEPxoER1IaAnU/NMPtT0=
 github.com/klauspost/compress v1.17.10/go.mod h1:pMDklpSncoRMuLFrf1W9Ss9KT+0rH90U12bZKk7uwG0=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
