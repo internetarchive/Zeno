@@ -2,6 +2,7 @@ package hq
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -184,14 +185,22 @@ func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 	}
 
 	// Check for duplicates based on URL ID, panic if found
-	seen := make(map[string]struct{})
-	for _, URL := range allURLs {
-		if _, ok := seen[URL.ID]; ok {
-			spew.Dump(allURLs)
-			panic("duplicate URL ID found in CrawlHQ response")
-		}
-		seen[URL.ID] = struct{}{}
+	err := ensureAllURLsUnique(allURLs)
+	if err != nil {
+		spew.Dump(allURLs)
+		panic(err)
 	}
 
 	return allURLs, nil
+}
+
+func ensureAllURLsUnique(URLs []gocrawlhq.URL) error {
+	seen := make(map[string]struct{})
+	for _, URL := range URLs {
+		if _, ok := seen[URL.ID]; ok {
+			return errors.New("duplicate URL ID found")
+		}
+		seen[URL.ID] = struct{}{}
+	}
+	return nil
 }
