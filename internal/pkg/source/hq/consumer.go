@@ -119,32 +119,24 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *g
 			return
 		case URL := <-urlBuffer:
 			// Process the URL and send to reactor
-			err := processAndSend(URL)
-			if err != nil && err != reactor.ErrReactorFrozen {
+			err := reactor.ReceiveInsert(&models.Item{
+				ID: URL.ID,
+				URL: &models.URL{
+					Raw:  URL.Value,
+					Hops: pathToHops(URL.Path),
+				},
+				Via:    URL.Via,
+				Status: models.ItemFresh,
+				Source: models.ItemSourceHQ,
+			})
+			if err != nil {
+				if err != reactor.ErrReactorFrozen {
+					continue
+				}
 				panic(err)
 			}
 		}
 	}
-}
-
-func processAndSend(URL *gocrawlhq.URL) error {
-	newItem := &models.Item{
-		ID: URL.ID,
-		URL: &models.URL{
-			Raw:  URL.Value,
-			Hops: pathToHops(URL.Path),
-		},
-		Via:    URL.Via,
-		Status: models.ItemFresh,
-		Source: models.ItemSourceHQ,
-	}
-
-	// Send the item to the reactor
-	err := reactor.ReceiveInsert(newItem)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
