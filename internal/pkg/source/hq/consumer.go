@@ -94,12 +94,12 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		}
 
 		// Enqueue URLs into the buffer
-		for _, URL := range URLs {
+		for i := range URLs {
 			select {
 			case <-ctx.Done():
 				logger.Debug("closed")
 				return
-			case urlBuffer <- &URL:
+			case urlBuffer <- &URLs[i]:
 			}
 		}
 	}
