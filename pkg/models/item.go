@@ -14,7 +14,7 @@ type Item struct {
 	seedVia  string     // SeedVia is the source of the seed (shoud not be used for non-seeds)
 	status   ItemState  // Status is the state of the item in the pipeline
 	source   ItemSource // Source is the source of the item in the pipeline
-	children []*Item    // Children is a list of Item created from
+	children []*Item    // Children is a slice of Item created from this item
 	parent   *Item      // Parent is the parent of the item (will be nil if the item is a seed)
 	err      error      // Error message of the seed
 }
@@ -183,6 +183,37 @@ func (i *Item) GetNodesAtLevel(targetLevel int) ([]*Item, error) {
 
 	_recursiveGetNodesAtLevel(i, 0)
 	return result, nil
+}
+
+// SetStatus sets the status of the item
+func (i *Item) SetStatus(status ItemState) { i.status = status }
+
+// SetSource sets the source of the item
+func (i *Item) SetSource(source ItemSource) error {
+	if !i.seed && (source == ItemSourceInsert || source == ItemSourceQueue || source == ItemSourceHQ) {
+		return fmt.Errorf("source is invalid for a child")
+	}
+	i.source = source
+	return nil
+}
+
+// SetError sets the error of the item
+func (i *Item) SetError(err error) *Item { i.err = err; return i }
+
+// NewItem creates a new item with the given ID, URL, seedVia and seed flag
+func NewItem(ID string, URL *URL, via string, isSeed bool) *Item {
+	return &Item{
+		id:      ID,
+		url:     URL,
+		seed:    isSeed,
+		seedVia: via,
+		status:  ItemFresh,
+	}
+}
+
+func AddChild(parent *Item, child *Item) {
+	parent.children = append(parent.children, child)
+	child.parent = parent
 }
 
 // Errors definition
