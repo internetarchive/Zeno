@@ -16,7 +16,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/gocrawlhq"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/telanflow/cookiejar"
+	"github.com/ssgelm/cookiejarparser"
 	"mvdan.cc/xurls/v2"
 )
 
@@ -173,7 +173,7 @@ func (c *Crawl) Start() (err error) {
 
 	// Parse input cookie file if specified
 	if c.CookieFile != "" {
-		cookieJar, err := cookiejar.NewFileJar(c.CookieFile, nil)
+		cookieJar, err := cookiejarparser.LoadCookieJarFile("cookies.txt")
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, nil, nil)).Fatal("unable to parse cookie file")
 		}

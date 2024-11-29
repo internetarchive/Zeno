@@ -20,7 +20,7 @@ func (d *StdoutDestination) Level() slog.Level {
 }
 
 func (d *StdoutDestination) Write(entry *logEntry) {
-	if entry.level < config.StderrLevel || !config.StderrEnabled {
+	if entry.level < globalConfig.StderrLevel || !globalConfig.StderrEnabled {
 		fmt.Println(formatLogEntry(entry))
 	}
 }
@@ -41,7 +41,7 @@ func (d *StderrDestination) Level() slog.Level {
 }
 
 func (d *StderrDestination) Write(entry *logEntry) {
-	if entry.level >= config.StderrLevel {
+	if entry.level >= globalConfig.StderrLevel {
 		fmt.Fprintln(os.Stderr, formatLogEntry(entry))
 	}
 }

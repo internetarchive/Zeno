@@ -2,9 +2,11 @@ package hq
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
@@ -25,7 +27,7 @@ func consumer() {
 	batchSize := config.Get().HQBatchSize
 
 	// Create a fixed-size buffer (channel) for URLs
-	urlBuffer := make(chan *gocrawlhq.URL, batchSize)
+	urlBuffer := make(chan gocrawlhq.URL, batchSize)
 
 	// WaitGroup to wait for goroutines to finish on shutdown
 	var wg sync.WaitGroup
@@ -43,12 +45,17 @@ func consumer() {
 		select {
 		case <-globalHQ.ctx.Done():
 			logger.Debug("received done signal")
+
+			// Cancel the context to stop all goroutines.
+			cancel()
+
 			logger.Debug("waiting for goroutines to finish")
-			// Close the urlBuffer to signal consumerSenders to finish
-			close(urlBuffer)
 
 			// Wait for all goroutines to finish
 			wg.Wait()
+
+			// Close the urlBuffer to signal consumerSenders to finish
+			close(urlBuffer)
 
 			globalHQ.wg.Done()
 
@@ -58,7 +65,7 @@ func consumer() {
 	}
 }
 
-func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlhq.URL, batchSize int) {
+func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- gocrawlhq.URL, batchSize int) {
 	defer wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -69,7 +76,7 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		// Check for context cancellation
 		select {
 		case <-ctx.Done():
-			logger.Debug("closing")
+			logger.Debug("closed")
 			return
 		default:
 		}
@@ -87,18 +94,18 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		}
 
 		// Enqueue URLs into the buffer
-		for _, URL := range URLs {
+		for i := range URLs {
 			select {
 			case <-ctx.Done():
-				logger.Debug("closing")
+				logger.Debug("closed")
 				return
-			case urlBuffer <- &URL:
+			case urlBuffer <- URLs[i]:
 			}
 		}
 	}
 }
 
-func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *gocrawlhq.URL) {
+func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan gocrawlhq.URL) {
 	defer wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -108,41 +115,28 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *g
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Debug("closing")
+			logger.Debug("closed")
 			return
-		case URL, ok := <-urlBuffer:
-			if !ok {
-				logger.Debug("closing")
-				return
-			}
-
+		case URL := <-urlBuffer:
 			// Process the URL and send to reactor
-			err := processAndSend(URL)
-			if err != nil && err != reactor.ErrReactorFrozen {
+			err := reactor.ReceiveInsert(&models.Item{
+				ID: URL.ID,
+				URL: &models.URL{
+					Raw:  URL.Value,
+					Hops: pathToHops(URL.Path),
+				},
+				Via:    URL.Via,
+				Status: models.ItemFresh,
+				Source: models.ItemSourceHQ,
+			})
+			if err != nil {
+				if err != reactor.ErrReactorFrozen {
+					continue
+				}
 				panic(err)
 			}
 		}
 	}
-}
-
-func processAndSend(URL *gocrawlhq.URL) error {
-	newItem := &models.Item{
-		ID: URL.ID,
-		URL: &models.URL{
-			Raw:  URL.Value,
-			Hops: pathToHops(URL.Path),
-		},
-		Via:    URL.Via,
-		Status: models.ItemFresh,
-		Source: models.ItemSourceHQ,
-	}
-
-	// Send the item to the reactor
-	err := reactor.ReceiveInsert(newItem)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
@@ -177,8 +171,28 @@ func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 
 	// Collect URLs from all fetches
 	for URLs := range urlsChan {
-		allURLs = append(allURLs, URLs...)
+		if len(URLs) != 0 {
+			allURLs = append(allURLs, URLs...)
+		}
+	}
+
+	// Check for duplicates based on URL ID, panic if found
+	err := ensureAllURLsUnique(allURLs)
+	if err != nil {
+		spew.Dump(allURLs)
+		panic(err)
 	}
 
 	return allURLs, nil
+}
+
+func ensureAllURLsUnique(URLs []gocrawlhq.URL) error {
+	seen := make(map[string]struct{})
+	for _, URL := range URLs {
+		if _, ok := seen[URL.ID]; ok {
+			return errors.New("duplicate URL ID found")
+		}
+		seen[URL.ID] = struct{}{}
+	}
+	return nil
 }

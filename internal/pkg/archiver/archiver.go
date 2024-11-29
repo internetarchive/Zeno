@@ -6,9 +6,11 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -102,8 +104,16 @@ func run() {
 	// Guard to limit the number of concurrent archiver routines
 	guard := make(chan struct{}, config.Get().WorkersCount)
 
+	// Subscribe to the pause controler
+	controlChans := pause.Subscribe()
+	defer pause.Unsubscribe(controlChans)
+
 	for {
 		select {
+		case <-controlChans.PauseCh:
+			logger.Debug("received pause event")
+			controlChans.ResumeCh <- struct{}{}
+			logger.Debug("received resume event")
 		// Closes the run routine when context is canceled
 		case <-globalArchiver.ctx.Done():
 			logger.Debug("shutting down")
@@ -145,8 +155,10 @@ func archive(item *models.Item) {
 		URLsToCapture []*models.URL
 		guard         = make(chan struct{}, config.Get().MaxConcurrentAssets)
 		wg            sync.WaitGroup
-		itemState     = models.ItemArchived
+		itemState     atomic.Int64
 	)
+
+	itemState.Store(int64(models.ItemArchived))
 
 	// Determine the URLs that need to be captured
 	if item.GetRedirection() != nil {
@@ -184,7 +196,7 @@ func archive(item *models.Item) {
 
 				// Only mark the item as failed if processing a redirection or a new seed
 				if item.GetStatus() == models.ItemPreProcessed || item.GetRedirection() != nil {
-					itemState = models.ItemFailed
+					itemState.Store(int64(models.ItemFailed))
 				}
 
 				// Do not send URL to successfulURLsChan, effectively removing it
@@ -244,7 +256,7 @@ func archive(item *models.Item) {
 		item.SetChildren(successfulChildren)
 	}
 
-	item.SetStatus(itemState)
+	item.SetStatus(models.ItemState(itemState.Load()))
 }
 
 func containsURL(urls []*models.URL, target *models.URL) bool {

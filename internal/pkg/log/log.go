@@ -10,25 +10,20 @@ import (
 
 // Global variables
 var (
-	config     *Config
-	logQueue   chan *logEntry
-	once       sync.Once
-	wg         sync.WaitGroup
-	cancelFunc context.CancelFunc
+	globalConfig *Config
+	logQueue     chan *logEntry
+	once         sync.Once
+	wg           sync.WaitGroup
+	cancelFunc   context.CancelFunc
 )
 
 // Start initializes the logging package with the given configuration.
 // If no configuration is provided, it uses the default configuration.
-func Start(cfgs ...*Config) error {
+func Start() error {
 	var done = false
 
 	once.Do(func() {
-		logQueue = make(chan *logEntry, 1000)
-		if len(cfgs) > 0 && cfgs[0] != nil {
-			config = cfgs[0]
-		} else {
-			config = defaultConfig()
-		}
+		globalConfig = makeConfig()
 		setupLogger()
 		done = true
 	})

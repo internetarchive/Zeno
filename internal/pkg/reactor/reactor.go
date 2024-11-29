@@ -5,6 +5,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -83,6 +84,7 @@ func Freeze() {
 	if globalReactor != nil {
 		logger.Debug("received freeze signal")
 		globalReactor.freezeCancel()
+		logger.Info("frozen")
 	}
 }
 
@@ -126,7 +128,13 @@ func ReceiveInsert(item *models.Item) error {
 		if item.Source != models.ItemSourceQueue && item.Source != models.ItemSourceHQ {
 			item.Source = models.ItemSourceInsert
 		}
-		globalReactor.stateTable.Store(item.ID, item)
+		loadedItem, loaded := globalReactor.stateTable.LoadOrStore(item.ID, item)
+		if loaded {
+			spew.Dump(loadedItem.(*models.Item))
+			panic("item already present in reactor")
+		}
+
+		// globalReactor.stateTable.Store(item.ID, item)
 		globalReactor.input <- item
 		return nil
 	}
