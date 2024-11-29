@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -603,6 +604,433 @@ func TestItem_GetMaxDepth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.item.GetMaxDepth(); got != tt.expected {
 				t.Errorf("GetMaxDepth() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+func TestAddChild(t *testing.T) {
+	tests := []struct {
+		name        string
+		parent      *Item
+		child       *Item
+		from        ItemState
+		expectedErr error
+	}{
+		{
+			name: "Valid AddChild with ItemGotRedirected",
+			parent: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				parent.status = ItemGotRedirected
+				return parent
+			}(),
+			child:       createTestItem("childID", false, nil),
+			from:        ItemGotRedirected,
+			expectedErr: nil,
+		},
+		{
+			name: "Valid AddChild with ItemGotChildren",
+			parent: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				parent.status = ItemGotChildren
+				return parent
+			}(),
+			child:       createTestItem("childID", false, nil),
+			from:        ItemGotChildren,
+			expectedErr: nil,
+		},
+		{
+			name: "Invalid AddChild with wrong state",
+			parent: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				parent.status = ItemFresh
+				return parent
+			}(),
+			child:       createTestItem("childID", false, nil),
+			from:        ItemFresh,
+			expectedErr: fmt.Errorf("from state is invalid, only ItemGotRedirected and ItemGotChildren are allowed"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := AddChild(tt.parent, tt.child, tt.from)
+			if err != nil && err.Error() != tt.expectedErr.Error() {
+				t.Errorf("expected error: %v, got: %v", tt.expectedErr, err)
+			}
+			if err == nil && tt.expectedErr != nil {
+				t.Errorf("expected error: %v, got: %v", tt.expectedErr, err)
+			}
+			if err == nil {
+				if tt.child.parent != tt.parent {
+					t.Errorf("expected parent: %v, got: %v", tt.parent, tt.child.parent)
+				}
+				if len(tt.parent.children) != 1 || tt.parent.children[0] != tt.child {
+					t.Errorf("expected child: %v, got: %v", tt.child, tt.parent.children)
+				}
+			}
+		})
+	}
+}
+func TestItem_SetSource(t *testing.T) {
+	tests := []struct {
+		name        string
+		item        *Item
+		source      ItemSource
+		expectedErr error
+	}{
+		{
+			name:        "Set source for seed item to ItemSourceInsert",
+			item:        createTestItem("testID", true, nil),
+			source:      ItemSourceInsert,
+			expectedErr: nil,
+		},
+		{
+			name:        "Set source for seed item to ItemSourceQueue",
+			item:        createTestItem("testID", true, nil),
+			source:      ItemSourceQueue,
+			expectedErr: nil,
+		},
+		{
+			name:        "Set source for seed item to ItemSourceHQ",
+			item:        createTestItem("testID", true, nil),
+			source:      ItemSourceHQ,
+			expectedErr: nil,
+		},
+		{
+			name:        "Set source for seed item to ItemSourcePostprocess",
+			item:        createTestItem("testID", true, nil),
+			source:      ItemSourcePostprocess,
+			expectedErr: nil,
+		},
+		{
+			name:        "Set source for seed item to ItemSourceFeedback",
+			item:        createTestItem("testID", true, nil),
+			source:      ItemSourceFeedback,
+			expectedErr: nil,
+		},
+		{
+			name:        "Set source for child item to ItemSourceInsert",
+			item:        createTestItem("testID", false, createTestItem("parentID", true, nil)),
+			source:      ItemSourceInsert,
+			expectedErr: fmt.Errorf("source is invalid for a child"),
+		},
+		{
+			name:        "Set source for child item to ItemSourceQueue",
+			item:        createTestItem("testID", false, createTestItem("parentID", true, nil)),
+			source:      ItemSourceQueue,
+			expectedErr: fmt.Errorf("source is invalid for a child"),
+		},
+		{
+			name:        "Set source for child item to ItemSourceHQ",
+			item:        createTestItem("testID", false, createTestItem("parentID", true, nil)),
+			source:      ItemSourceHQ,
+			expectedErr: fmt.Errorf("source is invalid for a child"),
+		},
+		{
+			name:        "Set source for child item to ItemSourcePostprocess",
+			item:        createTestItem("testID", false, createTestItem("parentID", true, nil)),
+			source:      ItemSourcePostprocess,
+			expectedErr: nil,
+		},
+		{
+			name:        "Set source for child item to ItemSourceFeedback",
+			item:        createTestItem("testID", false, createTestItem("parentID", true, nil)),
+			source:      ItemSourceFeedback,
+			expectedErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.item.SetSource(tt.source)
+			if err != nil && err.Error() != tt.expectedErr.Error() {
+				t.Errorf("expected error: %v, got: %v", tt.expectedErr, err)
+			}
+			if err == nil && tt.expectedErr != nil {
+				t.Errorf("expected error: %v, got: %v", tt.expectedErr, err)
+			}
+			if err == nil && tt.item.source != tt.source {
+				t.Errorf("expected source: %v, got: %v", tt.source, tt.item.source)
+			}
+		})
+	}
+}
+
+func TestItem_SetStatus(t *testing.T) {
+	tests := []struct {
+		name     string
+		item     *Item
+		status   ItemState
+		expected ItemState
+	}{
+		{
+			name:     "Set status to ItemFresh",
+			item:     createTestItem("testID", true, nil),
+			status:   ItemFresh,
+			expected: ItemFresh,
+		},
+		{
+			name:     "Set status to ItemPreProcessed",
+			item:     createTestItem("testID", true, nil),
+			status:   ItemPreProcessed,
+			expected: ItemPreProcessed,
+		},
+		{
+			name:     "Set status to ItemArchived",
+			item:     createTestItem("testID", true, nil),
+			status:   ItemArchived,
+			expected: ItemArchived,
+		},
+		{
+			name:     "Set status to ItemPostProcessed",
+			item:     createTestItem("testID", true, nil),
+			status:   ItemPostProcessed,
+			expected: ItemPostProcessed,
+		},
+		{
+			name:     "Set status to ItemFailed",
+			item:     createTestItem("testID", true, nil),
+			status:   ItemFailed,
+			expected: ItemFailed,
+		},
+		{
+			name:     "Set status to ItemCompleted",
+			item:     createTestItem("testID", true, nil),
+			status:   ItemCompleted,
+			expected: ItemCompleted,
+		},
+		{
+			name:     "Set status to ItemGotRedirected",
+			item:     createTestItem("testID", true, nil),
+			status:   ItemGotRedirected,
+			expected: ItemGotRedirected,
+		},
+		{
+			name:     "Set status to ItemGotChildren",
+			item:     createTestItem("testID", true, nil),
+			status:   ItemGotChildren,
+			expected: ItemGotChildren,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.item.SetStatus(tt.status)
+			if got := tt.item.GetStatus(); got != tt.expected {
+				t.Errorf("SetStatus() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestItem_SetError(t *testing.T) {
+	tests := []struct {
+		name        string
+		item        *Item
+		err         error
+		expectedErr error
+	}{
+		{
+			name:        "Set error to nil",
+			item:        createTestItem("testID", true, nil),
+			err:         nil,
+			expectedErr: nil,
+		},
+		{
+			name:        "Set error to non-nil error",
+			item:        createTestItem("testID", true, nil),
+			err:         errors.New("test error"),
+			expectedErr: errors.New("test error"),
+		},
+		{
+			name:        "Set error to another non-nil error",
+			item:        createTestItem("testID", true, nil),
+			err:         errors.New("another test error"),
+			expectedErr: errors.New("another test error"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.item.SetError(tt.err)
+			if got := tt.item.GetError(); got != nil && got.Error() != tt.expectedErr.Error() {
+				t.Errorf("SetError() = %v, want %v", got, tt.expectedErr)
+			}
+			if got := tt.item.GetError(); got == nil && tt.expectedErr != nil {
+				t.Errorf("SetError() = %v, want %v", got, tt.expectedErr)
+			}
+		})
+	}
+}
+
+func TestNewItem(t *testing.T) {
+	tests := []struct {
+		name     string
+		id       string
+		url      *URL
+		via      string
+		isSeed   bool
+		expected *Item
+	}{
+		{
+			name:   "Create seed item",
+			id:     "testID",
+			url:    &URL{Raw: "http://example.com"},
+			via:    "seedViaTest",
+			isSeed: true,
+			expected: &Item{
+				id:      "testID",
+				url:     &URL{Raw: "http://example.com"},
+				seed:    true,
+				seedVia: "seedViaTest",
+				status:  ItemFresh,
+			},
+		},
+		{
+			name:   "Create child item",
+			id:     "childID",
+			url:    &URL{Raw: "http://example.com/child"},
+			via:    "",
+			isSeed: false,
+			expected: &Item{
+				id:      "childID",
+				url:     &URL{Raw: "http://example.com/child"},
+				seed:    false,
+				seedVia: "",
+				status:  ItemFresh,
+			},
+		},
+		{
+			name:   "Create seed item with empty seedVia",
+			id:     "testID2",
+			url:    &URL{Raw: "http://example.com/2"},
+			via:    "",
+			isSeed: true,
+			expected: &Item{
+				id:      "testID2",
+				url:     &URL{Raw: "http://example.com/2"},
+				seed:    true,
+				seedVia: "",
+				status:  ItemFresh,
+			},
+		},
+		{
+			name:   "Create child item with non-empty seedVia",
+			id:     "childID2",
+			url:    &URL{Raw: "http://example.com/child2"},
+			via:    "seedViaTest2",
+			isSeed: false,
+			expected: &Item{
+				id:      "childID2",
+				url:     &URL{Raw: "http://example.com/child2"},
+				seed:    false,
+				seedVia: "seedViaTest2",
+				status:  ItemFresh,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			item := NewItem(tt.id, tt.url, tt.via, tt.isSeed)
+			if item.id != tt.expected.id {
+				t.Errorf("expected id: %v, got: %v", tt.expected.id, item.id)
+			}
+			if item.url.Raw != tt.expected.url.Raw {
+				t.Errorf("expected url: %v, got: %v", tt.expected.url.Raw, item.url.Raw)
+			}
+			if item.seed != tt.expected.seed {
+				t.Errorf("expected seed: %v, got: %v", tt.expected.seed, item.seed)
+			}
+			if item.seedVia != tt.expected.seedVia {
+				t.Errorf("expected seedVia: %v, got: %v", tt.expected.seedVia, item.seedVia)
+			}
+			if item.status != tt.expected.status {
+				t.Errorf("expected status: %v, got: %v", tt.expected.status, item.status)
+			}
+		})
+	}
+}
+
+func TestItem_IsRedirection(t *testing.T) {
+	tests := []struct {
+		name     string
+		item     *Item
+		expected bool
+	}{
+		{
+			name: "Item with parent having status ItemGotRedirected",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				parent.status = ItemGotRedirected
+				child := createTestItem("childID", false, parent)
+				return child
+			}(),
+			expected: true,
+		},
+		{
+			name: "Item with parent having status ItemGotChildren",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				parent.status = ItemGotChildren
+				child := createTestItem("childID", false, parent)
+				return child
+			}(),
+			expected: false,
+		},
+		{
+			name:     "Item with no parent",
+			item:     createTestItem("testID", true, nil),
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.item.IsRedirection(); got != tt.expected {
+				t.Errorf("IsRedirection() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestItem_IsAChild(t *testing.T) {
+	tests := []struct {
+		name     string
+		item     *Item
+		expected bool
+	}{
+		{
+			name: "Item with parent having status ItemGotChildren",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				parent.status = ItemGotChildren
+				child := createTestItem("childID", false, parent)
+				return child
+			}(),
+			expected: true,
+		},
+		{
+			name: "Item with parent having status ItemGotRedirected",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				parent.status = ItemGotRedirected
+				child := createTestItem("childID", false, parent)
+				return child
+			}(),
+			expected: false,
+		},
+		{
+			name:     "Item with no parent",
+			item:     createTestItem("testID", true, nil),
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.item.IsAChild(); got != tt.expected {
+				t.Errorf("IsAChild() = %v, want %v", got, tt.expected)
 			}
 		})
 	}
