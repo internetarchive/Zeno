@@ -14,7 +14,6 @@ type Item struct {
 	seedVia  string     // SeedVia is the source of the seed (shoud not be used for non-seeds)
 	status   ItemState  // Status is the state of the item in the pipeline
 	source   ItemSource // Source is the source of the item in the pipeline
-	maxDepth int64      // MaxDepth represents the max depth of the item tree (number of iterations applied to the seed)
 	children []*Item    // Children is a list of Item created from
 	parent   *Item      // Parent is the parent of the item (will be nil if the item is a seed)
 	err      error      // Error message of the seed
@@ -87,11 +86,6 @@ func (i *Item) CheckConsistency() error {
 		return fmt.Errorf("item is a child but has a seedVia")
 	}
 
-	// If item is a child, it shouldnt have a seedIndex
-	if !i.seed && i.maxDepth != -1 {
-		return fmt.Errorf("item is a child but has a seedIndex")
-	}
-
 	return nil
 }
 
@@ -119,8 +113,20 @@ func (i *Item) GetStatus() ItemState { return i.status }
 // GetSource returns the source of the item
 func (i *Item) GetSource() ItemSource { return i.source }
 
-// GetMaxDepth returns the seedIndex of the item
-func (i *Item) GetMaxDepth() int64 { return i.maxDepth }
+// GetMaxDepth returns the maxDepth of the item by traversing the tree
+func (i *Item) GetMaxDepth() int64 {
+	if len(i.children) == 0 {
+		return 0
+	}
+	maxDepth := int64(0)
+	for _, child := range i.children {
+		childDepth := child.GetMaxDepth()
+		if childDepth > maxDepth {
+			maxDepth = childDepth
+		}
+	}
+	return maxDepth + 1
+}
 
 // GetDepth returns the depth of the item
 func (i *Item) GetDepth() int64 {

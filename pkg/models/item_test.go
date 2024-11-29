@@ -13,7 +13,6 @@ func createTestItem(id string, seed bool, parent *Item) *Item {
 	}
 	if parent != nil {
 		parent.children = append(parent.children, item)
-		item.maxDepth = -1
 	}
 	return item
 }
@@ -78,14 +77,6 @@ func TestItem_GetSource(t *testing.T) {
 	item.source = source
 	if got := item.GetSource(); got != source {
 		t.Errorf("GetSource() = %v, want %v", got, source)
-	}
-}
-
-func TestItem_GetMaxDepth(t *testing.T) {
-	item := createTestItem("testID", true, nil)
-	item.maxDepth = 5
-	if got := item.GetMaxDepth(); got != 5 {
-		t.Errorf("GetDepth() = %v, want %v", got, 5)
 	}
 }
 
@@ -165,18 +156,6 @@ func TestItem_CheckConsistency(t *testing.T) {
 				return item
 			}(),
 			expected: errors.New("item is a child but has a seedVia"),
-		},
-		{
-			name: "Child item with seedIndex",
-			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
-				parent.url = &URL{Raw: "http://example.com"}
-				item := createTestItem("testID", false, parent)
-				item.url = &URL{Raw: "http://example.com"}
-				item.maxDepth = 1
-				return item
-			}(),
-			expected: errors.New("item is a child but has a seedIndex"),
 		},
 		{
 			name: "Seed item with parent",
@@ -451,6 +430,7 @@ func TestGetNodesAtLevel(t *testing.T) {
 		})
 	}
 }
+
 func TestGetSeed(t *testing.T) {
 	// Test cases
 	testCases := []struct {
@@ -506,6 +486,7 @@ func TestGetSeed(t *testing.T) {
 		})
 	}
 }
+
 func TestItem_GetDepth(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -553,6 +534,75 @@ func TestItem_GetDepth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.item.GetDepth(); got != tt.expected {
 				t.Errorf("GetDepth() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+func TestItem_GetMaxDepth(t *testing.T) {
+	tests := []struct {
+		name     string
+		item     *Item
+		expected int64
+	}{
+		{
+			name:     "Single seed item",
+			item:     createTestItem("root", true, nil),
+			expected: 0,
+		},
+		{
+			name: "Seed with one child",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				createTestItem("child", false, root)
+				return root
+			}(),
+			expected: 1,
+		},
+		{
+			name: "Seed with two levels of children",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				child := createTestItem("child", false, root)
+				createTestItem("grandchild", false, child)
+				return root
+			}(),
+			expected: 2,
+		},
+		{
+			name: "Seed with multiple children at different levels",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				child1 := createTestItem("child1", false, root)
+				child2 := createTestItem("child2", false, root)
+				createTestItem("grandchild1", false, child1)
+				createTestItem("grandchild2", false, child2)
+				createTestItem("greatGrandchild", false, child1.children[0])
+				return root
+			}(),
+			expected: 3,
+		},
+		{
+			name:     "Seed with no children",
+			item:     createTestItem("root", true, nil),
+			expected: 0,
+		},
+		{
+			name: "Seed with multiple children at same level",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				createTestItem("child1", false, root)
+				createTestItem("child2", false, root)
+				createTestItem("child3", false, root)
+				return root
+			}(),
+			expected: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.item.GetMaxDepth(); got != tt.expected {
+				t.Errorf("GetMaxDepth() = %v, want %v", got, tt.expected)
 			}
 		})
 	}
