@@ -27,7 +27,7 @@ func consumer() {
 	batchSize := config.Get().HQBatchSize
 
 	// Create a fixed-size buffer (channel) for URLs
-	urlBuffer := make(chan *gocrawlhq.URL, batchSize)
+	urlBuffer := make(chan gocrawlhq.URL, batchSize)
 
 	// WaitGroup to wait for goroutines to finish on shutdown
 	var wg sync.WaitGroup
@@ -65,7 +65,7 @@ func consumer() {
 	}
 }
 
-func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlhq.URL, batchSize int) {
+func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- gocrawlhq.URL, batchSize int) {
 	defer wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -99,13 +99,13 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 			case <-ctx.Done():
 				logger.Debug("closed")
 				return
-			case urlBuffer <- &URLs[i]:
+			case urlBuffer <- URLs[i]:
 			}
 		}
 	}
 }
 
-func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *gocrawlhq.URL) {
+func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan gocrawlhq.URL) {
 	defer wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
