@@ -8,7 +8,8 @@ import (
 
 type Index struct {
 	sync.Mutex
-	index        map[string][]*blob
+	index map[string][]*blob
+
 	orderedHosts []string
 }
 
