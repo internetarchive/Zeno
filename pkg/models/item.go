@@ -37,7 +37,7 @@ const (
 	ItemCompleted
 	// ItemGotRedirected is the state after the item has been redirected
 	ItemGotRedirected
-	// ItemGotChildren is the state after the item has been got children
+	// ItemGotChildren is the state after the item has got children
 	ItemGotChildren
 )
 
@@ -211,9 +211,24 @@ func NewItem(ID string, URL *URL, via string, isSeed bool) *Item {
 	}
 }
 
-func AddChild(parent *Item, child *Item) {
+// AddChild adds a child to the item
+func AddChild(parent *Item, child *Item, from ItemState) error {
+	if from != ItemGotRedirected && from != ItemGotChildren {
+		return fmt.Errorf("from state is invalid, only ItemGotRedirected and ItemGotChildren are allowed")
+	}
 	parent.children = append(parent.children, child)
 	child.parent = parent
+	return nil
+}
+
+// IsRedirection returns true if the item is from a redirection
+func (i *Item) IsRedirection() bool {
+	return i.parent != nil && i.parent.status == ItemGotRedirected
+}
+
+// IsAChild returns true if the item is a child
+func (i *Item) IsAChild() bool {
+	return i.parent != nil && i.parent.status == ItemGotChildren
 }
 
 // Errors definition
