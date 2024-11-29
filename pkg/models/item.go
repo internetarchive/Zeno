@@ -1,132 +1,23 @@
 package models
 
 import (
-	"sync/atomic"
-
-	"github.com/google/uuid"
+	"errors"
+	"fmt"
 )
 
 // Item represents a URL, it's children (e.g. discovered assets) and it's state in the pipeline
+// The children follow a tree structure where the seed is the root and the children are the leaves, this is to keep track of the hops and the origin of the children
 type Item struct {
-	ID               string     // ID is the unique identifier of the item
-	URL              *URL       // URL is a struct that contains the URL, the parsed URL, and its hop
-	Status           ItemState  // Status is the state of the item in the pipeline
-	Source           ItemSource // Source is the source of the item in the pipeline
-	Redirection      *URL       // Redirection is the URL that the item has been redirected to, if it's not nil it need to be captured
-	Via              string     // Via is the URL that the item has been found from
-	children         []*URL     // Children is the list of URLs that have been discovered via the item's URL
-	childrenHops     int64      // ChildrenHops is the number of hops of the children
-	childrenBase     string     // ChildrenBase is the base URL of the children, extracted from a <base> tag
-	childrenCaptured int64      // ChildrenCaptured is the flag to indicate the number of child URLs that have been captured
-	Error            error      // Error message of the seed
-}
-
-func NewItem(source ItemSource) (item *Item) {
-	UUID := uuid.New().String()
-
-	item = &Item{
-		ID:     UUID,
-		Status: ItemFresh,
-		Source: source,
-	}
-
-	return item
-}
-
-func (i *Item) AddChild(child *URL) {
-	i.children = append(i.children, child)
-}
-
-func (i *Item) GetChildren() []*URL {
-	return i.children
-}
-
-func (i *Item) GetChildrenHops() int64 {
-	return atomic.LoadInt64(&i.childrenHops)
-}
-
-func (i *Item) IncrChildrenHops() {
-	atomic.AddInt64(&i.childrenHops, 1)
-}
-
-func (i *Item) GetChildrenBase() string {
-	return i.childrenBase
-}
-
-func (i *Item) SetChildrenBase(base string) {
-	i.childrenBase = base
-}
-
-func (i *Item) GetID() string {
-	return i.ID
-}
-
-func (i *Item) GetShortID() string {
-	return i.ID[:5]
-}
-
-func (i *Item) GetURL() *URL {
-	return i.URL
-}
-
-func (i *Item) GetStatus() ItemState {
-	return i.Status
-}
-
-func (i *Item) GetSource() ItemSource {
-	return i.Source
-}
-
-func (i *Item) GetChildrenCaptured() int64 {
-	return atomic.LoadInt64(&i.childrenCaptured)
-}
-
-func (i *Item) SetChildrenCaptured(captured int64) {
-	atomic.StoreInt64(&i.childrenCaptured, captured)
-}
-
-func (i *Item) IncrChildrenCaptured() {
-	atomic.AddInt64(&i.childrenCaptured, 1)
-}
-
-func (i *Item) GetRedirection() *URL {
-	return i.Redirection
-}
-
-func (i *Item) GetError() error {
-	return i.Error
-}
-
-func (i *Item) GetVia() string {
-	return i.Via
-}
-
-func (i *Item) SetURL(url *URL) {
-	i.URL = url
-}
-
-func (i *Item) SetStatus(status ItemState) {
-	i.Status = status
-}
-
-func (i *Item) SetSource(source ItemSource) {
-	i.Source = source
-}
-
-func (i *Item) SetChildren(children []*URL) {
-	i.children = children
-}
-
-func (i *Item) SetVia(via string) {
-	i.Via = via
-}
-
-func (i *Item) SetRedirection(redirection *URL) {
-	i.Redirection = redirection
-}
-
-func (i *Item) SetError(err error) {
-	i.Error = err
+	id       string     // ID is the unique identifier of the item
+	url      *URL       // URL is a struct that contains the URL, the parsed URL, and its hop
+	seed     bool       // Seed is a flag to indicate if the item is a seed or not (true=seed, false=child)
+	seedVia  string     // SeedVia is the source of the seed (shoud not be used for non-seeds)
+	status   ItemState  // Status is the state of the item in the pipeline
+	source   ItemSource // Source is the source of the item in the pipeline
+	maxDepth int64      // MaxDepth represents the max depth of the item tree (number of iterations applied to the seed)
+	children []*Item    // Children is a list of Item created from
+	parent   *Item      // Parent is the parent of the item (will be nil if the item is a seed)
+	err      error      // Error message of the seed
 }
 
 // ItemState qualifies the state of a item in the pipeline
@@ -145,10 +36,14 @@ const (
 	ItemFailed
 	// ItemCompleted is the state after the item has been completed
 	ItemCompleted
+	// ItemGotRedirected is the state after the item has been redirected
+	ItemGotRedirected
+	// ItemGotChildren is the state after the item has been got children
+	ItemGotChildren
 )
 
 // ItemSource qualifies the source of a item in the pipeline
-type ItemSource int
+type ItemSource int64
 
 const (
 	// ItemSourceInsert is for items which source is not defined when inserted on reactor
@@ -161,4 +56,131 @@ const (
 	ItemSourcePostprocess
 	// ItemSourceFeedback is for items that are from the Feedback
 	ItemSourceFeedback
+)
+
+// CheckConsistency checks if the item is consistent with the constraints of the model
+// Developers should add more constraints as needed
+// Ideally this function should be called after every mutation of an item object to ensure consistency and throw a panic if consistency is broken
+func (i *Item) CheckConsistency() error {
+	// The item should have a URL
+	if i.url == nil {
+		return fmt.Errorf("url is nil")
+	}
+
+	// The item should have an ID
+	if i.id == "" {
+		return fmt.Errorf("id is empty")
+	}
+
+	// If item is a child, it should have a parent
+	if !i.seed && i.parent == nil {
+		return fmt.Errorf("item is a child but has no parent")
+	}
+
+	// If item is a seed, it shouldnt have a parent
+	if i.seed && i.parent != nil {
+		return fmt.Errorf("item is a seed but has a parent")
+	}
+
+	// If item is a child, it shouldnt have a seedVia
+	if !i.seed && i.seedVia != "" {
+		return fmt.Errorf("item is a child but has a seedVia")
+	}
+
+	// If item is a child, it shouldnt have a seedIndex
+	if !i.seed && i.maxDepth != -1 {
+		return fmt.Errorf("item is a child but has a seedIndex")
+	}
+
+	return nil
+}
+
+// GetID returns the ID of the item
+func (i *Item) GetID() string { return i.id }
+
+// GetShortID returns the short ID of the item
+func (i *Item) GetShortID() string { return i.id[:5] }
+
+// GetURL returns the URL of the item
+func (i *Item) GetURL() *URL { return i.url }
+
+// IsSeed returns the seed flag of the item
+func (i *Item) IsSeed() bool { return i.seed }
+
+// IsChild returns the child flag of the item
+func (i *Item) IsChild() bool { return !i.seed }
+
+// GetSeedVia returns the seedVia of the item
+func (i *Item) GetSeedVia() string { return i.seedVia }
+
+// GetStatus returns the status of the item
+func (i *Item) GetStatus() ItemState { return i.status }
+
+// GetSource returns the source of the item
+func (i *Item) GetSource() ItemSource { return i.source }
+
+// GetMaxDepth returns the seedIndex of the item
+func (i *Item) GetMaxDepth() int64 { return i.maxDepth }
+
+// GetDepth returns the depth of the item
+func (i *Item) GetDepth() int64 {
+	if i.seed {
+		return 0
+	}
+	return i.parent.GetDepth() + 1
+}
+
+// GetChildren returns the children of the item
+func (i *Item) GetChildren() []*Item { return i.children }
+
+// GetParent returns the parent of the item
+func (i *Item) GetParent() *Item { return i.parent }
+
+// GetError returns the error of the item
+func (i *Item) GetError() error { return i.err }
+
+// GetSeed returns the seed (topmost parent) of any given item
+func (i *Item) GetSeed() *Item {
+	if i.seed {
+		return i
+	}
+	for p := i.parent; p != nil; p = p.parent {
+		if p.seed {
+			return p
+		}
+	}
+	return nil
+}
+
+// GetNodesAtLevel returns all the nodes at a given level in the seed
+func (i *Item) GetNodesAtLevel(targetLevel int) ([]*Item, error) {
+	if !i.seed {
+		return nil, ErrNotASeed
+	}
+
+	var result []*Item
+	var _recursiveGetNodesAtLevel func(node *Item, currentLevel int)
+	_recursiveGetNodesAtLevel = func(node *Item, currentLevel int) {
+		if node == nil {
+			return
+		}
+
+		if currentLevel == targetLevel {
+			result = append(result, node)
+			return
+		}
+
+		for _, child := range node.children {
+			_recursiveGetNodesAtLevel(child, currentLevel+1)
+		}
+	}
+
+	_recursiveGetNodesAtLevel(i, 0)
+	return result, nil
+}
+
+// Errors definition
+var (
+	// ErrNotASeed is returned when the item is not a seed
+	ErrNotASeed = errors.New("item is not a seed")
 )
