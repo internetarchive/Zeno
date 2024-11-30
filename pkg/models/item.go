@@ -3,20 +3,22 @@ package models
 import (
 	"errors"
 	"fmt"
+	"sync"
 )
 
 // Item represents a URL, it's children (e.g. discovered assets) and it's state in the pipeline
 // The children follow a tree structure where the seed is the root and the children are the leaves, this is to keep track of the hops and the origin of the children
 type Item struct {
-	id       string     // ID is the unique identifier of the item
-	url      *URL       // URL is a struct that contains the URL, the parsed URL, and its hop
-	seed     bool       // Seed is a flag to indicate if the item is a seed or not (true=seed, false=child)
-	seedVia  string     // SeedVia is the source of the seed (shoud not be used for non-seeds)
-	status   ItemState  // Status is the state of the item in the pipeline
-	source   ItemSource // Source is the source of the item in the pipeline
-	children []*Item    // Children is a slice of Item created from this item
-	parent   *Item      // Parent is the parent of the item (will be nil if the item is a seed)
-	err      error      // Error message of the seed
+	id         string       // ID is the unique identifier of the item
+	url        *URL         // URL is a struct that contains the URL, the parsed URL, and its hop
+	seed       bool         // Seed is a flag to indicate if the item is a seed or not (true=seed, false=child)
+	seedVia    string       // SeedVia is the source of the seed (shoud not be used for non-seeds)
+	status     ItemState    // Status is the state of the item in the pipeline
+	source     ItemSource   // Source is the source of the item in the pipeline
+	childrenMu sync.RWMutex // Mutex to protect the children slice
+	children   []*Item      // Children is a slice of Item created from this item
+	parent     *Item        // Parent is the parent of the item (will be nil if the item is a seed)
+	err        error        // Error message of the seed
 }
 
 // ItemState qualifies the state of a item in the pipeline
@@ -115,11 +117,11 @@ func (i *Item) GetSource() ItemSource { return i.source }
 
 // GetMaxDepth returns the maxDepth of the item by traversing the tree
 func (i *Item) GetMaxDepth() int64 {
-	if len(i.children) == 0 {
+	if len(i.GetChildren()) == 0 {
 		return 0
 	}
 	maxDepth := int64(0)
-	for _, child := range i.children {
+	for _, child := range i.GetChildren() {
 		childDepth := child.GetMaxDepth()
 		if childDepth > maxDepth {
 			maxDepth = childDepth
@@ -137,7 +139,11 @@ func (i *Item) GetDepth() int64 {
 }
 
 // GetChildren returns the children of the item
-func (i *Item) GetChildren() []*Item { return i.children }
+func (i *Item) GetChildren() []*Item {
+	i.childrenMu.RLock()
+	defer i.childrenMu.RUnlock()
+	return i.children
+}
 
 // GetParent returns the parent of the item
 func (i *Item) GetParent() *Item { return i.parent }
@@ -176,7 +182,7 @@ func (i *Item) GetNodesAtLevel(targetLevel int) ([]*Item, error) {
 			return
 		}
 
-		for _, child := range node.children {
+		for _, child := range node.GetChildren() {
 			_recursiveGetNodesAtLevel(child, currentLevel+1)
 		}
 	}
@@ -202,6 +208,9 @@ func (i *Item) SetError(err error) *Item { i.err = err; return i }
 
 // NewItem creates a new item with the given ID, URL, seedVia and seed flag
 func NewItem(ID string, URL *URL, via string, isSeed bool) *Item {
+	if ID == "" || URL == nil {
+		return nil
+	}
 	return &Item{
 		id:      ID,
 		url:     URL,
@@ -212,12 +221,14 @@ func NewItem(ID string, URL *URL, via string, isSeed bool) *Item {
 }
 
 // AddChild adds a child to the item
-func AddChild(parent *Item, child *Item, from ItemState) error {
+func (i *Item) AddChild(child *Item, from ItemState) error {
+	i.childrenMu.Lock()
+	defer i.childrenMu.Unlock()
 	if from != ItemGotRedirected && from != ItemGotChildren {
 		return fmt.Errorf("from state is invalid, only ItemGotRedirected and ItemGotChildren are allowed")
 	}
-	parent.children = append(parent.children, child)
-	child.parent = parent
+	i.children = append(i.children, child)
+	child.parent = i
 	return nil
 }
 
