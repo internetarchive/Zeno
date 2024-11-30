@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 )
 
@@ -653,7 +654,7 @@ func TestAddChild(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := AddChild(tt.parent, tt.child, tt.from)
+			err := tt.parent.AddChild(tt.child, tt.from)
 			if err != nil && err.Error() != tt.expectedErr.Error() {
 				t.Errorf("expected error: %v, got: %v", tt.expectedErr, err)
 			}
@@ -928,25 +929,45 @@ func TestNewItem(t *testing.T) {
 				status:  ItemFresh,
 			},
 		},
+		{
+			name:     "Create seed item with nil URL",
+			id:       "testID3",
+			url:      nil,
+			via:      "",
+			isSeed:   true,
+			expected: nil,
+		},
+		{
+			name:     "Create child item with empty ID",
+			id:       "",
+			url:      &URL{Raw: "http://example.com/child3"},
+			via:      "",
+			isSeed:   false,
+			expected: nil,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			item := NewItem(tt.id, tt.url, tt.via, tt.isSeed)
-			if item.id != tt.expected.id {
-				t.Errorf("expected id: %v, got: %v", tt.expected.id, item.id)
-			}
-			if item.url.Raw != tt.expected.url.Raw {
-				t.Errorf("expected url: %v, got: %v", tt.expected.url.Raw, item.url.Raw)
-			}
-			if item.seed != tt.expected.seed {
-				t.Errorf("expected seed: %v, got: %v", tt.expected.seed, item.seed)
-			}
-			if item.seedVia != tt.expected.seedVia {
-				t.Errorf("expected seedVia: %v, got: %v", tt.expected.seedVia, item.seedVia)
-			}
-			if item.status != tt.expected.status {
-				t.Errorf("expected status: %v, got: %v", tt.expected.status, item.status)
+			if tt.expected == nil && item != nil {
+				t.Errorf("expected nil, got: %v", item)
+			} else if item != nil {
+				if item.id != tt.expected.id {
+					t.Errorf("expected id: %v, got: %v", tt.expected.id, item.id)
+				}
+				if item.url.Raw != tt.expected.url.Raw {
+					t.Errorf("expected url: %v, got: %v", tt.expected.url.Raw, item.url.Raw)
+				}
+				if item.seed != tt.expected.seed {
+					t.Errorf("expected seed: %v, got: %v", tt.expected.seed, item.seed)
+				}
+				if item.seedVia != tt.expected.seedVia {
+					t.Errorf("expected seedVia: %v, got: %v", tt.expected.seedVia, item.seedVia)
+				}
+				if item.status != tt.expected.status {
+					t.Errorf("expected status: %v, got: %v", tt.expected.status, item.status)
+				}
 			}
 		})
 	}
@@ -1033,5 +1054,31 @@ func TestItem_IsAChild(t *testing.T) {
 				t.Errorf("IsAChild() = %v, want %v", got, tt.expected)
 			}
 		})
+	}
+}
+
+func TestConcurrentAddChild(t *testing.T) {
+	parent := createTestItem("parentID", true, nil)
+	parent.status = ItemGotChildren
+
+	var wg sync.WaitGroup
+	numChildren := 100
+	wg.Add(numChildren)
+
+	for i := 0; i < numChildren; i++ {
+		go func(i int) {
+			defer wg.Done()
+			child := createTestItem(fmt.Sprintf("childID%d", i), false, nil)
+			err := parent.AddChild(child, ItemGotChildren)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	if len(parent.children) != numChildren {
+		t.Errorf("expected %d children, got %d", numChildren, len(parent.children))
 	}
 }
