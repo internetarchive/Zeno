@@ -95,8 +95,13 @@ func ReceiveFeedback(item *models.Item) error {
 		return ErrReactorNotInitialized
 	}
 
-	item.Source = models.ItemSourceFeedback
-	_, loaded := globalReactor.stateTable.Swap(item.ID, item)
+	if !item.IsSeed() {
+		spew.Dump(item)
+		panic("item is not a seed")
+	}
+
+	item.SetSource(models.ItemSourceFeedback)
+	_, loaded := globalReactor.stateTable.Swap(item.GetID(), item)
 	if !loaded {
 		// An item sent to the feedback channel should be present on the state table, if not present reactor should error out
 		return ErrFeedbackItemNotPresent
@@ -125,10 +130,14 @@ func ReceiveInsert(item *models.Item) error {
 	case <-globalReactor.freezeCtx.Done():
 		return ErrReactorFrozen
 	case globalReactor.tokenPool <- struct{}{}:
-		if item.Source != models.ItemSourceQueue && item.Source != models.ItemSourceHQ {
-			item.Source = models.ItemSourceInsert
+		if !item.IsSeed() {
+			spew.Dump(item)
+			panic("item is not a seed")
 		}
-		loadedItem, loaded := globalReactor.stateTable.LoadOrStore(item.ID, item)
+		if item.GetSource() != models.ItemSourceQueue && item.GetSource() != models.ItemSourceHQ {
+			item.SetSource(models.ItemSourceInsert)
+		}
+		loadedItem, loaded := globalReactor.stateTable.LoadOrStore(item.GetID(), item)
 		if loaded {
 			spew.Dump(loadedItem.(*models.Item))
 			panic("item already present in reactor")
@@ -146,7 +155,7 @@ func MarkAsFinished(item *models.Item) error {
 		return ErrReactorNotInitialized
 	}
 
-	if _, loaded := globalReactor.stateTable.LoadAndDelete(item.ID); loaded {
+	if _, loaded := globalReactor.stateTable.LoadAndDelete(item.GetID()); loaded {
 		<-globalReactor.tokenPool
 		return nil
 	}
