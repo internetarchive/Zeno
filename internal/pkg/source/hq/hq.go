@@ -1,3 +1,4 @@
+// Package hq provides a way to interact with the HQv3 API and consumes, produces and mark items as finished asynchronusly.
 package hq
 
 import (
@@ -26,6 +27,7 @@ var (
 	logger   *log.FieldedLogger
 )
 
+// Start initializes HQ async routines with the given input and output channels.
 func Start(finishChan, produceChan chan *models.Item) error {
 	var done bool
 	var startErr error
@@ -71,6 +73,7 @@ func Start(finishChan, produceChan chan *models.Item) error {
 	return startErr
 }
 
+// Stop stops the global HQ and waits for all goroutines to finish. Finisher must be stopped first and Reactor must be frozen before stopping HQ.
 func Stop() {
 	if globalHQ != nil {
 		globalHQ.cancel()
