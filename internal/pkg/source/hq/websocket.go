@@ -9,7 +9,7 @@ import (
 	"github.com/internetarchive/gocrawlhq"
 )
 
-// This function connects to HQ's websocket and listen for messages.
+// Websocket connects to HQ's websocket and listen for messages.
 // It also sends and "identify" message to the HQ to let it know that
 // Zeno is connected. This "identify" message is sent every second and
 // contains the crawler's stats and details.

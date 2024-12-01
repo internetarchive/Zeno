@@ -7,6 +7,7 @@ import (
 	"github.com/internetarchive/gocrawlhq"
 )
 
+// SeencheckURLs sends a seencheck request to the crawl HQ for the given URLs.
 func SeencheckURLs(URLsType models.URLType, URLs ...*models.URL) (seencheckedURLs []*models.URL, err error) {
 	var discoveredURLs []gocrawlhq.URL
 
