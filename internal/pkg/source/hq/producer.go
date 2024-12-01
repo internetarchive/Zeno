@@ -87,9 +87,9 @@ func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *pro
 			return
 		case item := <-globalHQ.produceCh:
 			URL := gocrawlhq.URL{
-				Value: item.URL.String(),
-				Via:   item.Via,
-				Path:  hopsToPath(item.URL.GetHops()),
+				Value: item.GetURL().String(),
+				Via:   item.GetSeedVia(),
+				Path:  hopsToPath(item.GetURL().GetHops()),
 			}
 			batch.URLs = append(batch.URLs, URL)
 			if len(batch.URLs) >= batchSize {
