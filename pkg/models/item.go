@@ -242,6 +242,16 @@ func (i *Item) IsAChild() bool {
 	return i.parent != nil && i.parent.status == ItemGotChildren
 }
 
+// HasRedirection returns true if the item has a redirection
+func (i *Item) HasRedirection() bool {
+	return len(i.children) == 1 && i.status == ItemGotRedirected
+}
+
+// HasChildren returns true if the item has children
+func (i *Item) HasChildren() bool {
+	return len(i.children) > 0 && i.status == ItemGotChildren
+}
+
 // Errors definition
 var (
 	// ErrNotASeed is returned when the item is not a seed

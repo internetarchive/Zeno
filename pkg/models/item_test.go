@@ -1082,3 +1082,108 @@ func TestConcurrentAddChild(t *testing.T) {
 		t.Errorf("expected %d children, got %d", numChildren, len(parent.children))
 	}
 }
+func TestItem_HasRedirection(t *testing.T) {
+	tests := []struct {
+		name     string
+		item     *Item
+		expected bool
+	}{
+		{
+			name: "Item with one child having status ItemGotRedirected",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				child := createTestItem("childID", false, parent)
+				parent.status = ItemGotRedirected
+				parent.children = []*Item{child}
+				return parent
+			}(),
+			expected: true,
+		},
+		{
+			name: "Item with one child having status ItemGotChildren",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				child := createTestItem("childID", false, parent)
+				parent.status = ItemGotChildren
+				parent.children = []*Item{child}
+				return parent
+			}(),
+			expected: false,
+		},
+		{
+			name: "Item with no children",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				return parent
+			}(),
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.item.HasRedirection(); got != tt.expected {
+				t.Errorf("HasRedirection() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestItem_HasChildren(t *testing.T) {
+	tests := []struct {
+		name     string
+		item     *Item
+		expected bool
+	}{
+		{
+			name: "Item with one child having status ItemGotRedirected",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				child := createTestItem("childID", false, parent)
+				parent.status = ItemGotRedirected
+				parent.children = []*Item{child}
+				return parent
+			}(),
+			expected: false,
+		},
+		{
+			name: "Item with one child having status ItemGotChildren",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				child := createTestItem("childID", false, parent)
+				parent.status = ItemGotChildren
+				parent.children = []*Item{child}
+				return parent
+			}(),
+			expected: true,
+		},
+		{
+			name: "Item with no children",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				return parent
+			}(),
+			expected: false,
+		},
+		{
+			name: "Item with multiple children",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				child1 := createTestItem("childID1", false, parent)
+				child2 := createTestItem("childID2", false, parent)
+				parent.status = ItemGotChildren
+				parent.children = []*Item{child1, child2}
+				return parent
+			}(),
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.item.HasChildren(); got != tt.expected {
+				t.Errorf("HasChildren() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
