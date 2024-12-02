@@ -49,13 +49,6 @@ func TestItem_IsSeed(t *testing.T) {
 	}
 }
 
-func TestItem_IsChild(t *testing.T) {
-	item := createTestItem("testID", false, nil)
-	if got := item.IsChild(); got != true {
-		t.Errorf("IsChild() = %v, want %v", got, true)
-	}
-}
-
 func TestItem_GetSeedVia(t *testing.T) {
 	item := createTestItem("testID", true, nil)
 	item.seedVia = "seedViaTest"
@@ -1015,7 +1008,7 @@ func TestItem_IsRedirection(t *testing.T) {
 	}
 }
 
-func TestItem_IsAChild(t *testing.T) {
+func TestItem_IsChild(t *testing.T) {
 	tests := []struct {
 		name     string
 		item     *Item
@@ -1050,8 +1043,8 @@ func TestItem_IsAChild(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.item.IsAChild(); got != tt.expected {
-				t.Errorf("IsAChild() = %v, want %v", got, tt.expected)
+			if got := tt.item.IsChild(); got != tt.expected {
+				t.Errorf("IsChild() = %v, want %v", got, tt.expected)
 			}
 		})
 	}

@@ -100,12 +100,6 @@ func (i *Item) GetShortID() string { return i.id[:5] }
 // GetURL returns the URL of the item
 func (i *Item) GetURL() *URL { return i.url }
 
-// IsSeed returns the seed flag of the item
-func (i *Item) IsSeed() bool { return i.seed }
-
-// IsChild returns the child flag of the item
-func (i *Item) IsChild() bool { return !i.seed }
-
 // GetSeedVia returns the seedVia of the item
 func (i *Item) GetSeedVia() string { return i.seedVia }
 
@@ -165,6 +159,10 @@ func (i *Item) GetSeed() *Item {
 }
 
 // GetNodesAtLevel returns all the nodes at a given level in the seed
+//
+// Can be paired with item.GetMaxDepth() to get all the items at the max depth (i.e.: all the items that potentially need work)
+//
+// Returns ErrNotASeed as error if the item is not a seed
 func (i *Item) GetNodesAtLevel(targetLevel int64) ([]*Item, error) {
 	if !i.seed {
 		return nil, ErrNotASeed
@@ -232,13 +230,16 @@ func (i *Item) AddChild(child *Item, from ItemState) error {
 	return nil
 }
 
+// IsSeed returns the seed flag of the item
+func (i *Item) IsSeed() bool { return i.parent == nil && i.seed }
+
 // IsRedirection returns true if the item is from a redirection
 func (i *Item) IsRedirection() bool {
 	return i.parent != nil && i.parent.status == ItemGotRedirected
 }
 
-// IsAChild returns true if the item is a child
-func (i *Item) IsAChild() bool {
+// IsChild returns true if the item is a child
+func (i *Item) IsChild() bool {
 	return i.parent != nil && i.parent.status == ItemGotChildren
 }
 
