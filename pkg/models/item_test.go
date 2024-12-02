@@ -1280,3 +1280,66 @@ func TestItem_GetNodesAtLevel_GetMaxDepth(t *testing.T) {
 		})
 	}
 }
+
+func TestItem_RemoveChild(t *testing.T) {
+	tests := []struct {
+		name          string
+		setupTree     func() (*Item, *Item)
+		childToRemove *Item
+		expectedIDs   []string
+	}{
+		{
+			name: "Remove existing child",
+			setupTree: func() (*Item, *Item) {
+				root := createTestItem("root", true, nil)
+				child1 := createTestItem("child1", false, root)
+				createTestItem("child2", false, root)
+				return root, child1
+			},
+			expectedIDs: []string{"child2"},
+		},
+		{
+			name: "Remove non-existing child",
+			setupTree: func() (*Item, *Item) {
+				root := createTestItem("root", true, nil)
+				createTestItem("child1", false, root)
+				createTestItem("child2", false, root)
+				nonExistingChild := createTestItem("nonExistingChild", false, nil)
+				return root, nonExistingChild
+			},
+			expectedIDs: []string{"child1", "child2"},
+		},
+		{
+			name: "Remove child from single child",
+			setupTree: func() (*Item, *Item) {
+				root := createTestItem("root", true, nil)
+				child := createTestItem("child", false, root)
+				return root, child
+			},
+			expectedIDs: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root, childToRemove := tt.setupTree()
+			root.RemoveChild(childToRemove)
+
+			children := root.GetChildren()
+			if len(children) != len(tt.expectedIDs) {
+				t.Fatalf("expected %d children, got %d", len(tt.expectedIDs), len(children))
+			}
+
+			expectedIDsMap := make(map[string]bool)
+			for _, id := range tt.expectedIDs {
+				expectedIDsMap[id] = true
+			}
+
+			for _, child := range children {
+				if !expectedIDsMap[child.id] {
+					t.Fatalf("unexpected child: %s", child.id)
+				}
+			}
+		})
+	}
+}
