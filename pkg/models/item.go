@@ -253,6 +253,18 @@ func (i *Item) HasChildren() bool {
 	return len(i.children) > 0 && i.status == ItemGotChildren
 }
 
+// RemoveChild removes a child from the item
+func (i *Item) RemoveChild(child *Item) {
+	i.childrenMu.Lock()
+	defer i.childrenMu.Unlock()
+	for idx, c := range i.children {
+		if c == child {
+			i.children = append(i.children[:idx], i.children[idx+1:]...)
+			return
+		}
+	}
+}
+
 // Errors definition
 var (
 	// ErrNotASeed is returned when the item is not a seed
