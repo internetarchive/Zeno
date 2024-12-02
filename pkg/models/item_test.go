@@ -199,7 +199,7 @@ func TestGetNodesAtLevel(t *testing.T) {
 	testCases := []struct {
 		name          string
 		root          *Item
-		targetLevel   int
+		targetLevel   int64
 		expectedIDs   []string
 		expectedError error
 	}{
@@ -1183,6 +1183,106 @@ func TestItem_HasChildren(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.item.HasChildren(); got != tt.expected {
 				t.Errorf("HasChildren() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+// This test is to ensure that a combined usage of GetNodesAtLevel and GetMaxDepth is successful at returning the apex children
+func TestItem_GetNodesAtLevel_GetMaxDepth(t *testing.T) {
+	tests := []struct {
+		name          string
+		setupTree     func() *Item
+		expectedDepth int64
+		expectedNodes []string
+	}{
+		{
+			name: "Simple tree",
+			setupTree: func() *Item {
+				root := createTestItem("root", true, nil)
+				createTestItem("child1", false, root)
+				createTestItem("child2", false, root)
+				return root
+			},
+			expectedDepth: 1,
+			expectedNodes: []string{"child1", "child2"},
+		},
+		{
+			name: "Three level tree",
+			setupTree: func() *Item {
+				root := createTestItem("root", true, nil)
+				child1 := createTestItem("child1", false, root)
+				createTestItem("child2", false, root)
+				createTestItem("grandchild1", false, child1)
+				return root
+			},
+			expectedDepth: 2,
+			expectedNodes: []string{"grandchild1"},
+		},
+		{
+			name: "Complex tree",
+			setupTree: func() *Item {
+				root := createTestItem("root", true, nil)
+				child1 := createTestItem("child1", false, root)
+				child2 := createTestItem("child2", false, root)
+				child3 := createTestItem("child3", false, root)
+				grandchild1 := createTestItem("grandchild1", false, child1)
+				createTestItem("grandchild2", false, child2)
+				grandchild3 := createTestItem("grandchild3", false, child2)
+				createTestItem("grandchild4", false, child3)
+				createTestItem("greatgrandchild1", false, grandchild1)
+				createTestItem("greatgrandchild2", false, grandchild3)
+				return root
+			},
+			expectedDepth: 3,
+			expectedNodes: []string{"greatgrandchild1", "greatgrandchild2"},
+		},
+		{
+			name: "Single node tree",
+			setupTree: func() *Item {
+				return createTestItem("root", true, nil)
+			},
+			expectedDepth: 0,
+			expectedNodes: []string{"root"},
+		},
+		{
+			name: "Two level tree with multiple children",
+			setupTree: func() *Item {
+				root := createTestItem("root", true, nil)
+				createTestItem("child1", false, root)
+				createTestItem("child2", false, root)
+				createTestItem("child3", false, root)
+				return root
+			},
+			expectedDepth: 1,
+			expectedNodes: []string{"child1", "child2", "child3"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := tt.setupTree()
+
+			// Get the apex children
+			apexChildren, err := root.GetNodesAtLevel(root.GetMaxDepth())
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// Check if the apex children are correct
+			if len(apexChildren) != len(tt.expectedNodes) {
+				t.Fatalf("expected %d apex children, got: %d", len(tt.expectedNodes), len(apexChildren))
+			}
+
+			expectedNodesMap := make(map[string]bool)
+			for _, id := range tt.expectedNodes {
+				expectedNodesMap[id] = true
+			}
+
+			for _, child := range apexChildren {
+				if !expectedNodesMap[child.id] {
+					t.Fatalf("unexpected apex child: %s", child.id)
+				}
 			}
 		})
 	}

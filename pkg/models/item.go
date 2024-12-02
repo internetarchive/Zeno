@@ -165,14 +165,14 @@ func (i *Item) GetSeed() *Item {
 }
 
 // GetNodesAtLevel returns all the nodes at a given level in the seed
-func (i *Item) GetNodesAtLevel(targetLevel int) ([]*Item, error) {
+func (i *Item) GetNodesAtLevel(targetLevel int64) ([]*Item, error) {
 	if !i.seed {
 		return nil, ErrNotASeed
 	}
 
 	var result []*Item
-	var _recursiveGetNodesAtLevel func(node *Item, currentLevel int)
-	_recursiveGetNodesAtLevel = func(node *Item, currentLevel int) {
+	var _recursiveGetNodesAtLevel func(node *Item, currentLevel int64)
+	_recursiveGetNodesAtLevel = func(node *Item, currentLevel int64) {
 		if node == nil {
 			return
 		}
