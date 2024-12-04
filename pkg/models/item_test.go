@@ -22,7 +22,12 @@ func createTestItem(id string, seed bool, parent *Item) *Item {
 
 func createTestItemWithURL(id string, seed bool, parent *Item, url string) *Item {
 	item := createTestItem(id, seed, parent)
-	item.url = &URL{Raw: url}
+	newURL := &URL{Raw: url}
+	err := newURL.Parse()
+	if err != nil {
+		panic(err)
+	}
+	item.url = newURL
 	return item
 }
 

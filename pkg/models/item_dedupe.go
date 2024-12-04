@@ -12,15 +12,15 @@ func (i *Item) DedupeItems() error {
 	// Dedupe the nodes based on their URL
 	urls := make(map[string]*Item)
 	for _, node := range nodes {
-		if existing, ok := urls[node.url.Raw]; ok {
+		if existing, ok := urls[node.url.String()]; ok {
 			if existing.status != ItemCompleted && node.status == ItemCompleted {
 				_unsafeRemoveChild(existing.parent, existing)
-				urls[node.url.Raw] = node
+				urls[node.url.String()] = node
 			} else {
 				_unsafeRemoveChild(node.parent, node)
 			}
 		} else {
-			urls[node.url.Raw] = node
+			urls[node.url.String()] = node
 		}
 	}
 
