@@ -12,11 +12,30 @@ func createTestItem(id string, seed bool, parent *Item) *Item {
 		id:     id,
 		seed:   seed,
 		parent: parent,
+		status: ItemFresh,
 	}
 	if parent != nil {
 		parent.children = append(parent.children, item)
 	}
 	return item
+}
+
+func createTestItemWithURL(id string, seed bool, parent *Item, url string) *Item {
+	item := createTestItem(id, seed, parent)
+	item.url = &URL{Raw: url}
+	return item
+}
+
+func findTestItemByID(root *Item, id string) *Item {
+	if root.id == id {
+		return root
+	}
+	for _, child := range root.GetChildren() {
+		if found := findTestItemByID(child, id); found != nil {
+			return found
+		}
+	}
+	return nil
 }
 
 func TestItem_GetID(t *testing.T) {
@@ -948,6 +967,9 @@ func TestNewItem(t *testing.T) {
 			} else if item != nil {
 				if item.id != tt.expected.id {
 					t.Errorf("expected id: %v, got: %v", tt.expected.id, item.id)
+				}
+				if item.url == nil && tt.expected.url != nil {
+					t.Errorf("expected url: %v, got: %v", tt.expected.url, item.url)
 				}
 				if item.url.Raw != tt.expected.url.Raw {
 					t.Errorf("expected url: %v, got: %v", tt.expected.url.Raw, item.url.Raw)
