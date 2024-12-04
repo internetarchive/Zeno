@@ -202,7 +202,7 @@ func (i *Item) SetSource(source ItemSource) error {
 }
 
 // SetError sets the error of the item
-func (i *Item) SetError(err error) *Item { i.err = err; return i }
+func (i *Item) SetError(err error) { i.err = err }
 
 // NewItem creates a new item with the given ID, URL, seedVia and seed flag
 func NewItem(ID string, URL *URL, via string, isSeed bool) *Item {
@@ -253,20 +253,30 @@ func (i *Item) HasChildren() bool {
 	return len(i.children) > 0 && i.status == ItemGotChildren
 }
 
+func _unsafeRemoveChild(parent *Item, child *Item) {
+	for idx, c := range parent.children {
+		if c == child {
+			parent.children = append(parent.children[:idx], parent.children[idx+1:]...)
+			return
+		}
+	}
+}
+
 // RemoveChild removes a child from the item
 func (i *Item) RemoveChild(child *Item) {
 	i.childrenMu.Lock()
 	defer i.childrenMu.Unlock()
-	for idx, c := range i.children {
-		if c == child {
-			i.children = append(i.children[:idx], i.children[idx+1:]...)
-			return
-		}
-	}
+	_unsafeRemoveChild(i, child)
 }
 
 // Errors definition
 var (
 	// ErrNotASeed is returned when the item is not a seed
 	ErrNotASeed = errors.New("item is not a seed")
+	// ErrFailedAtPreprocessor is returned when the item failed at the preprocessor
+	ErrFailedAtPreprocessor = errors.New("item failed at preprocessor")
+	// ErrFailedAtArchiver is returned when the item failed at the archiver
+	ErrFailedAtArchiver = errors.New("item failed at archiver")
+	// ErrFailedAtPostprocessor is returned when the item failed at the postprocessor
+	ErrFailedAtPostprocessor = errors.New("item failed at postprocessor")
 )
