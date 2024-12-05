@@ -1370,3 +1370,106 @@ func TestItem_RemoveChild(t *testing.T) {
 		})
 	}
 }
+
+func TestItem_Traverse(t *testing.T) {
+	tests := []struct {
+		name       string
+		setupTree  func() *Item
+		traverseFn func(*Item)
+		expected   []string
+	}{
+		{
+			name: "Simple tree",
+			setupTree: func() *Item {
+				root := createTestItem("root", true, nil)
+				createTestItem("child1", false, root)
+				createTestItem("child2", false, root)
+				return root
+			},
+			traverseFn: func(item *Item) {
+				// This function will be used to collect the IDs of the traversed items
+			},
+			expected: []string{"root", "child1", "child2"},
+		},
+		{
+			name: "Three level tree",
+			setupTree: func() *Item {
+				root := createTestItem("root", true, nil)
+				child1 := createTestItem("child1", false, root)
+				createTestItem("child2", false, root)
+				createTestItem("grandchild1", false, child1)
+				return root
+			},
+			traverseFn: func(item *Item) {
+				// This function will be used to collect the IDs of the traversed items
+			},
+			expected: []string{"root", "child1", "grandchild1", "child2"},
+		},
+		{
+			name: "Complex tree",
+			setupTree: func() *Item {
+				root := createTestItem("root", true, nil)
+				child1 := createTestItem("child1", false, root)
+				child2 := createTestItem("child2", false, root)
+				child3 := createTestItem("child3", false, root)
+				grandchild1 := createTestItem("grandchild1", false, child1)
+				createTestItem("grandchild2", false, child1)
+				createTestItem("grandchild3", false, child2)
+				createTestItem("grandchild4", false, child3)
+				createTestItem("greatgrandchild1", false, grandchild1)
+				return root
+			},
+			traverseFn: func(item *Item) {
+				// This function will be used to collect the IDs of the traversed items
+			},
+			expected: []string{"root", "child1", "grandchild1", "greatgrandchild1", "grandchild2", "child2", "grandchild3", "child3", "grandchild4"},
+		},
+		{
+			name: "Very large tree",
+			setupTree: func() *Item {
+				root := createTestItem("root", true, nil)
+				for i := 0; i < 100; i++ {
+					child := createTestItem(fmt.Sprintf("child%d", i), false, root)
+					for j := 0; j < 10; j++ {
+						createTestItem(fmt.Sprintf("grandchild%d", i*10+j), false, child)
+					}
+				}
+				return root
+			},
+			traverseFn: func(item *Item) {
+				// This function will be used to collect the IDs of the traversed items
+			},
+			expected: func() []string {
+				ids := []string{"root"}
+				for i := 0; i < 100; i++ {
+					ids = append(ids, fmt.Sprintf("child%d", i))
+					for j := 0; j < 10; j++ {
+						ids = append(ids, fmt.Sprintf("grandchild%d", i*10+j))
+					}
+				}
+				return ids
+			}(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := tt.setupTree()
+			var traversedIDs []string
+			traverseFn := func(item *Item) {
+				traversedIDs = append(traversedIDs, item.id)
+			}
+			root.Traverse(traverseFn)
+
+			if len(traversedIDs) != len(tt.expected) {
+				t.Fatalf("expected %d items, got %d", len(tt.expected), len(traversedIDs))
+			}
+
+			for i, id := range tt.expected {
+				if traversedIDs[i] != id {
+					t.Fatalf("expected item %s at index %d, got %s", id, i, traversedIDs[i])
+				}
+			}
+		})
+	}
+}
