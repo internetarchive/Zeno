@@ -37,6 +37,8 @@ const (
 	ItemFailed
 	// ItemCompleted is the state after the item has been completed
 	ItemCompleted
+	// ItemSeen is the state given to an item that has been seen before and is not going to be processed
+	ItemSeen
 	// ItemGotRedirected is the state after the item has been redirected
 	ItemGotRedirected
 	// ItemGotChildren is the state after the item has got children
@@ -86,6 +88,16 @@ func (i *Item) CheckConsistency() error {
 	// If item is a child, it shouldnt have a seedVia
 	if !i.seed && i.seedVia != "" {
 		return fmt.Errorf("item is a child but has a seedVia")
+	}
+
+	// If item is fresh, it shouldnt have children
+	if i.status == ItemFresh && len(i.children) > 0 {
+		return fmt.Errorf("item is fresh but has children")
+	}
+
+	// If item is fresh, it should either : have a parent with status ItemGotChildren or ItemGotRedirected, or be a seed
+	if i.status == ItemFresh && i.parent != nil && i.parent.status != ItemGotChildren && i.parent.status != ItemGotRedirected {
+		return fmt.Errorf("item is not a seed and fresh but parent is not ItemGotChildren or ItemGotRedirected")
 	}
 
 	return nil
@@ -267,6 +279,14 @@ func (i *Item) RemoveChild(child *Item) {
 	i.childrenMu.Lock()
 	defer i.childrenMu.Unlock()
 	_unsafeRemoveChild(i, child)
+}
+
+// Traverse traverses the tree from the seed to the children
+func (i *Item) Traverse(fn func(*Item)) {
+	fn(i)
+	for _, child := range i.GetChildren() {
+		child.Traverse(fn)
+	}
 }
 
 // Errors definition
