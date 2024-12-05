@@ -95,7 +95,7 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 			}
 
 			URL := gocrawlhq.URL{
-				ID:    item.ID,
+				ID:    item.GetID(),
 				Value: value,
 				Type:  "seed",
 			}

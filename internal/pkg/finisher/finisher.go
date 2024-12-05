@@ -91,39 +91,58 @@ func (f *finisher) run() {
 				panic("received nil item")
 			}
 
+			if !item.IsSeed() {
+				panic("received non-seed item")
+			}
+
 			logger.Debug("received item", "item", item.GetShortID())
 
+			// If the item is fresh, send it to the source
 			if item.GetStatus() == models.ItemFresh {
 				logger.Debug("fresh item received", "item", item)
 				f.sourceProducedCh <- item
-			} else if item.GetRedirection() != nil {
-				logger.Debug("item has redirection", "item", item.GetShortID())
-				err := reactor.ReceiveFeedback(item)
-				if err != nil {
-					panic(err)
-				}
-			} else if len(item.GetChildren()) != 0 {
-				logger.Debug("item has children", "item", item.GetShortID())
-				err := reactor.ReceiveFeedback(item)
-				if err != nil {
-					panic(err)
-				}
-			} else {
-				logger.Debug("item has no redirection or children", "item", item.GetShortID())
-				err := reactor.MarkAsFinished(item)
-				if err != nil {
-					panic(err)
-				}
-
-				// Notify the source that the item has been finished
-				// E.g.: to delete the item in Crawl HQ
-				if f.sourceFinishedCh != nil {
-					f.sourceFinishedCh <- item
-				}
-
-				stats.SeedsFinishedIncr()
+				continue
 			}
 
+			children, err := item.GetNodesAtLevel(item.GetMaxDepth())
+			if err != nil {
+				panic(err)
+			}
+
+			// If the item has fresh children, send it to feedback
+			if len(children) > 0 {
+				var feedbacked bool
+				for _, child := range children {
+					if child.GetStatus() == models.ItemFresh {
+						logger.Debug("item has fresh children", "item", item.GetShortID())
+						err := reactor.ReceiveFeedback(item)
+						if err != nil {
+							panic(err)
+						}
+						feedbacked = true
+						break
+					}
+				}
+
+				if feedbacked {
+					continue
+				}
+			}
+
+			// If the item has no fresh redirection or children, mark it as finished
+			logger.Debug("item has no fresh redirection or children", "item", item.GetShortID())
+			err = reactor.MarkAsFinished(item)
+			if err != nil {
+				panic(err)
+			}
+
+			// Notify the source that the item has been finished
+			// E.g.: to delete the item in Crawl HQ
+			if f.sourceFinishedCh != nil {
+				f.sourceFinishedCh <- item
+			}
+
+			stats.SeedsFinishedIncr()
 			logger.Info("item finished", "item", item.GetShortID())
 		}
 	}

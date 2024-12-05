@@ -12,7 +12,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -130,98 +129,95 @@ func run() {
 func preprocess(item *models.Item) {
 	// Validate the URL of either the item itself and/or its childs
 	// TODO: if an error happen and it's a fresh item, we should mark it as failed in HQ (if it's a HQ-based crawl)
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "preprocessor.process",
+	})
 
-	var (
-		URLsToPreprocess []*models.URL
-		URLType          models.URLType
-		err              error
-	)
-
-	if item.GetStatus() == models.ItemFresh {
-		URLType = models.URLTypeSeed
-		URLsToPreprocess = append(URLsToPreprocess, item.GetURL())
-	} else if item.GetRedirection() != nil {
-		URLType = models.URLTypeRedirection
-		URLsToPreprocess = append(URLsToPreprocess, item.GetRedirection())
-	} else if len(item.GetChildren()) > 0 {
-		URLType = models.URLTypeAsset
-		URLsToPreprocess = append(URLsToPreprocess, item.GetChildren()...)
-	} else {
-		panic("item has no URL to preprocess")
+	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
+	if err != nil {
+		panic(err)
 	}
 
-	// Validate the URLs
-	for i := 0; i < len(URLsToPreprocess); {
-		var parentURL *models.URL
-
-		if URLType != models.URLTypeSeed {
-			parentURL = item.GetURL()
+	for i := range items {
+		// Discard any child that is not fresh
+		if items[i].GetStatus() != models.ItemFresh {
+			continue
 		}
 
-		err = normalizeURL(URLsToPreprocess[i], parentURL)
-		if err != nil {
-			// If we can't validate an URL, we remove it from the list of childs
-			logger.Debug("unable to validate URL", "url", URLsToPreprocess[i].Raw, "err", err.Error(), "func", "preprocessor.preprocess")
-			URLsToPreprocess = append(URLsToPreprocess[:i], URLsToPreprocess[i+1:]...)
-		} else {
-			i++
+		// Normalize the URL
+		if !items[i].IsSeed() {
+			err := normalizeURL(items[i].GetURL(), items[i].GetParent().GetURL())
+			if err != nil {
+				logger.Debug("unable to validate URL", "url", items[i].GetURL().Raw, "err", err.Error())
+				items[i].GetParent().RemoveChild(items[i])
+				continue
+			}
 		}
-	}
+		// TODO : normalize seeds
+		//
+		// else {
+		// 	err := normalizeURL(items[i].GetURL(), &models.URL{Raw: items[i].GetSeedVia()})
+		// 	if err != nil {
+		// 		logger.Debug("unable to validate URL", "url", items[i].GetURL().Raw, "err", err.Error())
+		// 		items[i].SetError(models.ErrFailedAtPreprocessor)
+		// 		continue
+		// 	}
+		// }
 
-	// If we are processing assets, then we need to remove childs that are just domains
-	// (which means that they are not assets, but false positives)
-	if URLType == models.URLTypeAsset {
-		for i := 0; i < len(URLsToPreprocess); {
-			if URLsToPreprocess[i].GetParsed().Path == "" || URLsToPreprocess[i].GetParsed().Path == "/" {
-				URLsToPreprocess = append(URLsToPreprocess[:i], URLsToPreprocess[i+1:]...)
-			} else {
-				i++
+		// If we are processing assets, then we need to remove childs that are just domains
+		// (which means that they are not assets, but false positives)
+		if items[i].IsChild() {
+			if items[i].GetURL().GetParsed().Path == "" || items[i].GetURL().GetParsed().Path == "/" {
+				logger.Debug("removing child with empty path", "url", items[i].GetURL().Raw)
+				items[i].GetParent().RemoveChild(items[i])
 			}
 		}
 	}
 
-	// Simply deduplicate the slice
-	utils.DedupeURLs(&URLsToPreprocess)
+	// Deduplicate items based on their URL and remove duplicates
+	item.DedupeItems()
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
-	if config.Get().UseSeencheck && URLType != models.URLTypeSeed {
-		if config.Get().UseHQ {
-			URLsToPreprocess, err = hq.SeencheckURLs(URLType, URLsToPreprocess...)
-			if err != nil {
-				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
-			}
-		} else {
-			URLsToPreprocess, err = seencheck.SeencheckURLs(URLType, URLsToPreprocess...)
-			if err != nil {
-				logger.Warn("unable to seencheck URL", "url", item.URL.Raw, "err", err.Error(), "func", "preprocessor.preprocess")
-			}
+	if config.Get().UseHQ {
+		err = hq.SeencheckItem(item)
+		if err != nil {
+			logger.Warn("unable to seencheck item", "id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
 		}
-
-		switch URLType {
-		case models.URLTypeRedirection:
-			item.SetRedirection(nil)
-		case models.URLTypeAsset:
-			item.SetChildren(URLsToPreprocess)
+	} else {
+		err = seencheck.SeencheckItem(item)
+		if err != nil {
+			logger.Warn("unable to seencheck item", "id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
 		}
 	}
 
-	if len(URLsToPreprocess) == 0 {
-		logger.Warn("no valid URLs to preprocess", "item", item.ID)
-		// Set item status to indicate failure or remove the item from further processing
-		item.SetStatus(models.ItemFailed)
+	// Recreate the items list after deduplication and seencheck
+	items, err = item.GetNodesAtLevel(item.GetMaxDepth())
+	if err != nil {
+		panic(err)
+	}
+
+	// Remove any item that is not fresh from the list
+	for i := range items {
+		if items[i].GetStatus() != models.ItemFresh {
+			items = append(items[:i], items[i+1:]...)
+		}
+	}
+
+	if len(items) == 0 {
+		logger.Warn("no more work to do", "item", item.GetShortID())
+		item.SetStatus(models.ItemCompleted)
 		return
 	}
 
 	// Finally, we build the requests, applying any site-specific behavior needed
-	for _, URL := range URLsToPreprocess {
+	for i := range items {
 		// TODO: apply site-specific stuff
-		req, err := http.NewRequest(http.MethodGet, URL.String(), nil)
+		req, err := http.NewRequest(http.MethodGet, items[i].GetURL().String(), nil)
 		if err != nil {
-			panic(fmt.Sprintf("unable to create request for URL %s: %s", URL.String(), err.Error()))
+			panic(fmt.Sprintf("unable to create request for URL %s: %s", items[i].GetURL().String(), err.Error()))
 		}
 
-		URL.SetRequest(req)
+		items[i].GetURL().SetRequest(req)
+		items[i].SetStatus(models.ItemPreProcessed)
 	}
-
-	item.SetStatus(models.ItemPreProcessed)
 }

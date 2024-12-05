@@ -2,6 +2,7 @@ package reactor
 
 import (
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -35,9 +36,11 @@ func TestReactor_E2E_UnbalancedBig_MoreTokens(t *testing.T) {
 }
 
 func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
-	// Initialize the reactor with a maximum of 5 tokens
 	outputChan := make(chan *models.Item)
 	err := Start(tokens, outputChan)
+
+	var consumedCount atomic.Int64
+	consumedCount.Store(0)
 
 	if err != nil {
 		t.Logf("Error starting reactor: %s", err)
@@ -58,20 +61,21 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 					}
 
 					// Send feedback for the consumed item
-					if item.Source != models.ItemSourceFeedback {
+					if item.GetSource() != models.ItemSourceFeedback {
 						err := ReceiveFeedback(item)
 						if err != nil {
-							fatalChan <- fmt.Errorf("Error sending feedback: %s - %s", err, item.ID)
+							fatalChan <- fmt.Errorf("Error sending feedback: %s - %s", err, item.GetID())
 						}
 						continue
 					}
 
 					// Mark the item as finished
-					if item.Source == models.ItemSourceFeedback {
+					if item.GetSource() == models.ItemSourceFeedback {
 						err := MarkAsFinished(item)
 						if err != nil {
 							fatalChan <- fmt.Errorf("Error marking item as finished: %s", err)
 						}
+						consumedCount.Add(1)
 						continue
 					}
 				}
@@ -81,14 +85,12 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 
 	// Create mock seeds
 	mockItems := []*models.Item{}
-	for i := 0; i <= seeds; i++ {
+	for i := 0; i < seeds; i++ {
 		uuid := uuid.New().String()
-		mockItems = append(mockItems, &models.Item{
-			ID:     uuid,
-			URL:    &models.URL{Raw: fmt.Sprintf("http://example.com/%d", i)},
-			Status: models.ItemFresh,
-			Source: models.ItemSourceHQ,
-		})
+		newItem := models.NewItem(uuid, &models.URL{Raw: fmt.Sprintf("http://example.com/%d", i)}, "", true)
+		newItem.SetSource(models.ItemSourceInsert)
+		newItem.SetStatus(models.ItemFresh)
+		mockItems = append(mockItems, newItem)
 	}
 
 	// Queue mock seeds to the source channel
@@ -117,10 +119,18 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 				t.Errorf("State table is not empty: %s", GetStateTable())
 				return
 			}
+			if consumedCount.Load() != int64(seeds) {
+				t.Errorf("Expected %d seeds to be consumed, got %d", seeds, consumedCount.Load())
+				return
+			}
 			t.Errorf("Timeout waiting for reactor to finish processing")
 			return
 		default:
 			if len(GetStateTable()) == 0 {
+				if consumedCount.Load() != int64(seeds) {
+					t.Errorf("Expected %d seeds to be consumed, got %d", seeds, consumedCount.Load())
+					return
+				}
 				Stop()
 				log.Stop()
 				return
