@@ -32,8 +32,6 @@ const (
 	ItemPreProcessed
 	// ItemArchived is the state after the item has been archived
 	ItemArchived
-	// ItemPostProcessed is the state after the item has been post-processed
-	ItemPostProcessed
 	// ItemFailed is the state after the item has failed
 	ItemFailed
 	// ItemCompleted is the state after the item has been completed
