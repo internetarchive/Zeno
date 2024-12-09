@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/finisher"
@@ -99,8 +100,8 @@ func startPipeline() {
 	// Pipe in the reactor the input seeds if any
 	if len(config.Get().InputSeeds) > 0 {
 		for _, seed := range config.Get().InputSeeds {
-			item := models.NewItem(models.ItemSourceQueue)
-			item.SetURL(&models.URL{Raw: seed})
+			item := models.NewItem(uuid.New().String(), &models.URL{Raw: seed}, "", true)
+			item.SetSource(models.ItemSourceQueue)
 
 			err = reactor.ReceiveInsert(item)
 			if err != nil {

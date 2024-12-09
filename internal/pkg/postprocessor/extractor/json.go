@@ -2,30 +2,33 @@ package extractor
 
 import (
 	"encoding/json"
-	"io"
-	"net/http"
 	"net/url"
+
+	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func JSON(resp *http.Response) (URLs []*url.URL, err error) {
-	body, err := io.ReadAll(resp.Body)
+func JSON(URL *models.URL) (assets []*models.URL, err error) {
+	defer URL.RewindBody()
+
+	bodyBytes := make([]byte, URL.GetBody().Len())
+	_, err = URL.GetBody().Read(bodyBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	rawURLs, err := GetURLsFromJSON(body)
+	rawAssets, err := GetURLsFromJSON(bodyBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, rawURL := range rawURLs {
-		URL, err := url.Parse(rawURL)
-		if err == nil {
-			URLs = append(URLs, URL)
-		}
+	for _, rawAsset := range rawAssets {
+		assets = append(assets, &models.URL{
+			Raw:  rawAsset,
+			Hops: URL.GetHops(),
+		})
 	}
 
-	return URLs, err
+	return assets, err
 }
 
 func GetURLsFromJSON(body []byte) ([]string, error) {

@@ -9,7 +9,7 @@ func scrapeBaseTag(doc *goquery.Document, item *models.Item) {
 	doc.Find("base").Each(func(index int, base *goquery.Selection) {
 		href, exists := base.Attr("href")
 		if exists {
-			item.SetChildrenBase(href)
+			item.SetBase(href)
 		}
 
 		return

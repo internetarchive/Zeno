@@ -3,7 +3,7 @@ module github.com/internetarchive/Zeno
 go 1.23.3
 
 require (
-	github.com/CorentinB/warc v0.8.54
+	github.com/CorentinB/warc v0.8.57
 	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/ada-url/goada v0.0.0-20240402045241-5e45a5777313
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -11,7 +11,7 @@ require (
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/google/uuid v1.6.0
 	github.com/grafov/m3u8 v0.12.0
-	github.com/internetarchive/gocrawlhq v1.2.23
+	github.com/internetarchive/gocrawlhq v1.2.24
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/rivo/tview v0.0.0-20241103174730-c76f7879f592
 	github.com/spf13/cobra v1.8.1

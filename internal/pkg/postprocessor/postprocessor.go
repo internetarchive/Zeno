@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -127,88 +128,84 @@ func run() {
 }
 
 func postprocess(item *models.Item) {
-	defer item.SetStatus(models.ItemPostProcessed)
-
 	// If we don't capture assets, there is no need to postprocess the item
 	// TODO: handle hops even with disable assets capture
 	if config.Get().DisableAssetsCapture {
 		return
 	}
 
-	var (
-		URLs    []*models.URL
-		URLType models.URLType
-	)
-
-	if item.GetRedirection() != nil {
-		URLType = models.URLTypeRedirection
-		URLs = append(URLs, item.GetRedirection())
-	} else if len(item.GetChildren()) > 0 {
-		URLType = models.URLTypeAsset
-		URLs = item.GetChildren()
-		item.IncrChildrenHops()
-		item.SetChildren(nil)
-	} else {
-		URLType = models.URLTypeSeed
-		URLs = append(URLs, item.GetURL())
+	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
+	if err != nil {
+		logger.Error("unable to get nodes at level", "err", err.Error(), "item", item.GetShortID())
+		panic(err)
 	}
 
-	for _, URL := range URLs {
+	for _, i := range items {
 		// Verify if there is any redirection
 		// TODO: execute assets redirection
-		if URLType == models.URLTypeSeed && isStatusCodeRedirect(URL.GetResponse().StatusCode) {
+		if isStatusCodeRedirect(i.GetURL().GetResponse().StatusCode) {
 			// Check if the current redirections count doesn't exceed the max allowed
-			if URL.GetRedirects() >= config.Get().MaxRedirect {
-				logger.Warn("max redirects reached", "item", item.GetShortID())
+			if i.GetURL().GetRedirects() >= config.Get().MaxRedirect {
+				logger.Warn("max redirects reached", "item", item.GetShortID(), "func", "postprocessor.postprocess")
 				return
 			}
 
 			// Prepare the new item resulting from the redirection
-			item.SetRedirection(&models.URL{
-				Raw:       URL.GetResponse().Header.Get("Location"),
-				Redirects: URL.GetRedirects() + 1,
-				Hops:      URL.GetHops(),
-			})
+			newURL := &models.URL{
+				Raw:       i.GetURL().GetResponse().Header.Get("Location"),
+				Redirects: i.GetURL().GetRedirects() + 1,
+				Hops:      i.GetURL().GetHops(),
+			}
 
-			return
-		} else {
-			item.SetRedirection(nil)
-		}
+			i.SetStatus(models.ItemGotRedirected)
+			i.AddChild(models.NewItem(uuid.New().String(), newURL, "", false), i.GetStatus())
 
-		if item.GetChildrenHops() > 1 ||
-			config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(URL.GetHops())) {
 			return
 		}
 
-		if URL.GetResponse() != nil {
+		// Return if:
+		// - the item is a child and the URL has more than one hop
+		// - assets capture is disabled and domains crawl is disabled
+		// - the URL has more hops than the max allowed
+		if (i.IsChild() && i.GetURL().GetHops() > 1) ||
+			config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(i.GetURL().GetHops())) {
+			return
+		}
+
+		if i.GetURL().GetResponse() != nil {
 			// Generate the goquery document from the response body
-			doc, err := goquery.NewDocumentFromReader(URL.GetBody())
+			doc, err := goquery.NewDocumentFromReader(i.GetURL().GetBody())
 			if err != nil {
-				logger.Error("unable to create goquery document", "err", err.Error(), "item", item.GetShortID())
+				logger.Error("unable to create goquery document", "err", err.Error(), "item", i.GetShortID())
 				return
 			}
 
-			URL.RewindBody()
+			i.GetURL().RewindBody()
 
 			// If the URL is a seed, scrape the base tag
-			if URLType == models.URLTypeSeed {
-				scrapeBaseTag(doc, item)
+			if i.IsSeed() || i.IsRedirection() {
+				scrapeBaseTag(doc, i)
 			}
 
 			// Extract assets from the document
-			assets, err := extractAssets(doc, URL, item)
+			assets, err := extractAssets(doc, i.GetURL(), i)
 			if err != nil {
-				logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+				logger.Error("unable to extract assets", "err", err.Error(), "item", i.GetShortID())
 			}
 
 			for _, asset := range assets {
 				if assets == nil {
-					logger.Warn("nil asset", "item", item.GetShortID())
+					logger.Warn("nil asset", "item", i.GetShortID())
 					continue
 				}
 
-				item.AddChild(asset)
+				i.SetStatus(models.ItemGotChildren)
+				i.AddChild(models.NewItem(uuid.New().String(), asset, "", false), i.GetStatus())
 			}
+		}
+
+		if i.GetStatus() != models.ItemGotChildren && i.GetStatus() != models.ItemGotRedirected {
+			i.SetStatus(models.ItemCompleted)
 		}
 	}
 }

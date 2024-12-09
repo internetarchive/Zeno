@@ -46,25 +46,63 @@ func seen(hash, value string) {
 	atomic.AddInt64(globalSeencheck.Count, 1)
 }
 
-func SeencheckURLs(URLType models.URLType, URLs ...*models.URL) (seencheckedURLs []*models.URL, err error) {
+// func SeencheckURLs(URLType models.URLType, URLs ...*models.URL) (seencheckedURLs []*models.URL, err error) {
+// 	h := fnv.New64a()
+
+// 	for _, URL := range URLs {
+// 		_, err = h.Write([]byte(URL.String()))
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 		hash := strconv.FormatUint(h.Sum64(), 10)
+
+// 		found, foundURLType := isSeen(hash)
+// 		if !found || (foundURLType == "asset" && URLType == "seed") {
+// 			seen(hash, string(URLType))
+// 			seencheckedURLs = append(seencheckedURLs, URL)
+// 		}
+
+// 		h.Reset()
+// 	}
+
+// 	return seencheckedURLs, nil
+// }
+
+// SeencheckItem gets the MaxDepth children of the given item and seencheck them locally.
+// The items that were seen before will be marked as seen.
+func SeencheckItem(item *models.Item) error {
 	h := fnv.New64a()
 
-	for _, URL := range URLs {
-		_, err = h.Write([]byte(URL.String()))
+	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
+	if err != nil {
+		panic(err)
+	}
+
+	for i := range items {
+		_, err = h.Write([]byte(items[i].GetURL().String()))
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		hash := strconv.FormatUint(h.Sum64(), 10)
 
+		var URLType string
+		if items[i].IsChild() {
+			URLType = "asset"
+		} else {
+			URLType = "seed"
+		}
+
 		found, foundURLType := isSeen(hash)
 		if !found || (foundURLType == "asset" && URLType == "seed") {
 			seen(hash, string(URLType))
-			seencheckedURLs = append(seencheckedURLs, URL)
+		} else if found && foundURLType == URLType {
+			items[i].SetStatus(models.ItemSeen)
 		}
 
 		h.Reset()
 	}
 
-	return seencheckedURLs, nil
+	return nil
 }

@@ -1,14 +1,9 @@
 package postprocessor
 
 import (
-	"io"
-	"regexp"
-	"strings"
-
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -21,8 +16,14 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (a
 	)
 	// Extract assets from the body using the appropriate extractor
 	switch {
-	case strings.Contains(contentType, "html"):
+	case extractor.IsHTML(URL):
 		assets, err = extractor.HTML(doc, URL, item)
+		if err != nil {
+			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+			return assets, err
+		}
+	case extractor.IsM3U8(URL):
+		assets, err = extractor.M3U8(URL)
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
 			return assets, err
@@ -32,29 +33,29 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (a
 	}
 
 	// Extract URLs from the body using regex
-	var URLs []string
-	for _, regex := range []*regexp.Regexp{extractor.LinkRegexStrict, extractor.LinkRegex} {
-		// Reset the read position to the beginning
-		URL.RewindBody()
+	// var URLs []string
+	// for _, regex := range []*regexp.Regexp{extractor.LinkRegexStrict, extractor.LinkRegex} {
+	// 	// Reset the read position to the beginning
+	// 	URL.RewindBody()
 
-		// Second read
-		buf := make([]byte, URL.GetBody().Len())
-		if _, err := URL.GetBody().Read(buf); err != nil && err != io.EOF {
-			return assets, err
-		}
+	// 	// Second read
+	// 	buf := make([]byte, URL.GetBody().Len())
+	// 	if _, err := URL.GetBody().Read(buf); err != nil && err != io.EOF {
+	// 		return assets, err
+	// 	}
 
-		URLs = append(URLs, regex.FindAllString(string(buf), -1)...)
-	}
+	// 	URLs = append(URLs, regex.FindAllString(string(buf), -1)...)
+	// }
 
-	// Reset the read position to the beginning
-	URL.RewindBody()
+	// // Reset the read position to the beginning
+	// URL.RewindBody()
 
-	for _, URL := range utils.DedupeStrings(URLs) {
-		assets = append(assets, &models.URL{
-			Raw:  URL,
-			Hops: item.URL.GetHops(),
-		})
-	}
+	// for _, URL := range utils.DedupeStrings(URLs) {
+	// 	assets = append(assets, &models.URL{
+	// 		Raw:  URL,
+	// 		Hops: item.URL.GetHops(),
+	// 	})
+	// }
 
 	return
 }

@@ -118,17 +118,17 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan go
 			logger.Debug("closed")
 			return
 		case URL := <-urlBuffer:
-			// Process the URL and send to reactor
-			err := reactor.ReceiveInsert(&models.Item{
-				ID: URL.ID,
-				URL: &models.URL{
-					Raw:  URL.Value,
-					Hops: pathToHops(URL.Path),
-				},
-				Via:    URL.Via,
-				Status: models.ItemFresh,
-				Source: models.ItemSourceHQ,
-			})
+			// Process the URL and create a new Item
+			parsedURL := models.URL{
+				Raw:  URL.Value,
+				Hops: pathToHops(URL.Path),
+			}
+			newItem := models.NewItem(URL.ID, &parsedURL, URL.Via, true)
+			newItem.SetStatus(models.ItemFresh)
+			newItem.SetSource(models.ItemSourceHQ)
+
+			// Send the new Item to the reactor
+			err := reactor.ReceiveInsert(newItem)
 			if err != nil {
 				if err != reactor.ErrReactorFrozen {
 					continue
