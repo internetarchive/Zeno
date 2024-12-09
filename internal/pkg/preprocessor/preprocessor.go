@@ -113,6 +113,10 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PreprocessorRoutinesDecr()
 
+					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
+						panic(fmt.Sprintf("preprocessor received item with status %d", item.GetStatus()))
+					}
+
 					preprocess(item)
 
 					select {
