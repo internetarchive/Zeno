@@ -82,7 +82,7 @@ func TestItem_GetSeedVia(t *testing.T) {
 }
 
 func TestItem_GetStatus(t *testing.T) {
-	status := ItemPostProcessed
+	status := ItemArchived
 	item := createTestItem("testID", true, nil)
 	item.status = status
 	if got := item.GetStatus(); got != status {
@@ -798,12 +798,6 @@ func TestItem_SetStatus(t *testing.T) {
 			item:     createTestItem("testID", true, nil),
 			status:   ItemArchived,
 			expected: ItemArchived,
-		},
-		{
-			name:     "Set status to ItemPostProcessed",
-			item:     createTestItem("testID", true, nil),
-			status:   ItemPostProcessed,
-			expected: ItemPostProcessed,
 		},
 		{
 			name:     "Set status to ItemFailed",
