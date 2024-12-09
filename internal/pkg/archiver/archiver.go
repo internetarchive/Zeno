@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"sync"
-	"sync/atomic"
 
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -152,30 +151,21 @@ func archive(item *models.Item) {
 	})
 
 	var (
-		URLsToCapture []*models.URL
-		guard         = make(chan struct{}, config.Get().MaxConcurrentAssets)
-		wg            sync.WaitGroup
-		itemState     atomic.Int64
+		guard = make(chan struct{}, config.Get().MaxConcurrentAssets)
+		wg    sync.WaitGroup
 	)
 
-	itemState.Store(int64(models.ItemArchived))
-
-	// Determine the URLs that need to be captured
-	if item.GetRedirection() != nil {
-		URLsToCapture = append(URLsToCapture, item.GetRedirection())
-	} else if len(item.GetChildren()) > 0 {
-		URLsToCapture = append(URLsToCapture, item.GetChildren()...)
-	} else {
-		URLsToCapture = append(URLsToCapture, item.GetURL())
+	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
+	if err != nil {
+		logger.Error("unable to get nodes at level", "err", err.Error(), "item", item.GetShortID(), "func", "archiver.archive")
+		panic(err)
 	}
 
-	// Create a channel to collect successful URLs
-	successfulURLsChan := make(chan *models.URL, len(URLsToCapture))
-
-	for _, URL := range URLsToCapture {
+	for _, i := range items {
 		guard <- struct{}{}
+
 		wg.Add(1)
-		go func(URL *models.URL) {
+		go func(i *models.Item) {
 			defer wg.Done()
 			defer func() { <-guard }()
 			defer stats.URLsCrawledIncr()
@@ -187,83 +177,37 @@ func archive(item *models.Item) {
 
 			// Execute the request
 			if config.Get().Proxy != "" {
-				resp, err = globalArchiver.ClientWithProxy.Do(URL.GetRequest())
+				resp, err = globalArchiver.ClientWithProxy.Do(i.GetURL().GetRequest())
 			} else {
-				resp, err = globalArchiver.Client.Do(URL.GetRequest())
+				resp, err = globalArchiver.Client.Do(i.GetURL().GetRequest())
 			}
 			if err != nil {
 				logger.Error("unable to execute request", "err", err.Error(), "func", "archiver.archive")
-
-				// Only mark the item as failed if processing a redirection or a new seed
-				if item.GetStatus() == models.ItemPreProcessed || item.GetRedirection() != nil {
-					itemState.Store(int64(models.ItemFailed))
-				}
-
-				// Do not send URL to successfulURLsChan, effectively removing it
+				i.SetStatus(models.ItemFailed)
 				return
 			}
 
 			// Set the response in the URL
-			URL.SetResponse(resp)
+			i.GetURL().SetResponse(resp)
 
 			// Consume the response body
 			body := bytes.NewBuffer(nil)
 			_, err = io.Copy(body, resp.Body)
 			if err != nil {
-				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID())
-				// Do not send URL to successfulURLsChan, effectively removing it
+				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "func", "archiver.archive")
+				i.SetStatus(models.ItemFailed)
 				return
 			}
 
 			// Set the body in the URL
-			URL.SetBody(bytes.NewReader(body.Bytes()))
+			i.GetURL().SetBody(bytes.NewReader(body.Bytes()))
 
-			logger.Info("url archived", "url", URL.String(), "item", item.GetShortID(), "status", resp.StatusCode)
+			logger.Info("url archived", "url", i.GetURL().String(), "item", item.GetShortID(), "status", resp.StatusCode, "func", "archiver.archive")
 
-			// Send the successful URL to the channel
-			successfulURLsChan <- URL
-
-			// If the URL is a child UChildRL, increment the captured count
-			if containsURL(item.GetChildren(), URL) {
-				item.IncrChildrenCaptured()
-			}
-		}(URL)
+			i.SetStatus(models.ItemArchived)
+		}(i)
 	}
 
 	// Wait for all goroutines to finish
 	wg.Wait()
-
-	// Close the channel since all sends are done
-	close(successfulURLsChan)
-
-	// Collect successful URLs from the channel
-	var successfulURLs []*models.URL
-	for URL := range successfulURLsChan {
-		successfulURLs = append(successfulURLs, URL)
-	}
-
-	// Update URLsToCapture to only include successful URLs
-	URLsToCapture = successfulURLs
-
-	// Update item.Children if necessary
-	if len(item.GetChildren()) > 0 {
-		var successfulChildren []*models.URL
-		for _, child := range item.GetChildren() {
-			if containsURL(successfulURLs, child) {
-				successfulChildren = append(successfulChildren, child)
-			}
-		}
-		item.SetChildren(successfulChildren)
-	}
-
-	item.SetStatus(models.ItemState(itemState.Load()))
-}
-
-func containsURL(urls []*models.URL, target *models.URL) bool {
-	for _, url := range urls {
-		if url == target {
-			return true
-		}
-	}
-	return false
 }

@@ -10,3 +10,4 @@ zeno.log
 ZENO-*
 start.sh
 output.log
+.old/

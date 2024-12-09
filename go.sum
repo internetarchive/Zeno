@@ -1,5 +1,3 @@
-github.com/CorentinB/warc v0.8.54 h1:Y3iK5FEF+m9pKftWf6PXYRC0sYLbwph9j//d9DEwy9g=
-github.com/CorentinB/warc v0.8.54/go.mod h1:NblONkMtoBB4TIigew6F6vakzu0z3YQTKNFS8U2FIn8=
 github.com/CorentinB/warc v0.8.57 h1:HaX3dD90WEVghi1TlELzE+Murshi/mtk5jNjAnBmGto=
 github.com/CorentinB/warc v0.8.57/go.mod h1:NblONkMtoBB4TIigew6F6vakzu0z3YQTKNFS8U2FIn8=
 github.com/PuerkitoBio/goquery v1.10.0 h1:6fiXdLuUvYs2OJSvNRqlNPoBm6YABE226xrbavY5Wv4=
@@ -55,8 +53,6 @@ github.com/hpcloud/tail v1.0.0 h1:nfCOvKYfkgYP8hkirhJocXT2+zOD8yUNjXaWfTlyFKI=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/internetarchive/gocrawlhq v1.2.23 h1:JtELynex89mFnTw6zUjMhYsub1kMLSn4dLnjai9KkhI=
-github.com/internetarchive/gocrawlhq v1.2.23/go.mod h1:gHrdMewIi5OBWE/xEZGqSrNHyTXPbt+h+XUWpp9fZek=
 github.com/internetarchive/gocrawlhq v1.2.24 h1:tNyBuBMAZP91UU2rF9cidGFZPffzX/CDYZkS9rjoKNY=
 github.com/internetarchive/gocrawlhq v1.2.24/go.mod h1:gHrdMewIi5OBWE/xEZGqSrNHyTXPbt+h+XUWpp9fZek=
 github.com/klauspost/compress v1.17.10 h1:oXAz+Vh0PMUvJczoi+flxpnBEPxoER1IaAnU/NMPtT0=

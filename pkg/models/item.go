@@ -222,32 +222,33 @@ func (i *Item) SetBase(base string) { i.base = base }
 func (i *Item) SetError(err error) { i.err = err }
 
 // NewItem creates a new item with the given ID, URL, seedVia and seed flag
-func NewItem(ID string, URL *URL, via string, isSeed bool) *Item {
+func NewItem(ID string, URL *URL, seedVia string, isSeed bool) *Item {
 	if ID == "" || URL == nil {
 		return nil
 	}
+
 	return &Item{
 		id:      ID,
 		url:     URL,
 		seed:    isSeed,
-		seedVia: via,
+		seedVia: seedVia,
 		status:  ItemFresh,
 	}
 }
 
 // AddChild adds a child to the item
-func (i *Item) AddChild(child *Item, from ItemState) error {
+func (i *Item) AddChild(child *Item, parentState ItemState) error {
 	i.childrenMu.Lock()
 	defer i.childrenMu.Unlock()
-	if from != ItemGotRedirected && from != ItemGotChildren {
+	if parentState != ItemGotRedirected && parentState != ItemGotChildren {
 		return fmt.Errorf("from state is invalid, only ItemGotRedirected and ItemGotChildren are allowed")
 	}
-	if child.parent.status == ItemGotRedirected && (from == ItemGotChildren || child.status == ItemGotChildren) {
+	if child.parent.status == ItemGotRedirected && (parentState == ItemGotChildren || child.status == ItemGotChildren) {
 		return fmt.Errorf("parent already has children or redirection, cannot add child")
 	}
 	i.children = append(i.children, child)
 	child.parent = i
-	child.parent.status = from
+	child.parent.status = parentState
 	child.status = ItemFresh
 	return nil
 }
