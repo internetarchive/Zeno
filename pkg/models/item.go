@@ -239,6 +239,11 @@ func (i *Item) AddChild(child *Item, from ItemState) error {
 	}
 	i.children = append(i.children, child)
 	child.parent = i
+	if child.parent.status == ItemGotRedirected && (from == ItemGotChildren || child.status == ItemGotChildren) {
+		return fmt.Errorf("parent already has children or redirection, cannot add child")
+	}
+	child.parent.status = from
+	child.status = ItemFresh
 	return nil
 }
 
@@ -287,6 +292,23 @@ func (i *Item) Traverse(fn func(*Item)) {
 	for _, child := range i.GetChildren() {
 		child.Traverse(fn)
 	}
+}
+
+// CompleteAndCheck traverse the seed's tree to complete the items and returns true if the seed is completed
+func (i *Item) CompleteAndCheck() bool {
+	if !i.IsSeed() {
+		return false
+	}
+
+	if i.status == ItemCompleted {
+		return true
+	}
+
+	// Traverse the tree to mark items as completed
+	markCompleted(i)
+
+	// Check if the seed is completed
+	return i.status == ItemCompleted
 }
 
 // Errors definition
