@@ -123,15 +123,23 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan go
 				Raw:  URL.Value,
 				Hops: pathToHops(URL.Path),
 			}
+			err := parsedURL.Parse()
+			if err != nil {
+				panic(err)
+			}
 			newItem := models.NewItem(URL.ID, &parsedURL, URL.Via, true)
 			newItem.SetStatus(models.ItemFresh)
 			newItem.SetSource(models.ItemSourceHQ)
 
 			// Send the new Item to the reactor
-			err := reactor.ReceiveInsert(newItem)
+			err = reactor.ReceiveInsert(newItem)
 			if err != nil {
-				if err != reactor.ErrReactorFrozen {
-					continue
+				if err == reactor.ErrReactorFrozen {
+					select {
+					case <-ctx.Done():
+						logger.Debug("closed while sending to frozen reactor")
+						return
+					}
 				}
 				panic(err)
 			}

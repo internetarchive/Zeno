@@ -121,6 +121,7 @@ func run() {
 
 					select {
 					case <-ctx.Done():
+						logger.Debug("aborting item due to stop", "item", item.GetShortID())
 						return
 					case globalPreprocessor.outputCh <- item:
 					}
@@ -143,9 +144,10 @@ func preprocess(item *models.Item) {
 	}
 
 	for i := range items {
-		// Discard any child that is not fresh
+		// Panic on any child that is not fresh
+		// This means that an incorrect item was inserted and/or that the finisher is not working correctly
 		if items[i].GetStatus() != models.ItemFresh {
-			continue
+			panic("maxdepth should only return fresh items")
 		}
 
 		// Normalize the URL
@@ -181,6 +183,25 @@ func preprocess(item *models.Item) {
 	// Deduplicate items based on their URL and remove duplicates
 	item.DedupeItems()
 
+	items, err = item.GetNodesAtLevel(item.GetMaxDepth())
+	if err != nil {
+		panic(err)
+	}
+
+	var foundFresh bool
+	for i := range items {
+		if items[i].GetStatus() == models.ItemFresh {
+			foundFresh = true
+			break
+		}
+	}
+
+	if len(items) == 0 || !foundFresh {
+		logger.Warn("no more work to do after dedupe", "item", item.GetShortID())
+		item.SetStatus(models.ItemCompleted)
+		return
+	}
+
 	// If the item is a redirection or an asset, we need to seencheck it if needed
 	if config.Get().UseHQ {
 		err = hq.SeencheckItem(item)
@@ -201,14 +222,15 @@ func preprocess(item *models.Item) {
 	}
 
 	// Remove any item that is not fresh from the list
-	for i := range items {
+	for i := len(items) - 1; i >= 0; i-- {
 		if items[i].GetStatus() != models.ItemFresh {
+			fmt.Println("removing item", items[i].GetShortID(), "status", items[i].GetStatus(), "url", items[i].GetURL().String())
 			items = append(items[:i], items[i+1:]...)
 		}
 	}
 
 	if len(items) == 0 {
-		logger.Warn("no more work to do", "item", item.GetShortID())
+		logger.Warn("no more work to do after seencheck", "item", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return
 	}

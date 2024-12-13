@@ -100,7 +100,13 @@ func startPipeline() {
 	// Pipe in the reactor the input seeds if any
 	if len(config.Get().InputSeeds) > 0 {
 		for _, seed := range config.Get().InputSeeds {
-			item := models.NewItem(uuid.New().String(), &models.URL{Raw: seed}, "", true)
+			parsedURL := &models.URL{Raw: seed}
+			err := parsedURL.Parse()
+			if err != nil {
+				panic(err)
+			}
+
+			item := models.NewItem(uuid.New().String(), parsedURL, "", true)
 			item.SetSource(models.ItemSourceQueue)
 
 			err = reactor.ReceiveInsert(item)

@@ -112,12 +112,15 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
 
-					if item.GetStatus() != models.ItemFailed {
+					if item.GetStatus() != models.ItemFailed && item.GetStatus() != models.ItemCompleted {
 						postprocess(item)
+					} else {
+						logger.Debug("skipping item", "item", item.GetShortID(), "status", item.GetStatus().String())
 					}
 
 					select {
 					case <-ctx.Done():
+						logger.Debug("aborting item due to stop", "item", item.GetShortID())
 						return
 					case globalPostprocessor.outputCh <- item:
 					}
@@ -140,25 +143,34 @@ func postprocess(item *models.Item) {
 		panic(err)
 	}
 
-	for _, i := range items {
+	for i := range items {
+
+		if items[i].GetStatus() != models.ItemArchived {
+			logger.Debug("item not archived, skipping", "item", items[i].GetShortID())
+			return
+		}
+
 		// Verify if there is any redirection
 		// TODO: execute assets redirection
-		if isStatusCodeRedirect(i.GetURL().GetResponse().StatusCode) {
+		if isStatusCodeRedirect(items[i].GetURL().GetResponse().StatusCode) {
 			// Check if the current redirections count doesn't exceed the max allowed
-			if i.GetURL().GetRedirects() >= config.Get().MaxRedirect {
+			if items[i].GetURL().GetRedirects() >= config.Get().MaxRedirect {
 				logger.Warn("max redirects reached", "item", item.GetShortID(), "func", "postprocessor.postprocess")
 				return
 			}
 
 			// Prepare the new item resulting from the redirection
 			newURL := &models.URL{
-				Raw:       i.GetURL().GetResponse().Header.Get("Location"),
-				Redirects: i.GetURL().GetRedirects() + 1,
-				Hops:      i.GetURL().GetHops(),
+				Raw:       items[i].GetURL().GetResponse().Header.Get("Location"),
+				Redirects: items[i].GetURL().GetRedirects() + 1,
+				Hops:      items[i].GetURL().GetHops(),
 			}
 
-			i.SetStatus(models.ItemGotRedirected)
-			i.AddChild(models.NewItem(uuid.New().String(), newURL, "", false), i.GetStatus())
+			items[i].SetStatus(models.ItemGotRedirected)
+			err := items[i].AddChild(models.NewItem(uuid.New().String(), newURL, "", false), items[i].GetStatus())
+			if err != nil {
+				panic(err)
+			}
 
 			return
 		}
@@ -167,45 +179,45 @@ func postprocess(item *models.Item) {
 		// - the item is a child and the URL has more than one hop
 		// - assets capture is disabled and domains crawl is disabled
 		// - the URL has more hops than the max allowed
-		if (i.IsChild() && i.GetURL().GetHops() > 1) ||
-			config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(i.GetURL().GetHops())) {
+		if (items[i].IsChild() && items[i].GetURL().GetHops() > 1) ||
+			config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(items[i].GetURL().GetHops())) {
 			return
 		}
 
-		if i.GetURL().GetResponse() != nil {
+		if items[i].GetURL().GetResponse() != nil {
 			// Generate the goquery document from the response body
-			doc, err := goquery.NewDocumentFromReader(i.GetURL().GetBody())
+			doc, err := goquery.NewDocumentFromReader(items[i].GetURL().GetBody())
 			if err != nil {
-				logger.Error("unable to create goquery document", "err", err.Error(), "item", i.GetShortID())
+				logger.Error("unable to create goquery document", "err", err.Error(), "item", items[i].GetShortID())
 				return
 			}
 
-			i.GetURL().RewindBody()
+			items[i].GetURL().RewindBody()
 
 			// If the URL is a seed, scrape the base tag
-			if i.IsSeed() || i.IsRedirection() {
-				scrapeBaseTag(doc, i)
+			if items[i].IsSeed() || items[i].IsRedirection() {
+				scrapeBaseTag(doc, items[i])
 			}
 
 			// Extract assets from the document
-			assets, err := extractAssets(doc, i.GetURL(), i)
+			assets, err := extractAssets(doc, items[i].GetURL(), items[i])
 			if err != nil {
-				logger.Error("unable to extract assets", "err", err.Error(), "item", i.GetShortID())
+				logger.Error("unable to extract assets", "err", err.Error(), "item", items[i].GetShortID())
 			}
 
 			for _, asset := range assets {
 				if assets == nil {
-					logger.Warn("nil asset", "item", i.GetShortID())
+					logger.Warn("nil asset", "item", items[i].GetShortID())
 					continue
 				}
 
-				i.SetStatus(models.ItemGotChildren)
-				i.AddChild(models.NewItem(uuid.New().String(), asset, "", false), i.GetStatus())
+				items[i].SetStatus(models.ItemGotChildren)
+				items[i].AddChild(models.NewItem(uuid.New().String(), asset, "", false), items[i].GetStatus())
 			}
 		}
 
-		if i.GetStatus() != models.ItemGotChildren && i.GetStatus() != models.ItemGotRedirected {
-			i.SetStatus(models.ItemCompleted)
+		if items[i].GetStatus() != models.ItemGotChildren && items[i].GetStatus() != models.ItemGotRedirected {
+			items[i].SetStatus(models.ItemCompleted)
 		}
 	}
 }

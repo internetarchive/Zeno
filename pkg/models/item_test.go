@@ -146,6 +146,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 				parent.url = &URL{Raw: "http://example.com"}
 				item := createTestItem("testID", false, parent)
 				item.url = &URL{Raw: "http://example.com"}
+				item.parent.status = ItemGotChildren
 				return item
 			}(),
 			expected: nil,
