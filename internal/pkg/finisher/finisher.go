@@ -111,7 +111,7 @@ func (f *finisher) run() {
 
 			// If the item has fresh children, send it to feedback
 			if len(children) > 0 {
-				var feedbacked bool
+				var doneFeedback bool
 				for _, child := range children {
 					if child.GetStatus() == models.ItemFresh {
 						logger.Debug("item has fresh children", "item", item.GetShortID())
@@ -119,12 +119,13 @@ func (f *finisher) run() {
 						if err != nil {
 							panic(err)
 						}
-						feedbacked = true
+						doneFeedback = true
 						break
 					}
 				}
 
-				if feedbacked {
+				// If the item has fresh children, skip the rest of the select statement
+				if doneFeedback {
 					continue
 				}
 			}

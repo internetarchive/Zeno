@@ -129,12 +129,19 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.ArchiverRoutinesDecr()
 
-					if item.GetStatus() != models.ItemFailed {
+					if item.GetStatus() != models.ItemFailed && item.GetStatus() != models.ItemCompleted {
+						err := item.CheckConsistency()
+						if err != nil {
+							panic(err)
+						}
 						archive(item)
+					} else {
+						logger.Debug("skipping item", "item", item.GetShortID(), "status", item.GetStatus().String())
 					}
 
 					select {
 					case <-ctx.Done():
+						logger.Debug("aborting item due to stop", "item", item.GetShortID())
 						return
 					case globalArchiver.outputCh <- item:
 					}
@@ -157,11 +164,16 @@ func archive(item *models.Item) {
 
 	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
 	if err != nil {
-		logger.Error("unable to get nodes at level", "err", err.Error(), "item", item.GetShortID(), "func", "archiver.archive")
+		logger.Error("unable to get nodes at level", "err", err.Error(), "item", item.GetShortID())
 		panic(err)
 	}
 
-	for _, i := range items {
+	for i := range items {
+		if items[i].GetStatus() != models.ItemPreProcessed {
+			logger.Debug("skipping item", "item", items[i].GetShortID(), "status", items[i].GetStatus().String())
+			continue
+		}
+
 		guard <- struct{}{}
 
 		wg.Add(1)
@@ -176,13 +188,17 @@ func archive(item *models.Item) {
 			)
 
 			// Execute the request
+			req := i.GetURL().GetRequest()
+			if req == nil {
+				panic("request is nil")
+			}
 			if config.Get().Proxy != "" {
-				resp, err = globalArchiver.ClientWithProxy.Do(i.GetURL().GetRequest())
+				resp, err = globalArchiver.ClientWithProxy.Do(req)
 			} else {
-				resp, err = globalArchiver.Client.Do(i.GetURL().GetRequest())
+				resp, err = globalArchiver.Client.Do(req)
 			}
 			if err != nil {
-				logger.Error("unable to execute request", "err", err.Error(), "func", "archiver.archive")
+				logger.Error("unable to execute request", "err", err.Error())
 				i.SetStatus(models.ItemFailed)
 				return
 			}
@@ -194,7 +210,7 @@ func archive(item *models.Item) {
 			body := bytes.NewBuffer(nil)
 			_, err = io.Copy(body, resp.Body)
 			if err != nil {
-				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "func", "archiver.archive")
+				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID())
 				i.SetStatus(models.ItemFailed)
 				return
 			}
@@ -202,10 +218,10 @@ func archive(item *models.Item) {
 			// Set the body in the URL
 			i.GetURL().SetBody(bytes.NewReader(body.Bytes()))
 
-			logger.Info("url archived", "url", i.GetURL().String(), "item", item.GetShortID(), "status", resp.StatusCode, "func", "archiver.archive")
+			logger.Info("url archived", "url", i.GetURL().String(), "item", item.GetShortID(), "status", resp.StatusCode)
 
 			i.SetStatus(models.ItemArchived)
-		}(i)
+		}(items[i])
 	}
 
 	// Wait for all goroutines to finish

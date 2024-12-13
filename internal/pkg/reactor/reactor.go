@@ -119,17 +119,19 @@ func ReceiveFeedback(item *models.Item) error {
 // ReceiveInsert sends an item to the input channel consuming a token.
 // It is the responsibility of the sender to set either ItemSourceQueue or ItemSourceHQ, if not set seed will get forced ItemSourceInsert
 func ReceiveInsert(item *models.Item) error {
-	logger.Debug("received item", "item", item.GetShortID())
 	if globalReactor == nil {
 		return ErrReactorNotInitialized
 	}
 
 	select {
 	case <-globalReactor.ctx.Done():
+		logger.Debug("received item on shutting down reactor", "item", item.GetShortID())
 		return ErrReactorShuttingDown
 	case <-globalReactor.freezeCtx.Done():
+		logger.Debug("received item on frozen reactor", "item", item.GetShortID())
 		return ErrReactorFrozen
 	case globalReactor.tokenPool <- struct{}{}:
+		logger.Debug("received item", "item", item.GetShortID())
 		if !item.IsSeed() {
 			spew.Dump(item)
 			panic("item is not a seed")
@@ -143,7 +145,6 @@ func ReceiveInsert(item *models.Item) error {
 			panic("item already present in reactor")
 		}
 
-		// globalReactor.stateTable.Store(item.ID, item)
 		globalReactor.input <- item
 		return nil
 	}

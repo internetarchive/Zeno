@@ -44,6 +44,29 @@ const (
 	ItemGotChildren
 )
 
+func (s ItemState) String() string {
+	switch s {
+	case ItemFresh:
+		return "Fresh"
+	case ItemPreProcessed:
+		return "PreProcessed"
+	case ItemArchived:
+		return "Archived"
+	case ItemFailed:
+		return "Failed"
+	case ItemCompleted:
+		return "Completed"
+	case ItemSeen:
+		return "Seen"
+	case ItemGotRedirected:
+		return "GotRedirected"
+	case ItemGotChildren:
+		return "GotChildren"
+	default:
+		return "Unknown"
+	}
+}
+
 // ItemSource qualifies the source of a item in the pipeline
 type ItemSource int64
 
@@ -64,6 +87,10 @@ const (
 // Developers should add more constraints as needed
 // Ideally this function should be called after every mutation of an item object to ensure consistency and throw a panic if consistency is broken
 func (i *Item) CheckConsistency() error {
+	if i == nil {
+		return fmt.Errorf("item is nil")
+	}
+
 	// The item should have a URL
 	if i.url == nil {
 		return fmt.Errorf("url is nil")
@@ -240,10 +267,13 @@ func NewItem(ID string, URL *URL, seedVia string, isSeed bool) *Item {
 func (i *Item) AddChild(child *Item, parentState ItemState) error {
 	i.childrenMu.Lock()
 	defer i.childrenMu.Unlock()
+	if child == nil {
+		return fmt.Errorf("child is nil")
+	}
 	if parentState != ItemGotRedirected && parentState != ItemGotChildren {
 		return fmt.Errorf("from state is invalid, only ItemGotRedirected and ItemGotChildren are allowed")
 	}
-	if child.parent.status == ItemGotRedirected && (parentState == ItemGotChildren || child.status == ItemGotChildren) {
+	if child.parent != nil && child.parent.status == ItemGotRedirected && (parentState == ItemGotChildren || child.status == ItemGotChildren) {
 		return fmt.Errorf("parent already has children or redirection, cannot add child")
 	}
 	i.children = append(i.children, child)
