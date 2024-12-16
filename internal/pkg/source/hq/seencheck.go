@@ -15,7 +15,17 @@ func SeencheckItem(item *models.Item) error {
 		panic(err)
 	}
 
+	// Never seencheck the seed
+	if len(items) == 1 && items[0].IsSeed() {
+		return nil
+	}
+
 	for i := range items {
+		if items[i].IsSeed() {
+			// Never seencheck the seed
+			continue
+		}
+
 		if items[i].GetStatus() == models.ItemFresh {
 			var source string
 			if items[i].IsChild() {
