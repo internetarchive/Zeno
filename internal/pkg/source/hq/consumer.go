@@ -133,7 +133,7 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan go
 			newItem.SetSource(models.ItemSourceHQ)
 
 			if discard {
-				logger.Debug("parsing failed, sending the item to finisher")
+				logger.Debug("parsing failed, sending the item to finisher", "url", URL.Value)
 				globalHQ.finishCh <- newItem
 				break
 			}
