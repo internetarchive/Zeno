@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 )
 
@@ -101,6 +102,11 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 			}
 
 			batch.URLs = append(batch.URLs, URL)
+			item.Traverse(func(itemTraversed *models.Item) {
+				if itemTraversed.IsChild() {
+					batch.ChildsCaptured++
+				}
+			})
 			if len(batch.URLs) >= batchSize {
 				logger.Debug("sending batch to dispatcher", "size", len(batch.URLs))
 				// Send the batch to batchCh.

@@ -118,6 +118,7 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan go
 			logger.Debug("closed")
 			return
 		case URL := <-urlBuffer:
+			var discard bool
 			// Process the URL and create a new Item
 			parsedURL := models.URL{
 				Raw:  URL.Value,
@@ -125,11 +126,17 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan go
 			}
 			err := parsedURL.Parse()
 			if err != nil {
-				panic(err)
+				discard = true
 			}
 			newItem := models.NewItem(URL.ID, &parsedURL, URL.Via, true)
 			newItem.SetStatus(models.ItemFresh)
 			newItem.SetSource(models.ItemSourceHQ)
+
+			if discard {
+				logger.Debug("parsing failed, sending the item to finisher")
+				globalHQ.finishCh <- newItem
+				break
+			}
 
 			// Send the new Item to the reactor
 			err = reactor.ReceiveInsert(newItem)
