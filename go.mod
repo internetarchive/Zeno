@@ -11,7 +11,7 @@ require (
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/google/uuid v1.6.0
 	github.com/grafov/m3u8 v0.12.0
-	github.com/internetarchive/gocrawlhq v1.2.24
+	github.com/internetarchive/gocrawlhq v1.2.26
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/rivo/tview v0.0.0-20241103174730-c76f7879f592
 	github.com/spf13/cobra v1.8.1

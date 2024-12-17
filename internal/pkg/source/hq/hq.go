@@ -7,6 +7,7 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
@@ -78,8 +79,12 @@ func Stop() {
 	if globalHQ != nil {
 		globalHQ.cancel()
 		globalHQ.wg.Wait()
-		if err := globalHQ.client.Reset(); err != nil {
-			logger.Error("error while reseting", "err", err)
+		seedsToReset := reactor.GetStateTable()
+		for _, seed := range seedsToReset {
+			if err := globalHQ.client.ResetURL(seed); err != nil {
+				logger.Error("error while reseting", "id", seed, "err", err)
+			}
+			logger.Debug("reset seed", "id", seed)
 		}
 		once = sync.Once{}
 		logger.Info("stopped")
