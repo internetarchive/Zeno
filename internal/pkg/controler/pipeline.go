@@ -125,19 +125,16 @@ func stopPipeline() {
 
 	diskWatcherCancel()
 
-	finisher.Stop()
-
-	postprocessor.Stop()
-
-	archiver.Stop()
+	reactor.Freeze()
 
 	preprocessor.Stop()
+	archiver.Stop()
+	postprocessor.Stop()
+	finisher.Stop()
 
 	if config.Get().UseSeencheck && !config.Get().UseHQ {
 		seencheck.Close()
 	}
-
-	reactor.Freeze()
 
 	if config.Get().UseHQ {
 		hq.Stop()

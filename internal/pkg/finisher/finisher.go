@@ -79,9 +79,6 @@ func (f *finisher) run() {
 
 	for {
 		select {
-		case <-f.ctx.Done():
-			logger.Debug("shutting down")
-			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
@@ -145,6 +142,9 @@ func (f *finisher) run() {
 
 			stats.SeedsFinishedIncr()
 			logger.Info("item finished", "item", item.GetShortID())
+		case <-f.ctx.Done():
+			logger.Debug("shutting down")
+			return
 		}
 	}
 }

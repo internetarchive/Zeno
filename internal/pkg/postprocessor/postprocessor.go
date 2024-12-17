@@ -96,11 +96,6 @@ func run() {
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		// Closes the run routine when context is canceled
-		case <-globalPostprocessor.ctx.Done():
-			logger.Debug("shutting down")
-			wg.Wait()
-			return
 		case item, ok := <-globalPostprocessor.inputCh:
 			if ok {
 				logger.Debug("received item", "item", item.GetShortID())
@@ -119,13 +114,17 @@ func run() {
 					}
 
 					select {
+					case globalPostprocessor.outputCh <- item:
 					case <-ctx.Done():
 						logger.Debug("aborting item due to stop", "item", item.GetShortID())
 						return
-					case globalPostprocessor.outputCh <- item:
 					}
 				}(ctx)
 			}
+		case <-globalPostprocessor.ctx.Done():
+			logger.Debug("shutting down")
+			wg.Wait()
+			return
 		}
 	}
 }
@@ -147,7 +146,7 @@ func postprocess(item *models.Item) {
 
 		if items[i].GetStatus() != models.ItemArchived {
 			logger.Debug("item not archived, skipping", "item", items[i].GetShortID())
-			return
+			continue
 		}
 
 		// Verify if there is any redirection
@@ -156,7 +155,8 @@ func postprocess(item *models.Item) {
 			// Check if the current redirections count doesn't exceed the max allowed
 			if items[i].GetURL().GetRedirects() >= config.Get().MaxRedirect {
 				logger.Warn("max redirects reached", "item", item.GetShortID(), "func", "postprocessor.postprocess")
-				return
+				items[i].SetStatus(models.ItemCompleted)
+				continue
 			}
 
 			// Prepare the new item resulting from the redirection
@@ -172,16 +172,16 @@ func postprocess(item *models.Item) {
 				panic(err)
 			}
 
-			return
+			continue
 		}
 
 		// Return if:
 		// - the item is a child and the URL has more than one hop
 		// - assets capture is disabled and domains crawl is disabled
 		// - the URL has more hops than the max allowed
-		if (items[i].IsChild() && items[i].GetURL().GetHops() > 1) ||
-			config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(items[i].GetURL().GetHops())) {
-			return
+		if (items[i].IsChild() && items[i].GetURL().GetHops() > 1) || config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(items[i].GetURL().GetHops())) {
+			items[i].SetStatus(models.ItemCompleted)
+			continue
 		}
 
 		if items[i].GetURL().GetResponse() != nil {
@@ -189,7 +189,7 @@ func postprocess(item *models.Item) {
 			doc, err := goquery.NewDocumentFromReader(items[i].GetURL().GetBody())
 			if err != nil {
 				logger.Error("unable to create goquery document", "err", err.Error(), "item", items[i].GetShortID())
-				return
+				continue
 			}
 
 			items[i].GetURL().RewindBody()

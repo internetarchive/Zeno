@@ -98,10 +98,6 @@ func run() {
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		// Closes the run routine when context is canceled
-		case <-globalPreprocessor.ctx.Done():
-			logger.Debug("shutting down")
-			return
 		case item, ok := <-globalPreprocessor.inputCh:
 			if ok {
 				logger.Debug("received item", "item", item.GetShortID())
@@ -120,13 +116,17 @@ func run() {
 					preprocess(item)
 
 					select {
+					case globalPreprocessor.outputCh <- item:
 					case <-ctx.Done():
 						logger.Debug("aborting item due to stop", "item", item.GetShortID())
 						return
-					case globalPreprocessor.outputCh <- item:
 					}
 				}(ctx)
 			}
+		case <-globalPreprocessor.ctx.Done():
+			logger.Debug("shutting down")
+			wg.Wait()
+			return
 		}
 	}
 }

@@ -113,11 +113,6 @@ func run() {
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		// Closes the run routine when context is canceled
-		case <-globalArchiver.ctx.Done():
-			logger.Debug("shutting down")
-			wg.Wait()
-			return
 		case item, ok := <-globalArchiver.inputCh:
 			if ok {
 				logger.Debug("received item", "item", item.GetShortID())
@@ -140,13 +135,17 @@ func run() {
 					}
 
 					select {
+					case globalArchiver.outputCh <- item:
 					case <-ctx.Done():
 						logger.Debug("aborting item due to stop", "item", item.GetShortID())
 						return
-					case globalArchiver.outputCh <- item:
 					}
 				}(ctx)
 			}
+		case <-globalArchiver.ctx.Done():
+			logger.Debug("shutting down")
+			wg.Wait()
+			return
 		}
 	}
 }
