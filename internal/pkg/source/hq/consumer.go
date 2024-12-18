@@ -102,6 +102,9 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- g
 			case urlBuffer <- URLs[i]:
 			}
 		}
+
+		// Empty the URL slice
+		URLs = nil
 	}
 }
 
@@ -112,12 +115,22 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan go
 		"component": "hq.consumerSender",
 	})
 
+	var previousURLReceived *gocrawlhq.URL
+
 	for {
 		select {
 		case <-ctx.Done():
 			logger.Debug("closed")
 			return
 		case URL := <-urlBuffer:
+			// Debug check to troubleshoot a problem where the same seed is received twice by the reactor
+			if previousURLReceived != nil && previousURLReceived.ID == URL.ID {
+				spew.Dump(previousURLReceived)
+				spew.Dump(URL)
+				panic("same seed received twice by hq.consumerSender")
+			}
+			previousURLReceived = &URL
+
 			var discard bool
 			// Process the URL and create a new Item
 			parsedURL := models.URL{
