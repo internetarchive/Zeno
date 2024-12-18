@@ -240,7 +240,9 @@ func preprocess(item *models.Item) {
 		// TODO: apply site-specific stuff
 		req, err := http.NewRequest(http.MethodGet, items[i].GetURL().String(), nil)
 		if err != nil {
-			panic(fmt.Sprintf("unable to create request for URL %s: %s", items[i].GetURL().String(), err.Error()))
+			logger.Error("unable to create request for URL", "url", items[i].GetURL().String(), "err", err.Error())
+			items[i].SetStatus(models.ItemFailed)
+			continue
 		}
 
 		items[i].GetURL().SetRequest(req)
