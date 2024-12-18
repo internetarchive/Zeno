@@ -124,14 +124,14 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.ArchiverRoutinesDecr()
 
-					if item.GetStatus() != models.ItemFailed && item.GetStatus() != models.ItemCompleted {
+					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
+						logger.Debug("skipping item", "item", item.GetShortID(), "status", item.GetStatus().String())
+					} else {
 						err := item.CheckConsistency()
 						if err != nil {
 							panic(err)
 						}
 						archive(item)
-					} else {
-						logger.Debug("skipping item", "item", item.GetShortID(), "status", item.GetStatus().String())
 					}
 
 					select {

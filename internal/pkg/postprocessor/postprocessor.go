@@ -107,10 +107,10 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
 
-					if item.GetStatus() != models.ItemFailed && item.GetStatus() != models.ItemCompleted {
-						postprocess(item)
-					} else {
+					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
 						logger.Debug("skipping item", "item", item.GetShortID(), "status", item.GetStatus().String())
+					} else {
+						postprocess(item)
 					}
 
 					select {

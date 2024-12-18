@@ -142,6 +142,7 @@ func ReceiveInsert(item *models.Item) error {
 		loadedItem, loaded := globalReactor.stateTable.LoadOrStore(item.GetID(), item)
 		if loaded {
 			spew.Dump(loadedItem.(*models.Item))
+			spew.Dump(item)
 			panic("item already present in reactor")
 		}
 
