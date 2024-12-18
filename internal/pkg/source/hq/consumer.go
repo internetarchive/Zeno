@@ -93,6 +93,12 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 			continue
 		}
 
+		err = ensureAllURLsUnique(URLs)
+		if err != nil {
+			spew.Dump(URLs)
+			panic(err)
+		}
+
 		// Enqueue URLs into the buffer
 		for i := range URLs {
 			select {
@@ -205,13 +211,6 @@ func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 		if len(URLs) != 0 {
 			allURLs = append(allURLs, URLs...)
 		}
-	}
-
-	// Check for duplicates based on URL ID, panic if found
-	err := ensureAllURLsUnique(allURLs)
-	if err != nil {
-		spew.Dump(allURLs)
-		panic(err)
 	}
 
 	return allURLs, nil
