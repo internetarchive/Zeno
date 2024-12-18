@@ -138,6 +138,8 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan go
 				break
 			}
 
+			logger.Debug("sending new item to reactor", "item", newItem.GetShortID())
+
 			// Send the new Item to the reactor
 			err = reactor.ReceiveInsert(newItem)
 			if err != nil {
