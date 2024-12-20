@@ -121,7 +121,18 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 			case <-ctx.Done():
 				logger.Debug("closed")
 				return
-			case urlBuffer <- &URLs[i]:
+			case urlBuffer <- &gocrawlhq.URL{
+				ID:        URLs[i].ID,
+				Value:     URLs[i].Value,
+				Via:       URLs[i].Via,
+				Host:      URLs[i].Host,
+				Path:      URLs[i].Path,
+				Type:      URLs[i].Type,
+				Crawler:   URLs[i].Crawler,
+				Status:    URLs[i].Status,
+				LiftOff:   URLs[i].LiftOff,
+				Timestamp: URLs[i].Timestamp,
+			}: //Deep copy of the URL to ensure pointer alisaing does not cause issues
 			}
 		}
 
