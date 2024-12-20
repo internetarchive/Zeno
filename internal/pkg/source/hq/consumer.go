@@ -72,6 +72,8 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		"component": "hq.consumerFetcher",
 	})
 
+	var previousBatchReceived []gocrawlhq.URL
+
 	for {
 		// Check for context cancellation
 		select {
@@ -98,6 +100,20 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 			spew.Dump(URLs)
 			panic(err)
 		}
+
+		// Debug check to troubleshoot a problem where the same seed might be received twice in contiguous batches
+		if previousBatchReceived != nil {
+			// Concat the previous and current batch
+			concatedBatches := append(previousBatchReceived, URLs...)
+			err := ensureAllURLsUnique(concatedBatches)
+			if err != nil {
+				spew.Dump(concatedBatches)
+				panic(err)
+			}
+		}
+		// Create a deep copy of URLs to previousBatchReceived
+		previousBatchReceived = make([]gocrawlhq.URL, len(URLs))
+		copy(previousBatchReceived, URLs)
 
 		// Enqueue URLs into the buffer
 		for i := range URLs {
