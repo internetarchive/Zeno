@@ -5,6 +5,7 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler"
+	"github.com/internetarchive/Zeno/internal/pkg/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +28,16 @@ var getHQCmd = &cobra.Command{
 		}
 
 		controler.Start()
-		controler.WatchSignals()
+		if config.Get().LiveStats {
+			tui := ui.New()
+			go controler.WatchSignals()
+			if err := tui.Start(); err != nil {
+				err = fmt.Errorf("error starting TUI: %w", err)
+				return err
+			}
+		} else {
+			controler.WatchSignals()
+		}
 		return
 	},
 }

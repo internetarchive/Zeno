@@ -18,6 +18,7 @@ type Config struct {
 	StderrEnabled       bool
 	StderrLevel         slog.Level
 	ElasticsearchConfig *ElasticsearchConfig
+	LogChanTUI          bool
 }
 
 // LogfileConfig defines the configuration for file logging
@@ -88,6 +89,7 @@ func makeConfig() *Config {
 		StdoutLevel:   parseLevel(config.Get().StdoutLogLevel),
 		StderrEnabled: !config.Get().NoStderrLogging,
 		StderrLevel:   parseLevel("error"),
+		LogChanTUI:    config.Get().LiveStats,
 	}
 }
 
