@@ -224,7 +224,6 @@ func preprocess(item *models.Item) {
 	// Remove any item that is not fresh from the list
 	for i := len(items) - 1; i >= 0; i-- {
 		if items[i].GetStatus() != models.ItemFresh {
-			fmt.Println("removing item", items[i].GetShortID(), "status", items[i].GetStatus(), "url", items[i].GetURL().String())
 			items = append(items[:i], items[i+1:]...)
 		}
 	}

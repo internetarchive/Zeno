@@ -10,4 +10,5 @@ func Start() {
 func Stop() {
 	stopPipeline()
 	closeStageChannels()
+	signalWatcherCancel()
 }

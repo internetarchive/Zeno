@@ -38,5 +38,10 @@ func initDestinations() []Destination {
 		destinations = append(destinations, esDest)
 	}
 
+	if globalConfig.LogChanTUI {
+		TUIDestination := NewTUIDestination()
+		destinations = append(destinations, TUIDestination)
+	}
+
 	return destinations
 }
