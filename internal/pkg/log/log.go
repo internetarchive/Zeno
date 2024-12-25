@@ -16,7 +16,7 @@ var (
 	wg           sync.WaitGroup
 	cancelFunc   context.CancelFunc
 
-	LogChanTUI = make(chan string)
+	LogChanTUI chan string
 )
 
 // Start initializes the logging package with the given configuration.
