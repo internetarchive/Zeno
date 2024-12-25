@@ -40,6 +40,7 @@ func initDestinations() []Destination {
 
 	if globalConfig.LogChanTUI {
 		TUIDestination := NewTUIDestination()
+		LogChanTUI = make(chan string, 10000)
 		destinations = append(destinations, TUIDestination)
 	}
 

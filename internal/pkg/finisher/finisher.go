@@ -113,7 +113,7 @@ func (f *finisher) run() {
 					if child.GetStatus() == models.ItemFresh {
 						logger.Debug("item has fresh children", "item", item.GetShortID())
 						err := reactor.ReceiveFeedback(item)
-						if err != nil {
+						if err != nil && err != reactor.ErrReactorFrozen {
 							panic(err)
 						}
 						doneFeedback = true

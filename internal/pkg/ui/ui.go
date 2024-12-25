@@ -2,9 +2,11 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -16,8 +18,8 @@ import (
 )
 
 const (
-	maxLogLines   = 200 // Keep only the most recent 500 log lines
-	columnsPerRow = 3   // How many stats (key-value pairs) per row
+	maxLogLines   = 50 // Keep only the most recent 500 log lines
+	columnsPerRow = 3  // How many stats (key-value pairs) per row
 )
 
 // UI holds references to the main tview application components.
@@ -36,6 +38,11 @@ type UI struct {
 
 	screenWidth  int // Terminal width (updated on each draw)
 	screenHeight int // Terminal height (updated on each draw)
+
+	// sync primitives
+	wg     sync.WaitGroup
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // New creates and configures the UI. It does not start it yet.
@@ -62,6 +69,8 @@ func New() *UI {
 		SetTitle(" Info ").
 		SetTitleAlign(tview.AlignLeft)
 
+	context, cancel := context.WithCancel(context.Background())
+
 	ui := &UI{
 		app:        tview.NewApplication(),
 		pages:      tview.NewPages(),
@@ -70,6 +79,9 @@ func New() *UI {
 		controls:   controls,
 		logsChan:   log.LogChanTUI,
 		logLines:   make([]string, 0, maxLogLines),
+		wg:         sync.WaitGroup{},
+		ctx:        context,
+		cancel:     cancel,
 	}
 
 	ui.initLayout()
@@ -112,14 +124,18 @@ func (ui *UI) initLayout() {
 // initKeybindings sets up global key handlers: Ctrl+S and Ctrl+C.
 func (ui *UI) initKeybindings() {
 	ui.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		logger := log.NewFieldedLogger(&log.Fields{
+			"component": "ui.InputCapture",
+		})
+
 		switch event.Key() {
 		case tcell.KeyCtrlS:
 			ui.showModal()
 			return nil
 		case tcell.KeyCtrlC:
 			// Graceful shutdown
-			controler.Stop()
-			ui.app.Stop()
+			logger.Info("received CTRL+C signal, stopping services...")
+			go ui.stop()
 			return nil
 		}
 		return event
@@ -140,28 +156,47 @@ func (ui *UI) Start() error {
 
 // updateStatsLoop periodically fetches stats and updates the UI table.
 func (ui *UI) updateStatsLoop() {
-	ticker := time.NewTicker(2 * time.Second)
+	ui.wg.Add(1)
+	defer ui.wg.Done()
+
+	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		statMap := stats.GetMap() // map[string]interface{}
-		ui.app.QueueUpdateDraw(func() {
-			ui.populateStatsTable(statMap)
-		})
+	for {
+		select {
+		case <-ui.ctx.Done():
+			return
+		case <-ticker.C:
+			statMap := stats.GetMap() // map[string]interface{}
+			ui.app.QueueUpdateDraw(func() {
+				ui.populateStatsTable(statMap)
+			})
+		}
 	}
 }
 
 // readLogsLoop continuously reads from logsChan and appends them to the logs view,
 // limiting to the most recent maxLogLines.
 func (ui *UI) readLogsLoop() {
-	for logMsg := range ui.logsChan {
-		ui.app.QueueUpdateDraw(func() {
-			ui.logLines = append(ui.logLines, logMsg)
-			if len(ui.logLines) > maxLogLines {
-				ui.logLines = ui.logLines[len(ui.logLines)-maxLogLines:]
+	ui.wg.Add(1)
+	defer ui.wg.Done()
+
+	for {
+		select {
+		case <-ui.ctx.Done():
+			return
+		case logMsg, ok := <-ui.logsChan:
+			if !ok {
+				return
 			}
-			ui.logsView.SetText(strings.Join(ui.logLines, "\n"))
-		})
+			ui.app.QueueUpdateDraw(func() {
+				ui.logLines = append(ui.logLines, logMsg)
+				if len(ui.logLines) > maxLogLines {
+					ui.logLines = ui.logLines[len(ui.logLines)-maxLogLines:]
+				}
+				ui.logsView.SetText(strings.Join(ui.logLines, "\n"))
+			})
+		}
 	}
 }
 
@@ -225,12 +260,22 @@ func (ui *UI) showModal() {
 		SetText("Select an action to execute").
 		AddButtons([]string{"Pause", "Stop", "Cancel"}).
 		SetDoneFunc(func(_ int, buttonLabel string) {
+			logger := log.NewFieldedLogger(&log.Fields{
+				"component": "ui.showModal",
+			})
+
 			switch buttonLabel {
 			case "Pause":
+				logger.Info("received pause action")
 				pause.Pause()
 			case "Stop":
-				controler.Stop()
-				ui.app.Stop()
+				logger.Info("received stop action") // This will log immediately
+				// Return from callback quickly
+				go ui.stop()
+				// Remove the modal so the user sees it's closing
+				ui.pages.RemovePage("modal")
+				return
+
 			case "Cancel":
 				// No action
 			}
@@ -241,4 +286,16 @@ func (ui *UI) showModal() {
 		SetBorder(true)
 
 	ui.pages.AddPage("modal", modal, true, true)
+}
+
+func (ui *UI) stop() {
+	// Draw a modal with a "Stopping..." message
+	modal := tview.NewModal().
+		SetText("Stopping...")
+	ui.pages.AddPage("stopping", modal, true, true)
+	ui.app.Draw()
+	controler.Stop()
+	ui.cancel()
+	ui.wg.Wait()
+	ui.app.Stop()
 }

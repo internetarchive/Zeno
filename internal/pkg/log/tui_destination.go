@@ -23,9 +23,13 @@ func (d *TUIDestination) Level() slog.Level {
 }
 
 func (d *TUIDestination) Write(entry *logEntry) {
-	LogChanTUI <- formatLogEntry(entry)
+	select {
+	case LogChanTUI <- formatLogEntry(entry):
+	default:
+		return
+	}
 }
 
 func (d *TUIDestination) Close() {
-	// Do nothing
+	close(LogChanTUI)
 }

@@ -21,24 +21,23 @@ var getHQCmd = &cobra.Command{
 
 		return nil
 	},
-	RunE: func(_ *cobra.Command, _ []string) (err error) {
-		err = config.GenerateCrawlConfig()
+	RunE: func(_ *cobra.Command, _ []string) error {
+		err := config.GenerateCrawlConfig()
 		if err != nil {
-			return
+			return err
 		}
 
 		controler.Start()
 		if config.Get().LiveStats {
 			tui := ui.New()
-			go controler.WatchSignals()
-			if err := tui.Start(); err != nil {
-				err = fmt.Errorf("error starting TUI: %w", err)
-				return err
+			err := tui.Start()
+			if err != nil {
+				return fmt.Errorf("error starting TUI: %w", err)
 			}
 		} else {
 			controler.WatchSignals()
 		}
-		return
+		return nil
 	},
 }
 

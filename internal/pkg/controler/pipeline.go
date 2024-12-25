@@ -120,7 +120,7 @@ func startPipeline() {
 
 func stopPipeline() {
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "controler.StopPipeline",
+		"component": "controler.stopPipeline",
 	})
 
 	diskWatcherCancel()
@@ -149,7 +149,7 @@ func stopPipeline() {
 		}
 	}
 
-	log.Stop()
+	logger.Info("done, logs are flushing and will be closed")
 
-	signalWatcherCancel()
+	log.Stop()
 }

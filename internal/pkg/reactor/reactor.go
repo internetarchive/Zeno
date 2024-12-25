@@ -177,7 +177,12 @@ func (r *reactor) run() {
 		// Feeds items to the output channel
 		case item, ok := <-r.input:
 			if ok {
-				r.output <- item
+				select {
+				case <-r.ctx.Done():
+					logger.Debug("aborting item due to stop", "item", item.GetShortID())
+					return
+				case r.output <- item:
+				}
 			}
 		}
 	}

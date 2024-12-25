@@ -58,6 +58,7 @@ func (d *FileDestination) Close() {
 	close(d.closeChan)
 	d.mu.Lock()
 	if d.file != nil {
+		fmt.Fprintln(d.file, "Log file closed")
 		d.file.Close()
 	}
 	d.mu.Unlock()
