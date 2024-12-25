@@ -1,8 +1,10 @@
+// ui/ui.go
 package ui
 
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -13,79 +15,112 @@ import (
 	"github.com/rivo/tview"
 )
 
+const (
+	maxLogLines   = 200 // Keep only the most recent 500 log lines
+	columnsPerRow = 3   // How many stats (key-value pairs) per row
+)
+
 // UI holds references to the main tview application components.
 type UI struct {
-	app        *tview.Application
-	pages      *tview.Pages
-	flex       *tview.Flex
+	app          *tview.Application
+	pages        *tview.Pages
+	mainFlex     *tview.Flex // The root vertical flex
+	statsRowFlex *tview.Flex // A nested horizontal flex: [left blank] [statsTable] [right blank]
+
 	statsTable *tview.Table
 	logsView   *tview.TextView
 	controls   *tview.TextView
-	logsChan   <-chan string // Read-only channel for logs
+
+	logsChan <-chan string // Read-only channel for logs
+	logLines []string      // Ring buffer of recent log lines
+
+	screenWidth  int // Terminal width (updated on each draw)
+	screenHeight int // Terminal height (updated on each draw)
 }
 
 // New creates and configures the UI. It does not start it yet.
 func New() *UI {
-	ui := &UI{
-		app:        tview.NewApplication(),
-		pages:      tview.NewPages(),
-		statsTable: tview.NewTable().SetBorders(false).SetSelectable(false, false),
-		logsView:   tview.NewTextView(),
-		controls:   tview.NewTextView(),
-		logsChan:   log.LogChanTUI,
-	}
-
-	// Configure the statsTable.
-	// You can optionally set a border and title here.
-	ui.statsTable.
-		SetBorder(true).
+	// First, create the Table in multiple steps to avoid the "type mismatch" error.
+	statsTable := tview.NewTable()
+	statsTable.SetBorders(false).
+		SetSelectable(false, false)
+	// Configure the Box portion separately so it remains a *tview.Table.
+	statsTable.Box.SetBorder(true).
 		SetTitle(" Stats Table ").
 		SetTitleAlign(tview.AlignLeft)
 
-	// Configure the logsView separately to avoid return-type issues.
-	ui.logsView.
+	// Create the TextViews.
+	logsView := tview.NewTextView().
 		SetScrollable(true).
 		SetDynamicColors(true)
-	ui.logsView.
-		Box.SetBorder(true).
+	logsView.Box.SetBorder(true).
 		SetTitle(" Logs ")
 
-	// Configure the controls TextView.
-	ui.controls.
-		SetText("Controls: Press Ctrl+S to manage [Pause|Stop|Cancel]")
-	ui.controls.
-		Box.SetBorder(true).
+	controls := tview.NewTextView().
+		SetText("Controls: Press Ctrl+S (Pause|Stop|Cancel), Ctrl+C to exit")
+	controls.Box.SetBorder(true).
 		SetTitle(" Info ").
 		SetTitleAlign(tview.AlignLeft)
 
+	ui := &UI{
+		app:        tview.NewApplication(),
+		pages:      tview.NewPages(),
+		statsTable: statsTable,
+		logsView:   logsView,
+		controls:   controls,
+		logsChan:   log.LogChanTUI,
+		logLines:   make([]string, 0, maxLogLines),
+	}
+
 	ui.initLayout()
 	ui.initKeybindings()
+
 	return ui
 }
 
-// initLayout constructs the main Flex layout: top stats, middle logs, bottom controls.
+// initLayout constructs:
+//  1. A horizontal flex (ui.statsRowFlex) to center the stats table:
+//     [ blank (10%) | stats table (80%) | blank (10%) ]
+//  2. A main vertical flex (ui.mainFlex) stacking:
+//     [ statsRowFlex | logsView | controls ]
 func (ui *UI) initLayout() {
-	// Create the main flex:
-	//   - Stats table (expand=3)
-	//   - Logs view   (expand=5)
-	//   - Controls    (1 row or fixed height)
-	mainFlex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(ui.statsTable, 0, 3, false).
+	// Stats row: center the table
+	// We use proportions: 1 : 8 : 1  => 10% | 80% | 10%
+	ui.statsRowFlex = tview.NewFlex().SetDirection(tview.FlexColumn).
+		AddItem(nil, 0, 1, false).           // left blank
+		AddItem(ui.statsTable, 0, 8, false). // stats table
+		AddItem(nil, 0, 1, false)            // right blank
+
+	// Main vertical layout
+	ui.mainFlex = tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(ui.statsRowFlex, 0, 3, false). // We'll dynamically resize this height
 		AddItem(ui.logsView, 0, 5, false).
 		AddItem(ui.controls, 1, 0, false)
 
-	ui.flex = mainFlex
-	ui.pages.AddPage("main", mainFlex, true, true)
+	ui.pages.AddPage("main", ui.mainFlex, true, true)
 	ui.app.SetRoot(ui.pages, true)
+
+	// Capture terminal size on every draw, storing in ui.screenWidth / ui.screenHeight
+	ui.app.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
+		w, h := screen.Size()
+		ui.screenWidth = w
+		ui.screenHeight = h
+		return false
+	})
 }
 
-// initKeybindings sets up global key handlers, including Ctrl+S to show the modal.
+// initKeybindings sets up global key handlers: Ctrl+S and Ctrl+C.
 func (ui *UI) initKeybindings() {
 	ui.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		// Example: Ctrl+S => Show the modal
-		if event.Key() == tcell.KeyCtrlS {
+		switch event.Key() {
+		case tcell.KeyCtrlS:
 			ui.showModal()
-			return nil // Consume the event
+			return nil
+		case tcell.KeyCtrlC:
+			// Graceful shutdown
+			controler.Stop()
+			ui.app.Stop()
+			return nil
 		}
 		return event
 	})
@@ -99,70 +134,89 @@ func (ui *UI) Start() error {
 	// Start a goroutine to read logs from the channel.
 	go ui.readLogsLoop()
 
-	// Finally, run the tview application (blocking call).
+	// Run the tview application (blocking call).
 	return ui.app.Run()
 }
 
 // updateStatsLoop periodically fetches stats and updates the UI table.
 func (ui *UI) updateStatsLoop() {
-	ticker := time.NewTicker(2 * time.Second) // Adjust as needed
+	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			statMap := stats.GetMap()
-
-			ui.app.QueueUpdateDraw(func() {
-				ui.populateStatsTable(statMap)
-			})
-		}
-	}
-}
-
-// readLogsLoop continuously reads from logsChan and appends them to the logs view.
-func (ui *UI) readLogsLoop() {
-	for logMsg := range ui.logsChan {
-		// Append log line to logs view.
+	for range ticker.C {
+		statMap := stats.GetMap() // map[string]interface{}
 		ui.app.QueueUpdateDraw(func() {
-			fmt.Fprintf(ui.logsView, "%s\n", logMsg)
+			ui.populateStatsTable(statMap)
 		})
 	}
 }
 
-// populateStatsTable updates the statsTable using a wrapping layout
-// that places up to three (Key: Value) pairs per row.
+// readLogsLoop continuously reads from logsChan and appends them to the logs view,
+// limiting to the most recent maxLogLines.
+func (ui *UI) readLogsLoop() {
+	for logMsg := range ui.logsChan {
+		ui.app.QueueUpdateDraw(func() {
+			ui.logLines = append(ui.logLines, logMsg)
+			if len(ui.logLines) > maxLogLines {
+				ui.logLines = ui.logLines[len(ui.logLines)-maxLogLines:]
+			}
+			ui.logsView.SetText(strings.Join(ui.logLines, "\n"))
+		})
+	}
+}
+
+// populateStatsTable populates the table with up to columnsPerRow stats per row,
+// then dynamically resizes the table height up to half the terminal's height.
 func (ui *UI) populateStatsTable(statMap map[string]interface{}) {
 	ui.statsTable.Clear()
 
-	// Decide how many columns you want per row:
-	const columnsPerRow = 3
-
-	// Gather keys from the map, sort them for consistent display:
+	// Gather keys from the map and sort them for consistent display.
 	keys := make([]string, 0, len(statMap))
 	for k := range statMap {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys) // optional, but nice for stable ordering
+	sort.Strings(keys)
 
-	// Fill the table row by row, up to columnsPerRow entries each.
-	row := 0
-	col := 0
+	// Fill the table row by row.
+	rowCount := 0
+	colCount := 0
 	for _, key := range keys {
-		value := statMap[key]
-		cellText := fmt.Sprintf("%s: %v", key, value)
+		val := statMap[key]
+		cellText := fmt.Sprintf("%s: %v", key, val)
 
 		cell := tview.NewTableCell(cellText).
-			SetExpansion(1) // So the cell can expand horizontally if needed
+			SetExpansion(1) // let it expand horizontally if needed
 
-		ui.statsTable.SetCell(row, col, cell)
-
-		col++
-		if col == columnsPerRow {
-			row++
-			col = 0
+		ui.statsTable.SetCell(rowCount, colCount, cell)
+		colCount++
+		if colCount == columnsPerRow {
+			rowCount++
+			colCount = 0
 		}
 	}
+	// If colCount != 0, there's a partially filled row (that's fine).
+	totalRowsUsed := rowCount
+	if colCount > 0 {
+		totalRowsUsed++ // we have a partial row in use
+	}
+
+	// Let's account for an extra row or two for borders/titles, etc.
+	linesNeeded := totalRowsUsed + 2
+
+	// Limit linesNeeded to half the terminal height
+	if ui.screenHeight > 0 {
+		halfTerm := ui.screenHeight / 2
+		if linesNeeded > halfTerm {
+			linesNeeded = halfTerm
+		}
+	} else {
+		// Fallback if we don't have a screen size yet
+		linesNeeded = 10
+	}
+
+	// Resize the statsRowFlex to a fixed number of lines.
+	// We'll do a quick remove/add approach or directly use "ResizeItem" if supported.
+	ui.mainFlex.ResizeItem(ui.statsRowFlex, linesNeeded, 0)
 }
 
 // showModal creates a modal overlay with [Pause] [Stop] [Cancel].
@@ -178,16 +232,13 @@ func (ui *UI) showModal() {
 				controler.Stop()
 				ui.app.Stop()
 			case "Cancel":
-				// Do nothing, just close the modal
+				// No action
 			}
-			// Remove the modal overlay
 			ui.pages.RemovePage("modal")
 		})
 
-	modal.
-		SetBackgroundColor(tcell.ColorDefault).
+	modal.SetBackgroundColor(tcell.ColorDefault).
 		SetBorder(true)
 
-	// Add the modal as a new page on top of the main layout
 	ui.pages.AddPage("modal", modal, true, true)
 }
