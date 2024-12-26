@@ -78,7 +78,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("warc-size", 1024, "Size of the WARC files in MB.")
 
 	// Logging flags
-	getCmd.PersistentFlags().Bool("live-stats", false, "Enable live stats but disable stdout logging. (implies --no-stdout-log)")
+	getCmd.PersistentFlags().Bool("tui", false, "Display a terminal user interface.")
 	getCmd.PersistentFlags().String("log-file-output-dir", "", "Directory to write log files to.")
 	getCmd.PersistentFlags().String("log-file-prefix", "ZENO", "Prefix to use when naming the log files. Default is : `ZENO`, without '-'")
 	getCmd.PersistentFlags().String("log-file-level", "info", "Log level for the log file.")
