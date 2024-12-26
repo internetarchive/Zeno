@@ -2,6 +2,9 @@ package pause
 
 import (
 	"sync"
+	"sync/atomic"
+
+	"github.com/internetarchive/Zeno/internal/pkg/stats"
 )
 
 type ControlChans struct {
@@ -11,6 +14,7 @@ type ControlChans struct {
 
 type pauseManager struct {
 	subscribers sync.Map // Map of *ControlChans to struct{}
+	isPaused    atomic.Bool
 }
 
 var manager = &pauseManager{}
@@ -38,6 +42,11 @@ func Unsubscribe(chans *ControlChans) {
 
 // Pause sends a pause signal to all subscribers.
 func Pause() {
+	swap := manager.isPaused.CompareAndSwap(false, true)
+	if !swap {
+		return
+	}
+
 	manager.subscribers.Range(func(key, _ interface{}) bool {
 		chans := key.(*ControlChans)
 		// Send pause signal (non-blocking since PauseCh is buffered).
@@ -49,6 +58,7 @@ func Pause() {
 		}
 		return true
 	})
+	stats.PausedSet()
 }
 
 // Resume reads from each subscriber's ResumeCh to unblock them.
@@ -70,4 +80,15 @@ func Resume() {
 	})
 	// Wait for all subscribers to send on their ResumeCh.
 	wg.Wait()
+
+	swap := manager.isPaused.CompareAndSwap(true, false)
+	if !swap {
+		return
+	}
+
+	stats.PausedReset()
+}
+
+func IsPaused() bool {
+	return manager.isPaused.Load()
 }
