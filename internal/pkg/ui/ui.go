@@ -121,16 +121,18 @@ func (ui *UI) initLayout() {
 	})
 }
 
-// initKeybindings sets up global key handlers: Ctrl+S, Ctrl+C.
+// initKeybindings sets up global key handlers: M, Ctrl+C.
 func (ui *UI) initKeybindings() {
 	ui.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		logger := log.NewFieldedLogger(&log.Fields{
 			"component": "ui.InputCapture",
 		})
 		switch event.Key() {
-		case tcell.KeyCtrlS:
-			ui.showModal()
-			return nil
+		case tcell.KeyRune:
+			if event.Rune() == 'M' || event.Rune() == 'm' {
+				ui.showModal()
+				return nil
+			}
 		case tcell.KeyCtrlC:
 			// Graceful shutdown in a separate goroutine
 			logger.Info("received CTRL+C signal, stopping services...")
@@ -252,19 +254,30 @@ func (ui *UI) populateStatsTable(statMap map[string]interface{}) {
 	ui.mainFlex.ResizeItem(ui.statsRowFlex, linesNeeded, 0)
 }
 
-// showModal creates a modal overlay with [Pause] [Stop] [Cancel].
+// showModal creates a modal overlay with [Pause/Unpause] [Stop] [Cancel].
 func (ui *UI) showModal() {
+	isPaused := pause.IsPaused()
+	pauseButtonLabel := "Pause"
+	if isPaused {
+		pauseButtonLabel = "Unpause"
+	}
+
 	modal := tview.NewModal().
 		SetText("Select an action to execute").
-		AddButtons([]string{"Pause", "Stop", "Cancel"}).
+		AddButtons([]string{pauseButtonLabel, "Stop", "Cancel"}).
 		SetDoneFunc(func(_ int, buttonLabel string) {
 			logger := log.NewFieldedLogger(&log.Fields{
 				"component": "ui.showModal",
 			})
 			switch buttonLabel {
-			case "Pause":
-				logger.Info("received pause action")
-				pause.Pause()
+			case "Pause", "Unpause":
+				if isPaused {
+					logger.Info("received unpause action")
+					pause.Resume()
+				} else {
+					logger.Info("received pause action")
+					pause.Pause()
+				}
 			case "Stop":
 				logger.Info("received stop action")
 				go ui.stop()
