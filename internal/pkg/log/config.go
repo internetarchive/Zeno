@@ -89,7 +89,7 @@ func makeConfig() *Config {
 		StdoutLevel:   parseLevel(config.Get().StdoutLogLevel),
 		StderrEnabled: !config.Get().NoStderrLogging,
 		StderrLevel:   parseLevel("error"),
-		LogChanTUI:    config.Get().LiveStats,
+		LogChanTUI:    config.Get().TUI,
 	}
 }
 

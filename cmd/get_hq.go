@@ -28,7 +28,7 @@ var getHQCmd = &cobra.Command{
 		}
 
 		controler.Start()
-		if config.Get().LiveStats {
+		if config.Get().TUI {
 			tui := ui.New()
 			err := tui.Start()
 			if err != nil {

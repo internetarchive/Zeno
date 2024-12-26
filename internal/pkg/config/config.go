@@ -92,7 +92,7 @@ type Config struct {
 	NoStdoutLogging          bool   `mapstructure:"no-stdout-log"`
 	NoStderrLogging          bool   `mapstructure:"no-stderr-log"`
 	StdoutLogLevel           string `mapstructure:"log-level"`
-	LiveStats                bool   `mapstructure:"live-stats"`
+	TUI                      bool   `mapstructure:"tui"`
 	LogFileLevel             string `mapstructure:"log-file-level"`
 	LogFileOutputDir         string `mapstructure:"log-file-output-dir"`
 	LogFilePrefix            string `mapstructure:"log-file-prefix"`
@@ -247,7 +247,7 @@ func GenerateCrawlConfig() error {
 }
 
 func handleFlagsEdgeCases() {
-	if viper.GetBool("live-stats") {
+	if viper.GetBool("tui") {
 		// If live-stats is true, set no-stdout-log to true
 		viper.Set("no-stdout-log", true)
 		viper.Set("no-stderr-log", true)
