@@ -63,7 +63,7 @@ func New() *UI {
 	// Controls text (make it multiline-friendly).
 	controls := tview.NewTextView().
 		SetDynamicColors(true). // enable color tags
-		SetText("[::r]CTRL+S: OPEN MENU — CTRL+C: EXIT[-::-]").
+		SetText("[::r]M: OPEN MENU — CTRL+C: EXIT[-::-]").
 		SetTextAlign(tview.AlignCenter)
 
 	// Here we turn off the border:
@@ -269,6 +269,7 @@ func (ui *UI) showModal() {
 			logger := log.NewFieldedLogger(&log.Fields{
 				"component": "ui.showModal",
 			})
+
 			switch buttonLabel {
 			case "Pause", "Unpause":
 				if isPaused {
