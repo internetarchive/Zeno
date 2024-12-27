@@ -54,7 +54,7 @@ func GetMap() map[string]interface{} {
 	return map[string]interface{}{
 		"URL/s":                  globalStats.URLsCrawled.get(),
 		"Total URL crawled":      globalStats.URLsCrawled.getTotal(),
-		"Finished seeds":         globalStats.SeedsFinished.get(),
+		"Finished seeds":         globalStats.SeedsFinished.getTotal(),
 		"Preprocessor routines":  globalStats.PreprocessorRoutines.get(),
 		"Archiver routines":      globalStats.ArchiverRoutines.get(),
 		"Postprocessor routines": globalStats.PostprocessorRoutines.get(),
