@@ -142,3 +142,11 @@ func match(pattern, s string) bool {
 
 	return pIdx == pLen
 }
+
+func bucketSum(buckets map[string]uint64) uint64 {
+	var sum uint64
+	for _, v := range buckets {
+		sum += v
+	}
+	return sum
+}

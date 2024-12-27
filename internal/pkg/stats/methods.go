@@ -89,3 +89,19 @@ func PausedGet() bool { return globalStats.Paused.Load() }
 
 // PausedReset resets the Paused flag to false.
 func PausedReset() { globalStats.Paused.Store(false) }
+
+//////////////////////////
+//   HTTPReturnCodes    //
+//////////////////////////
+
+// HTTPReturnCodesIncr increments the HTTPReturnCodes counter for the given key by 1.
+func HTTPReturnCodesIncr(key string) { globalStats.HTTPReturnCodes.incr(key, 1) }
+
+// HTTPReturnCodesGet returns the current value of the HTTPReturnCodes counter for the given key.
+func HTTPReturnCodesGet(key string) uint64 { return globalStats.HTTPReturnCodes.get(key) }
+
+// HTTPReturnCodesReset resets the HTTPReturnCodes counter for the given key to 0.
+func HTTPReturnCodesReset(key string) { globalStats.HTTPReturnCodes.reset(key) }
+
+// HTTPReturnCodesResetAll resets all HTTPReturnCodes counters to 0.
+func HTTPReturnCodesResetAll() { globalStats.HTTPReturnCodes.resetAll() }
