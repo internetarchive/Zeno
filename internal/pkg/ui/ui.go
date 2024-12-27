@@ -1,19 +1,13 @@
-// ui/ui.go
+// Package ui provides the terminal user interface for Zeno.
 package ui
 
 import (
 	"context"
-	"fmt"
-	"sort"
-	"strings"
 	"sync"
-	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/internetarchive/Zeno/internal/pkg/controler"
-	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/rivo/tview"
 )
 
@@ -127,10 +121,11 @@ func (ui *UI) initKeybindings() {
 		logger := log.NewFieldedLogger(&log.Fields{
 			"component": "ui.InputCapture",
 		})
+
 		switch event.Key() {
 		case tcell.KeyRune:
 			if event.Rune() == 'M' || event.Rune() == 'm' {
-				ui.showModal()
+				ui.showMenuModal()
 				return nil
 			}
 		case tcell.KeyCtrlC:
@@ -147,160 +142,17 @@ func (ui *UI) initKeybindings() {
 func (ui *UI) Start() error {
 	go ui.updateStatsLoop()
 	go ui.readLogsLoop()
+	go ui.pauseMonitor()
 
 	// Run tview (blocking).
 	return ui.app.Run()
 }
 
-// updateStatsLoop periodically fetches stats & updates the table.
-func (ui *UI) updateStatsLoop() {
-	ui.wg.Add(1)
-	defer ui.wg.Done()
-
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ui.ctx.Done():
-			return
-		case <-ticker.C:
-			statMap := stats.GetMap() // get your stats map
-			ui.app.QueueUpdateDraw(func() {
-				ui.populateStatsTable(statMap)
-			})
-		}
-	}
-}
-
-// readLogsLoop continuously reads from logsChan and appends them to the logs view.
-func (ui *UI) readLogsLoop() {
-	ui.wg.Add(1)
-	defer ui.wg.Done()
-
-	for {
-		select {
-		case <-ui.ctx.Done():
-			return
-		case logMsg, ok := <-ui.logsChan:
-			if !ok {
-				return
-			}
-			ui.app.QueueUpdateDraw(func() {
-				// 1) Append
-				ui.logLines = append(ui.logLines, logMsg)
-
-				// 2) Compute how many lines logsView can display:
-				//    logsView.GetInnerRect() => (x, y, width, height)
-				_, _, _, logHeight := ui.logsView.GetInnerRect()
-				if logHeight < 1 {
-					logHeight = 1 // fallback, just in case
-				}
-
-				// 3) Trim to that many lines
-				if len(ui.logLines) > logHeight {
-					ui.logLines = ui.logLines[len(ui.logLines)-logHeight:]
-				}
-
-				// 4) Update display
-				ui.logsView.SetText(strings.Join(ui.logLines, "\n"))
-			})
-		}
-	}
-}
-
-// populateStatsTable lays out the stats in columnsPerRow, then resizes the box.
-func (ui *UI) populateStatsTable(statMap map[string]interface{}) {
-	ui.statsTable.Clear()
-
-	// Sort keys for stable order
-	keys := make([]string, 0, len(statMap))
-	for k := range statMap {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	// Fill table cells in columns of columnsPerRow
-	rowCount := 0
-	colCount := 0
-	for _, key := range keys {
-		val := statMap[key]
-		cellText := fmt.Sprintf("%s: %v", key, val)
-
-		cell := tview.NewTableCell(cellText).
-			SetExpansion(1)
-		ui.statsTable.SetCell(rowCount, colCount, cell)
-
-		colCount++
-		if colCount == columnsPerRow {
-			rowCount++
-			colCount = 0
-		}
-	}
-	if colCount > 0 {
-		rowCount++ // partial row
-	}
-
-	// linesNeeded = #rows + 2 for borders, etc.
-	linesNeeded := rowCount + 2
-	if ui.screenHeight > 0 {
-		halfTerm := ui.screenHeight / 2
-		if linesNeeded > halfTerm {
-			linesNeeded = halfTerm
-		}
-	} else {
-		linesNeeded = 10
-	}
-	ui.mainFlex.ResizeItem(ui.statsRowFlex, linesNeeded, 0)
-}
-
-// showModal creates a modal overlay with [Pause/Unpause] [Stop] [Cancel].
-func (ui *UI) showModal() {
-	isPaused := pause.IsPaused()
-	pauseButtonLabel := "Pause"
-	if isPaused {
-		pauseButtonLabel = "Unpause"
-	}
-
-	modal := tview.NewModal().
-		SetText("Select an action to execute").
-		AddButtons([]string{pauseButtonLabel, "Stop", "Cancel"}).
-		SetDoneFunc(func(_ int, buttonLabel string) {
-			logger := log.NewFieldedLogger(&log.Fields{
-				"component": "ui.showModal",
-			})
-
-			switch buttonLabel {
-			case "Pause", "Unpause":
-				if isPaused {
-					logger.Info("received unpause action")
-					pause.Resume()
-				} else {
-					logger.Info("received pause action")
-					pause.Pause()
-				}
-			case "Stop":
-				logger.Info("received stop action")
-				go ui.stop()
-				ui.pages.RemovePage("modal")
-				return
-			case "Cancel":
-				// do nothing
-			}
-			ui.pages.RemovePage("modal")
-		})
-
-	modal.SetBackgroundColor(tcell.ColorDefault).
-		SetBorder(true)
-
-	ui.pages.AddPage("modal", modal, true, true)
-}
-
 // stop is called from Ctrl+C or Stop button: stops pipeline + TUI.
 func (ui *UI) stop() {
 	// Show a "Stopping..." modal
-	modal := tview.NewModal().SetText("Stopping...")
-	ui.pages.AddPage("stopping", modal, true, true)
+	stoppingModal := tview.NewModal().SetText("Stopping...")
+	ui.pages.AddPage("stoppingModal", stoppingModal, true, true)
 	ui.app.Draw()
 
 	// Stop the pipeline
