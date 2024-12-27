@@ -12,6 +12,8 @@ type stats struct {
 	ArchiverRoutines      *counter
 	PostprocessorRoutines *counter
 	Paused                atomic.Bool
+	HTTPReturnCodes       *rateBucket
+	MeanHTTPResponseTime  *mean
 }
 
 var (
@@ -29,6 +31,8 @@ func Init() error {
 			PreprocessorRoutines:  &counter{},
 			ArchiverRoutines:      &counter{},
 			PostprocessorRoutines: &counter{},
+			HTTPReturnCodes:       newRateBucket(),
+			MeanHTTPResponseTime:  &mean{},
 		}
 		done = true
 	})
@@ -46,18 +50,25 @@ func Reset() {
 	globalStats.PreprocessorRoutines.reset()
 	globalStats.ArchiverRoutines.reset()
 	globalStats.PostprocessorRoutines.reset()
+	globalStats.HTTPReturnCodes.resetAll()
+	globalStats.MeanHTTPResponseTime.reset()
 }
 
 // GetMap returns a map of the current stats.
 // This is used by the TUI to update the stats table.
 func GetMap() map[string]interface{} {
 	return map[string]interface{}{
-		"URL/s":                  globalStats.URLsCrawled.get(),
-		"Total URL crawled":      globalStats.URLsCrawled.getTotal(),
-		"Finished seeds":         globalStats.SeedsFinished.getTotal(),
-		"Preprocessor routines":  globalStats.PreprocessorRoutines.get(),
-		"Archiver routines":      globalStats.ArchiverRoutines.get(),
-		"Postprocessor routines": globalStats.PostprocessorRoutines.get(),
-		"Is paused?":             globalStats.Paused.Load(),
+		"URL/s":                   globalStats.URLsCrawled.get(),
+		"Total URL crawled":       globalStats.URLsCrawled.getTotal(),
+		"Finished seeds":          globalStats.SeedsFinished.getTotal(),
+		"Preprocessor routines":   globalStats.PreprocessorRoutines.get(),
+		"Archiver routines":       globalStats.ArchiverRoutines.get(),
+		"Postprocessor routines":  globalStats.PostprocessorRoutines.get(),
+		"Is paused?":              globalStats.Paused.Load(),
+		"HTTP 2xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("2*")),
+		"HTTP 3xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("3*")),
+		"HTTP 4xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("4*")),
+		"HTTP 5xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("5*")),
+		"Mean HTTP response time": globalStats.MeanHTTPResponseTime.get(),
 	}
 }

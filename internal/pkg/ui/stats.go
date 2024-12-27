@@ -34,9 +34,11 @@ func (ui *UI) updateStatsLoop() {
 func (ui *UI) populateStatsTable(statMap map[string]interface{}) {
 	ui.statsTable.Clear()
 
+	displayMap := flattenStatsMap(statMap)
+
 	// Sort keys for stable order
-	keys := make([]string, 0, len(statMap))
-	for k := range statMap {
+	keys := make([]string, 0, len(displayMap))
+	for k := range displayMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -45,7 +47,7 @@ func (ui *UI) populateStatsTable(statMap map[string]interface{}) {
 	rowCount := 0
 	colCount := 0
 	for _, key := range keys {
-		val := statMap[key]
+		val := displayMap[key]
 		cellText := fmt.Sprintf("%s: %v", key, val)
 
 		cell := tview.NewTableCell(cellText).
@@ -73,4 +75,22 @@ func (ui *UI) populateStatsTable(statMap map[string]interface{}) {
 		linesNeeded = 10
 	}
 	ui.mainFlex.ResizeItem(ui.statsRowFlex, linesNeeded, 0)
+}
+
+func flattenStatsMap(statMap map[string]interface{}) map[string]interface{} {
+	flatMap := make(map[string]interface{})
+
+	for primaryKey, primaryValue := range statMap {
+		switch statMap[primaryKey].(type) {
+		case map[string]uint64:
+			subMap := statMap[primaryKey].(map[string]uint64)
+			for subKey, subValue := range subMap {
+				flatMap[fmt.Sprintf("%s.%s", primaryKey, subKey)] = subValue
+			}
+		default:
+			flatMap[primaryKey] = primaryValue
+		}
+	}
+
+	return flatMap
 }

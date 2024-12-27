@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/CorentinB/warc"
@@ -216,6 +217,8 @@ func archive(item *models.Item) {
 
 			// Set the body in the URL
 			i.GetURL().SetBody(bytes.NewReader(body.Bytes()))
+
+			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
 
 			logger.Info("url archived", "url", i.GetURL().String(), "item", item.GetShortID(), "status", resp.StatusCode)
 
