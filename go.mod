@@ -9,7 +9,9 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/elastic/go-elasticsearch v0.0.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
+	github.com/gdamore/tcell/v2 v2.7.1
 	github.com/google/uuid v1.6.0
+	github.com/grafana/pyroscope-go v1.2.0
 	github.com/grafov/m3u8 v0.12.0
 	github.com/internetarchive/gocrawlhq v1.2.26
 	github.com/philippgille/gokv/leveldb v0.7.0
@@ -28,11 +30,11 @@ require (
 	github.com/cloudflare/circl v1.4.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
-	github.com/gdamore/tcell/v2 v2.7.1 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.17.10 // indirect

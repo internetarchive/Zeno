@@ -2,7 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"runtime"
 
+	"github.com/google/uuid"
+	"github.com/grafana/pyroscope-go"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler"
 	"github.com/internetarchive/Zeno/internal/pkg/ui"
@@ -18,6 +22,34 @@ var getHQCmd = &cobra.Command{
 		}
 
 		cfg.UseHQ = true
+
+		if cfg.PyroscopeAddress != "" {
+			runtime.SetMutexProfileFraction(5)
+			runtime.SetBlockProfileRate(5)
+
+			_, err := pyroscope.Start(pyroscope.Config{
+				ApplicationName: fmt.Sprintf("zeno-%s-%s", os.Getenv("HOSTNAME"), uuid.New().String()[:5]),
+				ServerAddress:   cfg.PyroscopeAddress,
+				Logger:          nil,
+				Tags:            map[string]string{"hostname": os.Getenv("HOSTNAME")},
+				ProfileTypes: []pyroscope.ProfileType{
+					pyroscope.ProfileCPU,
+					pyroscope.ProfileAllocObjects,
+					pyroscope.ProfileAllocSpace,
+					pyroscope.ProfileInuseObjects,
+					pyroscope.ProfileInuseSpace,
+					pyroscope.ProfileGoroutines,
+					pyroscope.ProfileMutexCount,
+					pyroscope.ProfileMutexDuration,
+					pyroscope.ProfileBlockCount,
+					pyroscope.ProfileBlockDuration,
+				},
+			})
+
+			if err != nil {
+				panic(fmt.Errorf("error starting pyroscope: %w", err))
+			}
+		}
 
 		return nil
 	},
