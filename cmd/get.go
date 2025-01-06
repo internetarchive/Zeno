@@ -95,6 +95,9 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("no-ytdlp", false, "Disable youtube-dlp usage for video extraction.")
 	getCmd.PersistentFlags().String("ytdlp-path", "", "Path to youtube-dlp binary.")
 
+	// Profiling flags
+	getCmd.PersistentFlags().String("pyroscope-address", "", "Pyroscope server address. Setting this flag will enable profiling.")
+
 	// Alias support
 	// As cobra doesn't support aliases natively (couldn't find a way to do it), we have to do it manually
 	// This is a workaround to allow users to use `--hops` instead of `--max-hops` for example

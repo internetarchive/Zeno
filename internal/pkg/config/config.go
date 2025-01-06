@@ -104,6 +104,9 @@ type Config struct {
 	ElasticSearchIndexPrefix string `mapstructure:"es-index-prefix"`
 	ElasticSearchRotation    string `mapstructure:"es-rotation"`
 
+	// Profiling
+	PyroscopeAddress string `mapstructure:"pyroscope-address"`
+
 	InputSeeds []string // Special field to store the input URLs
 }
 
