@@ -8,7 +8,6 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
 )
 
 var (
@@ -42,12 +41,18 @@ func watchDiskSpace(path string, interval time.Duration) {
 	})
 
 	paused := false
+	returnASAP := false
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-diskWatcherCtx.Done():
+			defer logger.Debug("closed")
+			if paused {
+				logger.Info("returning after resume")
+				returnASAP = true
+			}
 			return
 		case <-ticker.C:
 			var stat syscall.Statfs_t
@@ -65,12 +70,13 @@ func watchDiskSpace(path string, interval time.Duration) {
 				logger.Warn("Low disk space, pausing the pipeline", "err", err.Error())
 				pause.Pause()
 				paused = true
-				stats.PausedSet()
 			} else if err == nil && paused {
 				logger.Info("Disk space is sufficient, resuming the pipeline")
 				pause.Resume()
 				paused = false
-				stats.PausedUnset()
+				if returnASAP {
+					return
+				}
 			}
 		}
 	}

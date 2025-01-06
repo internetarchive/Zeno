@@ -70,6 +70,9 @@ func startPipeline() {
 		return
 	}
 
+	// Start the WARC writing queue watcher
+	go watchWARCWritingQueue(5 * time.Second)
+
 	postprocessorOutputChan := makeStageChannel()
 	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan)
 	if err != nil {
@@ -124,6 +127,7 @@ func stopPipeline() {
 	})
 
 	diskWatcherCancel()
+	wwqCancel()
 
 	reactor.Freeze()
 
