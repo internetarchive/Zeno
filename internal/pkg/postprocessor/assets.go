@@ -14,16 +14,11 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (a
 			"component": "postprocessor.extractAssets",
 		})
 	)
+
 	// Extract assets from the body using the appropriate extractor
 	switch {
 	// Order is important, we want to check for more specific things first,
 	// as they may trigger more general extractors (e.g. HTML)
-	case extractor.IsS3(URL):
-		assets, err = extractor.S3(URL)
-		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
-		}
 	case extractor.IsM3U8(URL):
 		assets, err = extractor.M3U8(URL)
 		if err != nil {
@@ -37,7 +32,7 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (a
 			return assets, err
 		}
 	default:
-		logger.Debug("no extractor found for content type", "content-type", contentType, "item", item.GetShortID())
+		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
 	}
 
 	// Extract URLs from the body using regex

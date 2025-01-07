@@ -110,7 +110,11 @@ func run() {
 					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
 						logger.Debug("skipping item", "item", item.GetShortID(), "status", item.GetStatus().String())
 					} else {
-						postprocess(item)
+						outlinks := postprocess(item)
+						for _, outlink := range outlinks {
+							logger.Info("sending outlink", "item", outlink.GetShortID())
+							globalPostprocessor.outputCh <- outlink
+						}
 					}
 
 					select {
@@ -129,7 +133,7 @@ func run() {
 	}
 }
 
-func postprocess(item *models.Item) {
+func postprocess(item *models.Item) (outlinks []*models.Item) {
 	// If we don't capture assets, there is no need to postprocess the item
 	// TODO: handle hops even with disable assets capture
 	if config.Get().DisableAssetsCapture {
@@ -143,7 +147,6 @@ func postprocess(item *models.Item) {
 	}
 
 	for i := range items {
-
 		if items[i].GetStatus() != models.ItemArchived {
 			logger.Debug("item not archived, skipping", "item", items[i].GetShortID())
 			continue
@@ -200,19 +203,42 @@ func postprocess(item *models.Item) {
 			}
 
 			// Extract assets from the document
-			assets, err := extractAssets(doc, items[i].GetURL(), items[i])
-			if err != nil {
-				logger.Error("unable to extract assets", "err", err.Error(), "item", items[i].GetShortID())
+			if !config.Get().DisableAssetsCapture {
+				assets, err := extractAssets(doc, items[i].GetURL(), items[i])
+				if err != nil {
+					logger.Error("unable to extract assets", "err", err.Error(), "item", items[i].GetShortID())
+				}
+
+				for _, asset := range assets {
+					if assets == nil {
+						logger.Warn("nil asset", "item", items[i].GetShortID())
+						continue
+					}
+
+					items[i].SetStatus(models.ItemGotChildren)
+					items[i].AddChild(models.NewItem(uuid.New().String(), asset, "", false), items[i].GetStatus())
+				}
 			}
 
-			for _, asset := range assets {
-				if assets == nil {
-					logger.Warn("nil asset", "item", items[i].GetShortID())
+			// Extract outlinks from the page
+			if config.Get().DomainsCrawl || ((items[i].IsSeed() || items[i].IsRedirection()) && items[i].GetURL().GetHops() < config.Get().MaxHops) {
+				logger.Info("extracting outlinks", "item", items[i].GetShortID())
+				links, err := extractOutlinks(items[i].GetURL(), items[i])
+				if err != nil {
+					logger.Error("unable to extract outlinks", "err", err.Error(), "item", items[i].GetShortID())
 					continue
 				}
 
-				items[i].SetStatus(models.ItemGotChildren)
-				items[i].AddChild(models.NewItem(uuid.New().String(), asset, "", false), items[i].GetStatus())
+				for _, link := range links {
+					if link == nil {
+						logger.Warn("nil link", "item", items[i].GetShortID())
+						continue
+					}
+
+					outlinks = append(outlinks, models.NewItem(uuid.New().String(), link, items[i].GetURL().String(), true))
+				}
+
+				logger.Debug("extracted outlinks", "item", items[i].GetShortID(), "count", len(links))
 			}
 		}
 
@@ -220,4 +246,6 @@ func postprocess(item *models.Item) {
 			items[i].SetStatus(models.ItemCompleted)
 		}
 	}
+
+	return
 }
