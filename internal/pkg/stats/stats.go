@@ -14,6 +14,7 @@ type stats struct {
 	Paused                atomic.Bool
 	HTTPReturnCodes       *rateBucket
 	MeanHTTPResponseTime  *mean
+	WARCWritingQueueSize  atomic.Int64
 }
 
 var (
@@ -70,5 +71,6 @@ func GetMap() map[string]interface{} {
 		"HTTP 4xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("4*")),
 		"HTTP 5xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("5*")),
 		"Mean HTTP response time": globalStats.MeanHTTPResponseTime.get(),
+		"WARC writing queue size": globalStats.WARCWritingQueueSize.Load(),
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -56,6 +57,7 @@ func Start(inputChan, outputChan chan *models.Item) error {
 
 		// Setup WARC writing HTTP clients
 		startWARCWriter()
+		go watchWARCWritingQueue(250 * time.Millisecond)
 
 		globalArchiver.wg.Add(1)
 		go run()
@@ -82,6 +84,8 @@ func Stop() {
 			globalArchiver.ClientWithProxy.WaitGroup.Wait()
 			globalArchiver.ClientWithProxy.Close()
 		}
+
+		watchWARCWritingQueueCancel()
 
 		logger.Info("stopped")
 	}
@@ -148,6 +152,7 @@ func run() {
 			wg.Wait()
 			return
 		}
+		stats.WarcWritingQueueSizeSet(int64(GetWARCWritingQueueSize()))
 	}
 }
 
