@@ -4,10 +4,10 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 var validS3Servers = []string{
@@ -41,20 +41,27 @@ type CommonPrefix struct {
 }
 
 // IsS3 checks if the response is from an S3 server
-func IsS3(resp *http.Response) bool {
-	return utils.StringContainsSliceElements(resp.Header.Get("Server"), validS3Servers)
+func IsS3(URL *models.URL) bool {
+	return utils.StringContainsSliceElements(URL.GetResponse().Header.Get("Server"), validS3Servers)
 }
 
 // S3 takes an initial response and returns URLs of either files or prefixes at the current level,
 // plus continuation URL if more results exist
-func S3(resp *http.Response) ([]*url.URL, error) {
-	result, err := S3ProcessResponse(resp)
+func S3(URL *models.URL) ([]*models.URL, error) {
+	defer URL.RewindBody()
+
+	bodyBytes, err := io.ReadAll(URL.GetBody())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading response body: %v", err)
+	}
+
+	var result S3ListBucketResult
+	if err := xml.Unmarshal(bodyBytes, &result); err != nil {
+		return nil, fmt.Errorf("error parsing XML: %v", err)
 	}
 
 	// Extract base URL from the response URL
-	reqURL := resp.Request.URL
+	reqURL := URL.GetRequest().URL
 	requestQuery := reqURL.Query()
 	baseURL := fmt.Sprintf("https://%s", reqURL.Host)
 	parsedBase, err := url.Parse(baseURL)
@@ -62,7 +69,7 @@ func S3(resp *http.Response) ([]*url.URL, error) {
 		return nil, fmt.Errorf("invalid base URL: %v", err)
 	}
 
-	var urls []string
+	var URLs []string
 
 	// Ensure we can add marker
 	// ListObjects
@@ -72,7 +79,7 @@ func S3(resp *http.Response) ([]*url.URL, error) {
 		q := nextURL.Query()
 		q.Set("marker", result.Contents[len(result.Contents)-1].Key)
 		nextURL.RawQuery = q.Encode()
-		urls = append(urls, nextURL.String())
+		URLs = append(URLs, nextURL.String())
 	}
 
 	// If we are using list-type 2/ListObjectsV2
@@ -82,7 +89,7 @@ func S3(resp *http.Response) ([]*url.URL, error) {
 			q := nextURL.Query()
 			q.Set("prefix", prefix.Prefix)
 			nextURL.RawQuery = q.Encode()
-			urls = append(urls, nextURL.String())
+			URLs = append(URLs, nextURL.String())
 		}
 	} else {
 		// Otherwise return file URLs
@@ -90,7 +97,7 @@ func S3(resp *http.Response) ([]*url.URL, error) {
 			if obj.Size > 0 {
 				fileURL := *parsedBase
 				fileURL.Path += "/" + obj.Key
-				urls = append(urls, fileURL.String())
+				URLs = append(URLs, fileURL.String())
 			}
 		}
 	}
@@ -101,24 +108,16 @@ func S3(resp *http.Response) ([]*url.URL, error) {
 		q := nextURL.Query()
 		q.Set("continuation-token", result.NextContinuationToken)
 		nextURL.RawQuery = q.Encode()
-		urls = append(urls, nextURL.String())
+		URLs = append(URLs, nextURL.String())
 	}
 
-	return utils.StringSliceToURLSlice(urls), nil
-}
-
-// S3ProcessResponse parses an HTTP response into an S3ListBucketResult
-func S3ProcessResponse(resp *http.Response) (*S3ListBucketResult, error) {
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %v", err)
-	}
-	defer resp.Body.Close()
-
-	var result S3ListBucketResult
-	if err := xml.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("error parsing XML: %v", err)
+	var assets []*models.URL
+	for _, extractedURL := range URLs {
+		assets = append(assets, &models.URL{
+			Raw:  extractedURL,
+			Hops: URL.GetHops(),
+		})
 	}
 
-	return &result, nil
+	return assets, nil
 }
