@@ -1,12 +1,15 @@
 package archiver
 
 import (
+	"context"
 	"os"
 	"path"
 	"time"
 
 	"github.com/CorentinB/warc"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/stats"
 )
 
 func startWARCWriter() {
@@ -109,4 +112,27 @@ func GetWARCWritingQueueSize() (total int) {
 	}
 
 	return total
+}
+
+var (
+	watchWARCWritingQueueContext, watchWARCWritingQueueCancel = context.WithCancel(context.Background())
+)
+
+func watchWARCWritingQueue(interval time.Duration) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "archiver.warcWritingQueueWatcher",
+	})
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-watchWARCWritingQueueContext.Done():
+			logger.Debug("closed")
+			return
+		case <-ticker.C:
+			stats.WarcWritingQueueSizeSet(int64(GetWARCWritingQueueSize()))
+		}
+	}
 }

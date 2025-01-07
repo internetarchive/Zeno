@@ -105,3 +105,13 @@ func HTTPReturnCodesReset(key string) { globalStats.HTTPReturnCodes.reset(key) }
 
 // HTTPReturnCodesResetAll resets all HTTPReturnCodes counters to 0.
 func HTTPReturnCodesResetAll() { globalStats.HTTPReturnCodes.resetAll() }
+
+//////////////////////////
+// WarcWritingQueueSize //
+//////////////////////////
+
+// WarcWritingQueueSizeSet sets the WarcWritingQueueSize to the given value.
+func WarcWritingQueueSizeSet(value int64) { globalStats.WARCWritingQueueSize.Store(value) }
+
+// WarcWritingQueueSizeGet returns the current value of the WarcWritingQueueSize.
+func WarcWritingQueueSizeGet() int64 { return globalStats.WARCWritingQueueSize.Load() }
