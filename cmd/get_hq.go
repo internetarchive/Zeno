@@ -27,11 +27,17 @@ var getHQCmd = &cobra.Command{
 			runtime.SetMutexProfileFraction(5)
 			runtime.SetBlockProfileRate(5)
 
-			_, err := pyroscope.Start(pyroscope.Config{
-				ApplicationName: fmt.Sprintf("zeno-%s-%s", os.Getenv("HOSTNAME"), uuid.New().String()[:5]),
+			// Get the hostname via env or via command
+			hostname, err := os.Hostname()
+			if err != nil {
+				return fmt.Errorf("error getting hostname for Pyroscope: %w", err)
+			}
+
+			_, err = pyroscope.Start(pyroscope.Config{
+				ApplicationName: fmt.Sprintf("zeno-%s-%s", hostname, uuid.New().String()[:5]),
 				ServerAddress:   cfg.PyroscopeAddress,
 				Logger:          nil,
-				Tags:            map[string]string{"hostname": os.Getenv("HOSTNAME")},
+				Tags:            map[string]string{"hostname": hostname},
 				ProfileTypes: []pyroscope.ProfileType{
 					pyroscope.ProfileCPU,
 					pyroscope.ProfileAllocObjects,
