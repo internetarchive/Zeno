@@ -8,6 +8,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/internetarchive/Zeno/internal/pkg/controler"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/log/ringbuffer"
 	"github.com/rivo/tview"
 )
 
@@ -26,8 +27,8 @@ type UI struct {
 	logsView   *tview.TextView
 	controls   *tview.TextView
 
-	logsChan <-chan string // Read-only channel for logs
-	logLines []string      // The lines currently in memory (trimmed dynamically)
+	logsBuffer *ringbuffer.MP1COverwritingRingBuffer[string]
+	logLines   []string // The lines currently in memory (trimmed dynamically)
 
 	screenWidth  int // Terminal width (updated on each draw)
 	screenHeight int // Terminal height (updated on each draw)
@@ -71,7 +72,7 @@ func New() *UI {
 		statsTable: statsTable,
 		logsView:   logsView,
 		controls:   controls,
-		logsChan:   log.LogChanTUI,
+		logsBuffer: log.TUIRingBuffer,
 		logLines:   make([]string, 0),
 		wg:         sync.WaitGroup{},
 		ctx:        ctx,

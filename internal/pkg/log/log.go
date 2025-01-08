@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/internetarchive/Zeno/internal/pkg/log/ringbuffer"
 )
 
 // Global variables
@@ -16,7 +18,7 @@ var (
 	wg           sync.WaitGroup
 	cancelFunc   context.CancelFunc
 
-	LogChanTUI chan string
+	TUIRingBuffer *ringbuffer.MP1COverwritingRingBuffer[string]
 )
 
 // Start initializes the logging package with the given configuration.

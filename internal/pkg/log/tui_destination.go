@@ -1,16 +1,24 @@
 package log
 
-import "log/slog"
+import (
+	"log/slog"
+
+	"github.com/internetarchive/Zeno/internal/pkg/log/ringbuffer"
+)
 
 // TUIDestination logs to the TUI
 type TUIDestination struct {
-	level slog.Level
+	buffer *ringbuffer.MP1COverwritingRingBuffer[string]
+	level  slog.Level
 }
 
 // NewTUIDestination creates a new TUI destination
 func NewTUIDestination() *TUIDestination {
+	buffer := ringbuffer.NewMP1COverwritingRingBuffer[string](16384)
+	TUIRingBuffer = buffer
 	return &TUIDestination{
-		level: slog.LevelInfo,
+		buffer: buffer,
+		level:  globalConfig.StdoutLevel,
 	}
 }
 
@@ -23,13 +31,10 @@ func (d *TUIDestination) Level() slog.Level {
 }
 
 func (d *TUIDestination) Write(entry *logEntry) {
-	select {
-	case LogChanTUI <- formatLogEntry(entry):
-	default:
-		return
-	}
+	d.buffer.Enqueue(formatLogEntry(entry))
 }
 
 func (d *TUIDestination) Close() {
-	close(LogChanTUI)
+	// Nothing to do
+	return
 }
