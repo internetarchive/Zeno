@@ -21,6 +21,11 @@ var getHQCmd = &cobra.Command{
 			return fmt.Errorf("viper config is nil")
 		}
 
+		err := config.GenerateCrawlConfig()
+		if err != nil {
+			return err
+		}
+
 		cfg.UseHQ = true
 
 		if cfg.PyroscopeAddress != "" {
@@ -34,7 +39,7 @@ var getHQCmd = &cobra.Command{
 			}
 
 			_, err = pyroscope.Start(pyroscope.Config{
-				ApplicationName: fmt.Sprintf("zeno-%s-%s", hostname, uuid.New().String()[:5]),
+				ApplicationName: fmt.Sprintf("zeno-%s-%s-%s", hostname, cfg.Job, uuid.New().String()[:5]),
 				ServerAddress:   cfg.PyroscopeAddress,
 				Logger:          nil,
 				Tags:            map[string]string{"hostname": hostname},
@@ -60,11 +65,6 @@ var getHQCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(_ *cobra.Command, _ []string) error {
-		err := config.GenerateCrawlConfig()
-		if err != nil {
-			return err
-		}
-
 		controler.Start()
 		if config.Get().TUI {
 			tui := ui.New()
