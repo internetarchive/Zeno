@@ -68,7 +68,7 @@ func watchDiskSpace(path string, interval time.Duration) {
 
 			if err != nil && !paused {
 				logger.Warn("Low disk space, pausing the pipeline", "err", err.Error())
-				pause.Pause()
+				pause.Pause("Not enough disk space!!!")
 				paused = true
 			} else if err == nil && paused {
 				logger.Info("Disk space is sufficient, resuming the pipeline")

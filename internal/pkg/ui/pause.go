@@ -47,6 +47,10 @@ func (ui *UI) showPausedModal() {
 		return
 	}
 	pausedModal := tview.NewModal().SetText("PAUSED")
+	// Add the pause message along with the "PAUSED" text if there is one
+	if message := pause.GetMessage(); message != "" {
+		pausedModal.SetText("PAUSED\n\n" + message)
+	}
 
 	// We add it as a *page*, so it overlays everything else
 	ui.pages.AddPage("pausedModal", pausedModal, true, true)

@@ -37,8 +37,8 @@ func watchWARCWritingQueue(interval time.Duration) {
 			queueSize := archiver.GetWARCWritingQueueSize()
 
 			if queueSize >= config.Get().WorkersCount && !paused {
-				logger.Warn("WARC writing queue exceeded 4x the worker count, pausing the pipeline")
-				pause.Pause()
+				logger.Warn("WARC writing queue exceeded the worker count, pausing the pipeline")
+				pause.Pause("WARC writing queue exceeded the worker count")
 				paused = true
 			} else if queueSize < config.Get().WorkersCount && paused {
 				logger.Info("WARC writing queue size returned to acceptable, resuming the pipeline")

@@ -15,6 +15,7 @@ type ControlChans struct {
 type pauseManager struct {
 	subscribers sync.Map // Map of *ControlChans to struct{}
 	isPaused    atomic.Bool
+	message     string
 }
 
 var manager = &pauseManager{}
@@ -41,11 +42,12 @@ func Unsubscribe(chans *ControlChans) {
 }
 
 // Pause sends a pause signal to all subscribers.
-func Pause() {
+func Pause(message ...string) {
 	swap := manager.isPaused.CompareAndSwap(false, true)
 	if !swap {
 		return
 	}
+	manager.message = message[0]
 
 	manager.subscribers.Range(func(key, _ interface{}) bool {
 		chans := key.(*ControlChans)
@@ -85,10 +87,15 @@ func Resume() {
 	if !swap {
 		return
 	}
+	manager.message = ""
 
 	stats.PausedReset()
 }
 
 func IsPaused() bool {
 	return manager.isPaused.Load()
+}
+
+func GetMessage() string {
+	return manager.message
 }
