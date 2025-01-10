@@ -13,6 +13,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -159,9 +160,22 @@ func preprocess(item *models.Item) {
 				items[i].GetParent().RemoveChild(items[i])
 				continue
 			}
+
+			// Verify if the URL isn't to be excluded
+			if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) {
+				logger.Warn("URL excluded", "url", items[i].GetURL().String())
+				items[i].GetParent().RemoveChild(items[i])
+				continue
+			}
+
+			if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Path, config.Get().ExcludeString) {
+				logger.Warn("URL excluded", "url", items[i].GetURL().String())
+				items[i].GetParent().RemoveChild(items[i])
+				continue
+			}
 		}
 
-		// TODO : normalize seeds
+		// TODO : normalize seeds and apply exclusions to seeds
 		//
 		// else {
 		// 	err := normalizeURL(items[i].GetURL(), &models.URL{Raw: items[i].GetSeedVia()})
