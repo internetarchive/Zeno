@@ -1,55 +1,56 @@
-package crawl
+package extractor
 
 import (
 	"strings"
+
+	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-// Represents a Link struct, containing a URL to which it links, and a Rel to define the relation
-type Link struct {
-	URL string
-	Rel string
-}
-
-// Parse parses a raw Link header in the form:
+// ExtractURLsFromHeader parses a raw Link header in the form:
 //
 //	<url1>; rel="what", <url2>; rel="any"; another="yes", <url3>; rel="thing"
 //
-// returning a slice of Link structs
+// returning a slice of models.URL structs
 // Each of these are separated by a `, ` and the in turn by a `; `, with the first always being the url, and the remaining the key-val pairs
 // See: https://simon-frey.com/blog/link-header/, https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link
-func Parse(link string) []Link {
-	var links []Link
+func ExtractURLsFromHeader(link string) (URLs []*models.URL) {
+	if link == "" {
+		return URLs
+	}
 
 	for _, link := range strings.Split(link, ", ") {
 		parts := strings.Split(link, ";")
 		if len(parts) < 1 {
-			// Malformed input, somehow we didn't get atleast one part
+			// Malformed input, somehow we didn't get at least one part
 			continue
 		}
 
-		url := strings.TrimSpace(strings.Trim(parts[0], "<>"))
-		rel := ""
+		URL := strings.TrimSpace(strings.Trim(parts[0], "<>"))
+		if URL == "" {
+			// Malformed input, URL is empty
+			continue
+		}
 
 		for _, attrs := range parts[1:] {
-			key, value := ParseAttr(attrs)
+			key, _ := parseAttr(attrs)
 			if key == "" {
 				// Malformed input, somehow the key is nothing
 				continue
 			}
 
 			if key == "rel" {
-				rel = value
 				break
 			}
 		}
-		links = append(links, Link{URL: url, Rel: rel})
+
+		URLs = append(URLs, &models.URL{Raw: URL})
 	}
 
-	return links
+	return URLs
 }
 
 // Parse a single attribute key value pair and return it
-func ParseAttr(attrs string) (key, value string) {
+func parseAttr(attrs string) (key, value string) {
 	kv := strings.SplitN(attrs, "=", 2)
 
 	if len(kv) != 2 {
