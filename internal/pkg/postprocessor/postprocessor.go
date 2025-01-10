@@ -9,6 +9,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/facebook"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -176,6 +177,21 @@ func postprocess(item *models.Item) (outlinks []*models.Item) {
 			}
 
 			continue
+		}
+
+		// Execute site-specific post-processing
+		switch {
+		case facebook.IsFacebookPostURL(items[i].GetURL()):
+			err := items[i].AddChild(
+				models.NewItem(
+					uuid.New().String(),
+					facebook.GenerateEmbedURL(items[i].GetURL()),
+					items[i].GetURL().String(),
+					true,
+				), models.ItemGotChildren)
+			if err != nil {
+				panic(err)
+			}
 		}
 
 		// Return if:
