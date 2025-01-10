@@ -26,6 +26,12 @@ func extractOutlinks(URL *models.URL, item *models.Item) (outlinks []*models.URL
 			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err
 		}
+	case extractor.IsSitemapXML(URL):
+		outlinks, err = extractor.XML(URL, true)
+		if err != nil {
+			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
+			return outlinks, err
+		}
 	default:
 		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
 	}
@@ -37,6 +43,7 @@ func extractOutlinks(URL *models.URL, item *models.Item) (outlinks []*models.URL
 
 	return outlinks, nil
 }
+
 func extractLinksFromPage(URL *models.URL) (links []*models.URL) {
 	defer URL.RewindBody()
 

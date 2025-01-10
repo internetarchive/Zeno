@@ -7,6 +7,10 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
+func IsJSON(URL *models.URL) bool {
+	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "json")
+}
+
 func JSON(URL *models.URL) (assets []*models.URL, err error) {
 	defer URL.RewindBody()
 

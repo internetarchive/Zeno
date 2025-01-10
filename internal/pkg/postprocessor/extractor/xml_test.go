@@ -2,180 +2,156 @@ package extractor
 
 import (
 	"bytes"
-	"encoding/xml"
 	"io"
 	"net/http"
-	"net/url"
-	"os"
 	"strings"
 	"testing"
+
+	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 func TestXML(t *testing.T) {
 	tests := []struct {
-		name               string
-		xmlBody            string
-		wantURLsLax        []*url.URL
-		wantURLsStric      []*url.URL
-		wantURLsCountLax   int
-		wantURLsCountStric int
-		wantErrLax         bool
-		wantErrStrict      bool
-		sitemap            bool
+		name     string
+		body     string
+		expected []string
+		hasError bool
 	}{
 		{
-			name: "Valid XML with URLs",
-			xmlBody: `
-				<root>
-					<item>http://example.com</item>
-					<nested>
-						<url>https://example.org</url>
-					</nested>
-					<noturl>just some text</noturl>
-				</root>`,
-			wantURLsLax: []*url.URL{
-				{Scheme: "http", Host: "example.com"},
-				{Scheme: "https", Host: "example.org"},
+			name: "Valid XML with multiple URLs",
+			body: `<?xml version="1.0" encoding="UTF-8"?>
+                <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+                    <url>
+                        <loc>https://example.com/page1</loc>
+                    </url>
+                    <url>
+                        <loc>https://example.com/page2</loc>
+                    </url>
+                </urlset>`,
+			expected: []string{
+				"http://www.sitemaps.org/schemas/sitemap/0.9",
+				"https://example.com/page1",
+				"https://example.com/page2",
 			},
-			wantURLsStric: []*url.URL{
-				{Scheme: "http", Host: "example.com"},
-				{Scheme: "https", Host: "example.org"},
-			},
-			sitemap: false,
+			hasError: false,
 		},
 		{
-			name: "unbalanced XML with URLs",
-			xmlBody: `
-				<unbalance>
-					<url>http://example.com</url>
-				</unbalance></unbalance></unbalance>
-					<outsideurl>https://unclosed.example.com</outsideurl>`,
-			wantURLsStric: []*url.URL{
-				{Scheme: "http", Host: "example.com"},
-			},
-			wantURLsLax: []*url.URL{
-				{Scheme: "http", Host: "example.com"},
-				{Scheme: "https", Host: "unclosed.example.com"},
-			},
-			wantErrStrict: true,
-			wantErrLax:    false,
-			sitemap:       false,
+			name:     "Valid XML with no URLs",
+			body:     `<?xml version="1.0" encoding="UTF-8"?></urlset>`,
+			expected: []string{},
+			hasError: false,
 		},
 		{
-			name:          "Empty XML",
-			xmlBody:       `<root></root>`,
-			wantURLsStric: nil,
-			wantURLsLax:   nil,
-			sitemap:       false,
+			name:     "Invalid XML content",
+			body:     `<html><body>Not XML</body></html>`,
+			expected: []string{},
+			hasError: false,
 		},
 		{
-			name:          "alien XML",
-			xmlBody:       `<h4 73><?/>/<AS "='AS "ASD@'SD>,as;g^&R$W#Sf)(U><l;rpkv ]])`,
-			wantURLsStric: nil,
-			wantURLsLax:   nil,
-			wantErrStrict: true,
-			wantErrLax:    true,
-			sitemap:       false,
-		},
-		{
-			name: "XML with invalid URL",
-			xmlBody: `
-				<root>
-					<item>http://example.com</item>
-					<item>not a valid url</item>
-				</root>`,
-			wantURLsStric: []*url.URL{
-				{Scheme: "http", Host: "example.com"},
+			name: "XML with nested elements containing URLs",
+			body: `<?xml version="1.0" encoding="UTF-8"?>
+                <root>
+                    <level1>
+                        <level2>
+                            <url>https://example.com/nested</url>
+                        </level2>
+                    </level1>
+                </root>`,
+			expected: []string{
+				"https://example.com/nested",
 			},
-			wantURLsLax: []*url.URL{
-				{Scheme: "http", Host: "example.com"},
-			},
-			wantErrStrict: false,
-			wantErrLax:    false,
-			sitemap:       false,
+			hasError: false,
 		},
 		{
-			name:               "Huge sitemap",
-			xmlBody:            loadTestFile(t, "xml_test_sitemap.xml"),
-			wantURLsCountStric: 100002,
-			wantURLsCountLax:   100002,
-			wantErrStrict:      false,
-			wantErrLax:         false,
-			sitemap:            true,
+			name: "XML with attributes containing URLs",
+			body: `<?xml version="1.0" encoding="UTF-8"?>
+                <root>
+                    <element url="https://example.com/attr"></element>
+                </root>`,
+			expected: []string{
+				"https://example.com/attr",
+			},
+			hasError: false,
+		},
+		{
+			name: "XML with mixed content",
+			body: `<?xml version="1.0" encoding="UTF-8"?>
+                <root>
+                    <element>Text before URL https://example.com/mixed Text after URL</element>
+                </root>`,
+			expected: []string{
+				"https://example.com/mixed",
+			},
+			hasError: false,
+		},
+		{
+			name:     "Empty XML content",
+			body:     ``,
+			expected: []string{},
+			hasError: true,
+		},
+		{
+			name: "Large XML content",
+			body: `<?xml version="1.0" encoding="UTF-8"?>
+                <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` + strings.Repeat(`<url><loc>https://example.com/page</loc></url>`, 1000) + `</urlset>`,
+			expected: func() []string {
+				var urls = []string{"http://www.sitemaps.org/schemas/sitemap/0.9"}
+				for i := 0; i < 1000; i++ {
+					urls = append(urls, "https://example.com/page")
+				}
+				return urls
+			}(),
+			hasError: false,
+		},
+		{
+			name: "XML with special characters in URLs",
+			body: `<?xml version="1.0" encoding="UTF-8"?>
+                <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+                    <url>
+                        <loc>https://example.com/page?param=1&amp;other=2</loc>
+                    </url>
+                </urlset>`,
+			expected: []string{
+				"http://www.sitemaps.org/schemas/sitemap/0.9",
+				"https://example.com/page?param=1&other=2",
+			},
+			hasError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			testMode := func(strict bool, wantErr bool, wantURLs []*url.URL, wantURLsCount int) {
-				resp := &http.Response{
-					Body: io.NopCloser(bytes.NewBufferString(tt.xmlBody)),
-				}
-				gotURLs, sitemap, err := XML(resp, strict)
-				if (err != nil) != wantErr {
-					t.Errorf("XML() strict = %v, error = %v, wantErr %v", strict, err, wantErr)
-					return
-				}
-				if wantURLsCount != 0 && len(gotURLs) != wantURLsCount {
-					t.Errorf("XML() strict = %v, gotURLs count = %v, want %v", strict, len(gotURLs), wantURLsCount)
-				}
-				if wantURLs != nil && !compareURLs(gotURLs, wantURLs) {
-					t.Errorf("XML() strict = %v, gotURLs = %v, want %v", strict, gotURLs, wantURLs)
-				}
-				if tt.sitemap != sitemap {
-					t.Errorf("XML() strict = %v, sitemap = %v, want %v", strict, sitemap, tt.sitemap)
-				}
+			resp := &http.Response{
+				Body: io.NopCloser(bytes.NewBufferString(tt.body)),
 			}
 
-			// Strict mode
-			testMode(true, tt.wantErrStrict, tt.wantURLsStric, tt.wantURLsCountStric)
+			var URL = new(models.URL)
+			URL.SetResponse(resp)
 
-			// Lax mode
-			testMode(false, tt.wantErrLax, tt.wantURLsLax, tt.wantURLsCountLax)
+			// Consume the response body
+			body := bytes.NewBuffer(nil)
+			_, err := io.Copy(body, resp.Body)
+			if err != nil {
+				t.Errorf("unable to read response body: %v", err)
+			}
+
+			// Set the body in the URL
+			URL.SetBody(bytes.NewReader(body.Bytes()))
+
+			assets, err := XML(URL, false)
+			if (err != nil) != tt.hasError {
+				t.Fatalf("XML() error = %v, wantErr %v", err, tt.hasError)
+			}
+
+			if len(assets) != len(tt.expected) {
+				t.Fatalf("Expected %d assets, got %d", len(tt.expected), len(assets))
+			}
+
+			for i, asset := range assets {
+				if asset.Raw != tt.expected[i] {
+					t.Errorf("Expected asset %s, got %s", tt.expected[i], asset.Raw)
+				}
+			}
 		})
-	}
-}
-
-func loadTestFile(t *testing.T, path string) string {
-	f, err := os.Open(path)
-	if err != nil {
-		t.Fatalf("openFile() error = %v", err)
-	}
-
-	b, err := io.ReadAll(f)
-	if err != nil {
-		t.Fatalf("readFile() error = %v", err)
-	}
-
-	return string(b)
-}
-
-func TestXMLBodySyntaxEOFErrorStrict(t *testing.T) {
-	wantErr := xml.SyntaxError{Line: 3, Msg: "unexpected EOF"}
-	resp := &http.Response{
-		Body: io.NopCloser(strings.NewReader(
-			`<unclosed>
-			<closed>
-			</closed> <!-- Syntax EOF here -->`)),
-	}
-	_, _, err := XML(resp, true)
-	if err == nil {
-		t.Errorf("XML() error = %v, wantErr %v", err, wantErr)
-		return
-	}
-	if err.Error() != wantErr.Error() {
-		t.Errorf("XML() error = %v, wantErr %v", err, wantErr)
-	}
-}
-
-func TestXMLBodySyntaxEOFErrorLax(t *testing.T) {
-	resp := &http.Response{
-		Body: io.NopCloser(strings.NewReader(`<unclosed>
-			<closed>
-			</closed> <!-- ignore Syntax EOF here -->`)),
-	}
-	_, _, err := XML(resp, false)
-	if err != nil {
-		t.Errorf("XML() error = %v, wantErr nil", err)
 	}
 }

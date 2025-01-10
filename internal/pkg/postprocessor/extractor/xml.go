@@ -3,34 +3,50 @@ package extractor
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"io"
-	"net/http"
-	"net/url"
 	"strings"
+
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 var sitemapMarker = []byte("sitemaps.org/schemas/sitemap/")
 
-func XML(resp *http.Response, strict bool) (URLs []*url.URL, sitemap bool, err error) {
-	xmlBody, err := io.ReadAll(resp.Body)
+func IsXML(URL *models.URL) bool {
+	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "xml") && !IsSitemapXML(URL)
+}
+
+func IsSitemapXML(URL *models.URL) bool {
+	defer URL.RewindBody()
+
+	xmlBody, err := io.ReadAll(URL.GetBody())
 	if err != nil {
-		return nil, sitemap, err
+		return false
 	}
 
-	if bytes.Contains(xmlBody, sitemapMarker) {
-		sitemap = true
+	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "xml") && bytes.Contains(xmlBody, sitemapMarker)
+}
+
+func XML(URL *models.URL, sitemap bool) (assets []*models.URL, err error) {
+	defer URL.RewindBody()
+
+	xmlBody, err := io.ReadAll(URL.GetBody())
+	if err != nil {
+		return nil, err
+	}
+
+	if len(xmlBody) == 0 {
+		return nil, errors.New("empty XML body")
 	}
 
 	decoder := xml.NewDecoder(bytes.NewReader(xmlBody))
-	decoder.Strict = strict
+	decoder.Strict = false
 
 	var tok xml.Token
+	var rawAssets []string
 	for {
-		if strict {
-			tok, err = decoder.Token()
-		} else {
-			tok, err = decoder.RawToken()
-		}
+		tok, err = decoder.RawToken()
 
 		if tok == nil && err == io.EOF {
 			// normal EOF
@@ -39,28 +55,37 @@ func XML(resp *http.Response, strict bool) (URLs []*url.URL, sitemap bool, err e
 
 		if err != nil {
 			// return URLs we got so far when error occurs
-			return URLs, sitemap, err
+			return assets, err
 		}
 
 		switch tok := tok.(type) {
 		case xml.StartElement:
 			for _, attr := range tok.Attr {
 				if strings.HasPrefix(attr.Value, "http") {
-					parsedURL, err := url.Parse(attr.Value)
-					if err == nil {
-						URLs = append(URLs, parsedURL)
-					}
+					rawAssets = append(rawAssets, attr.Value)
 				}
 			}
 		case xml.CharData:
 			if bytes.HasPrefix(tok, []byte("http")) {
-				parsedURL, err := url.Parse(string(tok))
-				if err == nil {
-					URLs = append(URLs, parsedURL)
-				}
+				rawAssets = append(rawAssets, string(tok))
+			} else {
+				// Try to extract URLs from the text
+				rawAssets = append(rawAssets, utils.DedupeStrings(LinkRegexRelaxed.FindAllString(string(tok), -1))...)
 			}
 		}
 	}
 
-	return URLs, sitemap, nil
+	var hops = URL.GetHops()
+	if sitemap {
+		hops += 1
+	}
+
+	for _, rawAsset := range rawAssets {
+		assets = append(assets, &models.URL{
+			Raw:  rawAsset,
+			Hops: hops,
+		})
+	}
+
+	return assets, nil
 }
