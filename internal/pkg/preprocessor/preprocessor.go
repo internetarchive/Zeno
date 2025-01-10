@@ -10,6 +10,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -159,6 +160,7 @@ func preprocess(item *models.Item) {
 				continue
 			}
 		}
+
 		// TODO : normalize seeds
 		//
 		// else {
@@ -237,12 +239,19 @@ func preprocess(item *models.Item) {
 
 	// Finally, we build the requests, applying any site-specific behavior needed
 	for i := range items {
-		// TODO: apply site-specific stuff
 		req, err := http.NewRequest(http.MethodGet, items[i].GetURL().String(), nil)
 		if err != nil {
 			logger.Error("unable to create request for URL", "url", items[i].GetURL().String(), "err", err.Error())
 			items[i].SetStatus(models.ItemFailed)
 			continue
+		}
+
+		// Apply configured User-Agent
+		req.Header.Set("User-Agent", config.Get().UserAgent)
+
+		switch {
+		case tiktok.IsTikTokURL(items[i].GetURL()):
+			tiktok.AddHeaders(req)
 		}
 
 		items[i].GetURL().SetRequest(req)
