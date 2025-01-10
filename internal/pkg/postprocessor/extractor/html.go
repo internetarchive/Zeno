@@ -21,11 +21,64 @@ func IsHTML(URL *models.URL) bool {
 	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "html")
 }
 
-func HTML(doc *goquery.Document, URL *models.URL, seed *models.Item) (assets []*models.URL, err error) {
+func HTMLOutlinks(doc *goquery.Document, URL *models.URL) (outlinks []*models.URL, err error) {
+	defer URL.RewindBody()
+
+	// logger := log.NewFieldedLogger(&log.Fields{
+	// 	"component": "postprocessor.extractor.HTMLOutlinks",
+	// })
+
+	var rawOutlinks []string
+
+	// Match <a> tags with href, data-href, data-src, data-srcset, data-lazy-src, data-srcset, src, srcset
+	if !utils.StringInSlice("a", config.Get().DisableHTMLTag) {
+		var validAssetPath = []string{
+			"static/",
+			"assets/",
+			"asset/",
+			"images/",
+			"image/",
+			"img/",
+		}
+
+		var validAssetAttributes = []string{
+			"href",
+			"data-href",
+			"data-src",
+			"data-srcset",
+			"data-lazy-src",
+			"data-srcset",
+			"src",
+			"srcset",
+		}
+
+		doc.Find("a").Each(func(index int, item *goquery.Selection) {
+			for _, attr := range validAssetAttributes {
+				link, exists := item.Attr(attr)
+				if exists {
+					if utils.StringContainsSliceElements(link, validAssetPath) {
+						rawOutlinks = append(rawOutlinks, link)
+					}
+				}
+			}
+		})
+	}
+
+	for _, rawOutlink := range rawOutlinks {
+		outlinks = append(outlinks, &models.URL{
+			Raw:  rawOutlink,
+			Hops: URL.GetHops() + 1,
+		})
+	}
+
+	return outlinks, nil
+}
+
+func HTMLAssets(doc *goquery.Document, URL *models.URL, seed *models.Item) (assets []*models.URL, err error) {
 	defer URL.RewindBody()
 
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "postprocessor.extractor.HTML",
+		"component": "postprocessor.extractor.HTMLAssets",
 	})
 
 	var rawAssets []string
@@ -70,40 +123,6 @@ func HTML(doc *goquery.Document, URL *models.URL, seed *models.Item) (assets []*
 			}
 		}
 	})
-
-	// Match <a> tags with href, data-href, data-src, data-srcset, data-lazy-src, data-srcset, src, srcset
-	if !utils.StringInSlice("a", config.Get().DisableHTMLTag) {
-		var validAssetPath = []string{
-			"static/",
-			"assets/",
-			"asset/",
-			"images/",
-			"image/",
-			"img/",
-		}
-
-		var validAssetAttributes = []string{
-			"href",
-			"data-href",
-			"data-src",
-			"data-srcset",
-			"data-lazy-src",
-			"data-srcset",
-			"src",
-			"srcset",
-		}
-
-		doc.Find("a").Each(func(index int, item *goquery.Selection) {
-			for _, attr := range validAssetAttributes {
-				link, exists := item.Attr(attr)
-				if exists {
-					if utils.StringContainsSliceElements(link, validAssetPath) {
-						rawAssets = append(rawAssets, link)
-					}
-				}
-			}
-		})
-	}
 
 	// Extract assets on the page (images, scripts, videos..)
 	if !utils.StringInSlice("img", config.Get().DisableHTMLTag) {

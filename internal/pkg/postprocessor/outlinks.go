@@ -4,13 +4,14 @@ import (
 	"io"
 	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func extractOutlinks(URL *models.URL, item *models.Item) (outlinks []*models.URL, err error) {
+func extractOutlinks(doc *goquery.Document, URL *models.URL, item *models.Item) (outlinks []*models.URL, err error) {
 	var (
 		contentType = URL.GetResponse().Header.Get("Content-Type")
 		logger      = log.NewFieldedLogger(&log.Fields{
@@ -28,6 +29,12 @@ func extractOutlinks(URL *models.URL, item *models.Item) (outlinks []*models.URL
 		}
 	case extractor.IsSitemapXML(URL):
 		outlinks, err = extractor.XML(URL, true)
+		if err != nil {
+			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
+			return outlinks, err
+		}
+	case extractor.IsHTML(URL):
+		outlinks, err := extractor.HTMLOutlinks(doc, URL)
 		if err != nil {
 			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err

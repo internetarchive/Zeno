@@ -45,7 +45,7 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (a
 			return assets, err
 		}
 	case extractor.IsHTML(URL):
-		assets, err = extractor.HTML(doc, URL, item)
+		assets, err = extractor.HTMLAssets(doc, URL, item)
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
 			return assets, err
