@@ -4,6 +4,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/ina"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -19,6 +20,12 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (a
 	switch {
 	// Order is important, we want to check for more specific things first,
 	// as they may trigger more general extractors (e.g. HTML)
+	case ina.IsAPIURL(URL):
+		assets, err := ina.ExtractMedias(URL)
+		if err != nil {
+			logger.Error("unable to extract medias from INA", "err", err.Error(), "item", item.GetShortID())
+			return assets, err
+		}
 	case extractor.IsM3U8(URL):
 		assets, err = extractor.M3U8(URL)
 		if err != nil {
