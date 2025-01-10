@@ -414,26 +414,6 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		}
 
 		return nil
-	} else if ina.IsAPIURL(req) {
-		rawAssets, err := ina.ExtractMedias(resp)
-		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to extract medias from INA")
-		}
-
-		if len(rawAssets) != 0 {
-			assets = c.seencheckAssets(rawAssets, item)
-
-			if len(assets) != 0 {
-				for _, asset := range rawAssets {
-					playerItem, err := queue.NewItem(asset, item.URL, "seed", 0, "", false)
-					if err != nil {
-						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to create new item from asset")
-					} else {
-						c.Capture(playerItem)
-					}
-				}
-			}
-		}
 	}
 
 	// Scrape potential URLs from Link HTTP header
