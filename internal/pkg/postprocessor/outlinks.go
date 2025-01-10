@@ -36,6 +36,12 @@ func extractOutlinks(URL *models.URL, item *models.Item) (outlinks []*models.URL
 		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
 	}
 
+	// Try to extract links from link headers
+	linksFromLinkHeader := extractor.ExtractURLsFromHeader(URL.GetResponse().Header.Get("link"))
+	if linksFromLinkHeader != nil {
+		outlinks = append(outlinks, linksFromLinkHeader...)
+	}
+
 	// If the page is a text/* content type, extract links from the body (aggressively)
 	if strings.Contains(contentType, "text/") {
 		outlinks = append(outlinks, extractLinksFromPage(URL)...)
