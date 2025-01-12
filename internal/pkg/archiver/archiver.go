@@ -120,7 +120,7 @@ func run() {
 			logger.Debug("received resume event")
 		case item, ok := <-globalArchiver.inputCh:
 			if ok {
-				logger.Debug("received item", "item", item.GetShortID())
+				logger.Debug("received item", "item", item.GetShortID(), "depth", item.GetDepth())
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.ArchiverRoutinesIncr()
@@ -130,7 +130,7 @@ func run() {
 					defer stats.ArchiverRoutinesDecr()
 
 					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
-						logger.Debug("skipping item", "item", item.GetShortID(), "status", item.GetStatus().String())
+						logger.Debug("skipping item", "item", item.GetShortID(), "depth", item.GetDepth(), "status", item.GetStatus().String())
 					} else {
 						err := item.CheckConsistency()
 						if err != nil {
@@ -142,7 +142,7 @@ func run() {
 					select {
 					case globalArchiver.outputCh <- item:
 					case <-ctx.Done():
-						logger.Debug("aborting item due to stop", "item", item.GetShortID())
+						logger.Debug("aborting item due to stop", "item", item.GetShortID(), "depth", item.GetDepth())
 						return
 					}
 				}(ctx)
@@ -169,13 +169,13 @@ func archive(item *models.Item) {
 
 	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
 	if err != nil {
-		logger.Error("unable to get nodes at level", "err", err.Error(), "item", item.GetShortID())
+		logger.Error("unable to get nodes at level", "err", err.Error(), "item", item.GetShortID(), "depth", item.GetDepth())
 		panic(err)
 	}
 
 	for i := range items {
 		if items[i].GetStatus() != models.ItemPreProcessed {
-			logger.Debug("skipping item", "item", items[i].GetShortID(), "status", items[i].GetStatus().String())
+			logger.Debug("skipping item", "item", items[i].GetShortID(), "status", items[i].GetStatus().String(), "depth", items[i].GetDepth())
 			continue
 		}
 
@@ -215,7 +215,7 @@ func archive(item *models.Item) {
 			body := bytes.NewBuffer(nil)
 			_, err = io.Copy(body, resp.Body)
 			if err != nil {
-				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID())
+				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "depth", item.GetDepth())
 				i.SetStatus(models.ItemFailed)
 				return
 			}
@@ -225,7 +225,7 @@ func archive(item *models.Item) {
 
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
 
-			logger.Info("url archived", "url", i.GetURL().String(), "item", item.GetShortID(), "status", resp.StatusCode)
+			logger.Info("url archived", "url", i.GetURL().String(), "depth", item.GetDepth(), "item", item.GetShortID(), "status", resp.StatusCode)
 
 			i.SetStatus(models.ItemArchived)
 		}(items[i])
