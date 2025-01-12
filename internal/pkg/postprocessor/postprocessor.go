@@ -187,7 +187,7 @@ func postprocess(item *models.Item) (outlinks []*models.Item) {
 					uuid.New().String(),
 					facebook.GenerateEmbedURL(items[i].GetURL()),
 					items[i].GetURL().String(),
-					true,
+					false,
 				), models.ItemGotChildren)
 			if err != nil {
 				panic(err)
