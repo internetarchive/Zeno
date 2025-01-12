@@ -9,7 +9,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/facebook"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -180,21 +179,23 @@ func postprocess(item *models.Item) (outlinks []*models.Item) {
 		}
 
 		// Execute site-specific post-processing
-		switch {
-		case facebook.IsFacebookPostURL(items[i].GetURL()):
-			err := items[i].AddChild(
-				models.NewItem(
-					uuid.New().String(),
-					facebook.GenerateEmbedURL(items[i].GetURL()),
-					items[i].GetURL().String(),
-					false,
-				), models.ItemGotChildren)
-			if err != nil {
-				panic(err)
-			}
+		// TODO: re-add, but it was causing:
+		// panic: preprocessor received item with status 4
+		// switch {
+		// case facebook.IsFacebookPostURL(items[i].GetURL()):
+		// 	err := items[i].AddChild(
+		// 		models.NewItem(
+		// 			uuid.New().String(),
+		// 			facebook.GenerateEmbedURL(items[i].GetURL()),
+		// 			items[i].GetURL().String(),
+		// 			false,
+		// 		), models.ItemGotChildren)
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
 
-			items[i].SetStatus(models.ItemGotChildren)
-		}
+		// 	items[i].SetStatus(models.ItemGotChildren)
+		// }
 
 		// Return if:
 		// - the item is a child and the URL has more than one hop
