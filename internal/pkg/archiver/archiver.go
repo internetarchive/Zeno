@@ -120,7 +120,7 @@ func run() {
 			logger.Debug("received resume event")
 		case item, ok := <-globalArchiver.inputCh:
 			if ok {
-				logger.Debug("received item", "item", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed())
+				logger.Debug("received item", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.ArchiverRoutinesIncr()
@@ -130,7 +130,7 @@ func run() {
 					defer stats.ArchiverRoutinesDecr()
 
 					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
-						logger.Debug("skipping item", "item", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed(), "status", item.GetStatus().String())
+						logger.Debug("skipping item", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", item.GetStatus().String())
 					} else {
 						err := item.CheckConsistency()
 						if err != nil {
@@ -142,7 +142,7 @@ func run() {
 					select {
 					case globalArchiver.outputCh <- item:
 					case <-ctx.Done():
-						logger.Debug("aborting item due to stop", "item", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed())
+						logger.Debug("aborting item due to stop", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 						return
 					}
 				}(ctx)
@@ -203,7 +203,7 @@ func archive(seed *models.Item) {
 				resp, err = globalArchiver.Client.Do(req)
 			}
 			if err != nil {
-				logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed())
+				logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 				item.SetStatus(models.ItemFailed)
 				return
 			}
@@ -215,7 +215,7 @@ func archive(seed *models.Item) {
 			body := bytes.NewBuffer(nil)
 			_, err = io.Copy(body, resp.Body)
 			if err != nil {
-				logger.Error("unable to read response body", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed())
+				logger.Error("unable to read response body", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 				item.SetStatus(models.ItemFailed)
 				return
 			}
@@ -225,7 +225,7 @@ func archive(seed *models.Item) {
 
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
 
-			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed())
+			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 
 			item.SetStatus(models.ItemArchived)
 		}(items[i])
