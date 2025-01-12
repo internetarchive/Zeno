@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	mimetype.SetLimit(0)
+	mimetype.SetLimit(1024 * 1024)
 }
 
 type URL struct {
@@ -43,48 +43,49 @@ func (u *URL) SetBody(body *bytes.Reader) {
 	u.body = body
 }
 
-func (u *URL) ProcessBody() (err error) {
-	// Consume the response body, this serves as a way to consume the body to write it in the WARC file,
-	// but also to detect the MIME type of the body. If the mime type is one that we post-process, we will
-	// store the body, else we will discard it.
-	tempBody := bytes.NewBuffer(nil)
-	_, err = io.Copy(tempBody, u.GetResponse().Body)
+func (u *URL) ProcessBody() error {
+	defer u.response.Body.Close() // Ensure the response body is closed
+
+	// Read up to 1MB of the body
+	limitedReader := io.LimitReader(u.response.Body, 1024*1024)
+	buffer := new(bytes.Buffer)
+	_, err := io.Copy(buffer, limitedReader)
 	if err != nil {
 		return err
 	}
-	u.GetResponse().Body.Close()
-
-	// Turn the body into a reader so that it can be read again
-	u.SetBody(bytes.NewReader(tempBody.Bytes()))
-
-	// Destroy the body buffer, we don't need it anymore
-	tempBody = nil
 
 	// We do not use http.DetectContentType because it only supports
 	// a limited number of MIME types, those commonly found in web.
-	u.mimetype, err = mimetype.DetectReader(u.GetBody())
-	if err != nil {
-		return err
-	}
-	u.RewindBody()
+	u.mimetype = mimetype.Detect(buffer.Bytes())
 
 	// Check if the MIME type is one that we post-process
-	if u.mimetype.Parent() != nil {
-		switch u.mimetype.Parent().String() {
-		case "text/plain":
-			// Also create the goquery document
-			u.document, err = goquery.NewDocumentFromReader(u.GetBody())
-			if err != nil {
-				return err
-			}
-			u.RewindBody()
-
-			return nil
+	if u.mimetype.Parent() != nil && u.mimetype.Parent().String() == "text/plain" {
+		// Read the rest of the body and set it in SetBody()
+		remainingBody, err := io.ReadAll(u.response.Body)
+		if err != nil {
+			return err
 		}
+		buffer.Write(remainingBody)
+		u.SetBody(bytes.NewReader(buffer.Bytes()))
+
+		// Also create the goquery document
+		u.document, err = goquery.NewDocumentFromReader(buffer)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Read the rest of the body but discard it
+		_, err := io.Copy(io.Discard, u.response.Body)
+		if err != nil {
+			return err
+		}
+
+		// Set the URL body to nil, the mimetype is not one that we post-process
+		u.SetBody(nil)
 	}
 
-	// Set the URL body to nil, the mimetype is not one that we post-process
-	u.SetBody(nil)
+	// Destroy the buffer, we don't need it anymore
+	buffer = nil
 
 	return nil
 }
