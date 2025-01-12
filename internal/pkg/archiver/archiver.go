@@ -209,6 +209,14 @@ func archive(seed *models.Item) {
 			// Set the response in the URL
 			item.GetURL().SetResponse(resp)
 
+			// Process the body
+			err = item.GetURL().ProcessBody()
+			if err != nil {
+				logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+				item.SetStatus(models.ItemFailed)
+				return
+			}
+
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
 
 			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)

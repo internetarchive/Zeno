@@ -17,13 +17,6 @@ func postprocessItem(item, seed *models.Item) (outlinks []*models.Item) {
 		return
 	}
 
-	// Process the body
-	err := item.GetURL().ProcessBody()
-	if err != nil {
-		logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
-		return
-	}
-
 	// Verify if there is any redirection
 	// TODO: execute assets redirection
 	if isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
