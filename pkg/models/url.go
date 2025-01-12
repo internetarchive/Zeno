@@ -70,10 +70,11 @@ func (u *URL) ProcessBody() error {
 		u.SetBody(bytes.NewReader(buffer.Bytes()))
 
 		// Also create the goquery document
-		u.document, err = goquery.NewDocumentFromReader(buffer)
+		u.document, err = goquery.NewDocumentFromReader(u.GetBody())
 		if err != nil {
 			return err
 		}
+		u.RewindBody()
 	} else {
 		// Read the rest of the body but discard it
 		_, err := io.Copy(io.Discard, u.response.Body)
