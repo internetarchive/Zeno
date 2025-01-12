@@ -9,7 +9,9 @@ import (
 )
 
 func IsFacebookPostURL(URL *models.URL) bool {
-	return strings.Contains(URL.String(), "facebook.com") && strings.Contains(URL.String(), "/posts/")
+	return strings.Contains(URL.String(), "facebook.com") &&
+		strings.Contains(URL.String(), "/posts/") &&
+		!strings.Contains(URL.String(), "/plugins/post.php")
 }
 
 func GenerateEmbedURL(URL *models.URL) *models.URL {
