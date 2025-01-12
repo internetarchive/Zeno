@@ -6,37 +6,39 @@ import (
 )
 
 type rate struct {
-	count      uint64
-	lastCount  uint64
-	lastUpdate int64
+	total      atomic.Uint64
+	count      atomic.Uint64
+	lastCount  atomic.Uint64
+	lastUpdate atomic.Int64
 }
 
 func (rps *rate) incr(step uint64) {
-	atomic.AddUint64(&rps.count, step)
+	rps.count.Add(step)
+	rps.total.Add(step)
 }
 
 func (rps *rate) get() uint64 {
 	now := time.Now().Unix()
-	lastUpdate := atomic.LoadInt64(&rps.lastUpdate)
+	lastUpdate := rps.lastUpdate.Load()
 
 	if now == lastUpdate {
-		return atomic.LoadUint64(&rps.lastCount)
+		return rps.lastCount.Load()
 	}
 
-	currentCount := atomic.LoadUint64(&rps.count)
-	lastCount := atomic.SwapUint64(&rps.count, 0)
-	atomic.StoreUint64(&rps.lastCount, lastCount)
-	atomic.StoreInt64(&rps.lastUpdate, now)
+	currentCount := rps.count.Load()
+	lastCount := rps.count.Swap(0)
+	rps.lastCount.Store(lastCount)
+	rps.lastUpdate.Store(now)
 
 	return currentCount
 }
 
 func (rps *rate) getTotal() uint64 {
-	return atomic.LoadUint64(&rps.count)
+	return rps.total.Load()
 }
 
 func (rps *rate) reset() {
-	atomic.StoreUint64(&rps.count, 0)
-	atomic.StoreUint64(&rps.lastCount, 0)
-	atomic.StoreInt64(&rps.lastUpdate, 0)
+	rps.count.Store(0)
+	rps.lastCount.Store(0)
+	rps.lastUpdate.Store(0)
 }
