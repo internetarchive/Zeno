@@ -4,8 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/PuerkitoBio/goquery"
-	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -133,139 +131,25 @@ func run() {
 	}
 }
 
-func postprocess(item *models.Item) (outlinks []*models.Item) {
+func postprocess(seed *models.Item) (outlinks []*models.Item) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "postprocessor.postprocess",
+	})
+
 	// If we don't capture assets, there is no need to postprocess the item
 	// TODO: handle hops even with disable assets capture
 	if config.Get().DisableAssetsCapture {
 		return
 	}
 
-	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
+	items, err := seed.GetNodesAtLevel(seed.GetMaxDepth())
 	if err != nil {
-		logger.Error("unable to get nodes at level", "err", err.Error(), "item", item.GetShortID())
+		logger.Error("unable to get nodes at level", "err", err.Error(), "seed_id", seed.GetShortID())
 		panic(err)
 	}
 
 	for i := range items {
-		if items[i].GetStatus() != models.ItemArchived {
-			logger.Debug("item not archived, skipping", "item", items[i].GetShortID())
-			continue
-		}
-
-		// Verify if there is any redirection
-		// TODO: execute assets redirection
-		if isStatusCodeRedirect(items[i].GetURL().GetResponse().StatusCode) {
-			// Check if the current redirections count doesn't exceed the max allowed
-			if items[i].GetURL().GetRedirects() >= config.Get().MaxRedirect {
-				logger.Warn("max redirects reached", "item", item.GetShortID(), "func", "postprocessor.postprocess")
-				items[i].SetStatus(models.ItemCompleted)
-				continue
-			}
-
-			// Prepare the new item resulting from the redirection
-			newURL := &models.URL{
-				Raw:       items[i].GetURL().GetResponse().Header.Get("Location"),
-				Redirects: items[i].GetURL().GetRedirects() + 1,
-				Hops:      items[i].GetURL().GetHops(),
-			}
-
-			items[i].SetStatus(models.ItemGotRedirected)
-			err := items[i].AddChild(models.NewItem(uuid.New().String(), newURL, "", false), items[i].GetStatus())
-			if err != nil {
-				panic(err)
-			}
-
-			continue
-		}
-
-		// Execute site-specific post-processing
-		// TODO: re-add, but it was causing:
-		// panic: preprocessor received item with status 4
-		// switch {
-		// case facebook.IsFacebookPostURL(items[i].GetURL()):
-		// 	err := items[i].AddChild(
-		// 		models.NewItem(
-		// 			uuid.New().String(),
-		// 			facebook.GenerateEmbedURL(items[i].GetURL()),
-		// 			items[i].GetURL().String(),
-		// 			false,
-		// 		), models.ItemGotChildren)
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-
-		// 	items[i].SetStatus(models.ItemGotChildren)
-		// }
-
-		// Return if:
-		// - the item is a child and the URL has more than one hop
-		// - assets capture is disabled and domains crawl is disabled
-		// - the item is a seed and the URL has more hops than the max allowed
-		if (items[i].IsChild() && items[i].GetURL().GetHops() > 1) ||
-			(config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl) ||
-			(items[i].IsSeed() && (items[i].GetURL().GetHops() >= config.Get().MaxHops)) {
-			items[i].SetStatus(models.ItemCompleted)
-			continue
-		}
-
-		if items[i].GetURL().GetResponse() != nil {
-			// Generate the goquery document from the response body
-			doc, err := goquery.NewDocumentFromReader(items[i].GetURL().GetBody())
-			if err != nil {
-				logger.Error("unable to create goquery document", "err", err.Error(), "item", items[i].GetShortID())
-				continue
-			}
-
-			items[i].GetURL().RewindBody()
-
-			// If the URL is a seed, scrape the base tag
-			if items[i].IsSeed() || items[i].IsRedirection() {
-				scrapeBaseTag(doc, items[i])
-			}
-
-			// Extract assets from the document
-			if !config.Get().DisableAssetsCapture {
-				assets, err := extractAssets(doc, items[i].GetURL(), items[i])
-				if err != nil {
-					logger.Error("unable to extract assets", "err", err.Error(), "item", items[i].GetShortID())
-				}
-
-				for _, asset := range assets {
-					if assets == nil {
-						logger.Warn("nil asset", "item", items[i].GetShortID())
-						continue
-					}
-
-					items[i].SetStatus(models.ItemGotChildren)
-					items[i].AddChild(models.NewItem(uuid.New().String(), asset, "", false), items[i].GetStatus())
-				}
-			}
-
-			// Extract outlinks from the page
-			if config.Get().DomainsCrawl || ((items[i].IsSeed() || items[i].IsRedirection()) && items[i].GetURL().GetHops() < config.Get().MaxHops) {
-				logger.Info("extracting outlinks", "item", items[i].GetShortID())
-				links, err := extractOutlinks(doc, items[i].GetURL(), items[i])
-				if err != nil {
-					logger.Error("unable to extract outlinks", "err", err.Error(), "item", items[i].GetShortID())
-					continue
-				}
-
-				for _, link := range links {
-					if link == nil {
-						logger.Warn("nil link", "item", items[i].GetShortID())
-						continue
-					}
-
-					outlinks = append(outlinks, models.NewItem(uuid.New().String(), link, items[i].GetURL().String(), true))
-				}
-
-				logger.Debug("extracted outlinks", "item", items[i].GetShortID(), "count", len(links))
-			}
-		}
-
-		if items[i].GetStatus() != models.ItemGotChildren && items[i].GetStatus() != models.ItemGotRedirected {
-			items[i].SetStatus(models.ItemCompleted)
-		}
+		outlinks = postprocessItem(items[i], seed)
 	}
 
 	return

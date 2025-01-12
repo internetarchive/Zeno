@@ -1,9 +1,7 @@
 package archiver
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"net/http"
 	"strconv"
 	"sync"
@@ -207,26 +205,13 @@ func archive(seed *models.Item) {
 				item.SetStatus(models.ItemFailed)
 				return
 			}
-			defer resp.Body.Close()
 
 			// Set the response in the URL
 			item.GetURL().SetResponse(resp)
 
-			// Consume the response body
-			body := bytes.NewBuffer(nil)
-			_, err = io.Copy(body, resp.Body)
-			if err != nil {
-				logger.Error("unable to read response body", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
-				item.SetStatus(models.ItemFailed)
-				return
-			}
-
-			// Set the body in the URL
-			item.GetURL().SetBody(bytes.NewReader(body.Bytes()))
-
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
 
-			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
 
 			item.SetStatus(models.ItemArchived)
 		}(items[i])

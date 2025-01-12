@@ -4,16 +4,15 @@ import (
 	"io"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func extractOutlinks(doc *goquery.Document, URL *models.URL, item *models.Item) (outlinks []*models.URL, err error) {
+func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	var (
-		contentType = URL.GetResponse().Header.Get("Content-Type")
+		contentType = item.GetURL().GetResponse().Header.Get("Content-Type")
 		logger      = log.NewFieldedLogger(&log.Fields{
 			"component": "postprocessor.extractOutlinks",
 		})
@@ -21,20 +20,20 @@ func extractOutlinks(doc *goquery.Document, URL *models.URL, item *models.Item) 
 
 	// Run specific extractors
 	switch {
-	case extractor.IsS3(URL):
-		outlinks, err = extractor.S3(URL)
+	case extractor.IsS3(item.GetURL()):
+		outlinks, err = extractor.S3(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err
 		}
-	case extractor.IsSitemapXML(URL):
-		outlinks, err = extractor.XML(URL)
+	case extractor.IsSitemapXML(item.GetURL()):
+		outlinks, err = extractor.XML(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err
 		}
-	case extractor.IsHTML(URL):
-		outlinks, err := extractor.HTMLOutlinks(doc, URL)
+	case extractor.IsHTML(item.GetURL()):
+		outlinks, err := extractor.HTMLOutlinks(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err
@@ -44,14 +43,14 @@ func extractOutlinks(doc *goquery.Document, URL *models.URL, item *models.Item) 
 	}
 
 	// Try to extract links from link headers
-	linksFromLinkHeader := extractor.ExtractURLsFromHeader(URL)
+	linksFromLinkHeader := extractor.ExtractURLsFromHeader(item.GetURL())
 	if linksFromLinkHeader != nil {
 		outlinks = append(outlinks, linksFromLinkHeader...)
 	}
 
 	// If the page is a text/* content type, extract links from the body (aggressively)
 	if strings.Contains(contentType, "text/") {
-		outlinks = append(outlinks, extractLinksFromPage(URL)...)
+		outlinks = append(outlinks, extractLinksFromPage(item.GetURL())...)
 	}
 
 	return outlinks, nil

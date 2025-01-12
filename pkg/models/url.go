@@ -9,8 +9,14 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/PuerkitoBio/goquery"
+	"github.com/gabriel-vasile/mimetype"
 	"golang.org/x/net/idna"
 )
+
+func init() {
+	mimetype.SetLimit(0)
+}
 
 type URL struct {
 	Raw       string
@@ -18,6 +24,8 @@ type URL struct {
 	request   *http.Request
 	response  *http.Response
 	body      *bytes.Reader
+	mimetype  *mimetype.MIME
+	document  *goquery.Document
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
 	Redirects int
 }
@@ -33,6 +41,56 @@ func (u *URL) GetBody() *bytes.Reader {
 
 func (u *URL) SetBody(body *bytes.Reader) {
 	u.body = body
+}
+
+func (u *URL) ProcessBody() (err error) {
+	// Consume the response body, this serves as a way to consume the body to write it in the WARC file,
+	// but also to detect the MIME type of the body. If the mime type is one that we post-process, we will
+	// store the body, else we will discard it.
+	tempBody := bytes.NewBuffer(nil)
+	_, err = io.Copy(tempBody, u.GetResponse().Body)
+	if err != nil {
+		return err
+	}
+	u.GetResponse().Body.Close()
+
+	// Turn the body into a reader so that it can be read again
+	u.SetBody(bytes.NewReader(tempBody.Bytes()))
+
+	// Destroy the body buffer, we don't need it anymore
+	tempBody = nil
+
+	// We do not use http.DetectContentType because it only supports
+	// a limited number of MIME types, those commonly found in web.
+	u.mimetype, err = mimetype.DetectReader(u.GetBody())
+	if err != nil {
+		return err
+	}
+	u.RewindBody()
+
+	// Check if the MIME type is one that we post-process
+	switch u.mimetype.Parent().String() {
+	case "text/plain":
+		// Also create the goquery document
+		u.document, err = goquery.NewDocumentFromReader(u.GetBody())
+		if err != nil {
+			return err
+		}
+		u.RewindBody()
+	default:
+		// Set the URL body to nil, the mimetype is not one that we post-process
+		u.SetBody(nil)
+	}
+
+	return err
+}
+
+func (u *URL) GetMIME() *mimetype.MIME {
+	return u.mimetype
+}
+
+func (u *URL) GetDocument() *goquery.Document {
+	return u.document
 }
 
 func (u *URL) RewindBody() {
