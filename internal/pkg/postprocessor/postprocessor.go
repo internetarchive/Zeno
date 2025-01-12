@@ -198,7 +198,9 @@ func postprocess(item *models.Item) (outlinks []*models.Item) {
 		// - the item is a child and the URL has more than one hop
 		// - assets capture is disabled and domains crawl is disabled
 		// - the URL has more hops than the max allowed
-		if (items[i].IsChild() && items[i].GetURL().GetHops() > 1) || config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && (uint64(config.Get().MaxHops) <= uint64(items[i].GetURL().GetHops())) {
+		if (items[i].IsChild() && items[i].GetURL().GetHops() > 1) ||
+			(config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl) ||
+			(config.Get().MaxHops <= items[i].GetURL().GetHops()) {
 			items[i].SetStatus(models.ItemCompleted)
 			continue
 		}
