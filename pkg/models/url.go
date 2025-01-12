@@ -50,7 +50,7 @@ func (u *URL) ProcessBody() error {
 
 	// Create a buffer to hold the body
 	buffer := new(bytes.Buffer)
-	read, err := io.CopyN(buffer, u.response.Body, MAX_READ_SIZE)
+	_, err := io.CopyN(buffer, u.response.Body, MAX_READ_SIZE)
 	if err != nil && err != io.EOF {
 		return err
 	}
@@ -61,12 +61,10 @@ func (u *URL) ProcessBody() error {
 
 	// Check if the MIME type is one that we post-process
 	if u.mimetype.Parent() != nil && u.mimetype.Parent().String() == "text/plain" {
-		if int64(read) == MAX_READ_SIZE {
-			// Read the rest of the body and set it in SetBody()
-			_, err := io.Copy(buffer, u.response.Body)
-			if err != nil && err != io.EOF {
-				return err
-			}
+		// Read the rest of the body and set it in SetBody()
+		_, err := io.Copy(buffer, u.response.Body)
+		if err != nil && err != io.EOF {
+			return err
 		}
 
 		u.SetBody(bytes.NewReader(buffer.Bytes()))
