@@ -156,7 +156,7 @@ func run() {
 	}
 }
 
-func archive(item *models.Item) {
+func archive(seed *models.Item) {
 	// TODO: rate limiting handling
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "archiver.archive",
@@ -167,22 +167,22 @@ func archive(item *models.Item) {
 		wg    sync.WaitGroup
 	)
 
-	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
+	items, err := seed.GetNodesAtLevel(seed.GetMaxDepth())
 	if err != nil {
-		logger.Error("unable to get nodes at level", "err", err.Error(), "item", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed())
+		logger.Error("unable to get nodes at level", "err", err.Error(), "seed_id", seed.GetShortID())
 		panic(err)
 	}
 
 	for i := range items {
 		if items[i].GetStatus() != models.ItemPreProcessed {
-			logger.Debug("skipping item", "item", items[i].GetShortID(), "status", items[i].GetStatus().String(), "depth", items[i].GetDepth())
+			logger.Debug("skipping item", "seed_id", seed.GetShortID(), "item_id", items[i].GetShortID(), "status", items[i].GetStatus().String(), "depth", items[i].GetDepth())
 			continue
 		}
 
 		guard <- struct{}{}
 
 		wg.Add(1)
-		go func(i *models.Item) {
+		go func(item *models.Item) {
 			defer wg.Done()
 			defer func() { <-guard }()
 			defer stats.URLsCrawledIncr()
@@ -193,7 +193,7 @@ func archive(item *models.Item) {
 			)
 
 			// Execute the request
-			req := i.GetURL().GetRequest()
+			req := item.GetURL().GetRequest()
 			if req == nil {
 				panic("request is nil")
 			}
@@ -203,31 +203,31 @@ func archive(item *models.Item) {
 				resp, err = globalArchiver.Client.Do(req)
 			}
 			if err != nil {
-				logger.Error("unable to execute request", "err", err.Error())
-				i.SetStatus(models.ItemFailed)
+				logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed())
+				item.SetStatus(models.ItemFailed)
 				return
 			}
 
 			// Set the response in the URL
-			i.GetURL().SetResponse(resp)
+			item.GetURL().SetResponse(resp)
 
 			// Consume the response body
 			body := bytes.NewBuffer(nil)
 			_, err = io.Copy(body, resp.Body)
 			if err != nil {
-				logger.Error("unable to read response body", "err", err.Error(), "item", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed())
-				i.SetStatus(models.ItemFailed)
+				logger.Error("unable to read response body", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed())
+				item.SetStatus(models.ItemFailed)
 				return
 			}
 
 			// Set the body in the URL
-			i.GetURL().SetBody(bytes.NewReader(body.Bytes()))
+			item.GetURL().SetBody(bytes.NewReader(body.Bytes()))
 
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
 
-			logger.Info("url archived", "url", i.GetURL().String(), "depth", item.GetDepth(), "is_seed", item.IsSeed(), "item", item.GetShortID(), "status", resp.StatusCode)
+			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "is_seed", item.IsSeed())
 
-			i.SetStatus(models.ItemArchived)
+			item.SetStatus(models.ItemArchived)
 		}(items[i])
 	}
 
