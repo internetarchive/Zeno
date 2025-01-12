@@ -69,20 +69,24 @@ func (u *URL) ProcessBody() (err error) {
 	u.RewindBody()
 
 	// Check if the MIME type is one that we post-process
-	switch u.mimetype.Parent().String() {
-	case "text/plain":
-		// Also create the goquery document
-		u.document, err = goquery.NewDocumentFromReader(u.GetBody())
-		if err != nil {
-			return err
+	if u.mimetype.Parent() != nil {
+		switch u.mimetype.Parent().String() {
+		case "text/plain":
+			// Also create the goquery document
+			u.document, err = goquery.NewDocumentFromReader(u.GetBody())
+			if err != nil {
+				return err
+			}
+			u.RewindBody()
+
+			return nil
 		}
-		u.RewindBody()
-	default:
-		// Set the URL body to nil, the mimetype is not one that we post-process
-		u.SetBody(nil)
 	}
 
-	return err
+	// Set the URL body to nil, the mimetype is not one that we post-process
+	u.SetBody(nil)
+
+	return nil
 }
 
 func (u *URL) GetMIME() *mimetype.MIME {
