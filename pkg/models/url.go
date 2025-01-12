@@ -14,8 +14,10 @@ import (
 	"golang.org/x/net/idna"
 )
 
+var MAX_READ_SIZE int64 = 1024 * 1024 // 1MB
+
 func init() {
-	mimetype.SetLimit(1024 * 1024)
+	mimetype.SetLimit(uint32(MAX_READ_SIZE))
 }
 
 type URL struct {
@@ -46,11 +48,10 @@ func (u *URL) SetBody(body *bytes.Reader) {
 func (u *URL) ProcessBody() error {
 	defer u.response.Body.Close() // Ensure the response body is closed
 
-	// Read up to 1MB of the body
-	limitedReader := io.LimitReader(u.response.Body, 1024*1024)
+	// Create a buffer to hold the body
 	buffer := new(bytes.Buffer)
-	_, err := io.Copy(buffer, limitedReader)
-	if err != nil {
+	read, err := io.CopyN(buffer, u.response.Body, MAX_READ_SIZE)
+	if err != nil && err != io.EOF {
 		return err
 	}
 
@@ -60,12 +61,14 @@ func (u *URL) ProcessBody() error {
 
 	// Check if the MIME type is one that we post-process
 	if u.mimetype.Parent() != nil && u.mimetype.Parent().String() == "text/plain" {
-		// Read the rest of the body and set it in SetBody()
-		remainingBody, err := io.ReadAll(u.response.Body)
-		if err != nil {
-			return err
+		if int64(read) == MAX_READ_SIZE {
+			// Read the rest of the body and set it in SetBody()
+			_, err := io.Copy(buffer, u.response.Body)
+			if err != nil && err != io.EOF {
+				return err
+			}
 		}
-		buffer.Write(remainingBody)
+
 		u.SetBody(bytes.NewReader(buffer.Bytes()))
 
 		// Also create the goquery document
