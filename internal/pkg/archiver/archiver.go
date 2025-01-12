@@ -207,6 +207,7 @@ func archive(seed *models.Item) {
 				item.SetStatus(models.ItemFailed)
 				return
 			}
+			defer resp.Body.Close()
 
 			// Set the response in the URL
 			item.GetURL().SetResponse(resp)
