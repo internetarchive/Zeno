@@ -28,7 +28,7 @@ func extractOutlinks(doc *goquery.Document, URL *models.URL, item *models.Item) 
 			return outlinks, err
 		}
 	case extractor.IsSitemapXML(URL):
-		outlinks, err = extractor.XML(URL, true)
+		outlinks, err = extractor.XML(URL)
 		if err != nil {
 			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err
@@ -44,7 +44,7 @@ func extractOutlinks(doc *goquery.Document, URL *models.URL, item *models.Item) 
 	}
 
 	// Try to extract links from link headers
-	linksFromLinkHeader := extractor.ExtractURLsFromHeader(URL.GetResponse().Header.Get("link"))
+	linksFromLinkHeader := extractor.ExtractURLsFromHeader(URL)
 	if linksFromLinkHeader != nil {
 		outlinks = append(outlinks, linksFromLinkHeader...)
 	}

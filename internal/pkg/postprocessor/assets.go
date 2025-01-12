@@ -39,7 +39,7 @@ func extractAssets(doc *goquery.Document, URL *models.URL, item *models.Item) (a
 			return assets, err
 		}
 	case extractor.IsXML(URL):
-		assets, err = extractor.XML(URL, false)
+		assets, err = extractor.XML(URL)
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
 			return assets, err

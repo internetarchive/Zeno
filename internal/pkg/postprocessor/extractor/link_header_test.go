@@ -1,7 +1,10 @@
 package extractor
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"net/http"
 	"reflect"
 	"testing"
 
@@ -83,7 +86,27 @@ func TestExtractURLsFromHeader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ExtractURLsFromHeader(tt.link)
+			resp := &http.Response{
+				Body: io.NopCloser(bytes.NewBufferString("")),
+				Header: http.Header{
+					"Link": []string{tt.link},
+				},
+			}
+
+			var URL = new(models.URL)
+			URL.SetResponse(resp)
+
+			// Consume the response body
+			body := bytes.NewBuffer(nil)
+			_, err := io.Copy(body, resp.Body)
+			if err != nil {
+				t.Errorf("unable to read response body: %v", err)
+			}
+
+			// Set the body in the URL
+			URL.SetBody(bytes.NewReader(body.Bytes()))
+
+			got := ExtractURLsFromHeader(URL)
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Fatalf("ExtractURLsFromHeader() = %v, want %v", got, tt.expected)
 			}

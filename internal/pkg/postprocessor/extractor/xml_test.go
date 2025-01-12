@@ -138,7 +138,7 @@ func TestXML(t *testing.T) {
 			// Set the body in the URL
 			URL.SetBody(bytes.NewReader(body.Bytes()))
 
-			assets, err := XML(URL, false)
+			assets, err := XML(URL)
 			if (err != nil) != tt.hasError {
 				t.Fatalf("XML() error = %v, wantErr %v", err, tt.hasError)
 			}

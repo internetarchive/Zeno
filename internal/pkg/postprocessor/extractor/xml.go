@@ -28,7 +28,7 @@ func IsSitemapXML(URL *models.URL) bool {
 	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "xml") && bytes.Contains(xmlBody, sitemapMarker)
 }
 
-func XML(URL *models.URL, sitemap bool) (assets []*models.URL, err error) {
+func XML(URL *models.URL) (assets []*models.URL, err error) {
 	defer URL.RewindBody()
 
 	xmlBody, err := io.ReadAll(URL.GetBody())
@@ -75,15 +75,10 @@ func XML(URL *models.URL, sitemap bool) (assets []*models.URL, err error) {
 		}
 	}
 
-	var hops = URL.GetHops()
-	if sitemap {
-		hops += 1
-	}
-
 	for _, rawAsset := range rawAssets {
 		assets = append(assets, &models.URL{
 			Raw:  rawAsset,
-			Hops: hops,
+			Hops: URL.GetHops() + 1,
 		})
 	}
 

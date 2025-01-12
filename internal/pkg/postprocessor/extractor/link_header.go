@@ -13,7 +13,9 @@ import (
 // returning a slice of models.URL structs
 // Each of these are separated by a `, ` and the in turn by a `; `, with the first always being the url, and the remaining the key-val pairs
 // See: https://simon-frey.com/blog/link-header/, https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link
-func ExtractURLsFromHeader(link string) (URLs []*models.URL) {
+func ExtractURLsFromHeader(URL *models.URL) (URLs []*models.URL) {
+	var link = URL.GetResponse().Header.Get("link")
+
 	if link == "" {
 		return URLs
 	}
@@ -25,8 +27,8 @@ func ExtractURLsFromHeader(link string) (URLs []*models.URL) {
 			continue
 		}
 
-		URL := strings.TrimSpace(strings.Trim(parts[0], "<>"))
-		if URL == "" {
+		extractedURL := strings.TrimSpace(strings.Trim(parts[0], "<>"))
+		if extractedURL == "" {
 			// Malformed input, URL is empty
 			continue
 		}
@@ -43,7 +45,10 @@ func ExtractURLsFromHeader(link string) (URLs []*models.URL) {
 			}
 		}
 
-		URLs = append(URLs, &models.URL{Raw: URL})
+		URLs = append(URLs, &models.URL{
+			Raw:  extractedURL,
+			Hops: URL.GetHops() + 1,
+		})
 	}
 
 	return URLs

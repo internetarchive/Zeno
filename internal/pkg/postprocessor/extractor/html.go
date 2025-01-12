@@ -341,7 +341,7 @@ func HTMLAssets(doc *goquery.Document, URL *models.URL, seed *models.Item) (asse
 	for _, rawAsset := range rawAssets {
 		assets = append(assets, &models.URL{
 			Raw:  rawAsset,
-			Hops: URL.GetHops(),
+			Hops: URL.GetHops() + 1,
 		})
 	}
 
