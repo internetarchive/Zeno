@@ -192,6 +192,8 @@ func postprocess(item *models.Item) (outlinks []*models.Item) {
 			if err != nil {
 				panic(err)
 			}
+
+			items[i].SetStatus(models.ItemGotChildren)
 		}
 
 		// Return if:
