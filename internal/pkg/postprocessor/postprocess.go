@@ -8,8 +8,6 @@ import (
 )
 
 func postprocessItem(item, seed *models.Item) (outlinks []*models.Item) {
-	defer item.GetURL().GetResponse().Body.Close()
-
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.postprocess.postprocessItem",
 	})
