@@ -9,7 +9,7 @@ import (
 )
 
 func IsFacebookPostURL(URL *models.URL) bool {
-	return strings.Contains(URL.String(), "facebook.com") &&
+	return strings.Contains(URL.String(), "www.facebook.com") &&
 		strings.Contains(URL.String(), "/posts/") &&
 		!strings.Contains(URL.String(), "/plugins/post.php")
 }
