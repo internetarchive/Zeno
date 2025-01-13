@@ -33,7 +33,7 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			return outlinks, err
 		}
 	case extractor.IsHTML(item.GetURL()):
-		outlinks, err := extractor.HTMLOutlinks(item.GetURL())
+		outlinks, err := extractor.HTMLOutlinks(item)
 		if err != nil {
 			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err

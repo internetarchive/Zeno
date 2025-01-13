@@ -78,12 +78,12 @@ func postprocessItem(item, seed *models.Item) (outlinks []*models.Item) {
 
 	if item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200 {
 		// If the URL is a seed, scrape the base tag
-		if (item.IsSeed() || item.IsRedirection()) && item.GetURL().GetDocument() != nil {
-			scrapeBaseTag(item)
-		}
+		// if (item.IsSeed() || item.IsRedirection()) && item.GetURL().GetDocument() != nil {
+		// 	scrapeBaseTag(item)
+		// }
 
 		// Extract assets from the page
-		if !config.Get().DisableAssetsCapture && item.GetURL().GetDocument() != nil {
+		if !config.Get().DisableAssetsCapture {
 			assets, err := extractAssets(item)
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())

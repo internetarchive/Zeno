@@ -163,13 +163,13 @@ func preprocess(item *models.Item) {
 
 			// Verify if the URL isn't to be excluded
 			if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) {
-				logger.Warn("URL excluded", "url", items[i].GetURL().String())
+				logger.Debug("URL excluded", "url", items[i].GetURL().String())
 				items[i].GetParent().RemoveChild(items[i])
 				continue
 			}
 
 			if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Path, config.Get().ExcludeString) {
-				logger.Warn("URL excluded", "url", items[i].GetURL().String())
+				logger.Debug("URL excluded", "url", items[i].GetURL().String())
 				items[i].GetParent().RemoveChild(items[i])
 				continue
 			}
