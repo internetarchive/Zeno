@@ -21,14 +21,25 @@ func IsHTML(URL *models.URL) bool {
 	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "html")
 }
 
-func HTMLOutlinks(URL *models.URL) (outlinks []*models.URL, err error) {
-	defer URL.RewindBody()
+func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
+	defer item.GetURL().RewindBody()
 
 	// logger := log.NewFieldedLogger(&log.Fields{
 	// 	"component": "postprocessor.extractor.HTMLOutlinks",
 	// })
 
 	var rawOutlinks []string
+
+	// Create document from the body
+	document, err := goquery.NewDocumentFromReader(item.GetURL().GetBody())
+	if err != nil {
+		return nil, err
+	}
+
+	item.GetURL().RewindBody()
+
+	// Extract the base tag if it exists
+	extractBaseTag(item, document)
 
 	// Match <a> tags with href, data-href, data-src, data-srcset, data-lazy-src, data-srcset, src, srcset
 	if !utils.StringInSlice("a", config.Get().DisableHTMLTag) {
@@ -52,7 +63,7 @@ func HTMLOutlinks(URL *models.URL) (outlinks []*models.URL, err error) {
 			"srcset",
 		}
 
-		URL.GetDocument().Find("a").Each(func(index int, i *goquery.Selection) {
+		document.Find("a").Each(func(index int, i *goquery.Selection) {
 			for _, attr := range validAssetAttributes {
 				link, exists := i.Attr(attr)
 				if exists {
@@ -67,7 +78,7 @@ func HTMLOutlinks(URL *models.URL) (outlinks []*models.URL, err error) {
 	for _, rawOutlink := range rawOutlinks {
 		outlinks = append(outlinks, &models.URL{
 			Raw:  rawOutlink,
-			Hops: URL.GetHops() + 1,
+			Hops: item.GetURL().GetHops() + 1,
 		})
 	}
 
@@ -83,13 +94,19 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 	var rawAssets []string
 
-	if item.GetURL().GetDocument() == nil {
-		logger.Error("no document in URL struct", "url", item.GetURL().String(), "item", item.GetShortID())
-		return
+	// Create document from the body
+	document, err := goquery.NewDocumentFromReader(item.GetURL().GetBody())
+	if err != nil {
+		return nil, err
 	}
 
+	item.GetURL().RewindBody()
+
+	// Extract the base tag if it exists
+	extractBaseTag(item, document)
+
 	// Get assets from JSON payloads in data-item values
-	item.GetURL().GetDocument().Find("[data-item]").Each(func(index int, i *goquery.Selection) {
+	document.Find("[data-item]").Each(func(index int, i *goquery.Selection) {
 		dataItem, exists := i.Attr("data-item")
 		if exists {
 			URLsFromJSON, err := GetURLsFromJSON([]byte(dataItem))
@@ -102,7 +119,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	})
 
 	// Check all elements style attributes for background-image & also data-preview
-	item.GetURL().GetDocument().Find("*").Each(func(index int, i *goquery.Selection) {
+	document.Find("*").Each(func(index int, i *goquery.Selection) {
 		style, exists := i.Attr("style")
 		if exists {
 			matches := backgroundImageRegex.FindAllStringSubmatch(style, -1)
@@ -137,7 +154,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 	// Extract assets on the page (images, scripts, videos..)
 	if !utils.StringInSlice("img", config.Get().DisableHTMLTag) {
-		item.GetURL().GetDocument().Find("img").Each(func(index int, i *goquery.Selection) {
+		document.Find("img").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
 				rawAssets = append(rawAssets, link)
@@ -172,7 +189,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	if !utils.StringInSlice("video", config.Get().DisableHTMLTag) {
-		item.GetURL().GetDocument().Find("video").Each(func(index int, i *goquery.Selection) {
+		document.Find("video").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
 				rawAssets = append(rawAssets, link)
@@ -181,7 +198,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	if !utils.StringInSlice("style", config.Get().DisableHTMLTag) {
-		item.GetURL().GetDocument().Find("style").Each(func(index int, i *goquery.Selection) {
+		document.Find("style").Each(func(index int, i *goquery.Selection) {
 			matches := urlRegex.FindAllStringSubmatch(i.Text(), -1)
 			for match := range matches {
 				matchReplacement := matches[match][1]
@@ -203,7 +220,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	if !utils.StringInSlice("script", config.Get().DisableHTMLTag) {
-		item.GetURL().GetDocument().Find("script").Each(func(index int, i *goquery.Selection) {
+		document.Find("script").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
 				rawAssets = append(rawAssets, link)
@@ -285,7 +302,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	if !utils.StringInSlice("link", config.Get().DisableHTMLTag) {
-		item.GetURL().GetDocument().Find("link").Each(func(index int, i *goquery.Selection) {
+		document.Find("link").Each(func(index int, i *goquery.Selection) {
 			if !config.Get().CaptureAlternatePages {
 				relation, exists := i.Attr("rel")
 				if exists && relation == "alternate" {
@@ -301,7 +318,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	if !utils.StringInSlice("audio", config.Get().DisableHTMLTag) {
-		item.GetURL().GetDocument().Find("audio").Each(func(index int, i *goquery.Selection) {
+		document.Find("audio").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
 				rawAssets = append(rawAssets, link)
@@ -310,7 +327,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	if !utils.StringInSlice("meta", config.Get().DisableHTMLTag) {
-		item.GetURL().GetDocument().Find("meta").Each(func(index int, i *goquery.Selection) {
+		document.Find("meta").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("href")
 			if exists {
 				rawAssets = append(rawAssets, link)
@@ -325,7 +342,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	if !utils.StringInSlice("source", config.Get().DisableHTMLTag) {
-		item.GetURL().GetDocument().Find("source").Each(func(index int, i *goquery.Selection) {
+		document.Find("source").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
 				rawAssets = append(rawAssets, link)

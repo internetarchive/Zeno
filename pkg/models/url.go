@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/CorentinB/warc"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/gabriel-vasile/mimetype"
 	"golang.org/x/net/idna"
 )
@@ -32,7 +31,6 @@ type URL struct {
 	response  *http.Response
 	body      warc.ReadSeekCloser
 	mimetype  *mimetype.MIME
-	document  *goquery.Document
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
 	Redirects int
 }
@@ -80,14 +78,6 @@ func (u *URL) ProcessBody() error {
 
 		u.SetBody(spooledBuff)
 		u.RewindBody()
-
-		// Also create the goquery document
-		u.document, err = goquery.NewDocumentFromReader(u.GetBody())
-		if err != nil {
-			return err
-		}
-
-		u.RewindBody()
 	} else {
 		// Read the rest of the body but discard it
 		_, err := io.Copy(io.Discard, u.response.Body)
@@ -101,10 +91,6 @@ func (u *URL) ProcessBody() error {
 
 func (u *URL) GetMIME() *mimetype.MIME {
 	return u.mimetype
-}
-
-func (u *URL) GetDocument() *goquery.Document {
-	return u.document
 }
 
 func (u *URL) RewindBody() {

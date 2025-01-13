@@ -53,7 +53,7 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
 	}
 
-	logger.Info("extracted assets", "item", item.GetShortID(), "assets", len(assets))
+	logger.Debug("extracted assets", "item", item.GetShortID(), "assets", len(assets))
 
 	return
 }
