@@ -116,6 +116,9 @@ func postprocessItem(item, seed *models.Item) (outlinks []*models.Item) {
 		}
 	}
 
+	// Make sure the goquery document's memory can be freed
+	item.GetURL().SetDocument(nil)
+
 	if item.GetStatus() != models.ItemGotChildren && item.GetStatus() != models.ItemGotRedirected {
 		item.SetStatus(models.ItemCompleted)
 	}
