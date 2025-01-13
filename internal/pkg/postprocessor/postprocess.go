@@ -85,7 +85,7 @@ func postprocessItem(item, seed *models.Item) (outlinks []*models.Item) {
 			}
 
 			for _, asset := range assets {
-				if assets == nil {
+				if asset == nil {
 					logger.Warn("nil asset", "item", item.GetShortID())
 					continue
 				}
