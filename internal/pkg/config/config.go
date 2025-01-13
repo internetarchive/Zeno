@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -219,6 +220,7 @@ func GenerateCrawlConfig() error {
 
 	if config.WARCTempDir == "" {
 		config.WARCTempDir = path.Join(config.JobPath, "temp")
+		models.PROCESS_BODY_TEMP_DIR = config.WARCTempDir
 	}
 
 	if config.UserAgent == "" {

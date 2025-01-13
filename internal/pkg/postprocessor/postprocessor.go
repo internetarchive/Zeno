@@ -150,6 +150,18 @@ func postprocess(seed *models.Item) (outlinks []*models.Item) {
 
 	for i := range items {
 		outlinks = postprocessItem(items[i], seed)
+
+		// Once the item is postprocessed, we can close the body buffer if it exists.
+		// It will release the resources and delete the temporary file (if any).
+		if items[i].GetURL().GetBody() != nil {
+			err = items[i].GetURL().GetBody().Close()
+			if err != nil {
+				logger.Error("unable to close body", "err", err.Error(), "item_id", items[i].GetShortID())
+				panic(err)
+			}
+
+			items[i].GetURL().SetBody(nil)
+		}
 	}
 
 	return

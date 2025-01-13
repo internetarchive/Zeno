@@ -3,7 +3,7 @@ module github.com/internetarchive/Zeno
 go 1.23.3
 
 require (
-	github.com/CorentinB/warc v0.8.57
+	github.com/CorentinB/warc v0.8.60
 	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/ada-url/goada v0.0.0-20240402045241-5e45a5777313
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
