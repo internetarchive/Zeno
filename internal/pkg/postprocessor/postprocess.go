@@ -77,13 +77,8 @@ func postprocessItem(item, seed *models.Item) (outlinks []*models.Item) {
 	}
 
 	if item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200 {
-		// If the URL is a seed, scrape the base tag
-		// if (item.IsSeed() || item.IsRedirection()) && item.GetURL().GetDocument() != nil {
-		// 	scrapeBaseTag(item)
-		// }
-
 		// Extract assets from the page
-		if !config.Get().DisableAssetsCapture {
+		if !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil {
 			assets, err := extractAssets(item)
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
@@ -101,8 +96,7 @@ func postprocessItem(item, seed *models.Item) (outlinks []*models.Item) {
 		}
 
 		// Extract outlinks from the page
-		if config.Get().DomainsCrawl || ((item.IsSeed() || item.IsRedirection()) && item.GetURL().GetHops() < config.Get().MaxHops) {
-			logger.Info("extracting outlinks", "item", item.GetShortID())
+		if (config.Get().DomainsCrawl || ((item.IsSeed() || item.IsRedirection()) && item.GetURL().GetHops() < config.Get().MaxHops)) && item.GetURL().GetBody() != nil {
 			links, err := extractOutlinks(item)
 			if err != nil {
 				logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
