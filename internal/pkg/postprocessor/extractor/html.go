@@ -36,6 +36,8 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		return nil, err
 	}
 
+	item.GetURL().RewindBody()
+
 	// Extract the base tag if it exists
 	extractBaseTag(item, document)
 
@@ -84,8 +86,6 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 }
 
 func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
-	defer item.GetURL().RewindBody()
-
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.extractor.HTMLAssets",
 	})
@@ -97,6 +97,8 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	if err != nil {
 		return nil, err
 	}
+
+	item.GetURL().RewindBody()
 
 	// Extract the base tag if it exists
 	extractBaseTag(item, document)
