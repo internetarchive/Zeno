@@ -63,7 +63,7 @@ func (u *URL) ProcessBody() error {
 	u.mimetype = mimetype.Detect(buffer.Bytes())
 
 	// Check if the MIME type is one that we post-process
-	if u.mimetype.Parent() != nil && u.mimetype.Parent().String() == "text/plain" {
+	if (u.mimetype.Parent() != nil && u.mimetype.Parent().String() == "text/plain") || strings.Contains(u.mimetype.String(), "text/") {
 		spooledBuff := warc.NewSpooledTempFile("zeno", PROCESS_BODY_TEMP_DIR, 2000000, false)
 		_, err := io.Copy(spooledBuff, buffer)
 		if err != nil {

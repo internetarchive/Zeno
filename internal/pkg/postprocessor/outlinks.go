@@ -18,6 +18,11 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		})
 	)
 
+	if item.GetURL().GetBody() == nil {
+		logger.Error("no body to extract outlinks from", "url", item.GetURL().String(), "item", item.GetShortID())
+		return
+	}
+
 	// Run specific extractors
 	switch {
 	case extractor.IsS3(item.GetURL()):
