@@ -106,6 +106,70 @@ func TestItem_DedupeChilds(t *testing.T) {
 				"child2": ItemCompleted,
 			},
 		},
+		{
+			name: "Valid seed item with no duplicates",
+			setupTree: func() *Item {
+				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root.SetStatus(ItemGotChildren)
+				createTestItemWithURL("child1", false, root, "http://example.com/child1")
+				createTestItemWithURL("child2", false, root, "http://example.com/child2")
+				return root
+			},
+			expectedIDs: map[string][]string{
+				"root": {"child1", "child2"},
+			},
+			expectedStatus: map[string]ItemState{
+				"root": ItemGotChildren,
+			},
+		},
+		{
+			name: "Valid seed item with duplicates",
+			setupTree: func() *Item {
+				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root.SetStatus(ItemGotChildren)
+				createTestItemWithURL("child1", false, root, "http://example.com/child")
+				createTestItemWithURL("child2", false, root, "http://example.com/child")
+				return root
+			},
+			expectedIDs: map[string][]string{
+				"root": {"child1"},
+			},
+			expectedStatus: map[string]ItemState{
+				"root": ItemGotChildren,
+			},
+		},
+		{
+			name: "Item with completed duplicate",
+			setupTree: func() *Item {
+				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root.SetStatus(ItemGotChildren)
+				createTestItemWithURL("child1", false, root, "http://example.com/child")
+				child2 := createTestItemWithURL("child2", false, root, "http://example.com/child")
+				child2.status = ItemCompleted
+				return root
+			},
+			expectedIDs: map[string][]string{
+				"root": {"child2"},
+			},
+			expectedStatus: map[string]ItemState{
+				"root":   ItemCompleted,
+				"child2": ItemCompleted,
+			},
+		},
+		{
+			name: "Item with nil child",
+			setupTree: func() *Item {
+				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root.children = append(root.children, nil)
+				return root
+			},
+			expectedIDs: map[string][]string{
+				"root": {},
+			},
+			expectedStatus: map[string]ItemState{
+				"root": ItemFresh,
+			},
+		},
 	}
 
 	for _, tt := range tests {

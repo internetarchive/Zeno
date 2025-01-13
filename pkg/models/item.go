@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 // Item represents a URL, it's children (e.g. discovered assets) and it's state in the pipeline
@@ -177,7 +179,14 @@ func (i *Item) GetDepth() int64 {
 func (i *Item) GetChildren() []*Item {
 	i.childrenMu.RLock()
 	defer i.childrenMu.RUnlock()
-	return i.children
+	var childrens []*Item
+	for _, child := range i.children {
+		if child == nil {
+			continue
+		}
+		childrens = append(childrens, child)
+	}
+	return childrens
 }
 
 // GetParent returns the parent of the item
@@ -306,20 +315,24 @@ func (i *Item) HasChildren() bool {
 	return len(i.children) > 0 && i.status == ItemGotChildren
 }
 
-func _unsafeRemoveChild(parent *Item, child *Item) {
-	for idx, c := range parent.children {
-		if c == child {
-			parent.children = append(parent.children[:idx], parent.children[idx+1:]...)
+func _unsafeRemoveChild(parent *Item, childID string) {
+	for i := range parent.children {
+		if parent.children[i].GetID() == childID {
+			parent.children = append(parent.children[:i], parent.children[i+1:]...)
 			return
 		}
 	}
 }
 
 // RemoveChild removes a child from the item
-func (i *Item) RemoveChild(child *Item) {
-	i.childrenMu.Lock()
-	defer i.childrenMu.Unlock()
-	_unsafeRemoveChild(i, child)
+func (parent *Item) RemoveChild(child *Item) {
+	if parent == nil || child == nil {
+		spew.Dump(parent, child)
+		panic("parent or child is nil")
+	}
+	parent.childrenMu.Lock()
+	defer parent.childrenMu.Unlock()
+	_unsafeRemoveChild(parent, child.GetID())
 }
 
 // Traverse traverses the tree from the seed to the children

@@ -12,12 +12,15 @@ func (i *Item) DedupeItems() error {
 	// Dedupe the nodes based on their URL
 	urls := make(map[string]*Item)
 	for _, node := range nodes {
+		if node == nil || (!node.seed && node.parent == nil) {
+			continue
+		}
 		if existing, ok := urls[node.url.String()]; ok {
-			if existing.status != ItemCompleted && node.status == ItemCompleted {
-				_unsafeRemoveChild(existing.parent, existing)
+			if existing.status != ItemCompleted && node.status == ItemCompleted { // Keep the completed item
+				existing.parent.RemoveChild(existing)
 				urls[node.url.String()] = node
 			} else {
-				_unsafeRemoveChild(node.parent, node)
+				node.parent.RemoveChild(node)
 			}
 		} else {
 			urls[node.url.String()] = node
@@ -36,6 +39,9 @@ func flattenTree(root *Item) []*Item {
 	var traverse func(node *Item)
 	traverse = func(node *Item) {
 		nodes = append(nodes, node)
+		if node == nil {
+			return
+		}
 		for _, child := range node.GetChildren() {
 			traverse(child)
 		}
@@ -46,6 +52,10 @@ func flattenTree(root *Item) []*Item {
 
 // markCompleted marks items as completed if they have no children or all their children are completed
 func markCompleted(node *Item) {
+	if node == nil {
+		return
+	}
+
 	for _, child := range node.GetChildren() {
 		markCompleted(child)
 	}
@@ -58,6 +68,9 @@ func markCompleted(node *Item) {
 // allChildrenCompleted checks if all children are completed
 func allChildrenCompleted(children []*Item) bool {
 	for _, child := range children {
+		if child == nil {
+			continue
+		}
 		if child.status != ItemCompleted {
 			return false
 		}
