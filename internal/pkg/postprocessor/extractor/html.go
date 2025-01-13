@@ -30,13 +30,11 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 
 	var rawOutlinks []string
 
-	// Create document from the body
-	document, err := goquery.NewDocumentFromReader(item.GetURL().GetBody())
+	// Retrieve (potentially creates it) the document from the body
+	document, err := item.GetURL().GetDocument()
 	if err != nil {
 		return nil, err
 	}
-
-	item.GetURL().RewindBody()
 
 	// Extract the base tag if it exists
 	extractBaseTag(item, document)
@@ -92,13 +90,11 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 	var rawAssets []string
 
-	// Create document from the body
-	document, err := goquery.NewDocumentFromReader(item.GetURL().GetBody())
+	// Retrieve (potentially creates it) the document from the body
+	document, err := item.GetURL().GetDocument()
 	if err != nil {
 		return nil, err
 	}
-
-	item.GetURL().RewindBody()
 
 	// Extract the base tag if it exists
 	extractBaseTag(item, document)
