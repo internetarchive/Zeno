@@ -7,14 +7,19 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
+	"github.com/CorentinB/warc"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gabriel-vasile/mimetype"
 	"golang.org/x/net/idna"
 )
 
-var MAX_READ_SIZE int64 = 1024 * 1024 // 1MB
+var (
+	MAX_READ_SIZE         int64 = 1024 * 1024 // 1MB
+	PROCESS_BODY_TEMP_DIR       = os.TempDir()
+)
 
 func init() {
 	mimetype.SetLimit(uint32(MAX_READ_SIZE))
@@ -25,7 +30,7 @@ type URL struct {
 	parsed    *url.URL
 	request   *http.Request
 	response  *http.Response
-	body      *bytes.Reader
+	body      warc.ReadSeekCloser
 	mimetype  *mimetype.MIME
 	document  *goquery.Document
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
@@ -37,11 +42,11 @@ func (u *URL) Parse() (err error) {
 	return err
 }
 
-func (u *URL) GetBody() *bytes.Reader {
+func (u *URL) GetBody() warc.ReadSeekCloser {
 	return u.body
 }
 
-func (u *URL) SetBody(body *bytes.Reader) {
+func (u *URL) SetBody(body warc.ReadSeekCloser) {
 	u.body = body
 }
 
@@ -61,19 +66,27 @@ func (u *URL) ProcessBody() error {
 
 	// Check if the MIME type is one that we post-process
 	if u.mimetype.Parent() != nil && u.mimetype.Parent().String() == "text/plain" {
+		spooledBuff := warc.NewSpooledTempFile("zeno", PROCESS_BODY_TEMP_DIR, 2000000, false)
+		_, err := io.Copy(spooledBuff, buffer)
+		if err != nil {
+			return err
+		}
+
 		// Read the rest of the body and set it in SetBody()
-		_, err := io.Copy(buffer, u.response.Body)
+		_, err = io.Copy(spooledBuff, u.response.Body)
 		if err != nil && err != io.EOF {
 			return err
 		}
 
-		u.SetBody(bytes.NewReader(buffer.Bytes()))
+		u.SetBody(spooledBuff)
+		u.RewindBody()
 
 		// Also create the goquery document
 		u.document, err = goquery.NewDocumentFromReader(u.GetBody())
 		if err != nil {
 			return err
 		}
+
 		u.RewindBody()
 	} else {
 		// Read the rest of the body but discard it
@@ -81,13 +94,7 @@ func (u *URL) ProcessBody() error {
 		if err != nil {
 			return err
 		}
-
-		// Set the URL body to nil, the mimetype is not one that we post-process
-		u.SetBody(nil)
 	}
-
-	// Destroy the buffer, we don't need it anymore
-	buffer = nil
 
 	return nil
 }
