@@ -91,7 +91,10 @@ func postprocessItem(item, seed *models.Item) (outlinks []*models.Item) {
 				}
 
 				item.SetStatus(models.ItemGotChildren)
-				item.AddChild(models.NewItem(uuid.New().String(), asset, "", false), item.GetStatus())
+				err = item.AddChild(models.NewItem(uuid.New().String(), asset, "", false), item.GetStatus())
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 
