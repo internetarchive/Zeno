@@ -153,38 +153,50 @@ func preprocess(item *models.Item) {
 		}
 
 		// Normalize the URL
-		if !items[i].IsSeed() {
+		if items[i].IsSeed() {
+			err := normalizeURL(items[i].GetURL(), nil)
+			if err != nil {
+				logger.Debug("unable to validate URL", "url", items[i].GetURL().Raw, "err", err.Error())
+				if items[i].IsChild() {
+					items[i].GetParent().RemoveChild(items[i])
+				} else {
+					items[i].SetStatus(models.ItemExcluded)
+				}
+				continue
+			}
+		} else {
 			err := normalizeURL(items[i].GetURL(), items[i].GetParent().GetURL())
 			if err != nil {
 				logger.Debug("unable to validate URL", "url", items[i].GetURL().Raw, "err", err.Error())
-				items[i].GetParent().RemoveChild(items[i])
-				continue
-			}
-
-			// Verify if the URL isn't to be excluded
-			if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) {
-				logger.Debug("URL excluded", "url", items[i].GetURL().String())
-				items[i].GetParent().RemoveChild(items[i])
-				continue
-			}
-
-			if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Path, config.Get().ExcludeString) {
-				logger.Debug("URL excluded", "url", items[i].GetURL().String())
-				items[i].GetParent().RemoveChild(items[i])
+				if items[i].IsChild() {
+					items[i].GetParent().RemoveChild(items[i])
+				} else {
+					items[i].SetStatus(models.ItemExcluded)
+				}
 				continue
 			}
 		}
 
-		// TODO : normalize seeds and apply exclusions to seeds
-		//
-		// else {
-		// 	err := normalizeURL(items[i].GetURL(), &models.URL{Raw: items[i].GetSeedVia()})
-		// 	if err != nil {
-		// 		logger.Debug("unable to validate URL", "url", items[i].GetURL().Raw, "err", err.Error())
-		// 		items[i].SetError(models.ErrFailedAtPreprocessor)
-		// 		continue
-		// 	}
-		// }
+		// Verify if the URL isn't to be excluded
+		if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) {
+			logger.Debug("URL excluded", "url", items[i].GetURL().String())
+			if items[i].IsChild() {
+				items[i].GetParent().RemoveChild(items[i])
+			} else {
+				items[i].SetStatus(models.ItemExcluded)
+			}
+			continue
+		}
+
+		if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Path, config.Get().ExcludeString) {
+			logger.Debug("URL excluded", "url", items[i].GetURL().String())
+			if items[i].IsChild() {
+				items[i].GetParent().RemoveChild(items[i])
+			} else {
+				items[i].SetStatus(models.ItemExcluded)
+			}
+			continue
+		}
 
 		// If we are processing assets, then we need to remove childs that are just domains
 		// (which means that they are not assets, but false positives)
