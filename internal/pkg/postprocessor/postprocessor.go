@@ -110,7 +110,7 @@ func run() {
 					} else {
 						outlinks := postprocess(item)
 						for _, outlink := range outlinks {
-							logger.Info("sending outlink", "item", outlink.GetShortID())
+							logger.Debug("sending outlink", "item", outlink.GetShortID())
 							globalPostprocessor.outputCh <- outlink
 						}
 					}
