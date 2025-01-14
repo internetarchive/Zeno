@@ -161,6 +161,7 @@ func preprocess(item *models.Item) {
 					items[i].GetParent().RemoveChild(items[i])
 				} else {
 					items[i].SetStatus(models.ItemExcluded)
+					return
 				}
 				continue
 			}
@@ -172,6 +173,7 @@ func preprocess(item *models.Item) {
 					items[i].GetParent().RemoveChild(items[i])
 				} else {
 					items[i].SetStatus(models.ItemExcluded)
+					return
 				}
 				continue
 			}
@@ -184,6 +186,7 @@ func preprocess(item *models.Item) {
 				items[i].GetParent().RemoveChild(items[i])
 			} else {
 				items[i].SetStatus(models.ItemExcluded)
+				return
 			}
 			continue
 		}
@@ -194,6 +197,7 @@ func preprocess(item *models.Item) {
 				items[i].GetParent().RemoveChild(items[i])
 			} else {
 				items[i].SetStatus(models.ItemExcluded)
+				return
 			}
 			continue
 		}
