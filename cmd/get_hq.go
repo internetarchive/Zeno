@@ -10,6 +10,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler"
 	"github.com/internetarchive/Zeno/internal/pkg/ui"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -38,11 +39,13 @@ var getHQCmd = &cobra.Command{
 				return fmt.Errorf("error getting hostname for Pyroscope: %w", err)
 			}
 
+			Version := utils.GetVersion()
+
 			_, err = pyroscope.Start(pyroscope.Config{
-				ApplicationName: fmt.Sprintf("zeno-%s-%s-%s", hostname, cfg.Job, uuid.New().String()[:5]),
+				ApplicationName: fmt.Sprintf("zeno"),
 				ServerAddress:   cfg.PyroscopeAddress,
 				Logger:          nil,
-				Tags:            map[string]string{"hostname": hostname},
+				Tags:            map[string]string{"hostname": hostname, "job": cfg.Job, "version": Version.Version, "goVersion": Version.GoVersion, "uuid": uuid.New().String()[:5]},
 				ProfileTypes: []pyroscope.ProfileType{
 					pyroscope.ProfileCPU,
 					pyroscope.ProfileAllocObjects,
