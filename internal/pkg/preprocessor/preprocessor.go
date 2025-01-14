@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -149,7 +150,8 @@ func preprocess(item *models.Item) {
 		// Panic on any child that is not fresh
 		// This means that an incorrect item was inserted and/or that the finisher is not working correctly
 		if items[i].GetStatus() != models.ItemFresh {
-			panic(fmt.Sprintf("non-fresh item received in preprocessor: %+v", items))
+			spew.Dump(items)
+			panic(fmt.Sprintf("non-fresh item received in preprocessor: %s", items[i].GetStatus().String()))
 		}
 
 		// Normalize the URL
