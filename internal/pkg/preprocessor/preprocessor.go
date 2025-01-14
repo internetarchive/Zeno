@@ -151,7 +151,7 @@ func preprocess(item *models.Item) {
 		// This means that an incorrect item was inserted and/or that the finisher is not working correctly
 		if items[i].GetStatus() != models.ItemFresh {
 			spew.Dump(items)
-			panic(fmt.Sprintf("non-fresh item received in preprocessor: %s", items[i].GetStatus().String()))
+			panic(fmt.Sprintf("non-fresh item received in preprocessor: %s", items[i].GetShortID()))
 		}
 
 		// Normalize the URL
