@@ -32,8 +32,6 @@ const (
 	ItemFresh ItemState = iota
 	// ItemPreProcessed is the state after the item has been pre-processed
 	ItemPreProcessed
-	// ItemExcluded is the state after the item has been excluded
-	ItemExcluded
 	// ItemArchived is the state after the item has been archived
 	ItemArchived
 	// ItemFailed is the state after the item has failed
