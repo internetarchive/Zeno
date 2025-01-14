@@ -157,41 +157,20 @@ func preprocess(item *models.Item) {
 			err := normalizeURL(items[i].GetURL(), nil)
 			if err != nil {
 				logger.Debug("unable to validate URL", "url", items[i].GetURL().Raw, "err", err.Error())
-				if items[i].IsChild() {
-					items[i].GetParent().RemoveChild(items[i])
-				} else {
-					items[i].SetStatus(models.ItemCompleted)
-					return
-				}
-				continue
+				items[i].SetStatus(models.ItemCompleted)
+				return
 			}
 		} else {
 			err := normalizeURL(items[i].GetURL(), items[i].GetParent().GetURL())
 			if err != nil {
 				logger.Debug("unable to validate URL", "url", items[i].GetURL().Raw, "err", err.Error())
-				if items[i].IsChild() {
-					items[i].GetParent().RemoveChild(items[i])
-				} else {
-					items[i].SetStatus(models.ItemCompleted)
-					return
-				}
+				items[i].GetParent().RemoveChild(items[i])
 				continue
 			}
 		}
 
 		// Verify if the URL isn't to be excluded
-		if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) {
-			logger.Debug("URL excluded", "url", items[i].GetURL().String())
-			if items[i].IsChild() {
-				items[i].GetParent().RemoveChild(items[i])
-			} else {
-				items[i].SetStatus(models.ItemCompleted)
-				return
-			}
-			continue
-		}
-
-		if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Path, config.Get().ExcludeString) {
+		if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) || utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Path, config.Get().ExcludeString) {
 			logger.Debug("URL excluded", "url", items[i].GetURL().String())
 			if items[i].IsChild() {
 				items[i].GetParent().RemoveChild(items[i])
