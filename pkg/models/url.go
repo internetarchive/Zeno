@@ -1,13 +1,11 @@
 package models
 
 import (
-	"bytes"
 	"io"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/CorentinB/warc"
@@ -15,15 +13,6 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"golang.org/x/net/idna"
 )
-
-var (
-	MAX_READ_SIZE         int64 = 1024 * 1024 // 1MB
-	PROCESS_BODY_TEMP_DIR       = os.TempDir()
-)
-
-func init() {
-	mimetype.SetLimit(uint32(MAX_READ_SIZE))
-}
 
 type URL struct {
 	Raw       string
@@ -67,49 +56,12 @@ func (u *URL) SetDocument(doc *goquery.Document) {
 	u.document = doc
 }
 
-func (u *URL) ProcessBody() error {
-	defer u.response.Body.Close() // Ensure the response body is closed
-
-	// Create a buffer to hold the body
-	buffer := new(bytes.Buffer)
-	_, err := io.CopyN(buffer, u.response.Body, MAX_READ_SIZE)
-	if err != nil && err != io.EOF {
-		return err
-	}
-
-	// We do not use http.DetectContentType because it only supports
-	// a limited number of MIME types, those commonly found in web.
-	u.mimetype = mimetype.Detect(buffer.Bytes())
-
-	// Check if the MIME type is one that we post-process
-	if (u.mimetype.Parent() != nil && u.mimetype.Parent().String() == "text/plain") || strings.Contains(u.mimetype.String(), "text/") {
-		spooledBuff := warc.NewSpooledTempFile("zeno", PROCESS_BODY_TEMP_DIR, 2000000, false)
-		_, err := io.Copy(spooledBuff, buffer)
-		if err != nil {
-			return err
-		}
-
-		// Read the rest of the body and set it in SetBody()
-		_, err = io.Copy(spooledBuff, u.response.Body)
-		if err != nil && err != io.EOF {
-			return err
-		}
-
-		u.SetBody(spooledBuff)
-		u.RewindBody()
-	} else {
-		// Read the rest of the body but discard it
-		_, err := io.Copy(io.Discard, u.response.Body)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+func (u *URL) GetMIMEType() *mimetype.MIME {
+	return u.mimetype
 }
 
-func (u *URL) GetMIME() *mimetype.MIME {
-	return u.mimetype
+func (u *URL) SetMIMEType(mimetype *mimetype.MIME) {
+	u.mimetype = mimetype
 }
 
 func (u *URL) RewindBody() {

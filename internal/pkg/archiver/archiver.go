@@ -8,12 +8,20 @@ import (
 	"time"
 
 	"github.com/CorentinB/warc"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
+
+func init() {
+	// We intentionally set the limit to 0 to disable the limit on the number of bytes the
+	// mimetype detection can accept. We limit the number of bytes that we will give to it
+	// in the processBody function instead.
+	mimetype.SetLimit(0)
+}
 
 type archiver struct {
 	wg       sync.WaitGroup
@@ -210,7 +218,7 @@ func archive(seed *models.Item) {
 			item.GetURL().SetResponse(resp)
 
 			// Process the body
-			err = item.GetURL().ProcessBody()
+			err = processBody(item.GetURL())
 			if err != nil {
 				logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 				item.SetStatus(models.ItemFailed)
