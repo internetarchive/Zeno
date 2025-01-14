@@ -149,6 +149,7 @@ func preprocess(item *models.Item) {
 		// Panic on any child that is not fresh
 		// This means that an incorrect item was inserted and/or that the finisher is not working correctly
 		if items[i].GetStatus() != models.ItemFresh {
+			logger.Error("non-fresh item received in preprocessor", "item", items[i].GetShortID(), "status", items[i].GetStatus().String())
 			panic("maxdepth should only return fresh items")
 		}
 
