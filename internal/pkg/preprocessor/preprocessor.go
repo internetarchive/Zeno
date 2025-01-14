@@ -149,7 +149,7 @@ func preprocess(item *models.Item) {
 		// Panic on any child that is not fresh
 		// This means that an incorrect item was inserted and/or that the finisher is not working correctly
 		if items[i].GetStatus() != models.ItemFresh {
-			panic(fmt.Sprintf("non-fresh item received in preprocessor: %s", items[i].GetStatus().String()))
+			panic(fmt.Sprintf("non-fresh item received in preprocessor: %+v", items))
 		}
 
 		// Normalize the URL
@@ -174,11 +174,11 @@ func preprocess(item *models.Item) {
 			logger.Debug("URL excluded", "url", items[i].GetURL().String())
 			if items[i].IsChild() {
 				items[i].GetParent().RemoveChild(items[i])
+				continue
 			} else {
 				items[i].SetStatus(models.ItemCompleted)
 				return
 			}
-			continue
 		}
 
 		// If we are processing assets, then we need to remove childs that are just domains
