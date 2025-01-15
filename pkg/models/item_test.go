@@ -9,10 +9,11 @@ import (
 
 func createTestItem(id string, seed bool, parent *Item) *Item {
 	item := &Item{
-		id:     id,
-		seed:   seed,
-		parent: parent,
-		status: ItemFresh,
+		id:       id,
+		seed:     seed,
+		parent:   parent,
+		status:   ItemFresh,
+		children: make([]*Item, 0),
 	}
 	if parent != nil {
 		parent.children = append(parent.children, item)
@@ -247,7 +248,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 			expected: errors.New("item has more than one children but is ItemGotRedirected"),
 		},
 		{
-			name: "Item has children but is not ItemGotChildren or ItemGotRedirected",
+			name: "Item has children but is not ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed",
 			item: func() *Item {
 				root := createTestItem("root", true, nil)
 				root.url = &URL{Raw: "http://example.com/root"}
@@ -255,18 +256,96 @@ func TestItem_CheckConsistency(t *testing.T) {
 				createTestItem("child1", false, root)
 				return root
 			}(),
-			expected: errors.New("item has children but is not ItemGotChildren or ItemGotRedirected"),
+			expected: errors.New("item has children but is not ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed"),
+		},
+		{
+			name: "Valid seed item",
+			item: func() *Item {
+				item := createTestItem("testID", true, nil)
+				item.status = ItemFresh
+				item.url = &URL{Raw: "http://example.com"}
+				return item
+			}(),
+			expected: nil,
+		},
+		{
+			name: "Valid child item",
+			item: func() *Item {
+				parent := createTestItem("parentID", true, nil)
+				parent.status = ItemGotChildren
+				parent.url = &URL{Raw: "http://example.com"}
+				item := createTestItem("testID", false, parent)
+				item.status = ItemFresh
+				item.url = &URL{Raw: "http://example.com"}
+				return item
+			}(),
+			expected: nil,
+		},
+		{
+			name: "Valid item with children and status ItemGotChildren",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				root.status = ItemGotChildren
+				root.url = &URL{Raw: "http://example.com/root"}
+				child := createTestItem("child1", false, root)
+				child.url = &URL{Raw: "http://example.com/child"}
+				child.status = ItemFresh
+				return root
+			}(),
+			expected: nil,
+		},
+		{
+			name: "Valid item with children and status ItemGotRedirected",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				root.status = ItemGotRedirected
+				root.url = &URL{Raw: "http://example.com/root"}
+				child := createTestItem("child1", false, root)
+				child.url = &URL{Raw: "http://example.com/child"}
+				child.status = ItemFresh
+				return root
+			}(),
+			expected: nil,
+		},
+		{
+			name: "Valid item with fresh children and status ItemCompleted",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				root.status = ItemCompleted
+				root.url = &URL{Raw: "http://example.com/root"}
+				child := createTestItem("child1", false, root)
+				child.url = &URL{Raw: "http://example.com/child"}
+				child.status = ItemFresh
+				return root
+			}(),
+			expected: errors.New("child child1: item is not a seed and fresh but parent is not ItemGotChildren or ItemGotRedirected"),
+		},
+		{
+			name: "Valid item with seen children and status ItemCompleted",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				root.status = ItemCompleted
+				root.url = &URL{Raw: "http://example.com/root"}
+				child := createTestItem("child1", false, root)
+				child.url = &URL{Raw: "http://example.com/child"}
+				child.status = ItemSeen
+				return root
+			}(),
+			expected: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.item.CheckConsistency()
-			if err != nil && err.Error() != tt.expected.Error() {
+			if err != nil && tt.expected != nil && err.Error() != tt.expected.Error() {
 				t.Errorf("expected error: %v, got: %v", tt.expected, err)
 			}
 			if err == nil && tt.expected != nil {
 				t.Errorf("expected error: %v, got: %v", tt.expected, err)
+			}
+			if err != nil && tt.expected == nil {
+				t.Errorf("expected no error, got: %v", err)
 			}
 		})
 	}
