@@ -109,9 +109,14 @@ func run() {
 						logger.Debug("skipping item", "item", item.GetShortID(), "status", item.GetStatus().String())
 					} else {
 						outlinks := postprocess(item)
-						for _, outlink := range outlinks {
-							logger.Debug("sending outlink", "item", outlink.GetShortID())
-							globalPostprocessor.outputCh <- outlink
+						for i := range outlinks {
+							select {
+							case <-ctx.Done():
+								logger.Debug("aborting outlink feeding due to stop", "item", outlinks[i].GetShortID())
+								return
+							case globalPostprocessor.outputCh <- outlinks[i]:
+								logger.Debug("sending outlink", "item", outlinks[i].GetShortID())
+							}
 						}
 					}
 
@@ -131,38 +136,41 @@ func run() {
 	}
 }
 
-func postprocess(seed *models.Item) (outlinks []*models.Item) {
+func postprocess(seed *models.Item) []*models.Item {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.postprocess",
 	})
 
+	outlinks := make([]*models.Item, 0)
+
 	// If we don't capture assets, there is no need to postprocess the item
 	// TODO: handle hops even with disable assets capture
 	if config.Get().DisableAssetsCapture {
-		return
+		return outlinks
 	}
 
-	items, err := seed.GetNodesAtLevel(seed.GetMaxDepth())
+	childs, err := seed.GetNodesAtLevel(seed.GetMaxDepth())
 	if err != nil {
 		logger.Error("unable to get nodes at level", "err", err.Error(), "seed_id", seed.GetShortID())
 		panic(err)
 	}
 
-	for i := range items {
-		outlinks = postprocessItem(items[i], seed)
+	for i := range childs {
+		itemOutlinks := postprocessItem(childs[i], seed)
+		outlinks = append(outlinks, itemOutlinks...)
 
 		// Once the item is postprocessed, we can close the body buffer if it exists.
 		// It will release the resources and delete the temporary file (if any).
-		if items[i].GetURL().GetBody() != nil {
-			err = items[i].GetURL().GetBody().Close()
+		if childs[i].GetURL().GetBody() != nil {
+			err = childs[i].GetURL().GetBody().Close()
 			if err != nil {
-				logger.Error("unable to close body", "err", err.Error(), "item_id", items[i].GetShortID())
+				logger.Error("unable to close body", "err", err.Error(), "item_id", childs[i].GetShortID())
 				panic(err)
 			}
 
-			items[i].GetURL().SetBody(nil)
+			childs[i].GetURL().SetBody(nil)
 		}
 	}
 
-	return
+	return outlinks
 }

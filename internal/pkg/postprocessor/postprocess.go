@@ -7,7 +7,7 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func postprocessItem(item, seed *models.Item) (outlinks []*models.Item) {
+func postprocessItem(item, _ *models.Item) (outlinks []*models.Item) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.postprocess.postprocessItem",
 	})
@@ -35,7 +35,8 @@ func postprocessItem(item, seed *models.Item) (outlinks []*models.Item) {
 		}
 
 		item.SetStatus(models.ItemGotRedirected)
-		err := item.AddChild(models.NewItem(uuid.New().String(), newURL, "", false), item.GetStatus())
+		newChild := models.NewItem(uuid.New().String(), newURL, "", false)
+		err := item.AddChild(newChild, models.ItemGotRedirected)
 		if err != nil {
 			panic(err)
 		}
