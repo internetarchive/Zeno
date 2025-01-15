@@ -65,8 +65,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 	// Return if:
 	// - the item is a child and the URL has more than one hop
 	// - assets capture is disabled and domains crawl is disabled
-	// - the item is a seed and the URL has more hops than the max allowed
-	if item.IsChild() && item.GetURL().GetHops() > 1 {
+	if item.GetDepthWithoutRedirections() > 1 {
 		logger.Debug("item is child and URL has more than one hop", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return outlinks

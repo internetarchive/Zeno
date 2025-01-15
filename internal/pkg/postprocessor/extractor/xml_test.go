@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -128,15 +130,10 @@ func TestXML(t *testing.T) {
 			var URL = new(models.URL)
 			URL.SetResponse(resp)
 
-			// Consume the response body
-			body := bytes.NewBuffer(nil)
-			_, err := io.Copy(body, resp.Body)
+			err := archiver.ProcessBody(URL, false, false, 0, os.TempDir())
 			if err != nil {
-				t.Errorf("unable to read response body: %v", err)
+				t.Errorf("ProcessBody() error = %v", err)
 			}
-
-			// Set the body in the URL
-			URL.SetBody(bytes.NewReader(body.Bytes()))
 
 			assets, err := XML(URL)
 			if (err != nil) != tt.hasError {

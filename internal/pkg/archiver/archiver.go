@@ -219,7 +219,7 @@ func archive(seed *models.Item) {
 			item.GetURL().SetResponse(resp)
 
 			// Process the body
-			err = processBody(item.GetURL())
+			err = ProcessBody(item.GetURL(), config.Get().DisableAssetsCapture, config.Get().DomainsCrawl, config.Get().MaxHops, config.Get().WARCTempDir)
 			if err != nil {
 				logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 				item.SetStatus(models.ItemFailed)

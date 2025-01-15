@@ -192,6 +192,18 @@ func (i *Item) GetDepth() int64 {
 	return i.parent.GetDepth() + 1
 }
 
+func (i *Item) GetDepthWithoutRedirections() int64 {
+	if i.seed {
+		return 0
+	}
+
+	if i.status == ItemGotRedirected {
+		return i.parent.GetDepthWithoutRedirections()
+	}
+
+	return i.parent.GetDepthWithoutRedirections() + 1
+}
+
 // GetChildren returns the children of the item
 func (i *Item) GetChildren() []*Item {
 	i.childrenMu.RLock()

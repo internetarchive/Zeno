@@ -618,6 +618,72 @@ func TestItem_GetDepth(t *testing.T) {
 		})
 	}
 }
+
+func TestItem_GetDepthWithoutRedirections(t *testing.T) {
+	tests := []struct {
+		name     string
+		item     *Item
+		expected int64
+	}{
+		{
+			name:     "Seed item",
+			item:     createTestItem("root", true, nil),
+			expected: 0,
+		},
+		{
+			name: "Child item without redirections",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				child := createTestItem("child", false, root)
+				return child
+			}(),
+			expected: 1,
+		},
+		{
+			name: "Grandchild item without redirections",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				child := createTestItem("child", false, root)
+				grandchild := createTestItem("grandchild", false, child)
+				return grandchild
+			}(),
+			expected: 2,
+		},
+		{
+			name: "Child item with redirection",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				child := createTestItem("child", false, root)
+				child.status = ItemGotRedirected
+				grandchild := createTestItem("grandchild", false, child)
+				return grandchild
+			}(),
+			expected: 1,
+		},
+		{
+			name: "Great-grandchild item with multiple redirections",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				child := createTestItem("child", false, root)
+				child.status = ItemGotRedirected
+				grandchild := createTestItem("grandchild", false, child)
+				grandchild.status = ItemGotRedirected
+				greatGrandchild := createTestItem("greatGrandchild", false, grandchild)
+				return greatGrandchild
+			}(),
+			expected: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.item.GetDepthWithoutRedirections(); got != tt.expected {
+				t.Errorf("GetDepthWithoutRedirections() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestItem_GetMaxDepth(t *testing.T) {
 	tests := []struct {
 		name     string
