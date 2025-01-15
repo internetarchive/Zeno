@@ -344,6 +344,11 @@ func (i *Item) HasChildren() bool {
 	return len(i.children) > 0 && i.status == ItemGotChildren
 }
 
+// HasWork returns true if the item has work to do
+func (i *Item) HasWork() bool {
+	return i.status != ItemCompleted && i.status != ItemSeen && i.status != ItemFailed
+}
+
 func _unsafeRemoveChild(parent *Item, childID string) {
 	for i := range parent.children {
 		if parent.children[i].GetID() == childID {

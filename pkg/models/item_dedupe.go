@@ -56,22 +56,23 @@ func markCompleted(node *Item) {
 		return
 	}
 
-	for _, child := range node.GetChildren() {
-		markCompleted(child)
+	children := node.GetChildren()
+	for i := range children {
+		markCompleted(children[i])
 	}
 
-	if (len(node.GetChildren()) == 0 || allChildrenCompleted(node.GetChildren())) && node.status == ItemGotChildren {
+	if (len(node.GetChildren()) == 0 || allChildrenCompleted(node.GetChildren())) && (node.status == ItemGotChildren || node.status == ItemGotRedirected) {
 		node.status = ItemCompleted
 	}
 }
 
-// allChildrenCompleted checks if all children are completed
+// allChildrenCompletedOrSeen checks if all children are completed
 func allChildrenCompleted(children []*Item) bool {
-	for _, child := range children {
-		if child == nil {
+	for i := range children {
+		if children[i] == nil {
 			continue
 		}
-		if child.status != ItemCompleted {
+		if children[i].HasWork() {
 			return false
 		}
 	}
