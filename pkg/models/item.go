@@ -383,7 +383,7 @@ func (i *Item) CompleteAndCheck() bool {
 		return false
 	}
 
-	if i.status == ItemCompleted {
+	if !i.HasWork() {
 		return true
 	}
 
@@ -391,7 +391,7 @@ func (i *Item) CompleteAndCheck() bool {
 	markCompleted(i)
 
 	// Check if the seed is completed
-	return i.status == ItemCompleted
+	return !i.HasWork()
 }
 
 // Errors definition
