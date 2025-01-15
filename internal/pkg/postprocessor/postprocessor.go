@@ -2,6 +2,7 @@ package postprocessor
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -105,8 +106,12 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
 
-					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
-						logger.Debug("skipping item", "item", item.GetShortID(), "status", item.GetStatus().String())
+					if err := item.CheckConsistency(); err != nil {
+						panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), item.GetShortID()))
+					}
+
+					if item.GetStatus() != models.ItemArchived && item.GetStatus() != models.ItemGotRedirected && item.GetStatus() != models.ItemGotChildren {
+						logger.Debug("skipping item", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", item.GetStatus().String())
 					} else {
 						outlinks := postprocess(item)
 						for i := range outlinks {

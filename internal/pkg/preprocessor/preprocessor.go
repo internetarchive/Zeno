@@ -111,6 +111,10 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PreprocessorRoutinesDecr()
 
+					if err := item.CheckConsistency(); err != nil {
+						panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), item.GetShortID()))
+					}
+
 					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
 						panic(fmt.Sprintf("preprocessor received item with status %d, item id: %s", item.GetStatus(), item.GetShortID()))
 					}
