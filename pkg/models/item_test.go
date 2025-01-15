@@ -31,6 +31,19 @@ func createTestItemWithURL(id string, seed bool, parent *Item, url string) *Item
 	return item
 }
 
+func createTestItemWithStatus(id string, seed bool, parent *Item, status ItemState) *Item {
+	item := &Item{
+		id:     id,
+		seed:   seed,
+		parent: parent,
+		status: status,
+	}
+	if parent != nil {
+		parent.children = append(parent.children, item)
+	}
+	return item
+}
+
 func findTestItemByID(root *Item, id string) *Item {
 	if root.id == id {
 		return root
@@ -196,6 +209,53 @@ func TestItem_CheckConsistency(t *testing.T) {
 				return item
 			}(),
 			expected: errors.New("item is a child but has no parent"),
+		},
+		{
+			name: "Item is fresh but has children",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				root.url = &URL{Raw: "http://example.com/root"}
+				root.status = ItemFresh
+				createTestItem("child1", false, root)
+				return root
+			}(),
+			expected: errors.New("item is fresh but has children"),
+		},
+		{
+			name: "Item is fresh but parent is not ItemGotChildren or ItemGotRedirected",
+			item: func() *Item {
+				parent := createTestItem("parent", true, nil)
+				parent.url = &URL{Raw: "http://example.com/parent"}
+				parent.status = ItemFresh
+				child := createTestItem("child", false, parent)
+				child.url = &URL{Raw: "http://example.com/child"}
+				child.status = ItemFresh
+				return child
+			}(),
+			expected: errors.New("item is not a seed and fresh but parent is not ItemGotChildren or ItemGotRedirected"),
+		},
+		{
+			name: "Item has more than one children but is ItemGotRedirected",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				root.url = &URL{Raw: "http://example.com/root"}
+				root.status = ItemGotRedirected
+				createTestItem("child1", false, root)
+				createTestItem("child2", false, root)
+				return root
+			}(),
+			expected: errors.New("item has more than one children but is ItemGotRedirected"),
+		},
+		{
+			name: "Item has children but is not ItemGotChildren or ItemGotRedirected",
+			item: func() *Item {
+				root := createTestItem("root", true, nil)
+				root.url = &URL{Raw: "http://example.com/root"}
+				root.status = ItemArchived
+				createTestItem("child1", false, root)
+				return root
+			}(),
+			expected: errors.New("item has children but is not ItemGotChildren or ItemGotRedirected"),
 		},
 	}
 
@@ -1464,6 +1524,69 @@ func TestItem_Traverse(t *testing.T) {
 				if traversedIDs[i] != id {
 					t.Fatalf("expected item %s at index %d, got %s", id, i, traversedIDs[i])
 				}
+			}
+		})
+	}
+}
+
+func TestCompleteAndCheck(t *testing.T) {
+	tests := []struct {
+		name     string
+		setup    func() *Item
+		expected bool
+	}{
+		{
+			name: "Non-seed item",
+			setup: func() *Item {
+				return createTestItemWithStatus("item1", false, nil, ItemFresh)
+			},
+			expected: false,
+		},
+		{
+			name: "Seed item already completed",
+			setup: func() *Item {
+				return createTestItemWithStatus("item1", true, nil, ItemCompleted)
+			},
+			expected: true,
+		},
+		{
+			name: "Seed item with incomplete children",
+			setup: func() *Item {
+				root := createTestItemWithStatus("root", true, nil, ItemFresh)
+				createTestItemWithStatus("child1", false, root, ItemFresh)
+				createTestItemWithStatus("child2", false, root, ItemFresh)
+				return root
+			},
+			expected: false,
+		},
+		{
+			name: "Seed item with completed children",
+			setup: func() *Item {
+				root := createTestItemWithStatus("root", true, nil, ItemGotChildren)
+				createTestItemWithStatus("child1", false, root, ItemCompleted)
+				createTestItemWithStatus("child2", false, root, ItemCompleted)
+				return root
+			},
+			expected: true,
+		},
+		{
+			name: "Seed item with mixed status children",
+			setup: func() *Item {
+				root := createTestItemWithStatus("root", true, nil, ItemGotChildren)
+				createTestItemWithStatus("child1", false, root, ItemCompleted)
+				createTestItemWithStatus("child2", false, root, ItemFresh)
+				return root
+			},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			item := tt.setup()
+			got := item.CompleteAndCheck()
+			if got != tt.expected {
+				t.Errorf("CompleteAndCheck() = %v, want %v", got, tt.expected)
 			}
 		})
 	}

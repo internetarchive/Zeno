@@ -128,6 +128,23 @@ func (i *Item) CheckConsistency() error {
 		return fmt.Errorf("item is not a seed and fresh but parent is not ItemGotChildren or ItemGotRedirected")
 	}
 
+	// If item has more than one children, it should not have status ItemGotRedirected
+	if len(i.children) > 1 && i.status == ItemGotRedirected {
+		return fmt.Errorf("item has more than one children but is ItemGotRedirected")
+	}
+
+	// If item has childrens, it should have status ItemGotChildren or ItemGotRedirected
+	if len(i.children) > 0 && i.status != ItemGotChildren && i.status != ItemGotRedirected {
+		return fmt.Errorf("item has children but is not ItemGotChildren or ItemGotRedirected")
+	}
+
+	// Traverse the tree to check for inconsistencies in children
+	for _, child := range i.children {
+		if err := child.CheckConsistency(); err != nil {
+			return fmt.Errorf("child %s: %w", child.id, err)
+		}
+	}
+
 	return nil
 }
 
