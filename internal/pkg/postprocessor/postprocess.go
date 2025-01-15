@@ -36,7 +36,6 @@ func postprocessItem(item *models.Item) []*models.Item {
 			Hops:      item.GetURL().GetHops(),
 		}
 
-		item.SetStatus(models.ItemGotRedirected)
 		newChild := models.NewItem(uuid.New().String(), newURL, "", false)
 		err := item.AddChild(newChild, models.ItemGotRedirected)
 		if err != nil {
@@ -61,8 +60,6 @@ func postprocessItem(item *models.Item) []*models.Item {
 	// 	if err != nil {
 	// 		panic(err)
 	// 	}
-
-	// 	item.SetStatus(models.ItemGotChildren)
 	// }
 
 	// Return if:
@@ -93,7 +90,6 @@ func postprocessItem(item *models.Item) []*models.Item {
 					continue
 				}
 
-				item.SetStatus(models.ItemGotChildren)
 				newChild := models.NewItem(uuid.New().String(), asset, "", false)
 				err = item.AddChild(newChild, models.ItemGotChildren)
 				if err != nil {
