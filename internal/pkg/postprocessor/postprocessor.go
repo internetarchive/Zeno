@@ -156,7 +156,7 @@ func postprocess(seed *models.Item) []*models.Item {
 	}
 
 	for i := range childs {
-		itemOutlinks := postprocessItem(childs[i], seed)
+		itemOutlinks := postprocessItem(childs[i])
 		outlinks = append(outlinks, itemOutlinks...)
 
 		// Once the item is postprocessed, we can close the body buffer if it exists.
