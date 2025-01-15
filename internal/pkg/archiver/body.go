@@ -7,16 +7,15 @@ import (
 
 	"github.com/CorentinB/warc"
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func processBody(u *models.URL) error {
+func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops int, WARCTempDir string) error {
 	defer u.GetResponse().Body.Close() // Ensure the response body is closed
 
 	// If we are not capturing assets nor do we want to extract outlinks (and domains crawl is disabled)
 	// we can just consume the body and discard it
-	if config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl && config.Get().MaxHops == 0 {
+	if disableAssetsCapture && !domainsCrawl && maxHops == 0 {
 		// Read the rest of the body but discard it
 		_, err := io.Copy(io.Discard, u.GetResponse().Body)
 		if err != nil {
@@ -41,7 +40,7 @@ func processBody(u *models.URL) error {
 		strings.Contains(u.GetMIMEType().String(), "text/") {
 		// Create a spooled temp file, that is a ReadWriteSeeker that writes to a temporary file
 		// when the in-memory buffer exceeds a certain size. (here, 2MB)
-		spooledBuff := warc.NewSpooledTempFile("zeno", config.Get().WARCTempDir, 2097152, false)
+		spooledBuff := warc.NewSpooledTempFile("zeno", WARCTempDir, 2097152, false)
 		_, err := io.Copy(spooledBuff, buffer)
 		if err != nil {
 			return err
