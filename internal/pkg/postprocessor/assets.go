@@ -20,7 +20,7 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 	// Order is important, we want to check for more specific things first,
 	// as they may trigger more general extractors (e.g. HTML)
 	case ina.IsAPIURL(item.GetURL()):
-		assets, err := ina.ExtractMedias(item.GetURL())
+		assets, err = ina.ExtractMedias(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract medias from INA", "err", err.Error(), "item", item.GetShortID())
 			return assets, err
@@ -51,9 +51,8 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 		}
 	default:
 		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
+		return assets, nil
 	}
 
-	logger.Debug("extracted assets", "item", item.GetShortID(), "assets", len(assets))
-
-	return
+	return assets, nil
 }

@@ -80,20 +80,22 @@ func postprocessItem(item *models.Item) []*models.Item {
 		if !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil {
 			assets, err := extractAssets(item)
 			if err != nil {
-				logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
-			}
+				logger.Error("unable to extract assets", "err", err.Error(), "item_id", item.GetShortID())
+			} else {
+				for i := range assets {
+					if assets[i] == nil {
+						logger.Warn("nil asset", "item", item.GetShortID())
+						continue
+					}
 
-			for i := range assets {
-				if assets[i] == nil {
-					logger.Warn("nil asset", "item", item.GetShortID())
-					continue
+					newChild := models.NewItem(uuid.New().String(), assets[i], "", false)
+					err = item.AddChild(newChild, models.ItemGotChildren)
+					if err != nil {
+						panic(err)
+					}
 				}
 
-				newChild := models.NewItem(uuid.New().String(), assets[i], "", false)
-				err = item.AddChild(newChild, models.ItemGotChildren)
-				if err != nil {
-					panic(err)
-				}
+				logger.Debug("extracted assets", "item_id", item.GetShortID(), "count", len(assets))
 			}
 		}
 
@@ -101,21 +103,20 @@ func postprocessItem(item *models.Item) []*models.Item {
 		if (config.Get().DomainsCrawl || ((item.IsSeed() || item.IsRedirection()) && item.GetURL().GetHops() < config.Get().MaxHops)) && item.GetURL().GetBody() != nil {
 			newOutlinks, err := extractOutlinks(item)
 			if err != nil {
-				logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
-				return outlinks
-			}
+				logger.Error("unable to extract outlinks", "err", err.Error(), "item_id", item.GetShortID())
+			} else {
+				for i := range newOutlinks {
+					if newOutlinks[i] == nil {
+						logger.Warn("nil link", "item_id", item.GetShortID())
+						continue
+					}
 
-			for i := range newOutlinks {
-				if newOutlinks[i] == nil {
-					logger.Warn("nil link", "item", item.GetShortID())
-					continue
+					newOutlinkItem := models.NewItem(uuid.New().String(), newOutlinks[i], item.GetURL().String(), true)
+					outlinks = append(outlinks, newOutlinkItem)
 				}
 
-				newOutlinkItem := models.NewItem(uuid.New().String(), newOutlinks[i], item.GetURL().String(), true)
-				outlinks = append(outlinks, newOutlinkItem)
+				logger.Debug("extracted outlinks", "item_id", item.GetShortID(), "count", len(newOutlinks))
 			}
-
-			logger.Debug("extracted outlinks", "item", item.GetShortID(), "count", len(newOutlinks))
 		}
 	}
 
