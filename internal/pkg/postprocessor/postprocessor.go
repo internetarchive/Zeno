@@ -148,12 +148,6 @@ func postprocess(seed *models.Item) []*models.Item {
 
 	outlinks := make([]*models.Item, 0)
 
-	// If we don't capture assets, there is no need to postprocess the item
-	// TODO: handle hops even with disable assets capture
-	if config.Get().DisableAssetsCapture {
-		return outlinks
-	}
-
 	childs, err := seed.GetNodesAtLevel(seed.GetMaxDepth())
 	if err != nil {
 		logger.Error("unable to get nodes at level", "err", err.Error(), "seed_id", seed.GetShortID())
