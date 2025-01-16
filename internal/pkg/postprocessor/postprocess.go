@@ -19,9 +19,13 @@ func postprocessItem(item *models.Item) []*models.Item {
 		return outlinks
 	}
 
+	logger.Debug("postprocessing item", "item_id", item.GetShortID())
+
 	// Verify if there is any redirection
 	// TODO: execute assets redirection
 	if isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
+		logger.Debug("item is a redirection", "item_id", item.GetShortID())
+
 		// Check if the current redirections count doesn't exceed the max allowed
 		if item.GetURL().GetRedirects() >= config.Get().MaxRedirect {
 			logger.Warn("max redirects reached", "item_id", item.GetShortID())
@@ -76,6 +80,8 @@ func postprocessItem(item *models.Item) []*models.Item {
 	}
 
 	if item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200 {
+		logger.Debug("item is a success", "item_id", item.GetShortID())
+
 		// Extract assets from the page
 		if !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil {
 			assets, err := extractAssets(item)
@@ -124,6 +130,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 	item.GetURL().SetDocument(nil)
 
 	if !item.HasChildren() && !item.HasRedirection() && item.GetStatus() != models.ItemFailed {
+		logger.Debug("item has no children, setting as completed", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 	}
 
