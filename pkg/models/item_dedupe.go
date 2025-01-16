@@ -16,7 +16,7 @@ func (i *Item) DedupeItems() error {
 			continue
 		}
 		if existing, ok := urls[node.url.String()]; ok {
-			if existing.status != ItemCompleted && node.status == ItemCompleted { // Keep the completed item
+			if existing.status != ItemCompleted && !existing.IsSeed() && node.status == ItemCompleted { // Keep the completed item
 				existing.parent.RemoveChild(existing)
 				urls[node.url.String()] = node
 			} else {

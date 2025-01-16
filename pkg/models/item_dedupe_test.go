@@ -170,6 +170,28 @@ func TestItem_DedupeChilds(t *testing.T) {
 				"root": ItemFresh,
 			},
 		},
+		{
+			name: "Same URL for Seed and Child",
+			setupTree: func() *Item {
+				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root.SetStatus(ItemGotChildren)
+				child1 := createTestItemWithURL("child1", false, root, "http://example.com/child1")
+				child1.SetStatus(ItemGotChildren)
+				grandchild1 := createTestItemWithURL("grandchild1", false, child1, "http://example.com/root")
+				grandchild1.SetStatus(ItemCompleted)
+				child2 := createTestItemWithURL("child2", false, root, "http://example.com/child2")
+				child2.SetStatus(ItemCompleted)
+				return root
+			},
+			expectedIDs: map[string][]string{
+				"root": {"child1", "child2"},
+			},
+			expectedStatus: map[string]ItemState{
+				"root":   ItemCompleted,
+				"child1": ItemCompleted,
+				"child2": ItemCompleted,
+			},
+		},
 	}
 
 	for _, tt := range tests {
