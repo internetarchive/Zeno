@@ -164,14 +164,14 @@ func preprocess(item *models.Item) {
 		if children[i].IsSeed() {
 			err := normalizeURL(children[i].GetURL(), nil)
 			if err != nil {
-				logger.Debug("unable to validate URL", "url", children[i].GetURL().Raw, "err", err.Error())
+				logger.Debug("unable to validate URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw, "err", err.Error())
 				children[i].SetStatus(models.ItemFailed)
 				return
 			}
 		} else {
 			err := normalizeURL(children[i].GetURL(), children[i].GetParent().GetURL())
 			if err != nil {
-				logger.Debug("unable to validate URL", "url", children[i].GetURL().Raw, "err", err.Error())
+				logger.Debug("unable to validate URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw, "err", err.Error())
 				children[i].GetParent().RemoveChild(children[i])
 				continue
 			}
@@ -181,21 +181,21 @@ func preprocess(item *models.Item) {
 		if utils.StringContainsSliceElements(children[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) ||
 			utils.StringContainsSliceElements(children[i].GetURL().GetParsed().Path, config.Get().ExcludeString) ||
 			matchRegexExclusion(children[i]) {
-			logger.Debug("URL excluded", "url", children[i].GetURL().String())
-			if children[i].IsChild() {
+			logger.Debug("URL excluded", "item_id", children[i].GetShortID(), "url", children[i].GetURL().String())
+			if children[i].IsChild() || children[i].IsRedirection() {
 				children[i].GetParent().RemoveChild(children[i])
-			} else {
-				children[i].SetStatus(models.ItemCompleted)
-				return
+				continue
 			}
-			continue
+
+			children[i].SetStatus(models.ItemCompleted)
+			return
 		}
 
 		// If we are processing assets, then we need to remove childs that are just domains
 		// (which means that they are not assets, but false positives)
 		if children[i].IsChild() {
 			if children[i].GetURL().GetParsed().Path == "" || children[i].GetURL().GetParsed().Path == "/" {
-				logger.Debug("removing child with empty path", "url", children[i].GetURL().Raw)
+				logger.Debug("removing child with empty path", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw)
 				children[i].GetParent().RemoveChild(children[i])
 			}
 		}
@@ -210,7 +210,7 @@ func preprocess(item *models.Item) {
 	}
 
 	if len(children) == 0 {
-		logger.Info("no more work to do after dedupe", "item", item.GetShortID())
+		logger.Info("no more work to do after dedupe", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return
 	}
@@ -219,12 +219,12 @@ func preprocess(item *models.Item) {
 	if config.Get().UseHQ {
 		err = hq.SeencheckItem(item)
 		if err != nil {
-			logger.Warn("unable to seencheck item", "id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Warn("unable to seencheck item", "item_id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
 		}
 	} else {
 		err = seencheck.SeencheckItem(item)
 		if err != nil {
-			logger.Warn("unable to seencheck item", "id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Warn("unable to seencheck item", "item_id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
 		}
 	}
 
@@ -242,7 +242,7 @@ func preprocess(item *models.Item) {
 	}
 
 	if len(children) == 0 {
-		logger.Info("no more work to do after seencheck", "item", item.GetShortID())
+		logger.Info("no more work to do after seencheck", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return
 	}
@@ -251,7 +251,7 @@ func preprocess(item *models.Item) {
 	for i := range children {
 		req, err := http.NewRequest(http.MethodGet, children[i].GetURL().String(), nil)
 		if err != nil {
-			logger.Error("unable to create request for URL", "url", children[i].GetURL().String(), "err", err.Error())
+			logger.Error("unable to create request for URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().String(), "err", err.Error())
 			children[i].SetStatus(models.ItemFailed)
 			continue
 		}

@@ -33,6 +33,6 @@ func Dump(items ...*models.Item) {
 	for i := range items {
 		fmt.Fprintf(dumpFile, "Item: %s\n", items[i].GetID())
 		spew.Fdump(dumpFile, items[i])
-		fmt.Fprintf(dumpFile, "\n%s\n_______________________________", items[i].DrawTree())
+		fmt.Fprintf(dumpFile, "\n%s\n_______________________________", items[i].DrawTreeWithStatus())
 	}
 }

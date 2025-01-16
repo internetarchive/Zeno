@@ -302,21 +302,22 @@ func NewItem(ID string, URL *URL, seedVia string, isSeed bool) *Item {
 }
 
 // AddChild adds a child to the item
-func (i *Item) AddChild(child *Item, parentState ItemState) error {
+// The from parameter is used to set the status of the parent (either ItemGotRedirected or ItemGotChildren)
+func (i *Item) AddChild(child *Item, from ItemState) error {
 	i.childrenMu.Lock()
 	defer i.childrenMu.Unlock()
 	if child == nil {
 		return fmt.Errorf("child is nil")
 	}
-	if parentState != ItemGotRedirected && parentState != ItemGotChildren {
+	if from != ItemGotRedirected && from != ItemGotChildren {
 		return fmt.Errorf("from state is invalid, only ItemGotRedirected and ItemGotChildren are allowed")
 	}
-	if child.parent != nil && child.parent.status == ItemGotRedirected && (parentState == ItemGotChildren || child.status == ItemGotChildren) {
+	if child.parent != nil && child.parent.status == ItemGotRedirected && (from == ItemGotChildren || child.status == ItemGotChildren) {
 		return fmt.Errorf("parent already has children or redirection, cannot add child")
 	}
 	i.children = append(i.children, child)
 	child.parent = i
-	child.parent.status = parentState
+	child.parent.status = from
 	child.status = ItemFresh
 	return nil
 }
