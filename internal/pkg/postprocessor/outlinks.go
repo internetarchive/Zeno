@@ -6,6 +6,7 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -39,6 +40,12 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		}
 	case extractor.IsHTML(item.GetURL()):
 		outlinks, err := extractor.HTMLOutlinks(item)
+		if err != nil {
+			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
+			return outlinks, err
+		}
+	case reddit.IsPostAPI(item.GetURL()):
+		outlinks, err = reddit.ExtractAPIPostPermalinks(item)
 		if err != nil {
 			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err
