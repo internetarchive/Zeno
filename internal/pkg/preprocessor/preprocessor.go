@@ -144,7 +144,9 @@ func preprocess(item *models.Item) {
 		"component": "preprocessor.process",
 	})
 
-	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
+	operatingDepth := item.GetMaxDepth()
+
+	items, err := item.GetNodesAtLevel(operatingDepth)
 	if err != nil {
 		panic(err)
 	}
@@ -161,7 +163,7 @@ func preprocess(item *models.Item) {
 			err := normalizeURL(items[i].GetURL(), nil)
 			if err != nil {
 				logger.Debug("unable to validate URL", "url", items[i].GetURL().Raw, "err", err.Error())
-				items[i].SetStatus(models.ItemCompleted)
+				items[i].SetStatus(models.ItemFailed)
 				return
 			}
 		} else {
@@ -200,21 +202,13 @@ func preprocess(item *models.Item) {
 	// Deduplicate items based on their URL and remove duplicates
 	item.DedupeItems()
 
-	items, err = item.GetNodesAtLevel(item.GetMaxDepth())
+	items, err = item.GetNodesAtLevel(operatingDepth)
 	if err != nil {
 		panic(err)
 	}
 
-	var foundFresh bool
-	for i := range items {
-		if items[i].GetStatus() == models.ItemFresh {
-			foundFresh = true
-			break
-		}
-	}
-
-	if len(items) == 0 || !foundFresh {
-		logger.Warn("no more work to do after dedupe", "item", item.GetShortID())
+	if len(items) == 0 {
+		logger.Info("no more work to do after dedupe", "item", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return
 	}
@@ -233,7 +227,7 @@ func preprocess(item *models.Item) {
 	}
 
 	// Recreate the items list after deduplication and seencheck
-	items, err = item.GetNodesAtLevel(item.GetMaxDepth())
+	items, err = item.GetNodesAtLevel(operatingDepth)
 	if err != nil {
 		panic(err)
 	}
@@ -246,7 +240,7 @@ func preprocess(item *models.Item) {
 	}
 
 	if len(items) == 0 {
-		logger.Warn("no more work to do after seencheck", "item", item.GetShortID())
+		logger.Info("no more work to do after seencheck", "item", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return
 	}
