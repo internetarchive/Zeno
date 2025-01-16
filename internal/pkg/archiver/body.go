@@ -43,12 +43,20 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		spooledBuff := warc.NewSpooledTempFile("zeno", WARCTempDir, 2097152, false)
 		_, err := io.Copy(spooledBuff, buffer)
 		if err != nil {
+			closeErr := spooledBuff.Close()
+			if closeErr != nil {
+				panic(closeErr)
+			}
 			return err
 		}
 
 		// Read the rest of the body and set it in SetBody()
 		_, err = io.Copy(spooledBuff, u.GetResponse().Body)
 		if err != nil && err != io.EOF {
+			closeErr := spooledBuff.Close()
+			if closeErr != nil {
+				panic(closeErr)
+			}
 			return err
 		}
 
