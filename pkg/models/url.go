@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/CorentinB/warc"
+	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gabriel-vasile/mimetype"
 	"golang.org/x/net/idna"
@@ -19,7 +19,7 @@ type URL struct {
 	parsed    *url.URL
 	request   *http.Request
 	response  *http.Response
-	body      warc.ReadSeekCloser
+	body      spooledtempfile.ReadSeekCloser
 	document  *goquery.Document
 	mimetype  *mimetype.MIME
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
@@ -31,11 +31,11 @@ func (u *URL) Parse() (err error) {
 	return err
 }
 
-func (u *URL) GetBody() warc.ReadSeekCloser {
+func (u *URL) GetBody() spooledtempfile.ReadSeekCloser {
 	return u.body
 }
 
-func (u *URL) SetBody(body warc.ReadSeekCloser) {
+func (u *URL) SetBody(body spooledtempfile.ReadSeekCloser) {
 	u.body = body
 }
 
