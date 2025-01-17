@@ -125,6 +125,8 @@ func run() {
 						}
 					}
 
+					closeBodies(item)
+
 					select {
 					case globalPostprocessor.outputCh <- item:
 					case <-ctx.Done():
@@ -157,19 +159,20 @@ func postprocess(seed *models.Item) []*models.Item {
 	for i := range childs {
 		itemOutlinks := postprocessItem(childs[i])
 		outlinks = append(outlinks, itemOutlinks...)
-
-		// Once the item is postprocessed, we can close the body buffer if it exists.
-		// It will release the resources and delete the temporary file (if any).
-		if childs[i].GetURL().GetBody() != nil {
-			err = childs[i].GetURL().GetBody().Close()
-			if err != nil {
-				logger.Error("unable to close body", "err", err.Error(), "item_id", childs[i].GetShortID())
-				panic(err)
-			}
-
-			childs[i].GetURL().SetBody(nil)
-		}
 	}
 
 	return outlinks
+}
+
+func closeBodies(seed *models.Item) {
+	seed.Traverse(func(item *models.Item) {
+		if item.GetURL().GetBody() != nil {
+			err := item.GetURL().GetBody().Close()
+			if err != nil {
+				panic(fmt.Sprintf("unable to close body, err: %s, item id: %s", err.Error(), item.GetShortID()))
+			}
+
+			item.GetURL().SetBody(nil)
+		}
+	})
 }
