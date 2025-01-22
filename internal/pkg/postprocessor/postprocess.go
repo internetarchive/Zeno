@@ -8,6 +8,8 @@ import (
 )
 
 func postprocessItem(item *models.Item) []*models.Item {
+	defer closeBody(item)
+
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.postprocess.postprocessItem",
 	})

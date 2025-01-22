@@ -166,13 +166,17 @@ func postprocess(seed *models.Item) []*models.Item {
 
 func closeBodies(seed *models.Item) {
 	seed.Traverse(func(item *models.Item) {
-		if item.GetURL().GetBody() != nil {
-			err := item.GetURL().GetBody().Close()
-			if err != nil {
-				panic(fmt.Sprintf("unable to close body, err: %s, item id: %s", err.Error(), item.GetShortID()))
-			}
-
-			item.GetURL().SetBody(nil)
-		}
+		closeBody(item)
 	})
+}
+
+func closeBody(item *models.Item) {
+	if item.GetURL().GetBody() != nil {
+		err := item.GetURL().GetBody().Close()
+		if err != nil {
+			panic(fmt.Sprintf("unable to close body, err: %s, item id: %s", err.Error(), item.GetShortID()))
+		}
+
+		item.GetURL().SetBody(nil)
+	}
 }
