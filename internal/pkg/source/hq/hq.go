@@ -46,6 +46,7 @@ func Start(finishChan, produceChan chan *models.Item) error {
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
 			cancel()
+			done = true
 			startErr = err
 			return
 		}
