@@ -23,7 +23,7 @@ func startPipeline() {
 	err := log.Start()
 	if err != nil {
 		fmt.Println("error starting logger", "err", err.Error())
-		return
+		panic(err)
 	}
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -33,7 +33,7 @@ func startPipeline() {
 	err = stats.Init()
 	if err != nil {
 		logger.Error("error initializing stats", "err", err.Error())
-		return
+		panic(err)
 	}
 
 	// Start the disk watcher
@@ -44,7 +44,7 @@ func startPipeline() {
 	err = reactor.Start(config.Get().WorkersCount, reactorOutputChan)
 	if err != nil {
 		logger.Error("error starting reactor", "err", err.Error())
-		return
+		panic(err)
 	}
 
 	// If needed, create the seencheck DB (only if not using HQ)
@@ -52,7 +52,7 @@ func startPipeline() {
 		err := seencheck.Start(config.Get().JobPath)
 		if err != nil {
 			logger.Error("unable to start seencheck", "err", err.Error())
-			return
+			panic(err)
 		}
 	}
 
@@ -60,14 +60,14 @@ func startPipeline() {
 	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting preprocessor", "err", err.Error())
-		return
+		panic(err)
 	}
 
 	archiverOutputChan := makeStageChannel()
 	err = archiver.Start(preprocessorOutputChan, archiverOutputChan)
 	if err != nil {
 		logger.Error("error starting archiver", "err", err.Error())
-		return
+		panic(err)
 	}
 
 	// Start the WARC writing queue watcher
@@ -77,7 +77,7 @@ func startPipeline() {
 	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting postprocessor", "err", err.Error())
-		return
+		panic(err)
 	}
 
 	var finisherFinishChan, finisherProduceChan chan *models.Item
@@ -87,17 +87,22 @@ func startPipeline() {
 		finisherFinishChan = makeStageChannel()
 		finisherProduceChan = makeStageChannel()
 
-		err = hq.Start(finisherFinishChan, finisherProduceChan)
-		if err != nil {
-			logger.Error("error starting hq", "err", err.Error())
-			return
+		for {
+			err = hq.Start(finisherFinishChan, finisherProduceChan)
+			if err != nil {
+				logger.Error("error starting hq source, retrying", "err", err.Error())
+				time.Sleep(time.Second)
+				continue
+			}
+
+			break
 		}
 	}
 
 	err = finisher.Start(postprocessorOutputChan, finisherFinishChan, finisherProduceChan)
 	if err != nil {
 		logger.Error("error starting finisher", "err", err.Error())
-		return
+		panic(err)
 	}
 
 	// Pipe in the reactor the input seeds if any
@@ -115,7 +120,7 @@ func startPipeline() {
 			err = reactor.ReceiveInsert(item)
 			if err != nil {
 				logger.Error("unable to insert seed", "err", err.Error())
-				return
+				panic(err)
 			}
 		}
 	}
