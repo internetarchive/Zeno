@@ -42,7 +42,7 @@ func Start(finishChan, produceChan chan *models.Item) error {
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
-		HQclient, err := gocrawlhq.Init(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, )
+		HQclient, err := gocrawlhq.Init(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, "")
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
 			cancel()
