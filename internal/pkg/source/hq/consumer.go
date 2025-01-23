@@ -3,6 +3,7 @@ package hq
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -72,8 +73,6 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		"component": "hq.consumerFetcher",
 	})
 
-	var previousBatchReceived []gocrawlhq.URL
-
 	for {
 		// Check for context cancellation
 		select {
@@ -101,19 +100,11 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 			panic(err)
 		}
 
-		// Debug check to troubleshoot a problem where the same seed might be received twice in contiguous batches
-		if previousBatchReceived != nil {
-			// Concat the previous and current batch
-			concatedBatches := append(previousBatchReceived, URLs...)
-			err := ensureAllURLsUnique(concatedBatches)
-			if err != nil {
-				spew.Dump(concatedBatches)
-				panic(err)
-			}
+		err = ensureAllIDsNotInReactor(URLs)
+		if err != nil {
+			spew.Dump(URLs)
+			panic(err)
 		}
-		// Create a deep copy of URLs to previousBatchReceived
-		previousBatchReceived = make([]gocrawlhq.URL, len(URLs))
-		copy(previousBatchReceived, URLs)
 
 		// Enqueue URLs into the buffer
 		for i := range URLs {
@@ -250,6 +241,21 @@ func ensureAllURLsUnique(URLs []gocrawlhq.URL) error {
 			return errors.New("duplicate URL ID found")
 		}
 		seen[URL.ID] = struct{}{}
+	}
+	return nil
+}
+
+func ensureAllIDsNotInReactor(URLs []gocrawlhq.URL) error {
+	reactorIDs := reactor.GetStateTable()
+	reactorIDMap := make(map[string]struct{})
+	for i := range reactorIDs {
+		reactorIDMap[reactorIDs[i]] = struct{}{}
+	}
+
+	for i := range URLs {
+		if _, ok := reactorIDMap[URLs[i].ID]; ok {
+			return fmt.Errorf("URL ID %s found in reactor", URLs[i].ID)
+		}
 	}
 	return nil
 }
