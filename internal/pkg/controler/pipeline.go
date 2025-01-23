@@ -87,15 +87,10 @@ func startPipeline() {
 		finisherFinishChan = makeStageChannel()
 		finisherProduceChan = makeStageChannel()
 
-		for {
-			err = hq.Start(finisherFinishChan, finisherProduceChan)
-			if err != nil {
-				logger.Error("error starting hq source, retrying", "err", err.Error())
-				time.Sleep(time.Second)
-				continue
-			}
-
-			break
+		err = hq.Start(finisherFinishChan, finisherProduceChan)
+		if err != nil {
+			logger.Error("error starting hq source, retrying", "err", err.Error())
+			panic(err)
 		}
 	}
 
