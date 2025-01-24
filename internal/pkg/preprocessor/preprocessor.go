@@ -12,6 +12,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/log/dumper"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -262,6 +263,8 @@ func preprocess(item *models.Item) {
 		switch {
 		case tiktok.IsTikTokURL(children[i].GetURL()):
 			tiktok.AddHeaders(req)
+		case truthsocial.IsStatusAPIURL(children[i].GetURL()):
+			truthsocial.AddStatusAPIHeaders(req)
 		}
 
 		children[i].GetURL().SetRequest(req)
