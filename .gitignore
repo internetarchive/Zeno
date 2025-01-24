@@ -2,12 +2,12 @@ jobs/*
 jobs/
 Zeno
 *.txt
-*.sh
+*.sh*
 zeno.log
 .vscode/
 *.py
 .DS_Store
 ZENO-*
-start.sh
 output.log
 .old/
+*.warc.*
