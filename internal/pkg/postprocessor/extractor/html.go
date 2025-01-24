@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -361,6 +363,12 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	for _, rawAsset := range rawAssets {
+		if reddit.IsRedditURL(item.GetURL()) {
+			rawAsset, err = url.QueryUnescape(strings.ReplaceAll(rawAsset, "amp;", ""))
+			if err != nil {
+				return nil, err
+			}
+		}
 		assets = append(assets, &models.URL{
 			Raw:  rawAsset,
 			Hops: item.GetURL().GetHops() + 1,
