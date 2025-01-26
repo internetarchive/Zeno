@@ -16,8 +16,8 @@ var (
 	truthsocialRegex   = regexp.MustCompile(`^https?:\/\/truthsocial\.com\/.*`)
 )
 
-func IsURL(URL *models.URL) bool {
-	return truthsocialRegex.MatchString(URL.String())
+func NeedExtraction(URL *models.URL) bool {
+	return IsStatusesURL(URL) || IsPostURL(URL)
 }
 
 func ExtractAssets(item *models.Item) (assets []*models.URL, err error) {
@@ -35,18 +35,6 @@ func ExtractAssets(item *models.Item) (assets []*models.URL, err error) {
 		assets = append(truthsocialAssets, JSONAssets...)
 	} else if IsPostURL(item.GetURL()) {
 		truthsocialAssets, err := GeneratePostAssetsURLs(item.GetURL())
-		if err != nil {
-			return assets, err
-		}
-
-		HTMLAssets, err := extractor.HTMLAssets(item)
-		if err != nil {
-			return assets, err
-		}
-
-		assets = append(truthsocialAssets, HTMLAssets...)
-	} else if IsAccountURL(item.GetURL()) {
-		truthsocialAssets, err := GenerateAccountLookupURL(item.GetURL())
 		if err != nil {
 			return assets, err
 		}

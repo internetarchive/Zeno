@@ -1,7 +1,6 @@
 package postprocessor
 
 import (
-	"fmt"
 	"io"
 	"strings"
 
@@ -27,13 +26,17 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 
 	// Run specific extractors
 	switch {
-	case truthsocial.IsURL(item.GetURL()):
-		if truthsocial.IsAccountLookupURL(item.GetURL()) {
-			outlinks, err := truthsocial.GenerateOutlinksURLsFromLookup(item.GetURL())
-			if err != nil {
-				logger.Error("unable to extract outlinks from TruthSocial", "err", err.Error(), "item", item.GetShortID())
-				return outlinks, err
-			}
+	case truthsocial.IsAccountURL(item.GetURL()):
+		outlinks, err = truthsocial.GenerateAccountLookupURL(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract outlinks from TruthSocial", "err", err.Error(), "item", item.GetShortID())
+			return outlinks, err
+		}
+	case truthsocial.IsAccountLookupURL(item.GetURL()):
+		outlinks, err := truthsocial.GenerateOutlinksURLsFromLookup(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract outlinks from TruthSocial", "err", err.Error(), "item", item.GetShortID())
+			return outlinks, err
 		}
 	case extractor.IsS3(item.GetURL()):
 		outlinks, err = extractor.S3(item.GetURL())
@@ -62,10 +65,6 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	linksFromLinkHeader := extractor.ExtractURLsFromHeader(item.GetURL())
 	if linksFromLinkHeader != nil {
 		outlinks = append(outlinks, linksFromLinkHeader...)
-	}
-
-	for i := range outlinks {
-		fmt.Printf("Outlink: %s\n", outlinks[i].Raw)
 	}
 
 	// If the page is a text/* content type, extract links from the body (aggressively)

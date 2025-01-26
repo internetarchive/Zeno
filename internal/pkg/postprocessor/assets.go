@@ -34,7 +34,7 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 		}
 
 		assets = append(INAAssets, HTMLAssets...)
-	case truthsocial.IsURL(item.GetURL()):
+	case truthsocial.NeedExtraction(item.GetURL()):
 		assets, err = truthsocial.ExtractAssets(item)
 		if err != nil {
 			logger.Error("unable to extract assets from TruthSocial", "err", err.Error(), "item", item.GetShortID())

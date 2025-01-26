@@ -53,19 +53,19 @@ func IsAccountURL(URL *models.URL) bool {
 	return usernameRegex.MatchString(URL.String())
 }
 
-func GenerateAccountLookupURL(URL *models.URL) (assets []*models.URL, err error) {
+func GenerateAccountLookupURL(URL *models.URL) (outlinks []*models.URL, err error) {
 	// Get the username from the URL
 	username := usernameRegex.FindStringSubmatch(URL.String())
 	if len(username) != 2 {
 		return nil, nil
 	}
 
-	// Generate the assets URLs
-	assets = append(assets, &models.URL{
+	// Generate the outlinks URLs
+	outlinks = append(outlinks, &models.URL{
 		Raw: "https://truthsocial.com/api/v1/accounts/lookup?acct=" + username[1],
 	})
 
-	return assets, nil
+	return outlinks, nil
 }
 
 func GenerateOutlinksURLsFromLookup(URL *models.URL) (outlinks []*models.URL, err error) {
