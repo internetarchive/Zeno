@@ -34,8 +34,22 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 		}
 
 		assets = append(INAAssets, HTMLAssets...)
+	case truthsocial.IsStatusesURL(item.GetURL()):
+		truthsocialAssets, err := truthsocial.GenerateVideoURLsFromStatusesAPI(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract assets from TruthSocial", "err", err.Error(), "item", item.GetShortID())
+			return assets, err
+		}
+
+		JSONAssets, err := extractor.JSON(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+			return assets, err
+		}
+
+		assets = append(truthsocialAssets, JSONAssets...)
 	case truthsocial.IsPostURL(item.GetURL()):
-		truthsocialAssets, err := truthsocial.GenerateAssetsURLs(item.GetURL())
+		truthsocialAssets, err := truthsocial.GeneratePostAssetsURLs(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract assets from TruthSocial", "err", err.Error(), "item", item.GetShortID())
 			return assets, err

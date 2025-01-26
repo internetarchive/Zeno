@@ -263,8 +263,10 @@ func preprocess(item *models.Item) {
 		switch {
 		case tiktok.IsTikTokURL(children[i].GetURL()):
 			tiktok.AddHeaders(req)
-		case truthsocial.IsStatusAPIURL(children[i].GetURL()):
+		case truthsocial.IsStatusAPIURL(children[i].GetURL()) || truthsocial.IsVideoAPIURL(children[i].GetURL()):
 			truthsocial.AddStatusAPIHeaders(req)
+		case truthsocial.IsAccountsAPIURL(children[i].GetURL()):
+			truthsocial.AddAccountsAPIHeaders(req)
 		}
 
 		children[i].GetURL().SetRequest(req)
