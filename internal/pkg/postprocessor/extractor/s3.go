@@ -115,7 +115,6 @@ func S3(URL *models.URL) ([]*models.URL, error) {
 	for _, extractedURL := range URLs {
 		outlinks = append(outlinks, &models.URL{
 			Raw:  extractedURL,
-			Hops: URL.GetHops(),
 		})
 	}
 
