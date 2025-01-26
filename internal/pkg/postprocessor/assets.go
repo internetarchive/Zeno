@@ -34,34 +34,12 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 		}
 
 		assets = append(INAAssets, HTMLAssets...)
-	case truthsocial.IsStatusesURL(item.GetURL()):
-		truthsocialAssets, err := truthsocial.GenerateVideoURLsFromStatusesAPI(item.GetURL())
+	case truthsocial.IsURL(item.GetURL()):
+		assets, err = truthsocial.ExtractAssets(item)
 		if err != nil {
 			logger.Error("unable to extract assets from TruthSocial", "err", err.Error(), "item", item.GetShortID())
 			return assets, err
 		}
-
-		JSONAssets, err := extractor.JSON(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
-		}
-
-		assets = append(truthsocialAssets, JSONAssets...)
-	case truthsocial.IsPostURL(item.GetURL()):
-		truthsocialAssets, err := truthsocial.GeneratePostAssetsURLs(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract assets from TruthSocial", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
-		}
-
-		HTMLAssets, err := extractor.HTMLAssets(item)
-		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
-		}
-
-		assets = append(truthsocialAssets, HTMLAssets...)
 	case extractor.IsM3U8(item.GetURL()):
 		assets, err = extractor.M3U8(item.GetURL())
 		if err != nil {

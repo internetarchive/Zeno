@@ -11,10 +11,15 @@ var (
 	APIStatusRegex   = regexp.MustCompile(`^https?:\/\/truthsocial\.com\/api\/v1\/statuses\/(\d+)`)
 	APIVideoRegex    = regexp.MustCompile(`^https?:\/\/truthsocial\.com\/api\/v1\/truth\/videos\/[a-zA-Z0-9]+$`)
 	APIAccountsRegex = regexp.MustCompile(`^https?:\/\/truthsocial\.com\/api\/v1\/accounts\/([^/]+)`)
+	APILookupRegex   = regexp.MustCompile(`^https?://truthsocial\.com/api/v1/accounts/lookup\?acct=[a-zA-Z0-9]+$`)
 )
 
 func IsVideoAPIURL(URL *models.URL) bool {
 	return APIVideoRegex.MatchString(URL.String())
+}
+
+func IsLookupURL(URL *models.URL) bool {
+	return APILookupRegex.MatchString(URL.String())
 }
 
 func IsStatusAPIURL(URL *models.URL) bool {
