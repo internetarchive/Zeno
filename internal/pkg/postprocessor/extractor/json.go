@@ -27,8 +27,7 @@ func JSON(URL *models.URL) (assets []*models.URL, err error) {
 
 	for _, rawAsset := range rawAssets {
 		assets = append(assets, &models.URL{
-			Raw:  rawAsset,
-			Hops: URL.GetHops(),
+			Raw: rawAsset,
 		})
 	}
 

@@ -72,6 +72,11 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		outlinks = append(outlinks, extractLinksFromPage(item.GetURL())...)
 	}
 
+	// Set the hops level to the item's level + 1
+	for _, outlink := range outlinks {
+		outlink.SetHops(item.GetURL().GetHops() + 1)
+	}
+
 	return outlinks, nil
 }
 

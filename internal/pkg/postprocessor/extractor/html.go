@@ -75,8 +75,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 
 	for _, rawOutlink := range rawOutlinks {
 		outlinks = append(outlinks, &models.URL{
-			Raw:  rawOutlink,
-			Hops: item.GetURL().GetHops() + 1,
+			Raw: rawOutlink,
 		})
 	}
 
@@ -362,8 +361,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 	for _, rawAsset := range rawAssets {
 		assets = append(assets, &models.URL{
-			Raw:  rawAsset,
-			Hops: item.GetURL().GetHops() + 1,
+			Raw: rawAsset,
 		})
 	}
 

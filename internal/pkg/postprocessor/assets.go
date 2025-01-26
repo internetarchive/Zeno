@@ -69,5 +69,10 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 		return assets, nil
 	}
 
+	// Set the hops level to the item's level
+	for _, asset := range assets {
+		asset.SetHops(item.GetURL().GetHops())
+	}
+
 	return assets, nil
 }
