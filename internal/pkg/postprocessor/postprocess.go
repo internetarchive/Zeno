@@ -1,6 +1,8 @@
 package postprocessor
 
 import (
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -108,7 +110,8 @@ func postprocessItem(item *models.Item) []*models.Item {
 		}
 
 		// Extract outlinks from the page
-		if (config.Get().DomainsCrawl || ((item.IsSeed() || item.IsRedirection()) && item.GetURL().GetHops() < config.Get().MaxHops)) && item.GetURL().GetBody() != nil {
+		if ((config.Get().DomainsCrawl && item.GetURL().GetHops() == 0) ||
+			((item.IsSeed() || item.IsRedirection()) && item.GetURL().GetHops() < config.Get().MaxHops)) && item.GetURL().GetBody() != nil {
 			newOutlinks, err := extractOutlinks(item)
 			if err != nil {
 				logger.Error("unable to extract outlinks", "err", err.Error(), "item_id", item.GetShortID())
@@ -117,6 +120,14 @@ func postprocessItem(item *models.Item) []*models.Item {
 					if newOutlinks[i] == nil {
 						logger.Warn("nil link", "item_id", item.GetShortID())
 						continue
+					}
+
+					// If domains crawl, and if the host of the new outlinks match the host of its parent
+					// and if its parent is at hop 0, then we need to set the hop count to 0.
+					// TODO: maybe be more flexible than a strict match
+					if config.Get().DomainsCrawl && item.GetURL().GetHops() == 0 && strings.Contains(newOutlinks[i].Raw, item.GetURL().GetParsed().Host) {
+						logger.Debug("setting hop count to 0 (domains crawl)", "item_id", item.GetShortID(), "url", newOutlinks[i].Raw)
+						newOutlinks[i].SetHops(0)
 					}
 
 					newOutlinkItem := models.NewItem(uuid.New().String(), newOutlinks[i], item.GetURL().String(), true)
