@@ -33,7 +33,7 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			return outlinks, err
 		}
 	case truthsocial.IsAccountLookupURL(item.GetURL()):
-		outlinks, err := truthsocial.GenerateOutlinksURLsFromLookup(item.GetURL())
+		outlinks, err = truthsocial.GenerateOutlinksURLsFromLookup(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract outlinks from TruthSocial", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err
