@@ -87,7 +87,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 		logger.Debug("item is a success", "item_id", item.GetShortID())
 
 		// Extract assets from the page
-		if !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil {
+		if shouldExtractAssets(item) {
 			assets, err := extractAssets(item)
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error(), "item_id", item.GetShortID())
