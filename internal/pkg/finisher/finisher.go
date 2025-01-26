@@ -2,6 +2,7 @@ package finisher
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
@@ -94,6 +95,10 @@ func (f *finisher) run() {
 
 			logger.Debug("received item", "item", item.GetShortID())
 
+			if err := item.CheckConsistency(); err != nil {
+				panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), item.GetShortID()))
+			}
+
 			// If the item is fresh, send it to the source
 			if item.GetStatus() == models.ItemFresh {
 				logger.Debug("fresh item received", "item", item)
@@ -101,35 +106,20 @@ func (f *finisher) run() {
 				continue
 			}
 
-			children, err := item.GetNodesAtLevel(item.GetMaxDepth())
-			if err != nil {
-				panic(err)
-			}
-
 			// If the item has fresh children, send it to feedback
-			if len(children) > 0 {
-				var doneFeedback bool
-				for _, child := range children {
-					if child.GetStatus() == models.ItemFresh {
-						logger.Debug("item has fresh children", "item", item.GetShortID())
-						err := reactor.ReceiveFeedback(item)
-						if err != nil && err != reactor.ErrReactorFrozen {
-							panic(err)
-						}
-						doneFeedback = true
-						break
-					}
+			isComplete := item.CompleteAndCheck()
+			if !isComplete {
+				logger.Debug("item has fresh children", "item", item.GetShortID())
+				err := reactor.ReceiveFeedback(item)
+				if err != nil && err != reactor.ErrReactorFrozen {
+					panic(err)
 				}
-
-				// If the item has fresh children, skip the rest of the select statement
-				if doneFeedback {
-					continue
-				}
+				continue
 			}
 
 			// If the item has no fresh redirection or children, mark it as finished
 			logger.Debug("item has no fresh redirection or children", "item", item.GetShortID())
-			err = reactor.MarkAsFinished(item)
+			err := reactor.MarkAsFinished(item)
 			if err != nil {
 				panic(err)
 			}

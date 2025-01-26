@@ -27,6 +27,14 @@ func TestExtractURLsFromHeader(t *testing.T) {
 			},
 		},
 		{
+			name: "Next and prev",
+			link: `<https://truthsocial.com/api/v1/accounts/107815018235081107/statuses?max_id=113432853096650977&exclude_replies=true>; rel="next", <https://truthsocial.com/api/v1/accounts/107815018235081107/statuses?min_id=113872917814509594&exclude_replies=true>; rel="prev"`,
+			expected: []*models.URL{
+				{Raw: "https://truthsocial.com/api/v1/accounts/107815018235081107/statuses?max_id=113432853096650977&exclude_replies=true"},
+				{Raw: "https://truthsocial.com/api/v1/accounts/107815018235081107/statuses?min_id=113872917814509594&exclude_replies=true"},
+			},
+		},
+		{
 			name:     "Valid Link header with no URLs",
 			link:     ``,
 			expected: nil,

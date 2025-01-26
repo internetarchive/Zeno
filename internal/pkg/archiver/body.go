@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/CorentinB/warc"
+	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -40,15 +40,23 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		strings.Contains(u.GetMIMEType().String(), "text/") {
 		// Create a spooled temp file, that is a ReadWriteSeeker that writes to a temporary file
 		// when the in-memory buffer exceeds a certain size. (here, 2MB)
-		spooledBuff := warc.NewSpooledTempFile("zeno", WARCTempDir, 2097152, false)
+		spooledBuff := spooledtempfile.NewSpooledTempFile("zeno", WARCTempDir, 2097152, false, -1)
 		_, err := io.Copy(spooledBuff, buffer)
 		if err != nil {
+			closeErr := spooledBuff.Close()
+			if closeErr != nil {
+				panic(closeErr)
+			}
 			return err
 		}
 
 		// Read the rest of the body and set it in SetBody()
 		_, err = io.Copy(spooledBuff, u.GetResponse().Body)
 		if err != nil && err != io.EOF {
+			closeErr := spooledBuff.Close()
+			if closeErr != nil {
+				panic(closeErr)
+			}
 			return err
 		}
 

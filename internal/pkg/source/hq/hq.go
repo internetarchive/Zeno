@@ -45,7 +45,10 @@ func Start(finishChan, produceChan chan *models.Item) error {
 		HQclient, err := gocrawlhq.Init(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, "")
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
+			cancel()
+			done = true
 			startErr = err
+			return
 		}
 
 		globalHQ = &hq{

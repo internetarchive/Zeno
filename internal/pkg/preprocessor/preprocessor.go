@@ -9,8 +9,10 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/log/dumper"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -111,6 +113,10 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.PreprocessorRoutinesDecr()
 
+					if err := item.CheckConsistency(); err != nil {
+						panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), item.GetShortID()))
+					}
+
 					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
 						panic(fmt.Sprintf("preprocessor received item with status %d, item id: %s", item.GetStatus(), item.GetShortID()))
 					}
@@ -140,55 +146,58 @@ func preprocess(item *models.Item) {
 		"component": "preprocessor.process",
 	})
 
-	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
+	operatingDepth := item.GetMaxDepth()
+
+	children, err := item.GetNodesAtLevel(operatingDepth)
 	if err != nil {
 		panic(err)
 	}
 
-	for i := range items {
+	for i := range children {
 		// Panic on any child that is not fresh
 		// This means that an incorrect item was inserted and/or that the finisher is not working correctly
-		if items[i].GetStatus() != models.ItemFresh {
-			panic(fmt.Sprintf("non-fresh item received in preprocessor: %s", items[i].GetStatus().String()))
+		if children[i].GetStatus() != models.ItemFresh {
+			dumper.Dump(item)
+			panic(fmt.Sprintf("non-fresh item %s received in preprocessor: %s", children[i].GetShortID(), children[i].GetStatus().String()))
 		}
 
 		// Normalize the URL
-		if items[i].IsSeed() {
-			err := normalizeURL(items[i].GetURL(), nil)
+		if children[i].IsSeed() {
+			err := normalizeURL(children[i].GetURL(), nil)
 			if err != nil {
-				logger.Debug("unable to validate URL", "url", items[i].GetURL().Raw, "err", err.Error())
-				items[i].SetStatus(models.ItemCompleted)
+				logger.Debug("unable to validate URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw, "err", err.Error())
+				children[i].SetStatus(models.ItemFailed)
 				return
 			}
 		} else {
-			err := normalizeURL(items[i].GetURL(), items[i].GetParent().GetURL())
+			err := normalizeURL(children[i].GetURL(), children[i].GetParent().GetURL())
 			if err != nil {
-				logger.Debug("unable to validate URL", "url", items[i].GetURL().Raw, "err", err.Error())
-				items[i].GetParent().RemoveChild(items[i])
+				logger.Debug("unable to validate URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw, "err", err.Error())
+				children[i].GetParent().RemoveChild(children[i])
 				continue
 			}
 		}
 
 		// Verify if the URL isn't to be excluded
-		if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) ||
-			utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Path, config.Get().ExcludeString) ||
-			matchRegexExclusion(items[i]) {
-			logger.Debug("URL excluded", "url", items[i].GetURL().String())
-			if items[i].IsChild() {
-				items[i].GetParent().RemoveChild(items[i])
-			} else {
-				items[i].SetStatus(models.ItemCompleted)
-				return
+		if utils.StringContainsSliceElements(children[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) ||
+			utils.StringContainsSliceElements(children[i].GetURL().GetParsed().Path, config.Get().ExcludeString) ||
+			matchRegexExclusion(children[i]) {
+			logger.Debug("URL excluded", "item_id", children[i].GetShortID(), "url", children[i].GetURL().String())
+			if children[i].IsChild() || children[i].IsRedirection() {
+				children[i].GetParent().RemoveChild(children[i])
+				continue
 			}
-			continue
+
+			children[i].SetStatus(models.ItemCompleted)
+			return
 		}
 
 		// If we are processing assets, then we need to remove childs that are just domains
 		// (which means that they are not assets, but false positives)
-		if items[i].IsChild() {
-			if items[i].GetURL().GetParsed().Path == "" || items[i].GetURL().GetParsed().Path == "/" {
-				logger.Debug("removing child with empty path", "url", items[i].GetURL().Raw)
-				items[i].GetParent().RemoveChild(items[i])
+		if children[i].IsChild() {
+			if children[i].GetURL().GetParsed().Path == "" || children[i].GetURL().GetParsed().Path == "/" {
+				logger.Debug("removing child with empty path", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw)
+				children[i].GetParent().RemoveChild(children[i])
 			}
 		}
 	}
@@ -196,21 +205,13 @@ func preprocess(item *models.Item) {
 	// Deduplicate items based on their URL and remove duplicates
 	item.DedupeItems()
 
-	items, err = item.GetNodesAtLevel(item.GetMaxDepth())
+	children, err = item.GetNodesAtLevel(operatingDepth)
 	if err != nil {
 		panic(err)
 	}
 
-	var foundFresh bool
-	for i := range items {
-		if items[i].GetStatus() == models.ItemFresh {
-			foundFresh = true
-			break
-		}
-	}
-
-	if len(items) == 0 || !foundFresh {
-		logger.Warn("no more work to do after dedupe", "item", item.GetShortID())
+	if len(children) == 0 {
+		logger.Info("no more work to do after dedupe", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return
 	}
@@ -219,40 +220,40 @@ func preprocess(item *models.Item) {
 	if config.Get().UseHQ {
 		err = hq.SeencheckItem(item)
 		if err != nil {
-			logger.Warn("unable to seencheck item", "id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Warn("unable to seencheck item", "item_id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
 		}
 	} else {
 		err = seencheck.SeencheckItem(item)
 		if err != nil {
-			logger.Warn("unable to seencheck item", "id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Warn("unable to seencheck item", "item_id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
 		}
 	}
 
 	// Recreate the items list after deduplication and seencheck
-	items, err = item.GetNodesAtLevel(item.GetMaxDepth())
+	children, err = item.GetNodesAtLevel(operatingDepth)
 	if err != nil {
 		panic(err)
 	}
 
 	// Remove any item that is not fresh from the list
-	for i := len(items) - 1; i >= 0; i-- {
-		if items[i].GetStatus() != models.ItemFresh {
-			items = append(items[:i], items[i+1:]...)
+	for i := len(children) - 1; i >= 0; i-- {
+		if children[i].GetStatus() != models.ItemFresh {
+			children = append(children[:i], children[i+1:]...)
 		}
 	}
 
-	if len(items) == 0 {
-		logger.Warn("no more work to do after seencheck", "item", item.GetShortID())
+	if len(children) == 0 {
+		logger.Info("no more work to do after seencheck", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return
 	}
 
 	// Finally, we build the requests, applying any site-specific behavior needed
-	for i := range items {
-		req, err := http.NewRequest(http.MethodGet, items[i].GetURL().String(), nil)
+	for i := range children {
+		req, err := http.NewRequest(http.MethodGet, children[i].GetURL().String(), nil)
 		if err != nil {
-			logger.Error("unable to create request for URL", "url", items[i].GetURL().String(), "err", err.Error())
-			items[i].SetStatus(models.ItemFailed)
+			logger.Error("unable to create request for URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().String(), "err", err.Error())
+			children[i].SetStatus(models.ItemFailed)
 			continue
 		}
 
@@ -260,11 +261,17 @@ func preprocess(item *models.Item) {
 		req.Header.Set("User-Agent", config.Get().UserAgent)
 
 		switch {
-		case tiktok.IsTikTokURL(items[i].GetURL()):
+		case tiktok.IsTikTokURL(children[i].GetURL()):
 			tiktok.AddHeaders(req)
+		case truthsocial.IsStatusAPIURL(children[i].GetURL()) ||
+			truthsocial.IsVideoAPIURL(children[i].GetURL()) ||
+			truthsocial.IsLookupURL(children[i].GetURL()):
+			truthsocial.AddStatusAPIHeaders(req)
+		case truthsocial.IsAccountsAPIURL(children[i].GetURL()):
+			truthsocial.AddAccountsAPIHeaders(req)
 		}
 
-		items[i].GetURL().SetRequest(req)
-		items[i].SetStatus(models.ItemPreProcessed)
+		children[i].GetURL().SetRequest(req)
+		children[i].SetStatus(models.ItemPreProcessed)
 	}
 }

@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/CorentinB/warc"
+	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gabriel-vasile/mimetype"
 	"golang.org/x/net/idna"
@@ -19,7 +19,7 @@ type URL struct {
 	parsed    *url.URL
 	request   *http.Request
 	response  *http.Response
-	body      warc.ReadSeekCloser
+	body      spooledtempfile.ReadSeekCloser
 	document  *goquery.Document
 	mimetype  *mimetype.MIME
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
@@ -31,11 +31,11 @@ func (u *URL) Parse() (err error) {
 	return err
 }
 
-func (u *URL) GetBody() warc.ReadSeekCloser {
+func (u *URL) GetBody() spooledtempfile.ReadSeekCloser {
 	return u.body
 }
 
-func (u *URL) SetBody(body warc.ReadSeekCloser) {
+func (u *URL) SetBody(body spooledtempfile.ReadSeekCloser) {
 	u.body = body
 }
 
@@ -121,9 +121,9 @@ func URLToString(URL *url.URL) string {
 		// Do nothing. We don't want to encode the URL for signature purposes. :(
 		break
 	default:
-		q := URL.Query()
-		URL.RawQuery = encodeQuery(q)
+		URL.RawQuery = encodeQuery(URL.Query())
 	}
+
 	URL.Host, err = idna.ToASCII(URL.Host)
 	if err != nil {
 		if strings.Contains(URL.Host, ":") {
@@ -131,9 +131,9 @@ func URLToString(URL *url.URL) string {
 			if err != nil {
 				slog.Warn("cannot split host and port", "error", err)
 			} else {
-				asciiHost, err := idna.ToASCII(hostWithoutPort)
+				hostWithoutPort, err = idna.ToASCII(hostWithoutPort)
 				if err == nil {
-					URL.Host = asciiHost + ":" + port
+					URL.Host = hostWithoutPort + ":" + port
 				} else {
 					slog.Warn("cannot encode punycode host without port to ASCII", "error", err)
 				}
@@ -153,25 +153,25 @@ func encodeQuery(v url.Values) string {
 	if len(v) == 0 {
 		return ""
 	}
+
 	var buf strings.Builder
-	keys := make([]string, 0, len(v))
-	for k := range v {
-		keys = append(keys, k)
-	}
-	// Modified to not sort the keys.
-	// slices.Sort(keys)
-	for _, k := range keys {
-		vs := v[k]
+	first := true
+
+	for k, vs := range v {
 		keyEscaped := url.QueryEscape(k)
 		for _, v := range vs {
-			if buf.Len() > 0 {
+			if !first {
 				buf.WriteByte('&')
 			}
+
+			first = false
+
 			buf.WriteString(keyEscaped)
 			buf.WriteByte('=')
 			buf.WriteString(url.QueryEscape(v))
 		}
 	}
+
 	return buf.String()
 }
 

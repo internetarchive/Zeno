@@ -2,6 +2,7 @@ package archiver
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -135,13 +136,13 @@ func run() {
 					defer func() { <-guard }()
 					defer stats.ArchiverRoutinesDecr()
 
-					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
+					if err := item.CheckConsistency(); err != nil {
+						panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), item.GetShortID()))
+					}
+
+					if item.GetStatus() != models.ItemPreProcessed && item.GetStatus() != models.ItemGotRedirected && item.GetStatus() != models.ItemGotChildren {
 						logger.Debug("skipping item", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", item.GetStatus().String())
 					} else {
-						err := item.CheckConsistency()
-						if err != nil {
-							panic(err)
-						}
 						archive(item)
 					}
 

@@ -4,6 +4,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/ina"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -20,9 +21,23 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 	// Order is important, we want to check for more specific things first,
 	// as they may trigger more general extractors (e.g. HTML)
 	case ina.IsAPIURL(item.GetURL()):
-		assets, err := ina.ExtractMedias(item.GetURL())
+		INAAssets, err := ina.ExtractMedias(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract medias from INA", "err", err.Error(), "item", item.GetShortID())
+			return assets, err
+		}
+
+		HTMLAssets, err := extractor.HTMLAssets(item)
+		if err != nil {
+			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+			return assets, err
+		}
+
+		assets = append(INAAssets, HTMLAssets...)
+	case truthsocial.NeedExtraction(item.GetURL()):
+		assets, err = truthsocial.ExtractAssets(item)
+		if err != nil {
+			logger.Error("unable to extract assets from TruthSocial", "err", err.Error(), "item", item.GetShortID())
 			return assets, err
 		}
 	case extractor.IsM3U8(item.GetURL()):
@@ -51,9 +66,8 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 		}
 	default:
 		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
+		return assets, nil
 	}
 
-	logger.Debug("extracted assets", "item", item.GetShortID(), "assets", len(assets))
-
-	return
+	return assets, nil
 }

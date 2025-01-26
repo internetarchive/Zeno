@@ -6,6 +6,7 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -25,6 +26,18 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 
 	// Run specific extractors
 	switch {
+	case truthsocial.IsAccountURL(item.GetURL()):
+		outlinks, err = truthsocial.GenerateAccountLookupURL(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract outlinks from TruthSocial", "err", err.Error(), "item", item.GetShortID())
+			return outlinks, err
+		}
+	case truthsocial.IsAccountLookupURL(item.GetURL()):
+		outlinks, err = truthsocial.GenerateOutlinksURLsFromLookup(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract outlinks from TruthSocial", "err", err.Error(), "item", item.GetShortID())
+			return outlinks, err
+		}
 	case extractor.IsS3(item.GetURL()):
 		outlinks, err = extractor.S3(item.GetURL())
 		if err != nil {
@@ -45,6 +58,7 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		}
 	default:
 		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
+		return outlinks, nil
 	}
 
 	// Try to extract links from link headers

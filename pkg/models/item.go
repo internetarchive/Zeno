@@ -124,8 +124,25 @@ func (i *Item) CheckConsistency() error {
 	}
 
 	// If item is fresh, it should either : have a parent with status ItemGotChildren or ItemGotRedirected, or be a seed
-	if i.status == ItemFresh && i.parent != nil && i.parent.status != ItemGotChildren && i.parent.status != ItemGotRedirected {
+	if i.status == ItemFresh && !i.seed && i.parent != nil && i.parent.status != ItemGotChildren && i.parent.status != ItemGotRedirected {
 		return fmt.Errorf("item is not a seed and fresh but parent is not ItemGotChildren or ItemGotRedirected")
+	}
+
+	// If item has more than one children, it should not have status ItemGotRedirected
+	if len(i.children) > 1 && i.status == ItemGotRedirected {
+		return fmt.Errorf("item has more than one children but is ItemGotRedirected")
+	}
+
+	// If item has childrens, it should have status ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed
+	if len(i.children) > 0 && i.status != ItemGotChildren && i.status != ItemGotRedirected && i.status != ItemCompleted && i.status != ItemFailed {
+		return fmt.Errorf("item has children but is not ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed")
+	}
+
+	// Traverse the tree to check for inconsistencies in children
+	for idx := range i.children {
+		if err := i.children[idx].CheckConsistency(); err != nil {
+			return fmt.Errorf("child %s: %w", i.children[idx].id, err)
+		}
 	}
 
 	return nil
@@ -285,21 +302,22 @@ func NewItem(ID string, URL *URL, seedVia string, isSeed bool) *Item {
 }
 
 // AddChild adds a child to the item
-func (i *Item) AddChild(child *Item, parentState ItemState) error {
+// The from parameter is used to set the status of the parent (either ItemGotRedirected or ItemGotChildren)
+func (i *Item) AddChild(child *Item, from ItemState) error {
 	i.childrenMu.Lock()
 	defer i.childrenMu.Unlock()
 	if child == nil {
 		return fmt.Errorf("child is nil")
 	}
-	if parentState != ItemGotRedirected && parentState != ItemGotChildren {
+	if from != ItemGotRedirected && from != ItemGotChildren {
 		return fmt.Errorf("from state is invalid, only ItemGotRedirected and ItemGotChildren are allowed")
 	}
-	if child.parent != nil && child.parent.status == ItemGotRedirected && (parentState == ItemGotChildren || child.status == ItemGotChildren) {
+	if child.parent != nil && child.parent.status == ItemGotRedirected && (from == ItemGotChildren || child.status == ItemGotChildren) {
 		return fmt.Errorf("parent already has children or redirection, cannot add child")
 	}
 	i.children = append(i.children, child)
 	child.parent = i
-	child.parent.status = parentState
+	child.parent.status = from
 	child.status = ItemFresh
 	return nil
 }
@@ -325,6 +343,11 @@ func (i *Item) HasRedirection() bool {
 // HasChildren returns true if the item has children
 func (i *Item) HasChildren() bool {
 	return len(i.children) > 0 && i.status == ItemGotChildren
+}
+
+// HasWork returns true if the item has work to do
+func (i *Item) HasWork() bool {
+	return i.status != ItemCompleted && i.status != ItemSeen && i.status != ItemFailed
 }
 
 func _unsafeRemoveChild(parent *Item, childID string) {
@@ -361,7 +384,7 @@ func (i *Item) CompleteAndCheck() bool {
 		return false
 	}
 
-	if i.status == ItemCompleted {
+	if !i.HasWork() {
 		return true
 	}
 
@@ -369,7 +392,7 @@ func (i *Item) CompleteAndCheck() bool {
 	markCompleted(i)
 
 	// Check if the seed is completed
-	return i.status == ItemCompleted
+	return !i.HasWork()
 }
 
 // Errors definition
