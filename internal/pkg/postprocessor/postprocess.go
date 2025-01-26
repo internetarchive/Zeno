@@ -111,7 +111,8 @@ func postprocessItem(item *models.Item) []*models.Item {
 
 		// Extract outlinks from the page
 		if ((config.Get().DomainsCrawl && item.GetURL().GetHops() == 0) ||
-			((item.IsSeed() || item.IsRedirection()) && item.GetURL().GetHops() < config.Get().MaxHops)) && item.GetURL().GetBody() != nil {
+			(item.GetURL().GetHops() < config.Get().MaxHops)) &&
+			item.GetURL().GetBody() != nil {
 			newOutlinks, err := extractOutlinks(item)
 			if err != nil {
 				logger.Error("unable to extract outlinks", "err", err.Error(), "item_id", item.GetShortID())
