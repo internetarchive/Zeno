@@ -25,7 +25,6 @@ func postprocessItem(item *models.Item) []*models.Item {
 	logger.Debug("postprocessing item", "item_id", item.GetShortID())
 
 	// Verify if there is any redirection
-	// TODO: execute assets redirection
 	if isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
 		logger.Debug("item is a redirection", "item_id", item.GetShortID())
 
@@ -70,10 +69,10 @@ func postprocessItem(item *models.Item) []*models.Item {
 	// }
 
 	// Return if:
-	// - the item is a child and the URL has more than one hop
-	// - assets capture is disabled and domains crawl is disabled
-	if item.GetDepthWithoutRedirections() > 1 {
-		logger.Debug("item is child and URL has more than one hop", "item_id", item.GetShortID())
+	// 1. the item is a child has a depth (without redirections) bigger than 2 -> we don't want to go too deep but still get the assets of assets (f.ex: m3u8)
+	// 2. assets capture and domains crawl are disabled
+	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 {
+		logger.Debug("item is a child and it's depth (without redirections) is more than 2", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
 	} else if config.Get().DisableAssetsCapture && !domainscrawl.Enabled() {
