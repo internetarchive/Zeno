@@ -70,7 +70,7 @@ type Config struct {
 	JSON                  bool     `mapstructure:"json"`
 	API                   bool     `mapstructure:"api"`
 	Prometheus            bool     `mapstructure:"prometheus"`
-	DomainsCrawl          bool     `mapstructure:"domains-crawl"`
+	DomainsCrawl          []string `mapstructure:"domains-crawl"`
 	CaptureAlternatePages bool     `mapstructure:"capture-alternate-pages"`
 	DisableLocalDedupe    bool     `mapstructure:"disable-local-dedupe"`
 	CertValidation        bool     `mapstructure:"cert-validation"`
@@ -273,10 +273,7 @@ func GenerateCrawlConfig() error {
 			}
 
 			slog.Info("Compiling exclusion regexes", "regexes", len(regexes))
-			compiledRegexes, err := compileRegexes(regexes)
-			if err != nil {
-				return err
-			}
+			compiledRegexes := compileRegexes(regexes)
 
 			config.ExclusionRegexes = append(config.ExclusionRegexes, compiledRegexes...)
 		}
@@ -285,7 +282,7 @@ func GenerateCrawlConfig() error {
 	return nil
 }
 
-func compileRegexes(regexes []string) ([]*regexp.Regexp, error) {
+func compileRegexes(regexes []string) []*regexp.Regexp {
 	var compiledRegexes []*regexp.Regexp
 
 	for _, regex := range regexes {
@@ -295,7 +292,7 @@ func compileRegexes(regexes []string) ([]*regexp.Regexp, error) {
 		compiledRegexes = append(compiledRegexes, compiledRegex)
 	}
 
-	return compiledRegexes, nil
+	return compiledRegexes
 }
 
 func readLocalExclusionFile(file string) (regexes []string, err error) {
