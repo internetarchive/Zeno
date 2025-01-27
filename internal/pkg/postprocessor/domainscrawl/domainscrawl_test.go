@@ -1,7 +1,6 @@
 package domainscrawl
 
 import (
-	"net/url"
 	"testing"
 )
 
@@ -248,6 +247,12 @@ func TestMatch(t *testing.T) {
 			elements: []string{`^https?://(www\.)?example\.net/only-one-path$`},
 			expected: false,
 		},
+		{
+			name:     "Invalid URL with valid naive domain",
+			rawURL:   "%am-i-really-an-URL?",
+			elements: []string{"example.com"},
+			expected: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -259,12 +264,7 @@ func TestMatch(t *testing.T) {
 				t.Fatalf("Failed to add elements: %v", err)
 			}
 
-			parsedURL, err := url.Parse(tt.rawURL)
-			if err != nil {
-				t.Fatalf("Failed to parse URL %q: %v", tt.rawURL, err)
-			}
-
-			result := Match(parsedURL)
+			result := Match(tt.rawURL)
 			if result != tt.expected {
 				t.Errorf("Match(%q) = %v, expected %v", tt.rawURL, result, tt.expected)
 			}

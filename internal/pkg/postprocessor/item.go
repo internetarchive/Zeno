@@ -122,10 +122,10 @@ func postprocessItem(item *models.Item) []*models.Item {
 					// If domains crawl, and if the host of the new outlinks match the host of its parent
 					// and if its parent is at hop 0, then we need to set the hop count to 0.
 					// TODO: maybe be more flexible than a strict match
-					if domainscrawl.Enabled() && domainscrawl.Match(newOutlinks[i].GetParsed()) {
+					if domainscrawl.Enabled() && domainscrawl.Match(newOutlinks[i].Raw) {
 						logger.Debug("setting hop count to 0 (domains crawl)", "item_id", item.GetShortID(), "url", newOutlinks[i].Raw)
 						newOutlinks[i].SetHops(0)
-					} else if domainscrawl.Enabled() && !domainscrawl.Match(newOutlinks[i].GetParsed()) && item.GetURL().GetHops() >= config.Get().MaxHops {
+					} else if domainscrawl.Enabled() && !domainscrawl.Match(newOutlinks[i].Raw) && item.GetURL().GetHops() >= config.Get().MaxHops {
 						logger.Debug("skipping outlink due to hop count", "item_id", item.GetShortID(), "url", newOutlinks[i].Raw)
 						continue
 					}

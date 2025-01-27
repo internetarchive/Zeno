@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/ImVexed/fasturl"
 )
 
 type matchEngine struct {
@@ -80,7 +82,12 @@ func AddElements(elements []string) error {
 }
 
 // Match checks if a given URL matches any of the stored patterns
-func Match(u *url.URL) bool {
+func Match(rawURL string) bool {
+	u, err := fasturl.ParseURL(rawURL)
+	if err != nil {
+		return false
+	}
+
 	globalMatcher.RLock()
 	defer globalMatcher.RUnlock()
 
@@ -93,7 +100,7 @@ func Match(u *url.URL) bool {
 
 	// Check against full URLs
 	for _, storedURL := range globalMatcher.urls {
-		if storedURL.String() == u.String() {
+		if storedURL.String() == rawURL {
 			return true
 		}
 		// If the stored URL has no query, path, or fragment, we greedily match (sub)domain
@@ -104,7 +111,7 @@ func Match(u *url.URL) bool {
 
 	// Check against regex patterns
 	for _, re := range globalMatcher.regexes {
-		if re.MatchString(u.String()) {
+		if re.MatchString(rawURL) {
 			return true
 		}
 	}
