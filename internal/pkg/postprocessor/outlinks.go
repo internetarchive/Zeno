@@ -4,7 +4,9 @@ import (
 	"io"
 	"strings"
 
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -100,4 +102,18 @@ func extractLinksFromPage(URL *models.URL) (links []*models.URL) {
 	}
 
 	return links
+}
+
+func shouldExtractOutlinks(item *models.Item) bool {
+	// Bypass the hop count if we are domain crawling to ensure we don't miss an outlink from a domain we are interested in
+	if domainscrawl.Enabled() && item.GetURL().GetBody() != nil {
+		return true
+	}
+
+	// Match pure hops count
+	if item.GetURL().GetHops() < config.Get().MaxHops && item.GetURL().GetBody() != nil {
+		return true
+	}
+
+	return false
 }
