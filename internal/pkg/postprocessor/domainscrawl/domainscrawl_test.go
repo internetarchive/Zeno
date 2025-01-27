@@ -195,6 +195,12 @@ func TestMatch(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:     "No match for full URL",
+			rawURL:   "https://example.org/path?query=completely-different",
+			elements: []string{"https://example.org/path?query=1"},
+			expected: false,
+		},
+		{
 			name:     "Greedy match for naive domain",
 			rawURL:   "https://example.org/path?query=1",
 			elements: []string{"example.org"},
@@ -208,20 +214,38 @@ func TestMatch(t *testing.T) {
 		},
 		{
 			name:     "Regex match",
-			rawURL:   "http://www.example.net/resource",
-			elements: []string{`^https?://(www\.)?example\.net/.*`},
-			expected: true,
-		},
-		{
-			name:     "Regex match with different scheme",
 			rawURL:   "https://example.net/",
 			elements: []string{`^https?://(www\.)?example\.net/.*`},
 			expected: true,
 		},
 		{
-			name:     "No match for unknown domain",
-			rawURL:   "https://unknown.com",
+			name:     "Regex match with different scheme",
+			rawURL:   "http://www.example.net/resource",
+			elements: []string{`^https?://(www\.)?example\.net/.*`},
+			expected: true,
+		},
+		{
+			name:     "No match for different domain",
+			rawURL:   "https://different.com",
 			elements: []string{"example.com"},
+			expected: false,
+		},
+		{
+			name:     "No match for different full URL",
+			rawURL:   "https://example.com/path",
+			elements: []string{"https://another-example.com"},
+			expected: false,
+		},
+		{
+			name:     "No match for different regex",
+			rawURL:   "https://example.net/",
+			elements: []string{`^https?://(www\.)?example\.com/.*`},
+			expected: false,
+		},
+		{
+			name:     "No match for different precise regex",
+			rawURL:   "https://example.net/?query=1",
+			elements: []string{`^https?://(www\.)?example\.net/only-one-path$`},
 			expected: false,
 		},
 	}
