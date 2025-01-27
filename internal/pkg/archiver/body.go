@@ -8,6 +8,7 @@ import (
 	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -16,7 +17,7 @@ func ProcessBody(u *models.URL) error {
 
 	// If we are not capturing assets nor do we want to extract outlinks (and domains crawl is disabled)
 	// we can just consume the body and discard it
-	if config.Get().DisableAssetsCapture && len(config.Get().DomainsCrawl) == 0 && config.Get().MaxHops == 0 {
+	if config.Get().DisableAssetsCapture && !domainscrawl.Enabled() && config.Get().MaxHops == 0 {
 		// Read the rest of the body but discard it
 		_, err := io.Copy(io.Discard, u.GetResponse().Body)
 		if err != nil {

@@ -55,6 +55,23 @@ func TestIsSubdomainOrExactMatch(t *testing.T) {
 	}
 }
 
+// Test Enabled function
+func TestEnabled(t *testing.T) {
+	Reset()
+	if Enabled() {
+		t.Error("Enabled() = true, expected false")
+	}
+
+	err := AddElements([]string{"example.com"})
+	if err != nil {
+		t.Fatalf("Failed to add elements: %v", err)
+	}
+
+	if !Enabled() {
+		t.Error("Enabled() = false, expected true")
+	}
+}
+
 // Test AddElements function
 func TestAddElements(t *testing.T) {
 	tests := []struct {

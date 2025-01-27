@@ -11,6 +11,7 @@ import (
 
 type matchEngine struct {
 	sync.RWMutex
+	enabled bool
 	regexes []*regexp.Regexp
 	domains []string
 	urls    []url.URL
@@ -18,6 +19,7 @@ type matchEngine struct {
 
 var (
 	globalMatcher = &matchEngine{
+		enabled: false,
 		regexes: make([]*regexp.Regexp, 0),
 		domains: make([]string, 0),
 		urls:    make([]url.URL, 0),
@@ -29,15 +31,28 @@ func Reset() {
 	globalMatcher.Lock()
 	defer globalMatcher.Unlock()
 
+	globalMatcher.enabled = false
 	globalMatcher.regexes = make([]*regexp.Regexp, 0)
 	globalMatcher.domains = make([]string, 0)
 	globalMatcher.urls = make([]url.URL, 0)
+}
+
+// Enabled returns true if the domainscrawl matcher is enabled
+func Enabled() bool {
+	globalMatcher.RLock()
+	defer globalMatcher.RUnlock()
+
+	return globalMatcher.enabled
 }
 
 // AddElements takes a slice of strings, heuristically determines their type, and stores them
 func AddElements(elements []string) error {
 	globalMatcher.Lock()
 	defer globalMatcher.Unlock()
+
+	if !globalMatcher.enabled {
+		globalMatcher.enabled = true
+	}
 
 	for _, element := range elements {
 		// Try to parse as a URL first
