@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -276,6 +277,14 @@ func GenerateCrawlConfig() error {
 			compiledRegexes := compileRegexes(regexes)
 
 			config.ExclusionRegexes = append(config.ExclusionRegexes, compiledRegexes...)
+		}
+	}
+
+	if len(config.DomainsCrawl) > 0 {
+		slog.Info("Domains crawl enabled", "domains/regex", config.DomainsCrawl)
+		err := domainscrawl.AddElements(config.DomainsCrawl)
+		if err != nil {
+			panic(err)
 		}
 	}
 
