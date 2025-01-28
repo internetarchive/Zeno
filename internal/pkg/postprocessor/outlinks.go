@@ -47,11 +47,17 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			return outlinks, err
 		}
 	case extractor.IsSitemapXML(item.GetURL()):
-		outlinks, err = extractor.XML(item.GetURL())
+		var assets []*models.URL
+
+		assets, outlinks, err = extractor.XML(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err
 		}
+
+		// Here we don't care about the difference between assets and outlinks,
+		// we just want to extract all the URLs from the sitemap
+		outlinks = append(outlinks, assets...)
 	case extractor.IsHTML(item.GetURL()):
 		outlinks, err := extractor.HTMLOutlinks(item)
 		if err != nil {

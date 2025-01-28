@@ -74,7 +74,7 @@ func TestJSON(t *testing.T) {
 				t.Errorf("ProcessBody() error = %v", err)
 			}
 
-			gotURLs, err := JSON(URL)
+			assets, _, err := JSON(URL)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("JSON() error = %v, wantErr %v", err, tt.wantErr)
@@ -82,16 +82,16 @@ func TestJSON(t *testing.T) {
 			}
 
 			// Sort both slices before comparison
-			sortURLs(gotURLs)
+			sortURLs(assets)
 			sortURLs(tt.wantURLs)
 
-			if len(gotURLs) != len(tt.wantURLs) {
-				t.Fatalf("Expected %d URLs, got %d", len(tt.wantURLs), len(gotURLs))
+			if len(assets) != len(tt.wantURLs) {
+				t.Fatalf("Expected %d URLs, got %d", len(tt.wantURLs), len(assets))
 			}
 
-			for i := range gotURLs {
-				if gotURLs[i].Raw != tt.wantURLs[i].Raw {
-					t.Errorf("Expected URL %s, got %s", tt.wantURLs[i].Raw, gotURLs[i].Raw)
+			for i := range assets {
+				if assets[i].Raw != tt.wantURLs[i].Raw {
+					t.Errorf("Expected URL %s, got %s", tt.wantURLs[i].Raw, assets[i].Raw)
 				}
 			}
 		})

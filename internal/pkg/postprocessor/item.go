@@ -84,9 +84,14 @@ func postprocessItem(item *models.Item) []*models.Item {
 	if item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200 {
 		logger.Debug("item is a success", "item_id", item.GetShortID())
 
+		var outlinksFromAssets []*models.URL
+
 		// Extract assets from the page
 		if shouldExtractAssets(item) {
-			assets, err := extractAssets(item)
+			var assets []*models.URL
+			var err error
+
+			assets, outlinksFromAssets, err = extractAssets(item)
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error(), "item_id", item.GetShortID())
 			} else {
@@ -113,6 +118,9 @@ func postprocessItem(item *models.Item) []*models.Item {
 			if err != nil {
 				logger.Error("unable to extract outlinks", "err", err.Error(), "item_id", item.GetShortID())
 			} else {
+				// Append the outlinks found from the assets
+				newOutlinks = append(newOutlinks, outlinksFromAssets...)
+
 				for i := range newOutlinks {
 					if newOutlinks[i] == nil {
 						logger.Warn("nil link", "item_id", item.GetShortID())

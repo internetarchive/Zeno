@@ -28,23 +28,23 @@ func IsSitemapXML(URL *models.URL) bool {
 	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "xml") && bytes.Contains(xmlBody, sitemapMarker)
 }
 
-func XML(URL *models.URL) (assets []*models.URL, err error) {
+func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
 	xmlBody, err := io.ReadAll(URL.GetBody())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(xmlBody) == 0 {
-		return nil, errors.New("empty XML body")
+		return nil, nil, errors.New("empty XML body")
 	}
 
 	decoder := xml.NewDecoder(bytes.NewReader(xmlBody))
 	decoder.Strict = false
 
 	var tok xml.Token
-	var rawAssets []string
+	var rawURLs []string
 	for {
 		tok, err = decoder.RawToken()
 
@@ -55,31 +55,38 @@ func XML(URL *models.URL) (assets []*models.URL, err error) {
 
 		if err != nil {
 			// return URLs we got so far when error occurs
-			return assets, err
+			return assets, outlinks, err
 		}
 
 		switch tok := tok.(type) {
 		case xml.StartElement:
 			for _, attr := range tok.Attr {
 				if strings.HasPrefix(attr.Value, "http") {
-					rawAssets = append(rawAssets, attr.Value)
+					rawURLs = append(rawURLs, attr.Value)
 				}
 			}
 		case xml.CharData:
 			if bytes.HasPrefix(tok, []byte("http")) {
-				rawAssets = append(rawAssets, string(tok))
+				rawURLs = append(rawURLs, string(tok))
 			} else {
 				// Try to extract URLs from the text
-				rawAssets = append(rawAssets, utils.DedupeStrings(LinkRegexRelaxed.FindAllString(string(tok), -1))...)
+				rawURLs = append(rawURLs, utils.DedupeStrings(LinkRegexRelaxed.FindAllString(string(tok), -1))...)
 			}
 		}
 	}
 
-	for _, rawAsset := range rawAssets {
-		assets = append(assets, &models.URL{
-			Raw: rawAsset,
-		})
+	// We only consider as assets the URLs in which we can find a file extension
+	for _, rawURL := range rawURLs {
+		if hasFileExtension(rawURL) {
+			assets = append(assets, &models.URL{
+				Raw: rawURL,
+			})
+		} else {
+			outlinks = append(outlinks, &models.URL{
+				Raw: rawURL,
+			})
+		}
 	}
 
-	return assets, nil
+	return assets, outlinks, nil
 }

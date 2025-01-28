@@ -9,7 +9,9 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func extractAssets(item *models.Item) (assets []*models.URL, err error) {
+// extractAssets extracts assets from the item's body and returns them.
+// It also potentially returns outlinks if the body contains URLs that are not assets.
+func extractAssets(item *models.Item) (assets, outlinks []*models.URL, err error) {
 	var (
 		contentType = item.GetURL().GetResponse().Header.Get("Content-Type")
 		logger      = log.NewFieldedLogger(&log.Fields{
@@ -25,57 +27,62 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 		INAAssets, err := ina.ExtractMedias(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract medias from INA", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
+			return assets, outlinks, err
 		}
 
 		HTMLAssets, err := extractor.HTMLAssets(item)
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
+			return assets, outlinks, err
 		}
 
 		assets = append(INAAssets, HTMLAssets...)
 	case truthsocial.NeedExtraction(item.GetURL()):
-		assets, err = truthsocial.ExtractAssets(item)
+		assets, outlinks, err = truthsocial.ExtractAssets(item)
 		if err != nil {
 			logger.Error("unable to extract assets from TruthSocial", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
+			return assets, outlinks, err
 		}
 	case extractor.IsM3U8(item.GetURL()):
 		assets, err = extractor.M3U8(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
+			return assets, outlinks, err
 		}
 	case extractor.IsJSON(item.GetURL()):
-		assets, err = extractor.JSON(item.GetURL())
+		assets, outlinks, err = extractor.JSON(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
+			return assets, outlinks, err
 		}
 	case extractor.IsXML(item.GetURL()):
-		assets, err = extractor.XML(item.GetURL())
+		assets, outlinks, err = extractor.XML(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
+			return assets, outlinks, err
 		}
 	case extractor.IsHTML(item.GetURL()):
 		assets, err = extractor.HTMLAssets(item)
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
-			return assets, err
+			return assets, outlinks, err
 		}
 	default:
 		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
-		return assets, nil
+		return assets, outlinks, nil
 	}
 
-	// Set the hops level to the item's level
+	// For assets, set the hops level to the item's level
 	for _, asset := range assets {
 		asset.SetHops(item.GetURL().GetHops())
 	}
 
-	return assets, nil
+	// For outlinks, set the hops level to the item's level + 1
+	for _, outlink := range outlinks {
+		outlink.SetHops(item.GetURL().GetHops() + 1)
+	}
+
+	return assets, outlinks, nil
 }
 
 func shouldExtractAssets(item *models.Item) bool {
