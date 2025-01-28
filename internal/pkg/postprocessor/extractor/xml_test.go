@@ -135,18 +135,21 @@ func TestXML(t *testing.T) {
 				t.Errorf("ProcessBody() error = %v", err)
 			}
 
-			assets, err := XML(URL)
+			assets, outlinks, err := XML(URL)
+
+			URLs := append(assets, outlinks...)
+
 			if (err != nil) != tt.hasError {
 				t.Fatalf("XML() error = %v, wantErr %v", err, tt.hasError)
 			}
 
-			if len(assets) != len(tt.expected) {
-				t.Fatalf("Expected %d assets, got %d", len(tt.expected), len(assets))
+			if len(URLs) != len(tt.expected) {
+				t.Fatalf("Expected %d assets, got %d", len(tt.expected), len(URLs))
 			}
 
-			for i, asset := range assets {
-				if asset.Raw != tt.expected[i] {
-					t.Errorf("Expected asset %s, got %s", tt.expected[i], asset.Raw)
+			for i, URL := range URLs {
+				if URL.Raw != tt.expected[i] {
+					t.Errorf("Expected asset %s, got %s", tt.expected[i], URL.Raw)
 				}
 			}
 		})
