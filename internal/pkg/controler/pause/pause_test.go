@@ -6,9 +6,12 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/internetarchive/Zeno/internal/pkg/stats"
 )
 
 func TestBasicPauseResume(t *testing.T) {
+	stats.Init()
 	manager = &pauseManager{}
 
 	var wg sync.WaitGroup
@@ -70,6 +73,7 @@ func TestBasicPauseResume(t *testing.T) {
 }
 
 func TestMultipleSubscribers(t *testing.T) {
+	stats.Init()
 	manager = &pauseManager{}
 	const numSubscribers = 10
 	var wg sync.WaitGroup
@@ -144,6 +148,7 @@ func TestMultipleSubscribers(t *testing.T) {
 }
 
 func TestSubscriberUnsubscribeDuringPause(t *testing.T) {
+	stats.Init()
 	manager = &pauseManager{}
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -194,6 +199,7 @@ func TestSubscriberUnsubscribeDuringPause(t *testing.T) {
 }
 
 func TestConcurrentPauseResume(t *testing.T) {
+	stats.Init()
 	manager = &pauseManager{}
 	const numSubscribers = 5
 	const numCycles = 10
@@ -287,6 +293,7 @@ func TestConcurrentPauseResume(t *testing.T) {
 }
 
 func TestPauseResumeWithUnsubscribe(t *testing.T) {
+	stats.Init()
 	manager = &pauseManager{}
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -348,6 +355,7 @@ func TestPauseResumeWithUnsubscribe(t *testing.T) {
 }
 
 func TestNoSubscribers(t *testing.T) {
+	stats.Init()
 	manager = &pauseManager{}
 	// Call Pause() and Resume() when there are no subscribers.
 	// If no panic occurs, the test passes.
@@ -356,6 +364,7 @@ func TestNoSubscribers(t *testing.T) {
 }
 
 func TestPauseResumeE2E(t *testing.T) {
+	stats.Init()
 	manager = &pauseManager{}
 	var workCounter int32 // Counts the amount of work done.
 	var wg sync.WaitGroup
