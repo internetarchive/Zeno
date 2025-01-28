@@ -1,11 +1,10 @@
 package postprocessor
 
 import (
-	"strings"
-
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -26,7 +25,6 @@ func postprocessItem(item *models.Item) []*models.Item {
 	logger.Debug("postprocessing item", "item_id", item.GetShortID())
 
 	// Verify if there is any redirection
-	// TODO: execute assets redirection
 	if isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
 		logger.Debug("item is a redirection", "item_id", item.GetShortID())
 
@@ -71,13 +69,13 @@ func postprocessItem(item *models.Item) []*models.Item {
 	// }
 
 	// Return if:
-	// - the item is a child and the URL has more than one hop
-	// - assets capture is disabled and domains crawl is disabled
-	if item.GetDepthWithoutRedirections() > 1 {
-		logger.Debug("item is child and URL has more than one hop", "item_id", item.GetShortID())
+	// 1. the item is a child has a depth (without redirections) bigger than 2 -> we don't want to go too deep but still get the assets of assets (f.ex: m3u8)
+	// 2. assets capture and domains crawl are disabled
+	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 {
+		logger.Debug("item is a child and it's depth (without redirections) is more than 2", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
-	} else if config.Get().DisableAssetsCapture && !config.Get().DomainsCrawl {
+	} else if config.Get().DisableAssetsCapture && !domainscrawl.Enabled() {
 		logger.Debug("assets capture and domains crawl are disabled", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
@@ -87,7 +85,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 		logger.Debug("item is a success", "item_id", item.GetShortID())
 
 		// Extract assets from the page
-		if !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil {
+		if shouldExtractAssets(item) {
 			assets, err := extractAssets(item)
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error(), "item_id", item.GetShortID())
@@ -110,9 +108,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 		}
 
 		// Extract outlinks from the page
-		if ((config.Get().DomainsCrawl && item.GetURL().GetHops() == 0) ||
-			(item.GetURL().GetHops() < config.Get().MaxHops)) &&
-			item.GetURL().GetBody() != nil {
+		if shouldExtractOutlinks(item) {
 			newOutlinks, err := extractOutlinks(item)
 			if err != nil {
 				logger.Error("unable to extract outlinks", "err", err.Error(), "item_id", item.GetShortID())
@@ -126,9 +122,12 @@ func postprocessItem(item *models.Item) []*models.Item {
 					// If domains crawl, and if the host of the new outlinks match the host of its parent
 					// and if its parent is at hop 0, then we need to set the hop count to 0.
 					// TODO: maybe be more flexible than a strict match
-					if config.Get().DomainsCrawl && item.GetURL().GetHops() == 0 && strings.Contains(newOutlinks[i].Raw, item.GetURL().GetParsed().Host) {
+					if domainscrawl.Enabled() && domainscrawl.Match(newOutlinks[i].Raw) {
 						logger.Debug("setting hop count to 0 (domains crawl)", "item_id", item.GetShortID(), "url", newOutlinks[i].Raw)
 						newOutlinks[i].SetHops(0)
+					} else if domainscrawl.Enabled() && !domainscrawl.Match(newOutlinks[i].Raw) && item.GetURL().GetHops() >= config.Get().MaxHops {
+						logger.Debug("skipping outlink due to hop count", "item_id", item.GetShortID(), "url", newOutlinks[i].Raw)
+						continue
 					}
 
 					newOutlinkItem := models.NewItem(uuid.New().String(), newOutlinks[i], item.GetURL().String(), true)

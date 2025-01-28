@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -70,7 +71,7 @@ type Config struct {
 	JSON                  bool     `mapstructure:"json"`
 	API                   bool     `mapstructure:"api"`
 	Prometheus            bool     `mapstructure:"prometheus"`
-	DomainsCrawl          bool     `mapstructure:"domains-crawl"`
+	DomainsCrawl          []string `mapstructure:"domains-crawl"`
 	CaptureAlternatePages bool     `mapstructure:"capture-alternate-pages"`
 	DisableLocalDedupe    bool     `mapstructure:"disable-local-dedupe"`
 	CertValidation        bool     `mapstructure:"cert-validation"`
@@ -273,19 +274,24 @@ func GenerateCrawlConfig() error {
 			}
 
 			slog.Info("Compiling exclusion regexes", "regexes", len(regexes))
-			compiledRegexes, err := compileRegexes(regexes)
-			if err != nil {
-				return err
-			}
+			compiledRegexes := compileRegexes(regexes)
 
 			config.ExclusionRegexes = append(config.ExclusionRegexes, compiledRegexes...)
+		}
+	}
+
+	if len(config.DomainsCrawl) > 0 {
+		slog.Info("Domains crawl enabled", "domains/regex", config.DomainsCrawl)
+		err := domainscrawl.AddElements(config.DomainsCrawl)
+		if err != nil {
+			panic(err)
 		}
 	}
 
 	return nil
 }
 
-func compileRegexes(regexes []string) ([]*regexp.Regexp, error) {
+func compileRegexes(regexes []string) []*regexp.Regexp {
 	var compiledRegexes []*regexp.Regexp
 
 	for _, regex := range regexes {
@@ -295,7 +301,7 @@ func compileRegexes(regexes []string) ([]*regexp.Regexp, error) {
 		compiledRegexes = append(compiledRegexes, compiledRegex)
 	}
 
-	return compiledRegexes, nil
+	return compiledRegexes
 }
 
 func readLocalExclusionFile(file string) (regexes []string, err error) {

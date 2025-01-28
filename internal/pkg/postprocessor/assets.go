@@ -1,6 +1,7 @@
 package postprocessor
 
 import (
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/ina"
@@ -75,4 +76,8 @@ func extractAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	return assets, nil
+}
+
+func shouldExtractAssets(item *models.Item) bool {
+	return !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil
 }

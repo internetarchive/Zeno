@@ -13,6 +13,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -219,7 +220,7 @@ func archive(seed *models.Item) {
 			item.GetURL().SetResponse(resp)
 
 			// Process the body
-			err = ProcessBody(item.GetURL(), config.Get().DisableAssetsCapture, config.Get().DomainsCrawl, config.Get().MaxHops, config.Get().WARCTempDir)
+			err = ProcessBody(item.GetURL(), config.Get().DisableAssetsCapture, domainscrawl.Enabled(), config.Get().MaxHops, config.Get().WARCTempDir)
 			if err != nil {
 				logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 				item.SetStatus(models.ItemFailed)
