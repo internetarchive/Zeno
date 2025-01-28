@@ -3,9 +3,7 @@ package extractor
 import (
 	"encoding/json"
 	"net/url"
-	"strings"
 
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -28,12 +26,6 @@ func JSON(URL *models.URL) (assets []*models.URL, err error) {
 	}
 
 	for _, rawAsset := range rawAssets {
-		if reddit.IsRedditURL(URL) {
-			rawAsset, err = url.QueryUnescape(strings.ReplaceAll(rawAsset, "amp;", ""))
-			if err != nil {
-				return nil, err
-			}
-		}
 		assets = append(assets, &models.URL{
 			Raw:  rawAsset,
 			Hops: URL.GetHops() + 1,
