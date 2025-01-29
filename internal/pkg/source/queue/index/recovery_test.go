@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"testing"
 	"time"
-
-	"github.com/internetarchive/Zeno/internal/pkg/log"
 )
 
 func Test_Recovery(t *testing.T) {
@@ -44,10 +42,6 @@ func Test_Recovery(t *testing.T) {
 		lastDumpTime: time.Now(),
 		useCommit:    false,
 	}
-
-	// Logger
-	logger, _ := log.DefaultOrStored()
-	im.logger = logger
 
 	// Add entries to the index
 	for i := 0; i < 1000; i++ {
@@ -108,9 +102,6 @@ func Test_Recovery(t *testing.T) {
 		useCommit:    false,
 	}
 
-	// Logger
-	im.logger = logger
-
 	err = im.RecoverFromCrash()
 	if err != nil {
 		t.Fatalf("failed to recover from crash: %v", err)
@@ -153,9 +144,6 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 		lastDumpTime: time.Now(),
 		useCommit:    false,
 	}
-	// Logger
-	logger, _ := log.DefaultOrStored()
-	im.logger = logger
 
 	// Add entries to the index
 	for i := 0; i < 50; i++ {
@@ -229,9 +217,6 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 		lastDumpTime: time.Now(),
 		useCommit:    false,
 	}
-
-	// Logger
-	im.logger = logger
 
 	err = im.RecoverFromCrash()
 	if err != nil {

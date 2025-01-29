@@ -4,13 +4,19 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 )
 
 func (im *IndexManager) RecoverFromCrash() error {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "index.RecoverFromCrash",
+	})
+
 	im.Lock()
 	defer im.Unlock()
 
-	im.logger.Warn("starting crash recovery process")
+	logger.Warn("starting crash recovery process")
 
 	// Step 1: Load the index file into the in-memory index
 	if err := im.loadIndex(); err != nil {
@@ -48,7 +54,7 @@ func (im *IndexManager) RecoverFromCrash() error {
 
 	// Step 5: Remove old index file
 	if err := os.Remove(oldIndexPath); err != nil {
-		im.logger.Warn("failed to remove old index file", "error", err)
+		logger.Warn("failed to remove old index file", "error", err)
 	}
 
 	// Step 6: Truncate and reset WAL

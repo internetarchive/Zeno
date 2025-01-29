@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"sync"
+
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 )
 
 // BatchEnqueue adds 1 or many items to the queue in a single operation.
@@ -20,6 +22,10 @@ func (q *PersistentGroupedQueue) Enqueue(item *Item) error {
 }
 
 func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "queue.batchEnqueueNoCommit",
+	})
+
 	if !q.CanEnqueue() {
 		return ErrQueueClosed
 	}
@@ -49,20 +55,20 @@ func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
 	} else {
 		isHandover = q.handover.tryOpen(batchLen)
 		if !isHandover {
-			q.logger.Error("failed to open handover")
+			logger.Error("failed to open handover")
 		}
 	}
 
 	if isHandover {
 		for i, item := range items {
 			if item == nil {
-				q.logger.Error("cannot enqueue nil item")
+				logger.Error("cannot enqueue nil item")
 				continue
 			}
 
 			b, err := encodeItem(item)
 			if err != nil {
-				q.logger.Error("failed to encode item", "err", err)
+				logger.Error("failed to encode item", "err", err)
 				continue
 			}
 
@@ -71,7 +77,7 @@ func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
 				item:  item,
 			}
 			if !q.handover.tryPut(encodedItem) {
-				q.logger.Error("failed to put item in handover")
+				logger.Error("failed to put item in handover")
 				failedHandoverItems = append(failedHandoverItems, encodedItem)
 			}
 
@@ -83,7 +89,7 @@ func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
 		wg.Add(len(items))
 		for _, item := range items {
 			if item == nil {
-				q.logger.Error("cannot enqueue nil item")
+				logger.Error("cannot enqueue nil item")
 				continue
 			}
 
@@ -92,7 +98,7 @@ func (q *PersistentGroupedQueue) batchEnqueueNoCommit(items ...*Item) error {
 
 				b, err := encodeItem(i)
 				if err != nil {
-					q.logger.Error("failed to encode item", "err", err)
+					logger.Error("failed to encode item", "err", err)
 					return
 				}
 
@@ -219,6 +225,10 @@ func (q *PersistentGroupedQueue) enqueueNoCommit(item *Item) error {
 }
 
 func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) error {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "queue.batchEnqueueUntilCommitted",
+	})
+
 	if items == nil {
 		return errors.New("cannot enqueue nil item")
 	}
@@ -252,20 +262,20 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 	} else {
 		isHandover = q.handover.tryOpen(batchLen)
 		if !isHandover {
-			q.logger.Error("failed to open handover")
+			logger.Error("failed to open handover")
 		}
 	}
 
 	if isHandover {
 		for i, item := range items {
 			if item == nil {
-				q.logger.Error("cannot enqueue nil item")
+				logger.Error("cannot enqueue nil item")
 				continue
 			}
 
 			b, err := encodeItem(item)
 			if err != nil {
-				q.logger.Error("failed to encode item", "err", err)
+				logger.Error("failed to encode item", "err", err)
 				continue
 			}
 
@@ -274,7 +284,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 				item:  item,
 			}
 			if !q.handover.tryPut(encodedItem) {
-				q.logger.Error("failed to put item in handover")
+				logger.Error("failed to put item in handover")
 				failedHandoverItems = append(failedHandoverItems, encodedItem)
 			}
 
@@ -286,7 +296,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 		wg.Add(len(items))
 		for _, item := range items {
 			if item == nil {
-				q.logger.Error("cannot enqueue nil item")
+				logger.Error("cannot enqueue nil item")
 				continue
 			}
 
@@ -295,7 +305,7 @@ func (q *PersistentGroupedQueue) batchEnqueueUntilCommitted(items ...*Item) erro
 
 				b, err := encodeItem(i)
 				if err != nil {
-					q.logger.Error("failed to encode item", "err", err)
+					logger.Error("failed to encode item", "err", err)
 					return
 				}
 

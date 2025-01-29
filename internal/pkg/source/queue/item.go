@@ -11,12 +11,12 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 func NewItem(URL *url.URL, parentURL *url.URL, itemType string, hop uint64, ID string, bypassSeencheck bool) (*Item, error) {
 	h := fnv.New64a()
-	h.Write([]byte(utils.URLToString(URL)))
+	h.Write([]byte(models.URLToString(URL)))
 
 	if ID == "" {
 		ID = uuid.New().String()

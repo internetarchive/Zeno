@@ -58,13 +58,14 @@ type IndexManager struct {
 	walStopChan        chan struct{} // Syncer will close this channel after stopping
 	WalWait            time.Duration // interval **between** between after-sync and next sync
 	stopChan           chan struct{}
-
-	// Logging
-	logger *log.Logger
 }
 
 // NewIndexManager creates a new IndexManager instance and loads the index from the index file.
 func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*IndexManager, error) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "index.NewIndexManager",
+	})
+
 	if useCommit {
 		walFileOpenFlags = os.O_APPEND | os.O_RDWR
 	} else {
@@ -97,10 +98,6 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 		stopChan:     make(chan struct{}),
 	}
 
-	// Logger
-	logger, _ := log.DefaultOrStored()
-	im.logger = logger
-
 	// Init WAL commit if enabled
 	if useCommit {
 		im.walCommit = new(atomic.Uint64)
@@ -127,7 +124,7 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 			indexFile.Close()
 			return nil, fmt.Errorf("failed to recover from crash: %w", err)
 		}
-		im.logger.Warn("Recovered from crash")
+		logger.Warn("Recovered from crash")
 	} else {
 		err = im.loadIndex()
 		if err != nil {
@@ -148,7 +145,7 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 				return
 			case err := <-errChan:
 				if err != nil {
-					im.logger.Error("Periodic dump failed", "error", err)
+					logger.Error("Periodic dump failed", "error", err)
 				}
 			}
 		}
@@ -167,14 +164,18 @@ func (im *IndexManager) unsafeWalSync() error {
 }
 
 func (im *IndexManager) walCommitsSyncer() {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "index.walCommitsSyncer",
+	})
+
 	if swaped := im.walSyncerRunning.CompareAndSwap(false, true); !swaped {
-		im.logger.Warn("another walCommitsSyncer is running")
+		logger.Warn("another walCommitsSyncer is running")
 		return
 	}
 	defer im.walSyncerRunning.Store(false)
 	defer close(im.walStopChan)
 
-	im.logger.Info("walCommitsSyncer started")
+	logger.Info("walCommitsSyncer started")
 	lastTrySyncDuration := time.Duration(0)
 	stopping := false
 	for {
@@ -184,12 +185,12 @@ func (im *IndexManager) walCommitsSyncer() {
 		}
 		select {
 		case <-im.walStopChan:
-			im.logger.Info("walCommitsSyncer performing final sync before stopping")
+			logger.Info("walCommitsSyncer performing final sync before stopping")
 			stopping = true
 		default:
 		}
 
-		// im.logger.Debug("walCommitsSyncer sleeping", "WalWait", im.WalWait, "lastTrySyncDuration", lastTrySyncDuration)
+		// logger.Debug("walCommitsSyncer sleeping", "WalWait", im.WalWait, "lastTrySyncDuration", lastTrySyncDuration)
 		time.Sleep(im.WalWait)
 
 		start := time.Now()
@@ -199,14 +200,14 @@ func (im *IndexManager) walCommitsSyncer() {
 		im.Unlock()
 		lastTrySyncDuration = time.Since(start)
 		if lastTrySyncDuration > 2*time.Second {
-			im.logger.Warn("WAL sync took too long", "lastTrySyncDuration", lastTrySyncDuration)
+			logger.Warn("WAL sync took too long", "lastTrySyncDuration", lastTrySyncDuration)
 		}
 		if err != nil {
 			if stopping {
-				im.logger.Error("failed to sync WAL before stopping", "error", err)
+				logger.Error("failed to sync WAL before stopping", "error", err)
 				return // we are stopping, no need to retry
 			}
-			im.logger.Error("failed to sync WAL, retrying", "error", err)
+			logger.Error("failed to sync WAL, retrying", "error", err)
 			continue // we may infinitely retry, but it's better than losing data
 		}
 		committed := flyingCommit
@@ -217,7 +218,7 @@ func (im *IndexManager) walCommitsSyncer() {
 		// should never happen if listeners number is accurate.
 		for len(im.walCommittedNotify) > 0 {
 			<-im.walCommittedNotify
-			im.logger.Warn("unconsumed committed id in walCommittedNotify")
+			logger.Warn("unconsumed committed id in walCommittedNotify")
 		}
 
 		// Send the committed id to all listeners
@@ -240,12 +241,16 @@ func (im *IndexManager) WALCommit() uint64 {
 // AwaitWALCommitted blocks until the given commit ID is committed to disk by Syncer.
 // DO NOT call this function with im.Lock() held, it will deadlock.
 func (im *IndexManager) AwaitWALCommitted(commit uint64) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "index.AwaitWALCommitted",
+	})
+
 	if commit == 0 {
-		im.logger.Warn("AwaitWALCommitted called with commit 0")
+		logger.Warn("AwaitWALCommitted called with commit 0")
 		return
 	}
 	if !im.walSyncerRunning.Load() {
-		im.logger.Warn("AwaitWALCommitted called without Syncer running, beaware of hanging")
+		logger.Warn("AwaitWALCommitted called without Syncer running, beaware of hanging")
 	}
 	if im.IsWALCommitted(commit) {
 		return
@@ -423,8 +428,12 @@ func (im *IndexManager) pop(host string) (id string, position uint64, size uint6
 
 // Close closes the index manager and performs a final dump of the index to disk.
 func (im *IndexManager) Close() error {
-	im.logger.Info("Closing index manager")
-	defer im.logger.Info("Index manager closed")
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "index.Close",
+	})
+
+	logger.Info("Closing index manager")
+	defer logger.Info("Index manager closed")
 	im.dumpTicker.Stop()
 	im.stopChan <- struct{}{}
 

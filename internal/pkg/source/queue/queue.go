@@ -10,8 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/queue/index"
+	"github.com/internetarchive/Zeno/internal/pkg/source/queue/index"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
@@ -42,8 +41,6 @@ type PersistentGroupedQueue struct {
 	enqueueOp      func(*Item) error
 	batchEnqueueOp func(...*Item) error
 	dequeueOp      func() (*Item, error)
-
-	logger *log.Logger
 }
 
 type Item struct {
@@ -103,10 +100,6 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 			elementsPerHost: make(map[string]int),
 		},
 	}
-
-	// Logging
-	logger, _ := log.DefaultOrStored()
-	q.logger = logger
 
 	// Set the queue as not paused and current host to 0
 	// Set the queue as not empty considering that it might have items at the beginning when resuming, the first dequeue will update it to true if needed

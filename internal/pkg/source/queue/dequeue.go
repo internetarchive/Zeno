@@ -3,7 +3,7 @@ package queue
 import (
 	"fmt"
 
-	"github.com/internetarchive/Zeno/internal/pkg/queue/index"
+	"github.com/internetarchive/Zeno/internal/pkg/source/queue/index"
 )
 
 // Dequeue removes and returns the next item from the queue

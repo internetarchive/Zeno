@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 func TestNewItem(t *testing.T) {
@@ -67,7 +67,7 @@ func TestNewItem(t *testing.T) {
 			if item.Hop != tc.hop {
 				t.Fatalf("Expected hop %d, got %d", tc.hop, item.Hop)
 			}
-			if utils.URLToString(item.ParentURL) != tc.parentURL {
+			if models.URLToString(item.ParentURL) != tc.parentURL {
 				t.Fatalf("Expected parent item %v, got %v", tc.parentURL, item.ParentURL)
 			}
 			if item.Type != tc.itemType {
