@@ -47,7 +47,6 @@ type IndexManager struct {
 	walDecoder *gob.Decoder
 
 	// WAL commit
-	useCommit    bool
 	walCommit    *atomic.Uint64 // Flying in memory commit id
 	walCommitted *atomic.Uint64 // Synced to disk commit id
 	// Number of listeners waiting for walCommittedNotify.
@@ -61,16 +60,12 @@ type IndexManager struct {
 }
 
 // NewIndexManager creates a new IndexManager instance and loads the index from the index file.
-func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*IndexManager, error) {
+func NewIndexManager(walPath, indexPath, queueDirPath string) (*IndexManager, error) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "index.NewIndexManager",
 	})
 
-	if useCommit {
-		walFileOpenFlags = os.O_APPEND | os.O_RDWR
-	} else {
-		walFileOpenFlags = os.O_APPEND | os.O_RDWR | os.O_SYNC
-	}
+	walFileOpenFlags = os.O_APPEND | os.O_RDWR
 
 	walFile, err := os.OpenFile(walPath, os.O_CREATE|walFileOpenFlags, 0644)
 	if err != nil {
@@ -94,19 +89,16 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 		indexDecoder: gob.NewDecoder(indexFile),
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
-		useCommit:    useCommit,
 		stopChan:     make(chan struct{}),
 	}
 
-	// Init WAL commit if enabled
-	if useCommit {
-		im.walCommit = new(atomic.Uint64)
-		im.walCommitted = new(atomic.Uint64)
-		im.walNotifyListeners = new(atomic.Int64)
-		im.walCommittedNotify = make(chan uint64)
-		im.WalWait = 100 * time.Millisecond
-		im.walStopChan = make(chan struct{})
-	}
+	// Init WAL commit
+	im.walCommit = new(atomic.Uint64)
+	im.walCommitted = new(atomic.Uint64)
+	im.walNotifyListeners = new(atomic.Int64)
+	im.walCommittedNotify = make(chan uint64)
+	im.WalWait = 100 * time.Millisecond
+	im.walStopChan = make(chan struct{})
 
 	// Check if WAL file is empty
 	im.Lock()
@@ -137,7 +129,7 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 	// Start the periodic dump goroutine
 	periodicDumpStopChan := make(chan struct{})
 	periodicDumpErrChan := make(chan error)
-	go func(im *IndexManager, errChan chan error, stopChan chan struct{}) {
+	go func(im *IndexManager, errChan chan error, periodicDumpStopChan chan struct{}) {
 		for {
 			select {
 			case stop := <-im.stopChan:
@@ -152,9 +144,7 @@ func NewIndexManager(walPath, indexPath, queueDirPath string, useCommit bool) (*
 	}(im, periodicDumpErrChan, periodicDumpStopChan)
 
 	go im.periodicDump(periodicDumpErrChan, periodicDumpStopChan)
-	if useCommit {
-		go im.walCommitsSyncer()
-	}
+	go im.walCommitsSyncer()
 
 	return im, nil
 }
@@ -175,7 +165,7 @@ func (im *IndexManager) walCommitsSyncer() {
 	defer im.walSyncerRunning.Store(false)
 	defer close(im.walStopChan)
 
-	logger.Info("walCommitsSyncer started")
+	logger.Debug("walCommitsSyncer started")
 	lastTrySyncDuration := time.Duration(0)
 	stopping := false
 	for {
@@ -268,13 +258,6 @@ func (im *IndexManager) AwaitWALCommitted(commit uint64) {
 }
 
 func (im *IndexManager) Add(host string, id string, position uint64, size uint64) (commit uint64, err error) {
-	if !im.useCommit {
-		return 0, im.add(host, id, position, size)
-	}
-	return im.addCommitted(host, id, position, size)
-}
-
-func (im *IndexManager) addCommitted(host string, id string, position uint64, size uint64) (commit uint64, err error) {
 	im.Lock()
 	defer im.Unlock()
 
@@ -297,41 +280,11 @@ func (im *IndexManager) addCommitted(host string, id string, position uint64, si
 	return commit, nil
 }
 
-func (im *IndexManager) add(host string, id string, position uint64, size uint64) error {
-	im.Lock()
-	defer im.Unlock()
-
-	// Write to WAL
-	err := im.unsafeWriteToWAL(OpAdd, host, id, position, size)
-	if err != nil {
-		return fmt.Errorf("failed to write to WAL: %w", err)
-	}
-
-	// Update in-memory index
-	if err := im.hostIndex.add(host, id, position, size); err != nil {
-		return fmt.Errorf("failed to update in-memory index: %w", err)
-	}
-
-	im.opsSinceDump++
-	im.totalOps++
-
-	return nil
-}
-
 // Pop removes the oldest blob from the specified host's queue and returns its ID, position, and size.
 // Pop is responsible for synchronizing the pop of the blob from the in-memory index and writing to the WAL.
 // First it starts a goroutine that waits for the to-be-popped blob infos through blobChan, then writes to the WAL and if successful
 // informs index.pop() through WALSuccessChan to either continue as normal or return an error.
 func (im *IndexManager) Pop(host string) (commit uint64, id string, position uint64, size uint64, err error) {
-	if !im.useCommit {
-		id, position, size, err = im.pop(host)
-	} else {
-		commit, id, position, size, err = im.popCommitted(host)
-	}
-	return
-}
-
-func (im *IndexManager) popCommitted(host string) (commit uint64, id string, position uint64, size uint64, err error) {
 	im.Lock()
 	defer im.Unlock()
 	// Prepare the channels
@@ -377,53 +330,6 @@ func (im *IndexManager) popCommitted(host string) (commit uint64, id string, pos
 	im.totalOps++
 
 	return commit, id, position, size, nil
-}
-
-func (im *IndexManager) pop(host string) (id string, position uint64, size uint64, err error) {
-	im.Lock()
-	defer im.Unlock()
-
-	// Prepare the channels
-	blobChan := make(chan *blob)
-	WALSuccessChan := make(chan bool)
-	errChan := make(chan error)
-	defer close(blobChan)
-	defer close(WALSuccessChan)
-	defer close(errChan)
-
-	go func() {
-		// Write to WAL
-		blob := <-blobChan
-		// If the blob is nil, it means index.pop() returned an error
-		if blob == nil {
-			return
-		}
-		err := im.unsafeWriteToWAL(OpPop, host, blob.id, blob.position, blob.size)
-		if err != nil {
-			errChan <- fmt.Errorf("failed to write to WAL: %w", err)
-			WALSuccessChan <- false
-		}
-		id = blob.id
-		position = blob.position
-		size = blob.size
-		WALSuccessChan <- true
-		errChan <- nil
-	}()
-
-	// Pop from in-memory index
-	err = im.hostIndex.pop(host, blobChan, WALSuccessChan)
-	if err != nil {
-		return "", 0, 0, err
-	}
-
-	if err := <-errChan; err != nil {
-		return "", 0, 0, err
-	}
-
-	im.opsSinceDump++
-	im.totalOps++
-
-	return id, position, size, nil
 }
 
 // Close closes the index manager and performs a final dump of the index to disk.

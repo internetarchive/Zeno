@@ -1,3 +1,4 @@
+// Package queue provides a persistent grouped queue implementation when crawling without an external crawling orchestrator.
 package queue
 
 import (
@@ -10,10 +11,12 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/source/queue/index"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
+// PersistentGroupedQueue is a persistent grouped queue implementation that can be used to store and retrieve items.
 type PersistentGroupedQueue struct {
 	Paused    *utils.TAtomBool
 	Empty     *utils.TAtomBool
@@ -30,19 +33,9 @@ type PersistentGroupedQueue struct {
 	statsMutex      sync.Mutex // Write lock for stats
 	currentHost     *atomic.Uint64
 	mutex           sync.RWMutex
-
-	useHandover   *atomic.Bool
-	handover      *handoverChannel
-	HandoverOpen  *utils.TAtomBool
-	handoverMutex sync.Mutex
-	handoverCount *atomic.Uint64
-
-	useCommit      bool
-	enqueueOp      func(*Item) error
-	batchEnqueueOp func(...*Item) error
-	dequeueOp      func() (*Item, error)
 }
 
+// Item represents an item in the queue. It is different from the models.Item struct as it contains additional fields.
 type Item struct {
 	URL             *url.URL
 	ParentURL       *url.URL
@@ -55,7 +48,12 @@ type Item struct {
 	Redirect        uint64
 }
 
-func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit bool) (*PersistentGroupedQueue, error) {
+func init() {
+	log.Start()
+}
+
+// NewPersistentGroupedQueue creates a new persistent grouped queue.
+func NewPersistentGroupedQueue(queueDirPath string) (*PersistentGroupedQueue, error) {
 	err := os.MkdirAll(queueDirPath, 0755)
 	if err != nil {
 		return nil, err
@@ -71,7 +69,7 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 		return nil, fmt.Errorf("open metadata file: %w", err)
 	}
 
-	indexManager, err := index.NewIndexManager(path.Join(queueDirPath, "index_wal"), path.Join(queueDirPath, "index"), queueDirPath, useCommit)
+	indexManager, err := index.NewIndexManager(path.Join(queueDirPath, "index_wal"), path.Join(queueDirPath, "index"), queueDirPath)
 	if err != nil {
 		return nil, fmt.Errorf("create index manager: %w", err)
 	}
@@ -82,12 +80,6 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 
 		closed:    new(utils.TAtomBool),
 		finishing: new(utils.TAtomBool),
-
-		useHandover:   new(atomic.Bool),
-		HandoverOpen:  new(utils.TAtomBool),
-		handoverCount: new(atomic.Uint64),
-
-		useCommit: useCommit,
 
 		queueDirPath:    queueDirPath,
 		queueFile:       file,
@@ -109,25 +101,6 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 	q.finishing.Set(false)
 	q.currentHost.Store(0)
 
-	// Handover
-	q.useHandover.Store(useHandover)
-	q.HandoverOpen.Set(false)
-	q.handoverCount.Store(0)
-	if useHandover {
-		q.handover = newHandoverChannel()
-	}
-
-	// Commit
-	if useCommit {
-		q.enqueueOp = q.enqueueUntilCommitted
-		q.batchEnqueueOp = q.batchEnqueueUntilCommitted
-		q.dequeueOp = q.dequeueCommitted
-	} else {
-		q.enqueueOp = q.enqueueNoCommit
-		q.batchEnqueueOp = q.batchEnqueueNoCommit
-		q.dequeueOp = q.dequeueNoCommit
-	}
-
 	// Loading stats from the disk means deleting the file from disk after having read it
 	if err = q.loadStatsFromFile(path.Join(q.queueDirPath, "queue.stats")); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
@@ -143,6 +116,7 @@ func NewPersistentGroupedQueue(queueDirPath string, useHandover bool, useCommit 
 	return q, nil
 }
 
+// Close closes the queue and saves the metadata.
 func (q *PersistentGroupedQueue) Close() error {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
@@ -181,6 +155,7 @@ func (q *PersistentGroupedQueue) Close() error {
 	return nil
 }
 
+// FreezeDequeue freezes the dequeue operation, meaning that no more items will be dequeued from the queue.
 func (q *PersistentGroupedQueue) FreezeDequeue() {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()

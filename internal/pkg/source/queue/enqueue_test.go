@@ -16,7 +16,7 @@ func TestEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -57,7 +57,7 @@ func TestEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -106,7 +106,7 @@ func TestEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -132,7 +132,7 @@ func TestEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -184,7 +184,7 @@ func TestEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -228,7 +228,7 @@ func TestBatchEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -240,7 +240,7 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to create item: %v", err)
 		}
 
-		err = q.BatchEnqueue(item)
+		err = q.Enqueue(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -273,7 +273,7 @@ func TestBatchEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -292,7 +292,7 @@ func TestBatchEnqueue(t *testing.T) {
 			items = append(items, item)
 		}
 
-		err = q.BatchEnqueue(items...)
+		err = q.Enqueue(items...)
 		if err != nil {
 			t.Fatalf("Failed to enqueue items: %v", err)
 		}
@@ -325,7 +325,7 @@ func TestBatchEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -337,7 +337,7 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to create item: %v", err)
 		}
 
-		err = q.BatchEnqueue(item)
+		err = q.Enqueue(item)
 		if err != ErrQueueClosed {
 			t.Fatalf("Expected ErrQueueClosed, got: %v", err)
 		}
@@ -350,7 +350,7 @@ func TestBatchEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -362,7 +362,7 @@ func TestBatchEnqueue(t *testing.T) {
 			t.Fatalf("Failed to create item: %v", err)
 		}
 
-		err = q.BatchEnqueue(item)
+		err = q.Enqueue(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -380,7 +380,7 @@ func TestBatchEnqueue(t *testing.T) {
 		}
 
 		time.Sleep(10 * time.Millisecond)
-		err = q.BatchEnqueue(item)
+		err = q.Enqueue(item)
 		if err != nil {
 			t.Fatalf("Failed to enqueue item: %v", err)
 		}
@@ -405,7 +405,7 @@ func TestBatchEnqueue(t *testing.T) {
 		}
 		defer os.RemoveAll(tempDir)
 
-		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"), false, false)
+		q, err := NewPersistentGroupedQueue(path.Join(tempDir, "test_queue"))
 		if err != nil {
 			t.Fatalf("Failed to create new queue: %v", err)
 		}
@@ -419,7 +419,7 @@ func TestBatchEnqueue(t *testing.T) {
 				t.Fatalf("Failed to create item: %v", err)
 			}
 
-			err = q.BatchEnqueue(item)
+			err = q.Enqueue(item)
 			if err != nil {
 				t.Fatalf("Failed to enqueue item: %v", err)
 			}

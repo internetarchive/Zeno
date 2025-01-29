@@ -40,7 +40,6 @@ func Test_Recovery(t *testing.T) {
 		indexDecoder: gob.NewDecoder(indexFile),
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
-		useCommit:    false,
 	}
 
 	// Add entries to the index
@@ -99,7 +98,6 @@ func Test_Recovery(t *testing.T) {
 		indexDecoder: gob.NewDecoder(indexFile),
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
-		useCommit:    false,
 	}
 
 	err = im.RecoverFromCrash()
@@ -142,7 +140,6 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 		indexDecoder: gob.NewDecoder(indexFile),
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
-		useCommit:    false,
 	}
 
 	// Add entries to the index
@@ -215,7 +212,6 @@ func Test_RecoveryAfterOneIndexDumpAndWALNotEmpty(t *testing.T) {
 		indexDecoder: gob.NewDecoder(indexFile),
 		dumpTicker:   time.NewTicker(time.Duration(dumpFrequency) * time.Second),
 		lastDumpTime: time.Now(),
-		useCommit:    false,
 	}
 
 	err = im.RecoverFromCrash()

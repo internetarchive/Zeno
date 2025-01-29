@@ -19,10 +19,9 @@ type QueueStats struct {
 	AverageTimeBetweenEnqueues time.Duration  `json:"average_time_between_enqueues"`
 	AverageTimeBetweenDequeues time.Duration  `json:"average_time_between_dequeues"`
 	AverageElementsPerHost     float64        `json:"average_elements_per_host"`
-	HandoverSuccessGetCount    uint64         `json:"handover_success_get_count"`
 }
 
-// generate and return the snapshot of the queue stats
+// GetStats generates and return the snapshot of the queue stats
 // NOTE: elementsPerHost is not included in the snapshot
 func (q *PersistentGroupedQueue) GetStats() QueueStats {
 	q.statsMutex.Lock()
@@ -58,11 +57,6 @@ func (q *PersistentGroupedQueue) genStats() {
 	}
 	if q.stats.EnqueueCount > 0 {
 		q.stats.AverageTimeBetweenEnqueues = time.Since(q.stats.FirstEnqueueTime) / time.Duration(q.stats.EnqueueCount)
-	}
-
-	// Calculate handover success get count
-	if q.useHandover.Load() {
-		q.stats.HandoverSuccessGetCount = q.handoverCount.Load()
 	}
 }
 

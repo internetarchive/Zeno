@@ -21,9 +21,6 @@ var (
 	// ErrDequeueClosed is returned when the dequeue operation is called on a closed or empty queue
 	ErrDequeueClosed = errors.New("dequeue operation called on a closed or empty queue")
 
-	// ErrCommitValueReceived is returned when a commit value is received when it should not have been
-	ErrCommitValueReceived = errors.New("commit value received when it should not have been")
-
 	// ErrCommitValueNotReceived is returned when a commit value is not received when it should have been
 	ErrCommitValueNotReceived = errors.New("commit value not received when it should have been")
 )

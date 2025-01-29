@@ -129,13 +129,13 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 	walPath := path.Join(queueDir, "/index_wal")
 	indexPath := path.Join(queueDir, "/index")
 
-	im, err := NewIndexManager(walPath, indexPath, queueDir, false)
+	im, err := NewIndexManager(walPath, indexPath, queueDir)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
 
 	// Add entries to the index
-	var commit uint64 = 0
+	var commit uint64
 	for i := 0; i < 1000; i++ {
 		commit, err = im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
 		if err != nil {
@@ -169,7 +169,7 @@ func Test_badCloseThenReopenIndex(t *testing.T) {
 	im = nil
 	fmt.Println("Index nil now")
 
-	im, err = NewIndexManager(walPath, indexPath, queueDir, false)
+	im, err = NewIndexManager(walPath, indexPath, queueDir)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
@@ -186,13 +186,13 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 	walPath := path.Join(queueDir, "/index_wal")
 	indexPath := path.Join(queueDir, "/index")
 
-	im, err := NewIndexManager(walPath, indexPath, queueDir, false)
+	im, err := NewIndexManager(walPath, indexPath, queueDir)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
 
 	// Add entries to the index
-	var commit uint64 = 0
+	var commit uint64
 	for i := 0; i < 1000; i++ {
 		commit, err = im.Add("example.com", "id"+strconv.Itoa(i), uint64(i*200), uint64(200))
 		if err != nil {
@@ -204,7 +204,7 @@ func Test_CloseGracefullyThenReopenIndex(t *testing.T) {
 	im.Close()
 	im = nil
 
-	im, err = NewIndexManager(walPath, indexPath, queueDir, false)
+	im, err = NewIndexManager(walPath, indexPath, queueDir)
 	if err != nil {
 		t.Fatalf("failed to create index manager: %v", err)
 	}
@@ -257,7 +257,7 @@ func benchmarkSequentialAddPop(b *testing.B, size int) {
 		im, tempDir := provideBenchmarkIndexManager(b, true)
 		// Perform size number of Add and Pop operations
 		var (
-			commit uint64 = 0
+			commit uint64
 			err    error
 		)
 		for j := 0; j < size; j++ {
@@ -299,7 +299,7 @@ func benchmarkBulkAddThenPop(b *testing.B, size int) {
 
 		// Pop all entries
 		var (
-			commit uint64 = 0
+			commit uint64
 			err    error
 		)
 		for j := 0; j < size; j++ {
