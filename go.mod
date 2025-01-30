@@ -3,7 +3,7 @@ module github.com/internetarchive/Zeno
 go 1.23.5
 
 require (
-	github.com/CorentinB/warc v0.8.65
+	github.com/CorentinB/warc v0.8.66
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/ada-url/goada v0.0.0-20250104020233-00cbf4dc9da1
