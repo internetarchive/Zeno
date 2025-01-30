@@ -67,6 +67,7 @@ func normalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	}
 
 	URL.Raw = adaParse.Href()
+	adaParse.Free()
 
 	return URL.Parse()
 }
