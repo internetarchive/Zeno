@@ -10,6 +10,7 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
+// ProcessBody processes the body of a URL response, loading it into memory or a temporary file
 func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops int, WARCTempDir string) error {
 	defer u.GetResponse().Body.Close() // Ensure the response body is closed
 
@@ -34,7 +35,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 	// a limited number of MIME types, those commonly found in web.
 	u.SetMIMEType(mimetype.Detect(buffer.Bytes()))
 
-	// Check if the MIME type is one that we post-process
+	// Load the body into memory then return if it is a MIME type that we handle
 	if (u.GetMIMEType().Parent() != nil &&
 		u.GetMIMEType().Parent().String() == "text/plain") ||
 		strings.Contains(u.GetMIMEType().String(), "text/") {
@@ -64,12 +65,12 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		u.RewindBody()
 
 		return nil
-	} else {
-		// Read the rest of the body but discard it
-		_, err := io.Copy(io.Discard, u.GetResponse().Body)
-		if err != nil {
-			return err
-		}
+	}
+
+	// Read the rest of the body and discard it
+	_, err = io.Copy(io.Discard, u.GetResponse().Body)
+	if err != nil {
+		return err
 	}
 
 	return nil

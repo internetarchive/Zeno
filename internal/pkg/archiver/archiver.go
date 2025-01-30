@@ -66,8 +66,6 @@ func Start(inputChan, outputChan chan *models.Item) error {
 		// Setup WARC writing HTTP clients
 		startWARCWriter()
 		go watchWARCWritingQueue(250 * time.Millisecond)
-
-		globalArchiver.wg.Add(1)
 		go run()
 		logger.Info("started")
 		done = true
@@ -104,13 +102,10 @@ func run() {
 		"component": "archiver.run",
 	})
 
+	globalArchiver.wg.Add(1)
 	defer globalArchiver.wg.Done()
 
-	// Create a context to manage goroutines
-	ctx, cancel := context.WithCancel(globalArchiver.ctx)
-	defer cancel()
-
-	// Create a wait group to wait for all goroutines to finish
+	// Create a wait group to track all the goroutines
 	var wg sync.WaitGroup
 
 	// Guard to limit the number of concurrent archiver routines
@@ -126,13 +121,13 @@ func run() {
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		case item, ok := <-globalArchiver.inputCh:
+		case rxItem, ok := <-globalArchiver.inputCh:
 			if ok {
-				logger.Debug("received item", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+				logger.Debug("received seed item", "item", rxItem.GetShortID(), "depth", rxItem.GetDepth(), "hops", rxItem.GetURL().GetHops())
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.ArchiverRoutinesIncr()
-				go func(ctx context.Context) {
+				go func(item *models.Item) {
 					defer wg.Done()
 					defer func() { <-guard }()
 					defer stats.ArchiverRoutinesDecr()
@@ -148,19 +143,21 @@ func run() {
 					}
 
 					select {
-					case globalArchiver.outputCh <- item:
-					case <-ctx.Done():
+					case <-globalArchiver.ctx.Done():
 						logger.Debug("aborting item due to stop", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 						return
+					case globalArchiver.outputCh <- item:
+						return
 					}
-				}(ctx)
+				}(rxItem)
+			} else {
+				globalArchiver.cancel()
 			}
 		case <-globalArchiver.ctx.Done():
 			logger.Debug("shutting down")
 			wg.Wait()
 			return
 		}
-		stats.WarcWritingQueueSizeSet(int64(GetWARCWritingQueueSize()))
 	}
 }
 
@@ -200,38 +197,47 @@ func archive(seed *models.Item) {
 				resp *http.Response
 			)
 
-			// Execute the request
-			req := item.GetURL().GetRequest()
-			if req == nil {
-				panic("request is nil")
-			}
-			if config.Get().Proxy != "" {
-				resp, err = globalArchiver.ClientWithProxy.Do(req)
-			} else {
-				resp, err = globalArchiver.Client.Do(req)
-			}
-			if err != nil {
-				logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+			select {
+			case <-globalArchiver.ctx.Done():
+				logger.Debug("aborting archiving of child due to stop", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 				item.SetStatus(models.ItemFailed)
 				return
-			}
+			default:
+				// Execute the request
+				req := item.GetURL().GetRequest()
+				if req == nil {
+					panic("request is nil")
+				}
+				if config.Get().Proxy != "" {
+					resp, err = globalArchiver.ClientWithProxy.Do(req)
+				} else {
+					resp, err = globalArchiver.Client.Do(req)
+				}
+				if err != nil {
+					logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+					item.SetStatus(models.ItemFailed)
+					return
+				}
 
-			// Set the response in the URL
-			item.GetURL().SetResponse(resp)
+				// Set the response in the URL
+				item.GetURL().SetResponse(resp)
 
-			// Process the body
-			err = ProcessBody(item.GetURL(), config.Get().DisableAssetsCapture, domainscrawl.Enabled(), config.Get().MaxHops, config.Get().WARCTempDir)
-			if err != nil {
-				logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
-				item.SetStatus(models.ItemFailed)
+				// Process the body
+				err = ProcessBody(item.GetURL(), config.Get().DisableAssetsCapture, domainscrawl.Enabled(), config.Get().MaxHops, config.Get().WARCTempDir)
+				if err != nil {
+					logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+					item.SetStatus(models.ItemFailed)
+					return
+				}
+
+				stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
+
+				logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
+
+				item.SetStatus(models.ItemArchived)
+
 				return
 			}
-
-			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
-
-			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
-
-			item.SetStatus(models.ItemArchived)
 		}(items[i])
 	}
 
