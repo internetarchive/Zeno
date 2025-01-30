@@ -47,7 +47,6 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			outputCh: outputChan,
 		}
 		logger.Debug("initialized")
-		globalPostprocessor.wg.Add(1)
 		go run()
 		logger.Info("started")
 		done = true
@@ -73,11 +72,8 @@ func run() {
 		"component": "postprocessor.run",
 	})
 
+	globalPostprocessor.wg.Add(1)
 	defer globalPostprocessor.wg.Done()
-
-	// Create a context to manage goroutines
-	ctx, cancel := context.WithCancel(globalPostprocessor.ctx)
-	defer cancel()
 
 	// Create a wait group to wait for all goroutines to finish
 	var wg sync.WaitGroup
@@ -95,19 +91,19 @@ func run() {
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		case item, ok := <-globalPostprocessor.inputCh:
+		case rxItem, ok := <-globalPostprocessor.inputCh:
 			if ok {
-				logger.Debug("received item", "item", item.GetShortID())
+				logger.Debug("received seed item", "item", rxItem.GetShortID())
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.PostprocessorRoutinesIncr()
-				go func(ctx context.Context) {
+				go func(item *models.Item) {
 					defer wg.Done()
 					defer func() { <-guard }()
 					defer stats.PostprocessorRoutinesDecr()
 
 					if err := item.CheckConsistency(); err != nil {
-						panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), item.GetShortID()))
+						panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), rxItem.GetShortID()))
 					}
 
 					if item.GetStatus() != models.ItemArchived && item.GetStatus() != models.ItemGotRedirected && item.GetStatus() != models.ItemGotChildren {
@@ -116,7 +112,7 @@ func run() {
 						outlinks := postprocess(item)
 						for i := range outlinks {
 							select {
-							case <-ctx.Done():
+							case <-globalPostprocessor.ctx.Done():
 								logger.Debug("aborting outlink feeding due to stop", "item", outlinks[i].GetShortID())
 								return
 							case globalPostprocessor.outputCh <- outlinks[i]:
@@ -128,12 +124,15 @@ func run() {
 					closeBodies(item)
 
 					select {
-					case globalPostprocessor.outputCh <- item:
-					case <-ctx.Done():
+					case <-globalPostprocessor.ctx.Done():
 						logger.Debug("aborting item due to stop", "item", item.GetShortID())
 						return
+					case globalPostprocessor.outputCh <- item:
+						return
 					}
-				}(ctx)
+				}(rxItem)
+			} else {
+				globalPostprocessor.cancel()
 			}
 		case <-globalPostprocessor.ctx.Done():
 			logger.Debug("shutting down")
