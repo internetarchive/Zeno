@@ -117,6 +117,10 @@ func run() {
 
 	for {
 		select {
+		case <-globalArchiver.ctx.Done():
+			logger.Debug("shutting down")
+			wg.Wait()
+			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
@@ -153,10 +157,6 @@ func run() {
 			} else {
 				globalArchiver.cancel()
 			}
-		case <-globalArchiver.ctx.Done():
-			logger.Debug("shutting down")
-			wg.Wait()
-			return
 		}
 	}
 }

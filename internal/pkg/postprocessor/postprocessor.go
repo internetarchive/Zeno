@@ -87,6 +87,10 @@ func run() {
 
 	for {
 		select {
+		case <-globalPostprocessor.ctx.Done():
+			logger.Debug("shutting down")
+			wg.Wait()
+			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
@@ -134,10 +138,6 @@ func run() {
 			} else {
 				globalPostprocessor.cancel()
 			}
-		case <-globalPostprocessor.ctx.Done():
-			logger.Debug("shutting down")
-			wg.Wait()
-			return
 		}
 	}
 }
