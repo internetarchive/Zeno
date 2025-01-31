@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -151,6 +153,134 @@ func TestXML(t *testing.T) {
 				if URL.Raw != tt.expected[i] {
 					t.Errorf("Expected asset %s, got %s", tt.expected[i], URL.Raw)
 				}
+			}
+		})
+	}
+}
+
+// TestIsSitemapXML covers multiple scenarios.
+func TestIsSitemapXML(t *testing.T) {
+	tests := []struct {
+		name    string
+		xmlData string
+		want    bool
+	}{
+		{
+			name: "Valid sitemap XML",
+			xmlData: `<?xml version="1.0" encoding="UTF-8"?>
+				<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+					<url>
+						<loc>https://example.com/page1</loc>
+					</url>
+				</urlset>`,
+			want: true,
+		},
+		{
+			name: "Invalid sitemap XML",
+			xmlData: `<?xml version="1.0" encoding="UTF-8"?>
+				<root>
+					<element>Not a sitemap</element>
+				</root>`,
+			want: false,
+		},
+		{
+			name: "Sitemap XML with comment containing marker",
+			xmlData: `<?xml version="1.0" encoding="UTF-8"?>
+				<!-- http://www.sitemaps.org/schemas/sitemap/0.9 -->
+				<root>
+					<element>Not a sitemap</element>
+				</root>`,
+			want: true,
+		},
+		{
+			name: "Sitemap XML with directive containing marker",
+			xmlData: `<?xml version="1.0" encoding="UTF-8"?>
+				<!DOCTYPE root SYSTEM "http://www.sitemaps.org/schemas/sitemap/0.9">
+				<root>
+					<element>Not a sitemap</element>
+				</root>`,
+			want: true,
+		},
+		{
+			name: "Sitemap XML with processing instruction containing marker",
+			xmlData: `<?xml version="1.0" encoding="UTF-8"?>
+				<?xml-stylesheet type="text/xsl" href="http://www.sitemaps.org/schemas/sitemap/0.9"?>
+				<root>
+					<element>Not a sitemap</element>
+				</root>`,
+			want: true,
+		},
+		{
+			name: "Sitemap XML with nested elements containing marker",
+			xmlData: `<?xml version="1.0" encoding="UTF-8"?>
+				<root xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+					<element>Not a sitemap</element>
+				</root>`,
+			want: true,
+		},
+		{
+			name: "Sitemap XML with attributes containing marker",
+			xmlData: `<?xml version="1.0" encoding="UTF-8"?>
+				<root>
+					<element xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">Not a sitemap</element>
+				</root>`,
+			want: true,
+		},
+		{
+			name:    "Empty XML content",
+			xmlData: ``,
+			want:    false,
+		},
+		{
+			name: "Large sitemap XML content",
+			xmlData: `<?xml version="1.0" encoding="UTF-8"?>
+				<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` + strings.Repeat(`<url><loc>https://example.com/page</loc></url>`, 1000) + `</urlset>`,
+			want: true,
+		},
+		{
+			name: "Sitemap XML with special characters in namespace",
+			xmlData: `<?xml version="1.0" encoding="UTF-8"?>
+				<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9?param=1&amp;other=2">
+					<url>
+						<loc>https://example.com/page</loc>
+					</url>
+				</urlset>`,
+			want: true,
+		},
+		{
+			name: "Sitemap XML with special characters in URLs",
+			xmlData: `<?xml version="1.0" encoding="UTF-8"?>
+				<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+					<url>
+						<loc>https://example.com/page?param=1&amp;other=2</loc>
+					</url>
+				</urlset>`,
+			want: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Construct a minimal FakeURL with your test data as body
+			URLObj := &models.URL{}
+			URLObj.SetRequest(&http.Request{URL: &url.URL{Scheme: "http", Host: "example.com"}})
+
+			// Likewise, set the HTTP response header using SetResponse.
+			// We want to simulate an S3 server for these tests.
+			URLObj.SetResponse(&http.Response{
+				Header: http.Header{
+					"Server": []string{"AmazonS3"},
+				},
+			})
+
+			spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+			spooledTempFile.Write([]byte(tc.xmlData))
+
+			URLObj.SetBody(spooledTempFile)
+
+			got := IsSitemapXML(URLObj)
+			if got != tc.want {
+				t.Errorf("IsSitemapXML(%q) = %v, want %v", tc.xmlData, got, tc.want)
 			}
 		})
 	}
