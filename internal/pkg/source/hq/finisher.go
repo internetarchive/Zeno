@@ -1,7 +1,6 @@
 package hq
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -18,40 +17,32 @@ type finishBatch struct {
 	ChildsCaptured int
 }
 
+var finisherWg sync.WaitGroup
+
 // finisher initializes and starts the finisher and dispatcher processes.
 func finisher() {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "hq.finisher",
 	})
 
-	// Create a context to manage goroutines
-	ctx, cancel := context.WithCancel(globalHQ.ctx)
-	defer cancel()
-
 	maxSenders := getMaxFinishSenders()
 	batchCh := make(chan *finishBatch, maxSenders)
 
-	var wg sync.WaitGroup
+	finisherWg.Add(1)
+	go finisherReceiver(batchCh)
 
-	wg.Add(1)
-	go finisherReceiver(ctx, &wg, batchCh)
-
-	wg.Add(1)
-	go finisherDispatcher(ctx, &wg, batchCh)
+	finisherWg.Add(1)
+	go finisherDispatcher(batchCh)
 
 	// Wait for the context to be canceled.
 	for {
 		select {
 		case <-globalHQ.ctx.Done():
 			logger.Debug("received done signal")
-
-			// Cancel the context to stop all goroutines.
-			cancel()
-
 			logger.Debug("waiting for goroutines to finish")
 
 			// Wait for the finisher and dispatcher to finish.
-			wg.Wait()
+			finisherWg.Wait()
 
 			// Close the batch channel to signal the dispatcher to finish.
 			close(batchCh)
@@ -65,8 +56,8 @@ func finisher() {
 }
 
 // finisherReceiver reads URLs from finishCh, accumulates them into batches, and sends the batches to batchCh.
-func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *finishBatch) {
-	defer wg.Done()
+func finisherReceiver(batchCh chan *finishBatch) {
+	defer finisherWg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "hq.finisherReceiver",
@@ -83,7 +74,7 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-globalHQ.ctx.Done():
 			logger.Debug("closed")
 			return
 		case item := <-globalHQ.finishCh:
@@ -112,7 +103,7 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 				// Send the batch to batchCh.
 				copyBatch := *batch
 				select {
-				case <-ctx.Done():
+				case <-globalHQ.ctx.Done():
 					logger.Debug("closed")
 					return
 				case batchCh <- &copyBatch: // Blocks if batchCh is full.
@@ -127,7 +118,7 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 				logger.Debug("sending non-full batch to dispatcher", "size", len(batch.URLs))
 				copyBatch := *batch
 				select {
-				case <-ctx.Done():
+				case <-globalHQ.ctx.Done():
 					logger.Debug("closed")
 					return
 				case batchCh <- &copyBatch: // Blocks if batchCh is full.
@@ -142,8 +133,8 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 }
 
 // finisherDispatcher receives batches from batchCh and dispatches them to sender routines.
-func finisherDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *finishBatch) {
-	defer wg.Done()
+func finisherDispatcher(batchCh chan *finishBatch) {
+	defer finisherWg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "hq.finisherDispatcher",
@@ -155,9 +146,8 @@ func finisherDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *f
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-globalHQ.ctx.Done():
 			logger.Debug("waiting for sender routines to finish")
-			// Wait for all sender routines to finish.
 			senderWg.Wait()
 			logger.Debug("closed")
 			return
@@ -169,41 +159,37 @@ func finisherDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *f
 			go func(batch *finishBatch, batchUUID string) {
 				defer senderWg.Done()
 				defer func() { <-senderSemaphore }()
-				finisherSender(ctx, batch, batchUUID)
-			}(batch, batchUUID)
-		}
-	}
-}
 
-// finisherSender sends a batch of URLs to HQ with retries and exponential backoff.
-func finisherSender(ctx context.Context, batch *finishBatch, batchUUID string) {
-	logger := log.NewFieldedLogger(&log.Fields{
-		"component": fmt.Sprintf("hq.finisherSender.%s", batchUUID),
-	})
-	defer logger.Debug("done")
+				logger := log.NewFieldedLogger(&log.Fields{
+					"component": fmt.Sprintf("hq.finisherSender.%s", batchUUID),
+				})
 
-	backoff := time.Second
-	maxBackoff := 5 * time.Second
+				backoff := time.Second
+				maxBackoff := 5 * time.Second
 
-	logger.Debug("sending batch to HQ", "size", len(batch.URLs))
+				logger.Debug("sending batch to HQ", "size", len(batch.URLs))
 
-	for {
-		err := globalHQ.client.Delete(batch.URLs, batch.ChildsCaptured)
-		select {
-		case <-ctx.Done():
-			logger.Debug("closing")
-			return
-		default:
-			if err != nil {
-				logger.Error("error sending batch to HQ", "err", err)
-				time.Sleep(backoff)
-				backoff *= 2
-				if backoff > maxBackoff {
-					backoff = maxBackoff
+				for {
+					err := globalHQ.client.Delete(globalHQ.ctx, batch.URLs, batch.ChildsCaptured)
+					select {
+					case <-globalHQ.ctx.Done():
+						logger.Debug("closing")
+						return
+					default:
+						if err != nil {
+							logger.Error("error sending batch to HQ", "err", err)
+							time.Sleep(backoff)
+							backoff *= 2
+							if backoff > maxBackoff {
+								backoff = maxBackoff
+							}
+							continue
+						}
+						logger.Debug("sent batch to HQ", "size", len(batch.URLs))
+						return
+					}
 				}
-				continue
-			}
-			return
+			}(batch, batchUUID)
 		}
 	}
 }

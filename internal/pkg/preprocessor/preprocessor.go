@@ -2,9 +2,11 @@ package preprocessor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
@@ -46,7 +48,7 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	stats.Init()
 
 	once.Do(func() {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithDeadlineCause(context.Background(), time.Now().Add(1*time.Minute), errors.New("preprocessor context deadline exceeded"))
 		globalPreprocessor = &preprocessor{
 			ctx:      ctx,
 			cancel:   cancel,

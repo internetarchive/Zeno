@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/gabriel-vasile/mimetype"
@@ -14,33 +15,34 @@ import (
 func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops int, WARCTempDir string) error {
 	defer u.GetResponse().Body.Close() // Ensure the response body is closed
 
-	// If we are not capturing assets nor do we want to extract outlinks (and domains crawl is disabled)
-	// we can just consume the body and discard it
+	// Retrieve the underlying TCP connection and apply a 10s read deadline
+	conn, ok := u.GetResponse().Body.(interface{ SetReadDeadline(time.Time) error })
+	if ok {
+		conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+	}
+
+	// If we are not capturing assets, not extracting outlinks, and domains crawl is disabled
+	// we can just consume and discard the body
 	if disableAssetsCapture && !domainsCrawl && maxHops == 0 {
-		// Read the rest of the body but discard it
-		_, err := io.Copy(io.Discard, u.GetResponse().Body)
-		if err != nil {
+		if err := copyWithTimeout(io.Discard, u.GetResponse().Body, conn); err != nil {
 			return err
 		}
 	}
 
-	// Create a buffer to hold the body
+	// Create a buffer to hold the body (first 2KB)
 	buffer := new(bytes.Buffer)
-	_, err := io.CopyN(buffer, u.GetResponse().Body, 2048)
-	if err != nil && err != io.EOF {
+	if err := copyWithTimeoutN(buffer, u.GetResponse().Body, 2048, conn); err != nil {
 		return err
 	}
 
-	// We do not use http.DetectContentType because it only supports
-	// a limited number of MIME types, those commonly found in web.
+	// Detect and set MIME type
 	u.SetMIMEType(mimetype.Detect(buffer.Bytes()))
 
-	// Load the body into memory then return if it is a MIME type that we handle
-	if (u.GetMIMEType().Parent() != nil &&
-		u.GetMIMEType().Parent().String() == "text/plain") ||
+	// Check if the MIME type requires post-processing
+	if (u.GetMIMEType().Parent() != nil && u.GetMIMEType().Parent().String() == "text/plain") ||
 		strings.Contains(u.GetMIMEType().String(), "text/") {
-		// Create a spooled temp file, that is a ReadWriteSeeker that writes to a temporary file
-		// when the in-memory buffer exceeds a certain size. (here, 2MB)
+
+		// Create a temp file with a 2MB memory buffer
 		spooledBuff := spooledtempfile.NewSpooledTempFile("zeno", WARCTempDir, 2097152, false, -1)
 		_, err := io.Copy(spooledBuff, buffer)
 		if err != nil {
@@ -51,9 +53,8 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 			return err
 		}
 
-		// Read the rest of the body and set it in SetBody()
-		_, err = io.Copy(spooledBuff, u.GetResponse().Body)
-		if err != nil && err != io.EOF {
+		// Read the rest of the body into the spooled buffer
+		if err := copyWithTimeout(spooledBuff, u.GetResponse().Body, conn); err != nil {
 			closeErr := spooledBuff.Close()
 			if closeErr != nil {
 				panic(closeErr)
@@ -65,13 +66,49 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		u.RewindBody()
 
 		return nil
+	} else {
+		// Read the rest of the body but discard it
+		if err := copyWithTimeout(io.Discard, u.GetResponse().Body, conn); err != nil {
+			return err
+		}
 	}
 
-	// Read the rest of the body and discard it
-	_, err = io.Copy(io.Discard, u.GetResponse().Body)
-	if err != nil {
+	return nil
+}
+
+// copyWithTimeout copies data and resets the read deadline after each successful read
+func copyWithTimeout(dst io.Writer, src io.Reader, conn interface{ SetReadDeadline(time.Time) error }) error {
+	buf := make([]byte, 4096)
+	for {
+		n, err := src.Read(buf)
+		if n > 0 {
+			// Reset the deadline after each successful read
+			if conn != nil {
+				conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+			}
+			if _, writeErr := dst.Write(buf[:n]); writeErr != nil {
+				return writeErr
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+// copyWithTimeoutN copies a limited number of bytes and applies the timeout
+func copyWithTimeoutN(dst io.Writer, src io.Reader, n int64, conn interface{ SetReadDeadline(time.Time) error }) error {
+	_, err := io.CopyN(dst, src, n)
+	if err != nil && err != io.EOF {
 		return err
 	}
-
+	// Reset deadline after partial read
+	if conn != nil {
+		conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+	}
 	return nil
 }

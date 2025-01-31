@@ -8,6 +8,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/ada-url/goada v0.0.0-20250104020233-00cbf4dc9da1
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+	github.com/dustin/go-humanize v1.0.1
 	github.com/elastic/go-elasticsearch v0.0.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/gabriel-vasile/mimetype v1.4.8
@@ -15,7 +16,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.0
 	github.com/grafov/m3u8 v0.12.1
-	github.com/internetarchive/gocrawlhq v1.2.26
+	github.com/internetarchive/gocrawlhq v1.2.28
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
 	github.com/spf13/cobra v1.8.1

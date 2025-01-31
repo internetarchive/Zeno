@@ -2,6 +2,7 @@ package archiver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/warc"
+	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
@@ -54,7 +56,7 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	stats.Init()
 
 	once.Do(func() {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithDeadlineCause(context.Background(), time.Now().Add(1*time.Minute), errors.New("archiver context deadline exceeded"))
 		globalArchiver = &archiver{
 			ctx:      ctx,
 			cancel:   cancel,
@@ -82,9 +84,23 @@ func Stop() {
 	if globalArchiver != nil {
 		globalArchiver.cancel()
 		globalArchiver.wg.Wait()
+		logger.Debug("all routines stopped")
 
 		// Wait for the WARC writing to finish
+		stopLocalWatcher := make(chan struct{})
+		go func() {
+			for {
+				select {
+				case <-stopLocalWatcher:
+					return
+				case <-time.After(1 * time.Second):
+					logger.Debug("waiting for WARC writing to finish", "queue_size", GetWARCWritingQueueSize(), "bytes_written", humanize.Bytes(uint64(warc.DataTotal.Value())))
+				}
+			}
+		}()
 		globalArchiver.Client.WaitGroup.Wait()
+		stopLocalWatcher <- struct{}{}
+		logger.Debug("WARC writing finished")
 		globalArchiver.Client.Close()
 		if globalArchiver.ClientWithProxy != nil {
 			globalArchiver.ClientWithProxy.WaitGroup.Wait()
@@ -223,7 +239,7 @@ func (a *archiver) archive(seed *models.Item) {
 					return
 				default:
 					// Execute the request
-					req := item.GetURL().GetRequest()
+					req := item.GetURL().GetRequest().WithContext(context.TODO())
 					if req == nil {
 						panic("request is nil")
 					}
@@ -263,4 +279,5 @@ func (a *archiver) archive(seed *models.Item) {
 
 	// Wait for all goroutines to finish
 	wg.Wait()
+	return
 }
