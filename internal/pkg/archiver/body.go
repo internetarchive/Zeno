@@ -8,6 +8,7 @@ import (
 
 	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -18,7 +19,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 	// Retrieve the underlying TCP connection and apply a 10s read deadline
 	conn, ok := u.GetResponse().Body.(interface{ SetReadDeadline(time.Time) error })
 	if ok {
-		conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+		conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
 	}
 
 	// If we are not capturing assets, not extracting outlinks, and domains crawl is disabled
@@ -84,7 +85,7 @@ func copyWithTimeout(dst io.Writer, src io.Reader, conn interface{ SetReadDeadli
 		if n > 0 {
 			// Reset the deadline after each successful read
 			if conn != nil {
-				conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+				conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
 			}
 			if _, writeErr := dst.Write(buf[:n]); writeErr != nil {
 				return writeErr
@@ -108,7 +109,7 @@ func copyWithTimeoutN(dst io.Writer, src io.Reader, n int64, conn interface{ Set
 	}
 	// Reset deadline after partial read
 	if conn != nil {
-		conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+		conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
 	}
 	return nil
 }

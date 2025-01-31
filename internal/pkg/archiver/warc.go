@@ -81,11 +81,10 @@ func startWARCWriter() {
 		}
 
 		go func() {
-			for {
-				select {
-				case <-globalArchiver.ctx.Done():
-					return
-				case err := <-globalArchiver.Client.ErrChan:
+			for err := range globalArchiver.Client.ErrChan {
+				if err == nil {
+					logger.Error("WARC writer error: nil error", "func", "archiver.startWARCWriter")
+				} else {
 					logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
 				}
 			}
