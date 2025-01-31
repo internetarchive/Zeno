@@ -1,6 +1,8 @@
 package postprocessor
 
 import (
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -73,6 +75,10 @@ func postprocessItem(item *models.Item) []*models.Item {
 	// 2. assets capture and domains crawl are disabled
 	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 {
 		logger.Debug("item is a child and it's depth (without redirections) is more than 2", "item_id", item.GetShortID())
+		item.SetStatus(models.ItemCompleted)
+		return outlinks
+	} else if !domainscrawl.Enabled() && (item.GetDepthWithoutRedirections() == 1 && strings.Contains(item.GetURL().GetMIMEType().String(), "html")) {
+		logger.Debug("HTML got extracted as asset, skipping", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
 	} else if config.Get().DisableAssetsCapture && !domainscrawl.Enabled() {
