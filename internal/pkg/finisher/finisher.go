@@ -48,7 +48,6 @@ func Start(inputChan, sourceFinishedChan, sourceProducedChan chan *models.Item) 
 			wg:               sync.WaitGroup{},
 		}
 		logger.Debug("initialized")
-		globalFinisher.wg.Add(1)
 		go globalFinisher.run()
 		logger.Info("started")
 		done = true
@@ -74,12 +73,21 @@ func Stop() {
 }
 
 func (f *finisher) run() {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "finisher.run",
+	})
+
+	f.wg.Add(1)
+	defer f.wg.Done()
+
 	controlChans := pause.Subscribe()
 	defer pause.Unsubscribe(controlChans)
-	defer f.wg.Done()
 
 	for {
 		select {
+		case <-f.ctx.Done():
+			logger.Debug("shutting down")
+			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
@@ -132,9 +140,6 @@ func (f *finisher) run() {
 
 			stats.SeedsFinishedIncr()
 			logger.Debug("item finished", "item", item.GetShortID())
-		case <-f.ctx.Done():
-			logger.Debug("shutting down")
-			return
 		}
 	}
 }

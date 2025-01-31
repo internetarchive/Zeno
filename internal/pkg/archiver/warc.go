@@ -59,8 +59,13 @@ func startWARCWriter() {
 		}
 
 		go func() {
-			for err := range globalArchiver.ClientWithProxy.ErrChan {
-				logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
+			for {
+				select {
+				case <-globalArchiver.ctx.Done():
+					return
+				case err := <-globalArchiver.ClientWithProxy.ErrChan:
+					logger.Error("WithProxy WARC writer error", "err", err.Err.Error(), "func", err.Func)
+				}
 			}
 		}()
 	}
@@ -76,8 +81,13 @@ func startWARCWriter() {
 		}
 
 		go func() {
-			for err := range globalArchiver.Client.ErrChan {
-				logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
+			for {
+				select {
+				case <-globalArchiver.ctx.Done():
+					return
+				case err := <-globalArchiver.Client.ErrChan:
+					logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
+				}
 			}
 		}()
 	}
@@ -94,16 +104,7 @@ func startWARCWriter() {
 	}
 }
 
-func GetClients() (clients []*warc.CustomHTTPClient) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			clients = append(clients, c)
-		}
-	}
-
-	return clients
-}
-
+// GetWARCWritingQueueSize returns the total number of items in the WARC writing queue
 func GetWARCWritingQueueSize() (total int) {
 	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
 		if c != nil {

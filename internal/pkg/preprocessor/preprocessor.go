@@ -2,9 +2,11 @@ package preprocessor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
@@ -46,7 +48,7 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	stats.Init()
 
 	once.Do(func() {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithDeadlineCause(context.Background(), time.Now().Add(1*time.Minute), errors.New("preprocessor context deadline exceeded"))
 		globalPreprocessor = &preprocessor{
 			ctx:      ctx,
 			cancel:   cancel,
@@ -54,7 +56,6 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			outputCh: outputChan,
 		}
 		logger.Debug("initialized")
-		globalPreprocessor.wg.Add(1)
 		go run()
 		logger.Info("started")
 		done = true
@@ -80,13 +81,10 @@ func run() {
 		"component": "preprocessor.run",
 	})
 
+	globalPreprocessor.wg.Add(1)
 	defer globalPreprocessor.wg.Done()
 
-	// Create a context to manage goroutines
-	ctx, cancel := context.WithCancel(globalPreprocessor.ctx)
-	defer cancel()
-
-	// Create a wait group to wait for all goroutines to finish
+	// Create a wait group to track all the goroutines
 	var wg sync.WaitGroup
 
 	// Guard to limit the number of concurrent archiver routines
@@ -98,17 +96,21 @@ func run() {
 
 	for {
 		select {
+		case <-globalPreprocessor.ctx.Done():
+			logger.Debug("shutting down")
+			wg.Wait()
+			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		case item, ok := <-globalPreprocessor.inputCh:
+		case rxItem, ok := <-globalPreprocessor.inputCh:
 			if ok {
-				logger.Debug("received item", "item", item.GetShortID())
+				logger.Debug("received seed item", "item", rxItem.GetShortID())
 				guard <- struct{}{}
 				wg.Add(1)
 				stats.PreprocessorRoutinesIncr()
-				go func(ctx context.Context) {
+				go func(item *models.Item) {
 					defer wg.Done()
 					defer func() { <-guard }()
 					defer stats.PreprocessorRoutinesDecr()
@@ -124,17 +126,16 @@ func run() {
 					preprocess(item)
 
 					select {
-					case globalPreprocessor.outputCh <- item:
-					case <-ctx.Done():
+					case <-globalPreprocessor.ctx.Done():
 						logger.Debug("aborting item due to stop", "item", item.GetShortID())
 						return
+					case globalPreprocessor.outputCh <- item:
+						return
 					}
-				}(ctx)
+				}(rxItem)
+			} else {
+				globalPreprocessor.cancel()
 			}
-		case <-globalPreprocessor.ctx.Done():
-			logger.Debug("shutting down")
-			wg.Wait()
-			return
 		}
 	}
 }
