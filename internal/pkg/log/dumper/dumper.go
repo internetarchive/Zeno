@@ -3,6 +3,7 @@ package dumper
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -11,14 +12,14 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-// Dump writes a spew dump of the items and an ASCII pretty print of the items to a dump file
-func Dump(items ...*models.Item) {
+// Dump writes a spew dump of the items and an ASCII pretty print of the items to a dump file then returns the path to the dump file.
+func Dump(items ...*models.Item) string {
 	// Creates a dump file to be written to by the dumper
 	var dumpFilePath string
 	if dumpFilePath = config.Get().LogFileOutputDir; dumpFilePath == "" {
-		dumpFilePath = fmt.Sprintf("%s/logs/dump", config.Get().JobPath)
+		dumpFilePath = fmt.Sprintf("%s/logs/dump-%s", config.Get().JobPath, time.Now().Format(time.RFC3339))
 	} else {
-		dumpFilePath = fmt.Sprintf("%s/dump", dumpFilePath)
+		dumpFilePath = fmt.Sprintf("%s/dump-%s", dumpFilePath, time.Now().Format(time.RFC3339))
 	}
 	dumpFile, err := os.Create(dumpFilePath)
 	if err != nil {
@@ -35,4 +36,12 @@ func Dump(items ...*models.Item) {
 		spew.Fdump(dumpFile, items[i])
 		fmt.Fprintf(dumpFile, "\n%s\n_______________________________", items[i].DrawTreeWithStatus())
 	}
+
+	return dumpFilePath
+}
+
+// PanicWithDump writes a spew dump of the items and an ASCII pretty print of the items to a dump file then panics with a message.
+func PanicWithDump(message string, items ...*models.Item) {
+	dumpFilePath := Dump(items...)
+	panic(fmt.Sprintf("with item dump file: %s AND message: %s", dumpFilePath, message))
 }
