@@ -2,7 +2,6 @@ package archiver
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -56,7 +55,7 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	stats.Init()
 
 	once.Do(func() {
-		ctx, cancel := context.WithDeadlineCause(context.Background(), time.Now().Add(1*time.Minute), errors.New("archiver context deadline exceeded"))
+		ctx, cancel := context.WithCancel(context.Background())
 		globalArchiver = &archiver{
 			ctx:      ctx,
 			cancel:   cancel,

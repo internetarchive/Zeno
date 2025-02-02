@@ -3,9 +3,7 @@ package hq
 
 import (
 	"context"
-	"errors"
 	"sync"
-	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -43,7 +41,7 @@ func Start(finishChan, produceChan chan *models.Item) error {
 	stats.Init()
 
 	once.Do(func() {
-		ctx, cancel := context.WithDeadlineCause(context.Background(), time.Now().Add(1*time.Minute), errors.New("hq context deadline exceeded"))
+		ctx, cancel := context.WithCancel(context.Background())
 		HQclient, err := gocrawlhq.Init(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, "")
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
