@@ -2,25 +2,20 @@ package extractor
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/ImVexed/fasturl"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 func IsJSON(URL *models.URL) bool {
-	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "json")
+	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "json") || strings.Contains(URL.GetMIMEType().String(), "json")
 }
 
 func JSON(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
-	bodyBytes := make([]byte, URL.GetBody().Len())
-	_, err = URL.GetBody().Read(bodyBytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	rawURLs, err := GetURLsFromJSON(bodyBytes)
+	rawURLs, err := GetURLsFromJSON(json.NewDecoder(URL.GetBody()))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -41,9 +36,9 @@ func JSON(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	return assets, outlinks, nil
 }
 
-func GetURLsFromJSON(body []byte) ([]string, error) {
+func GetURLsFromJSON(decoder *json.Decoder) ([]string, error) {
 	var data interface{}
-	err := json.Unmarshal(body, &data)
+	err := decoder.Decode(&data)
 	if err != nil {
 		return nil, err
 	}
