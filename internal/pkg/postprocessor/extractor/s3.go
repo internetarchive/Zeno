@@ -3,6 +3,7 @@ package extractor
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 	"net/url"
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -36,7 +37,7 @@ type S3Object struct {
 }
 
 type CommonPrefix struct {
-	Prefix []string `xml:"Prefix"`
+	Prefix string `xml:"Prefix"`
 }
 
 // IsS3 checks if the response is from an S3 server
@@ -44,107 +45,78 @@ func IsS3(URL *models.URL) bool {
 	return utils.StringContainsSliceElements(URL.GetResponse().Header.Get("Server"), validS3Servers)
 }
 
-// S3 decides which helper to call based on the query param: old style (no list-type=2) vs. new style (list-type=2)
+// S3 takes an initial response and returns URLs of either files or prefixes at the current level,
+// plus continuation URL if more results exist
 func S3(URL *models.URL) ([]*models.URL, error) {
 	defer URL.RewindBody()
 
-	// Decode XML result
-	var result S3ListBucketResult
-	if err := xml.NewDecoder(URL.GetBody()).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error decoding S3 XML: %v", err)
+	bodyBytes, err := io.ReadAll(URL.GetBody())
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
 
-	// Prepare base data
-	reqURL := URL.GetRequest().URL
-	listType := reqURL.Query().Get("list-type")
+	var result S3ListBucketResult
+	if err := xml.Unmarshal(bodyBytes, &result); err != nil {
+		return nil, fmt.Errorf("error parsing XML: %v", err)
+	}
 
-	// Build https://<host> as the base for direct file links
-	baseStr := fmt.Sprintf("https://%s", reqURL.Host)
-	parsedBase, err := url.Parse(baseStr)
+	// Extract base URL from the response URL
+	reqURL := URL.GetRequest().URL
+	requestQuery := reqURL.Query()
+	baseURL := fmt.Sprintf("https://%s", reqURL.Host)
+	parsedBase, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid base URL: %v", err)
 	}
 
-	var outlinkStrings []string
+	var URLs []string
 
-	// Delegate to old style or new style
-	if listType != "2" {
-		// Old style S3 listing, uses marker
-		outlinkStrings = s3Legacy(reqURL, parsedBase, result)
-	} else {
-		// New style listing (list-type=2), uses continuation token and/or CommonPrefixes
-		outlinkStrings = s3V2(reqURL, parsedBase, result)
-	}
-
-	// Convert from []string -> []*models.URL
-	var outlinks []*models.URL
-	for _, link := range outlinkStrings {
-		outlinks = append(outlinks, &models.URL{Raw: link})
-	}
-	return outlinks, nil
-}
-
-// s3Legacy handles the old ListObjects style, which uses `marker` for pagination.
-func s3Legacy(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) []string {
-	var outlinks []string
-
-	// If there are objects in <Contents>, create a "next page" URL using `marker`
-	if len(result.Contents) > 0 {
-		lastKey := result.Contents[len(result.Contents)-1].Key
+	// Ensure we can add marker
+	// ListObjects
+	if requestQuery.Get("list-type") != "2" && len(result.Contents) > 0 {
+		// If we can, iterate through S3 using the marker field
 		nextURL := *reqURL
 		q := nextURL.Query()
-		q.Set("marker", lastKey)
+		q.Set("marker", result.Contents[len(result.Contents)-1].Key)
 		nextURL.RawQuery = q.Encode()
-		outlinks = append(outlinks, nextURL.String())
+		URLs = append(URLs, nextURL.String())
 	}
 
-	// Produce direct file links for each object
-	for _, obj := range result.Contents {
-		if obj.Size > 0 {
-			fileURL := *parsedBase
-			fileURL.Path += "/" + obj.Key
-			outlinks = append(outlinks, fileURL.String())
-		}
-	}
-
-	return outlinks
-}
-
-// s3V2 handles the new ListObjectsV2 style, which uses `continuation-token` and can return CommonPrefixes.
-func s3V2(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) []string {
-	var outlinks []string
-
-	// If we have common prefixes => "subfolders"
+	// If we are using list-type 2/ListObjectsV2
 	if len(result.CommonPrefixes) > 0 {
 		for _, prefix := range result.CommonPrefixes {
-			// Create a URL for each common prefix (subfolder)
-			for _, p := range prefix.Prefix {
-				nextURL := *reqURL
-				q := nextURL.Query()
-				q.Set("prefix", p)
-				nextURL.RawQuery = q.Encode()
-				outlinks = append(outlinks, nextURL.String())
-			}
+			nextURL := *reqURL
+			q := nextURL.Query()
+			q.Set("prefix", prefix.Prefix)
+			nextURL.RawQuery = q.Encode()
+			URLs = append(URLs, nextURL.String())
 		}
 	} else {
-		// Otherwise, we have actual objects in <Contents>
+		// Otherwise return file URLs
 		for _, obj := range result.Contents {
 			if obj.Size > 0 {
 				fileURL := *parsedBase
 				fileURL.Path += "/" + obj.Key
-				outlinks = append(outlinks, fileURL.String())
+				URLs = append(URLs, fileURL.String())
 			}
 		}
 	}
 
-	// If truncated => add a link with continuation-token
+	// If there's a continuation token, add the continuation URL
 	if result.IsTruncated && result.NextContinuationToken != "" {
 		nextURL := *reqURL
 		q := nextURL.Query()
 		q.Set("continuation-token", result.NextContinuationToken)
 		nextURL.RawQuery = q.Encode()
-		outlinks = append(outlinks, nextURL.String())
+		URLs = append(URLs, nextURL.String())
 	}
 
-	return outlinks
+	var outlinks []*models.URL
+	for _, extractedURL := range URLs {
+		outlinks = append(outlinks, &models.URL{
+			Raw:  extractedURL,
+		})
+	}
+
+	return outlinks, nil
 }

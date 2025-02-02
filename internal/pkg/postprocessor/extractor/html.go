@@ -1,7 +1,6 @@
 package extractor
 
 import (
-	"encoding/json"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,7 +18,7 @@ var (
 )
 
 func IsHTML(URL *models.URL) bool {
-	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "html") || strings.Contains(URL.GetMIMEType().String(), "html")
+	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "html")
 }
 
 func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
@@ -103,7 +102,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	document.Find("[data-item]").Each(func(index int, i *goquery.Selection) {
 		dataItem, exists := i.Attr("data-item")
 		if exists {
-			URLsFromJSON, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(dataItem)))
+			URLsFromJSON, err := GetURLsFromJSON([]byte(dataItem))
 			if err != nil {
 				logger.Debug("unable to extract URLs from JSON in data-item attribute", "err", err, "url", item.GetURL().String(), "item", item.GetShortID())
 			} else {
@@ -223,7 +222,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			scriptType, exists := i.Attr("type")
 			if exists {
 				if scriptType == "application/json" {
-					URLsFromJSON, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(i.Text())))
+					URLsFromJSON, err := GetURLsFromJSON([]byte(i.Text()))
 					if err != nil {
 						// TODO: maybe add back when https://github.com/internetarchive/Zeno/issues/147 is fixed
 						// c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
@@ -282,7 +281,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 					}
 
 					if len(jsonContent[1]) > payloadEndPosition {
-						URLsFromJSON, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(jsonContent[1][:payloadEndPosition+1])))
+						URLsFromJSON, err := GetURLsFromJSON([]byte(jsonContent[1][:payloadEndPosition+1]))
 						if err != nil {
 							// TODO: maybe add back when https://github.com/internetarchive/Zeno/issues/147 is fixed
 							// c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
