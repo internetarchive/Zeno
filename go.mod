@@ -3,7 +3,7 @@ module github.com/internetarchive/Zeno
 go 1.23.5
 
 require (
-	github.com/CorentinB/warc v0.8.67
+	github.com/CorentinB/warc v0.8.68
 	github.com/PuerkitoBio/goquery v1.9.3
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/dustin/go-humanize v1.0.1
