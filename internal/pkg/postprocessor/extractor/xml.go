@@ -14,80 +14,18 @@ import (
 var sitemapMarker = []byte("sitemaps.org/schemas/sitemap/")
 
 func IsXML(URL *models.URL) bool {
-	return (isContentType(URL.GetResponse().Header.Get("Content-Type"), "xml") || strings.Contains(URL.GetMIMEType().String(), "xml")) && !IsSitemapXML(URL) && !URL.GetMIMEType().Is("image/svg+xml")
+	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "xml") && !IsSitemapXML(URL) && !URL.GetMIMEType().Is("image/svg+xml")
 }
 
 func IsSitemapXML(URL *models.URL) bool {
 	defer URL.RewindBody()
 
-	decoder := xml.NewDecoder(URL.GetBody())
-	decoder.Strict = false
-
-	for {
-		tok, err := decoder.RawToken()
-		if err == io.EOF {
-			// We've read the entire XML, no match found
-			break
-		}
-		if err != nil {
-			// If there's any parsing error, we consider it not a sitemap
-			return false
-		}
-
-		switch t := tok.(type) {
-
-		// --- TEXT-LIKE tokens ---
-		case xml.CharData:
-			// Normal text content
-			if bytes.Contains(t, sitemapMarker) {
-				return true
-			}
-		case xml.Comment:
-			// <!-- comment content -->
-			if bytes.Contains(t, sitemapMarker) {
-				return true
-			}
-		case xml.Directive:
-			// <!DOCTYPE or <!ENTITY ...>
-			if bytes.Contains(t, sitemapMarker) {
-				return true
-			}
-		case xml.ProcInst:
-			// <?xml-stylesheet ...?>
-			// t.Target is string, t.Inst is []byte
-			if bytes.Contains(t.Inst, sitemapMarker) {
-				return true
-			}
-
-		// --- ELEMENT tokens ---
-		case xml.StartElement:
-			// 1) Check element's namespace or local name
-			//    e.g. <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-			//    t.Name.Space could be "http://www.sitemaps.org/schemas/sitemap/0.9"
-			//    t.Name.Local might be "urlset"
-			//
-			//    But in practice, many sitemap docs have the namespace in the default XMLNS,
-			//    so we should also check attributes.
-			if strings.Contains(t.Name.Space, string(sitemapMarker)) {
-				return true
-			}
-			if strings.Contains(t.Name.Local, string(sitemapMarker)) {
-				return true
-			}
-
-			// 2) Check attributes (common place for the sitemap XMLNS)
-			for _, attr := range t.Attr {
-				if strings.Contains(attr.Value, string(sitemapMarker)) {
-					return true
-				}
-			}
-
-		case xml.EndElement:
-			// EndElement typically has no textual data, so nothing to check
-			continue
-		}
+	xmlBody, err := io.ReadAll(URL.GetBody())
+	if err != nil {
+		return false
 	}
-	return false
+
+	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "xml") && bytes.Contains(xmlBody, sitemapMarker)
 }
 
 func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
