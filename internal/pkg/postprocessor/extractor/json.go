@@ -2,14 +2,13 @@ package extractor
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/ImVexed/fasturl"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 func IsJSON(URL *models.URL) bool {
-	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "json") || strings.Contains(URL.GetMIMEType().String(), "json")
+	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "json")
 }
 
 func JSON(URL *models.URL) (assets, outlinks []*models.URL, err error) {
