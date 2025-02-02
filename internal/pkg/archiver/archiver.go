@@ -121,8 +121,8 @@ func (a *archiver) run() {
 	a.wg.Add(1)
 	defer a.wg.Done()
 
-	// Create a wait group to track all the goroutines
-	var wg sync.WaitGroup
+	// Create a wait group to track all the goroutines spawned by run function
+	var runWg sync.WaitGroup
 
 	// Guard to limit the number of concurrent archiver routines
 	guard := make(chan struct{}, config.Get().WorkersCount)
@@ -135,7 +135,7 @@ func (a *archiver) run() {
 		select {
 		case <-a.ctx.Done():
 			logger.Debug("shutting down")
-			wg.Wait()
+			runWg.Wait()
 			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
@@ -145,10 +145,10 @@ func (a *archiver) run() {
 			if ok {
 				logger.Debug("received seed item", "item", rxItem.GetShortID(), "depth", rxItem.GetDepth(), "hops", rxItem.GetURL().GetHops())
 				guard <- struct{}{}
-				wg.Add(1)
+				runWg.Add(1)
 				stats.ArchiverRoutinesIncr()
 				go func(item *models.Item) {
-					defer wg.Done()
+					defer runWg.Done()
 					defer func() { <-guard }()
 					defer stats.ArchiverRoutinesDecr()
 
@@ -183,11 +183,8 @@ func (a *archiver) archive(seed *models.Item) {
 		"component": "archiver.archive",
 	})
 
-	a.wg.Add(1)
-	defer a.wg.Done()
-
-	// Create a wait group to track all the goroutines
-	var wg sync.WaitGroup
+	// Create a wait group to track all the goroutines spawned by archive function
+	var archiveWg sync.WaitGroup
 
 	// Guard to limit the number of concurrent archive routines
 	guard := make(chan struct{}, config.Get().MaxConcurrentAssets)
@@ -213,71 +210,72 @@ func (a *archiver) archive(seed *models.Item) {
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
 		default:
-			if items[i].GetStatus() != models.ItemPreProcessed {
-				logger.Debug("skipping item", "seed_id", seed.GetShortID(), "item_id", items[i].GetShortID(), "status", items[i].GetStatus().String(), "depth", items[i].GetDepth())
-				continue
-			}
+		}
 
-			guard <- struct{}{}
-			wg.Add(1)
-			stats.ArchiverRoutinesIncr()
-			go func(item *models.Item) {
-				defer wg.Done()
-				defer func() { <-guard }()
-				defer stats.URLsCrawledIncr()
-				defer stats.ArchiverRoutinesDecr()
+		if items[i].GetStatus() != models.ItemPreProcessed {
+			logger.Debug("skipping item", "seed_id", seed.GetShortID(), "item_id", items[i].GetShortID(), "status", items[i].GetStatus().String(), "depth", items[i].GetDepth())
+			continue
+		}
 
-				var (
-					err  error
-					resp *http.Response
-				)
+		guard <- struct{}{}
+		archiveWg.Add(1)
+		stats.ArchiverRoutinesIncr()
+		go func(item *models.Item) {
+			defer archiveWg.Done()
+			defer func() { <-guard }()
+			defer stats.URLsCrawledIncr()
+			defer stats.ArchiverRoutinesDecr()
 
-				select {
-				case <-a.ctx.Done():
-					logger.Debug("aborting archiving of child due to stop", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+			var (
+				err  error
+				resp *http.Response
+			)
+
+			select {
+			case <-a.ctx.Done():
+				logger.Debug("aborting archiving of child due to stop", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+				item.SetStatus(models.ItemFailed)
+				return
+			default:
+				// Execute the request
+				req := item.GetURL().GetRequest().WithContext(context.TODO())
+				if req == nil {
+					panic("request is nil")
+				}
+				if config.Get().Proxy != "" {
+					resp, err = a.ClientWithProxy.Do(req)
+				} else {
+					resp, err = a.Client.Do(req)
+				}
+				if err != nil {
+					logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 					item.SetStatus(models.ItemFailed)
 					return
-				default:
-					// Execute the request
-					req := item.GetURL().GetRequest().WithContext(context.TODO())
-					if req == nil {
-						panic("request is nil")
-					}
-					if config.Get().Proxy != "" {
-						resp, err = a.ClientWithProxy.Do(req)
-					} else {
-						resp, err = a.Client.Do(req)
-					}
-					if err != nil {
-						logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
-						item.SetStatus(models.ItemFailed)
-						return
-					}
+				}
 
-					// Set the response in the URL
-					item.GetURL().SetResponse(resp)
+				// Set the response in the URL
+				item.GetURL().SetResponse(resp)
 
-					// Process the body
-					err = ProcessBody(item.GetURL(), config.Get().DisableAssetsCapture, domainscrawl.Enabled(), config.Get().MaxHops, config.Get().WARCTempDir)
-					if err != nil {
-						logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
-						item.SetStatus(models.ItemFailed)
-						return
-					}
-
-					stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
-
-					logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
-
-					item.SetStatus(models.ItemArchived)
-
+				// Process the body
+				err = ProcessBody(item.GetURL(), config.Get().DisableAssetsCapture, domainscrawl.Enabled(), config.Get().MaxHops, config.Get().WARCTempDir)
+				if err != nil {
+					logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+					item.SetStatus(models.ItemFailed)
 					return
 				}
-			}(items[i])
-		}
+
+				stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
+
+				logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
+
+				item.SetStatus(models.ItemArchived)
+
+				return
+			}
+		}(items[i])
 	}
 
 	// Wait for all goroutines to finish
-	wg.Wait()
+	archiveWg.Wait()
 	return
 }

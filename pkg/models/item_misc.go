@@ -58,6 +58,6 @@ func (i *Item) drawWithStatus(sb *strings.Builder, prefix string, isTail bool, i
 	sb.WriteString(i.id + " - " + i.GetStatus().String() + "\n")
 
 	for idx, child := range i.children {
-		child.draw(sb, prefix, idx == len(i.children)-1, false)
+		child.drawWithStatus(sb, prefix, idx == len(i.children)-1, false)
 	}
 }
