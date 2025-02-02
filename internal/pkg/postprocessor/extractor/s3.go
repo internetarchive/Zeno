@@ -3,6 +3,7 @@ package extractor
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 	"net/url"
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -49,9 +50,14 @@ func IsS3(URL *models.URL) bool {
 func S3(URL *models.URL) ([]*models.URL, error) {
 	defer URL.RewindBody()
 
+	bodyBytes, err := io.ReadAll(URL.GetBody())
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %v", err)
+	}
+
 	var result S3ListBucketResult
-	if err := xml.NewDecoder(URL.GetBody()).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error decoding S3 XML: %v", err)
+	if err := xml.Unmarshal(bodyBytes, &result); err != nil {
+		return nil, fmt.Errorf("error parsing XML: %v", err)
 	}
 
 	// Extract base URL from the response URL
@@ -108,7 +114,7 @@ func S3(URL *models.URL) ([]*models.URL, error) {
 	var outlinks []*models.URL
 	for _, extractedURL := range URLs {
 		outlinks = append(outlinks, &models.URL{
-			Raw: extractedURL,
+			Raw:  extractedURL,
 		})
 	}
 
