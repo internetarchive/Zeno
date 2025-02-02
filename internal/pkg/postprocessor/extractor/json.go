@@ -14,7 +14,13 @@ func IsJSON(URL *models.URL) bool {
 func JSON(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
-	rawURLs, err := GetURLsFromJSON(json.NewDecoder(URL.GetBody()))
+	bodyBytes := make([]byte, URL.GetBody().Len())
+	_, err = URL.GetBody().Read(bodyBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rawURLs, err := GetURLsFromJSON(bodyBytes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -35,9 +41,9 @@ func JSON(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	return assets, outlinks, nil
 }
 
-func GetURLsFromJSON(decoder *json.Decoder) ([]string, error) {
+func GetURLsFromJSON(body []byte) ([]string, error) {
 	var data interface{}
-	err := decoder.Decode(&data)
+	err := json.Unmarshal(body, &data)
 	if err != nil {
 		return nil, err
 	}
