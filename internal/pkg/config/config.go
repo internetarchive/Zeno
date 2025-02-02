@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
@@ -325,7 +326,18 @@ func readLocalExclusionFile(file string) (regexes []string, err error) {
 }
 
 func readRemoteExclusionFile(URL string) (regexes []string, err error) {
-	resp, err := http.Get(URL)
+	httpClient := &http.Client{
+		Timeout: time.Second * 5,
+	}
+
+	req, err := http.NewRequest(http.MethodGet, URL, nil)
+	if err != nil {
+		return regexes, err
+	}
+
+	req.Header.Set("User-Agent", config.UserAgent)
+
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return regexes, err
 	}
