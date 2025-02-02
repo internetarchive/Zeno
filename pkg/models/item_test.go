@@ -65,9 +65,60 @@ func TestItem_GetID(t *testing.T) {
 }
 
 func TestItem_GetShortID(t *testing.T) {
-	item := createTestItem("testID12345", true, nil)
-	if got := item.GetShortID(); got != "testI" {
-		t.Errorf("GetShortID() = %v, want %v", got, "testI")
+	tests := []struct {
+		name     string
+		item     *Item
+		expected string
+	}{
+		{
+			name: "Simple short ID",
+			item: func() *Item {
+				item := createTestItem("short", true, nil)
+				return item
+			}(),
+			expected: "short",
+		},
+		{
+			name: "UUID ID",
+			item: func() *Item {
+				item := createTestItem("f47ac10b-58cc-4372-a567-0e02b2c3d479", true, nil)
+				return item
+			}(),
+			expected: "f47ac",
+		},
+		{
+			name: "SHA1 ID",
+			item: func() *Item {
+				item := createTestItem("f47ac10b58cc4372a5670e02b2c3d479", true, nil)
+				return item
+			}(),
+			expected: "f47ac",
+		},
+		{
+			name: "HQ seed ID",
+			item: func() *Item {
+				item := createTestItem("seed-bc3446c00ff1bbcc167aa611613264e1adced419bdafe08adbca35f4566297a1", true, nil)
+				return item
+			}(),
+			expected: "seed-bc344",
+		},
+		{
+			name: "HQ asset ID",
+			item: func() *Item {
+				item := createTestItem("asset-bc3446c00ff1bbcc167aa611613264e1adced419bdafe08adbca35f4566297a1", true, nil)
+				return item
+			}(),
+			expected: "asset-bc344",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			shortID := tt.item.GetShortID()
+			if tt.expected != shortID {
+				t.Errorf("expected short ID: %s, got: %s", tt.expected, shortID)
+			}
+		})
 	}
 }
 
