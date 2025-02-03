@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/controler/watchers"
 	"github.com/internetarchive/Zeno/internal/pkg/finisher"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor"
@@ -37,7 +38,7 @@ func startPipeline() {
 	}
 
 	// Start the disk watcher
-	go watchDiskSpace(config.Get().JobPath, 5*time.Second)
+	go watchers.WatchDiskSpace(config.Get().JobPath, 5*time.Second)
 
 	// Start the reactor that will receive
 	reactorOutputChan := makeStageChannel()
@@ -71,7 +72,7 @@ func startPipeline() {
 	}
 
 	// Start the WARC writing queue watcher
-	go watchWARCWritingQueue(5 * time.Second)
+	go watchers.WatchWARCWritingQueue(5 * time.Second)
 
 	postprocessorOutputChan := makeStageChannel()
 	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan)
@@ -126,8 +127,8 @@ func stopPipeline() {
 		"component": "controler.stopPipeline",
 	})
 
-	diskWatcherCancel()
-	wwqCancel()
+	watchers.StopDiskWatcher()
+	watchers.StopWARCWritingQueueWatcher()
 
 	reactor.Freeze()
 

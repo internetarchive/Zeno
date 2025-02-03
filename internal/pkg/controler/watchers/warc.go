@@ -1,7 +1,8 @@
-package controler
+package watchers
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
@@ -11,10 +12,15 @@ import (
 )
 
 var (
-	wwqContext, wwqCancel = context.WithCancel(context.Background())
+	wwqCtx, wwqCancel = context.WithCancel(context.Background())
+	wwqWg             sync.WaitGroup
 )
 
-func watchWARCWritingQueue(interval time.Duration) {
+// WatchWARCWritingQueue watches the WARC writing queue size and pauses the pipeline if it exceeds the worker count
+func WatchWARCWritingQueue(interval time.Duration) {
+	wwqWg.Add(1)
+	defer wwqWg.Done()
+
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "controler.warcWritingQueueWatcher",
 	})
@@ -26,7 +32,7 @@ func watchWARCWritingQueue(interval time.Duration) {
 
 	for {
 		select {
-		case <-diskWatcherCtx.Done():
+		case <-wwqCtx.Done():
 			defer logger.Debug("closed")
 			if paused {
 				logger.Info("returning after resume")
@@ -50,4 +56,10 @@ func watchWARCWritingQueue(interval time.Duration) {
 			}
 		}
 	}
+}
+
+// StopWARCWritingQueueWatcher stops the WARC writing queue watcher by canceling the context and waiting for the goroutine to finish
+func StopWARCWritingQueueWatcher() {
+	wwqCancel()
+	wwqWg.Wait()
 }
