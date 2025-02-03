@@ -32,13 +32,13 @@ func TestCheckDiskUsage(t *testing.T) {
 		{
 			name:      "Sufficient disk space on small disk",
 			total:     100 * 1024 * 1024 * 1024, // 100 GiB
-			free:      10 * 1024 * 1024 * 1024,  // 10 GiB
+			free:      60 * 1024 * 1024 * 1024,  // 10 GiB
 			wantError: false,
 		},
 		{
 			name:      "Edge case: exactly at threshold for small disk",
-			total:     200 * 1024 * 1024 * 1024,                                                                        // 200 GiB
-			free:      uint64((20 * 1024 * 1024 * 1024) * (float64(200*1024*1024*1024) / float64(256*1024*1024*1024))), // Threshold value
+			total:     300 * 1024 * 1024 * 1024,                                                                        // 200 GiB
+			free:      uint64((50 * 1024 * 1024 * 1024) * (float64(300*1024*1024*1024) / float64(256*1024*1024*1024))), // Threshold value
 			wantError: false,
 		},
 	}
