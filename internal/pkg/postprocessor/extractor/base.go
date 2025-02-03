@@ -6,12 +6,10 @@ import (
 )
 
 func extractBaseTag(item *models.Item, doc *goquery.Document) {
-	doc.Find("base").Each(func(index int, base *goquery.Selection) {
-		href, exists := base.Attr("href")
+	doc.Find("base").Each(func(index int, i *goquery.Selection) {
+		base, exists := i.Attr("href")
 		if exists {
-			item.SetBase(href)
+			item.SetBase(base)
 		}
-
-		return
 	})
 }

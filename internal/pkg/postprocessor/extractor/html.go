@@ -25,9 +25,9 @@ func IsHTML(URL *models.URL) bool {
 func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	defer item.GetURL().RewindBody()
 
-	// logger := log.NewFieldedLogger(&log.Fields{
-	// 	"component": "postprocessor.extractor.HTMLOutlinks",
-	// })
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "postprocessor.extractor.HTMLOutlinks",
+	})
 
 	var rawOutlinks []string
 
@@ -42,39 +42,27 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 
 	// Match <a> tags with href, data-href, data-src, data-srcset, data-lazy-src, data-srcset, src, srcset
 	if !utils.StringInSlice("a", config.Get().DisableHTMLTag) {
-		var validAssetPath = []string{
-			"static/",
-			"assets/",
-			"asset/",
-			"images/",
-			"image/",
-			"img/",
-		}
-
-		var validAssetAttributes = []string{
-			"href",
-			"data-href",
-			"data-src",
-			"data-srcset",
-			"data-lazy-src",
-			"data-srcset",
-			"src",
-			"srcset",
-		}
-
 		document.Find("a").Each(func(index int, i *goquery.Selection) {
-			for _, attr := range validAssetAttributes {
-				link, exists := i.Attr(attr)
-				if exists {
-					if utils.StringContainsSliceElements(link, validAssetPath) {
-						rawOutlinks = append(rawOutlinks, link)
-					}
+			for _, node := range i.Nodes {
+				for _, attr := range node.Attr {
+					link := attr.Val
+					rawOutlinks = append(rawOutlinks, link)
 				}
 			}
 		})
 	}
 
 	for _, rawOutlink := range rawOutlinks {
+		resolvedURL, err := resolveURL(rawOutlink, item)
+		if err != nil {
+			logger.Debug("unable to resolve URL", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
+		} else if resolvedURL != "" {
+			outlinks = append(outlinks, &models.URL{
+				Raw: resolvedURL,
+			})
+			continue
+		}
+
 		outlinks = append(outlinks, &models.URL{
 			Raw: rawOutlink,
 		})
@@ -145,6 +133,40 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			}
 		}
 	})
+
+	// Try to find assets in <a> tags.. this is a bit funky
+	if !utils.StringInSlice("a", config.Get().DisableHTMLTag) {
+		var validAssetPath = []string{
+			"static/",
+			"assets/",
+			"asset/",
+			"images/",
+			"image/",
+			"img/",
+		}
+
+		var validAssetAttributes = []string{
+			"href",
+			"data-href",
+			"data-src",
+			"data-srcset",
+			"data-lazy-src",
+			"data-srcset",
+			"src",
+			"srcset",
+		}
+
+		document.Find("a").Each(func(index int, i *goquery.Selection) {
+			for _, attr := range validAssetAttributes {
+				link, exists := i.Attr(attr)
+				if exists {
+					if utils.StringContainsSliceElements(link, validAssetPath) {
+						rawAssets = append(rawAssets, link)
+					}
+				}
+			}
+		})
+	}
 
 	// Extract assets on the page (images, scripts, videos..)
 	if !utils.StringInSlice("img", config.Get().DisableHTMLTag) {
@@ -333,6 +355,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		assets = append(assets, &models.URL{
 			Raw: rawAsset,
 		})
+
 	}
 
 	return assets, nil

@@ -11,7 +11,7 @@ import (
 // Normalize the URL by removing fragments, attempting to add URL scheme if missing,
 // and converting relative URLs into absolute URLs. An error is returned if the URL
 // cannot be normalized.
-func normalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
+func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	// Clean the URL by removing leading and trailing quotes
 	URL.Raw = strings.Trim(URL.Raw, `"'`)
 

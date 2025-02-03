@@ -79,7 +79,7 @@ func TestNormalizeURL(t *testing.T) {
 				parentURL = &models.URL{Raw: tt.parentURL}
 				parentURL.Parse()
 			}
-			err := normalizeURL(url, parentURL)
+			err := NormalizeURL(url, parentURL)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("normalizeURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
