@@ -103,7 +103,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	document.Find("[data-item]").Each(func(index int, i *goquery.Selection) {
 		dataItem, exists := i.Attr("data-item")
 		if exists {
-			URLsFromJSON, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(dataItem)))
+			URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(dataItem)))
 			if err != nil {
 				logger.Debug("unable to extract URLs from JSON in data-item attribute", "err", err, "url", item.GetURL().String(), "item", item.GetShortID())
 			} else {
@@ -223,7 +223,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			scriptType, exists := i.Attr("type")
 			if exists {
 				if scriptType == "application/json" {
-					URLsFromJSON, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(i.Text())))
+					URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(i.Text())))
 					if err != nil {
 						// TODO: maybe add back when https://github.com/internetarchive/Zeno/issues/147 is fixed
 						// c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
@@ -244,7 +244,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 						// Escape URLs when unicode runes are present in the extracted URLs
 						scriptLink, err := strconv.Unquote(`"` + scriptLink + `"`)
 						if err != nil {
-							logger.Debug("unable to escape URL from JSON in script tag", "error", err, "url", scriptLink, "item", item.GetShortID())
+							logger.Debug("unable to escape URL from JSON in script tag", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
 							continue
 						}
 						rawAssets = append(rawAssets, scriptLink)
@@ -254,42 +254,11 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 			// Some <script> embed variable initialisation, we can strip the variable part and just scrape JSON
 			if !strings.HasPrefix(i.Text(), "{") {
-				jsonContent := strings.SplitAfterN(i.Text(), "=", 2)
-
-				if len(jsonContent) > 1 {
-					var (
-						openSeagullCount   int
-						closedSeagullCount int
-						payloadEndPosition int
-					)
-
-					// figure out the end of the payload
-					for pos, char := range jsonContent[1] {
-						if char == '{' {
-							openSeagullCount++
-						} else if char == '}' {
-							closedSeagullCount++
-						} else {
-							continue
-						}
-
-						if openSeagullCount > 0 {
-							if openSeagullCount == closedSeagullCount {
-								payloadEndPosition = pos
-								break
-							}
-						}
-					}
-
-					if len(jsonContent[1]) > payloadEndPosition {
-						URLsFromJSON, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(jsonContent[1][:payloadEndPosition+1])))
-						if err != nil {
-							// TODO: maybe add back when https://github.com/internetarchive/Zeno/issues/147 is fixed
-							// c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
-						} else {
-							rawAssets = append(rawAssets, URLsFromJSON...)
-						}
-					}
+				assetsFromScriptContent, err := extractFromScriptContent(i.Text())
+				if err != nil {
+					logger.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
+				} else {
+					rawAssets = append(rawAssets, assetsFromScriptContent...)
 				}
 			}
 		})
