@@ -1,8 +1,9 @@
-package controler
+package watchers
 
 import (
 	"context"
 	"fmt"
+	"sync"
 	"syscall"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 
 var (
 	diskWatcherCtx, diskWatcherCancel = context.WithCancel(context.Background())
+	diskWatcherWg                     sync.WaitGroup
 )
 
 // Implements f(x)={ if total <= 256GB then threshold = 50GB * (total / 256GB) else threshold = 50GB }
@@ -35,7 +37,11 @@ func checkDiskUsage(total, free uint64) error {
 	return nil
 }
 
-func watchDiskSpace(path string, interval time.Duration) {
+// WatchDiskSpace watches the disk space and pauses the pipeline if it's low
+func WatchDiskSpace(path string, interval time.Duration) {
+	diskWatcherWg.Add(1)
+	defer diskWatcherWg.Done()
+
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "controler.diskWatcher",
 	})
@@ -80,4 +86,10 @@ func watchDiskSpace(path string, interval time.Duration) {
 			}
 		}
 	}
+}
+
+// StopDiskWatcher stops the disk watcher by canceling the context and waiting for the goroutine to finish.
+func StopDiskWatcher() {
+	diskWatcherCancel()
+	diskWatcherWg.Wait()
 }
