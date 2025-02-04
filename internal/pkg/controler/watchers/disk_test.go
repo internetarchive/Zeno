@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestCheckDiskUsage(t *testing.T) {
+func TestCheckThreshold(t *testing.T) {
 	tests := []struct {
 		name      string
 		total     uint64
@@ -45,9 +45,9 @@ func TestCheckDiskUsage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := checkDiskUsage(tt.total, tt.free)
+			err := checkThreshold(tt.total, tt.free)
 			if (err != nil) != tt.wantError {
-				t.Errorf("checkDiskUsage() error = %v, wantError %v", err, tt.wantError)
+				t.Errorf("checkThreshold() error = %v, wantError %v", err, tt.wantError)
 			}
 		})
 	}

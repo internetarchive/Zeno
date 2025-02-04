@@ -17,7 +17,7 @@ var (
 )
 
 // Implements f(x)={ if total <= 256GB then threshold = 50GB * (total / 256GB) else threshold = 50GB }
-func checkDiskUsage(total, free uint64) error {
+func checkThreshold(total, free uint64) error {
 	const (
 		GB = 1024 * 1024 * 1024
 	)
@@ -35,6 +35,18 @@ func checkDiskUsage(total, free uint64) error {
 	}
 
 	return nil
+}
+
+func CheckDiskUsage(path string) error {
+	var stat syscall.Statfs_t
+	if err := syscall.Statfs(path, &stat); err != nil {
+		panic(fmt.Sprintf("Error retrieving disk stats: %v\n", err))
+	}
+
+	total := stat.Blocks * uint64(stat.Bsize)
+	free := stat.Bavail * uint64(stat.Bsize)
+
+	return checkThreshold(total, free)
 }
 
 // WatchDiskSpace watches the disk space and pauses the pipeline if it's low
@@ -61,16 +73,7 @@ func WatchDiskSpace(path string, interval time.Duration) {
 			}
 			return
 		case <-ticker.C:
-			var stat syscall.Statfs_t
-			if err := syscall.Statfs(path, &stat); err != nil {
-				logger.Error("Error retrieving disk stats: %v\n", err)
-				continue
-			}
-
-			total := stat.Blocks * uint64(stat.Bsize)
-			free := stat.Bavail * uint64(stat.Bsize)
-
-			err := checkDiskUsage(total, free)
+			err := CheckDiskUsage(path)
 
 			if err != nil && !paused {
 				logger.Warn("Low disk space, pausing the pipeline", "err", err.Error())
