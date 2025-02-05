@@ -21,6 +21,11 @@ import (
 )
 
 func startPipeline() {
+	if err := watchers.CheckDiskUsage(config.Get().JobPath); err != nil {
+		fmt.Printf("can't start Zeno: %s\n", err)
+		os.Exit(1)
+	}
+
 	err := log.Start()
 	if err != nil {
 		fmt.Println("error starting logger", "err", err.Error())
