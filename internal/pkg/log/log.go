@@ -67,7 +67,9 @@ func logWithLevel(level slog.Level, msg string, args ...any) {
 	select {
 	case logQueue <- entry:
 	default:
-		slog.Error("Log queue is full, dropping log entry from logger", "msg", msg, "args", args)
+		if globalConfig.StdoutEnabled {
+			slog.Error("Log queue is full, dropping log entry from logger", "msg", msg, "args", args)
+		}
 	}
 }
 

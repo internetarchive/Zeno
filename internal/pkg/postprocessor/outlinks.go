@@ -4,9 +4,12 @@ import (
 	"io"
 	"strings"
 
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -26,6 +29,18 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 
 	// Run specific extractors
 	switch {
+	case truthsocial.IsAccountURL(item.GetURL()):
+		outlinks, err = truthsocial.GenerateAccountLookupURL(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract outlinks from TruthSocial", "err", err.Error(), "item", item.GetShortID())
+			return outlinks, err
+		}
+	case truthsocial.IsAccountLookupURL(item.GetURL()):
+		outlinks, err = truthsocial.GenerateOutlinksURLsFromLookup(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract outlinks from TruthSocial", "err", err.Error(), "item", item.GetShortID())
+			return outlinks, err
+		}
 	case extractor.IsS3(item.GetURL()):
 		outlinks, err = extractor.S3(item.GetURL())
 		if err != nil {
@@ -33,11 +48,17 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			return outlinks, err
 		}
 	case extractor.IsSitemapXML(item.GetURL()):
-		outlinks, err = extractor.XML(item.GetURL())
+		var assets []*models.URL
+
+		assets, outlinks, err = extractor.XML(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract outlinks", "err", err.Error(), "item", item.GetShortID())
 			return outlinks, err
 		}
+
+		// Here we don't care about the difference between assets and outlinks,
+		// we just want to extract all the URLs from the sitemap
+		outlinks = append(outlinks, assets...)
 	case extractor.IsHTML(item.GetURL()):
 		outlinks, err := extractor.HTMLOutlinks(item)
 		if err != nil {
@@ -66,6 +87,11 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		outlinks = append(outlinks, extractLinksFromPage(item.GetURL())...)
 	}
 
+	// Set the hops level to the item's level + 1
+	for _, outlink := range outlinks {
+		outlink.SetHops(item.GetURL().GetHops() + 1)
+	}
+
 	return outlinks, nil
 }
 
@@ -89,4 +115,18 @@ func extractLinksFromPage(URL *models.URL) (links []*models.URL) {
 	}
 
 	return links
+}
+
+func shouldExtractOutlinks(item *models.Item) bool {
+	// Bypass the hop count if we are domain crawling to ensure we don't miss an outlink from a domain we are interested in
+	if domainscrawl.Enabled() && item.GetURL().GetBody() != nil {
+		return true
+	}
+
+	// Match pure hops count
+	if item.GetURL().GetHops() < config.Get().MaxHops && item.GetURL().GetBody() != nil {
+		return true
+	}
+
+	return false
 }

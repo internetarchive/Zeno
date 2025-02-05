@@ -46,8 +46,7 @@ func ExtractURLsFromHeader(URL *models.URL) (URLs []*models.URL) {
 		}
 
 		URLs = append(URLs, &models.URL{
-			Raw:  extractedURL,
-			Hops: URL.GetHops() + 1,
+			Raw: extractedURL,
 		})
 	}
 

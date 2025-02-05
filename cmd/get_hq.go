@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/grafana/pyroscope-go"
@@ -46,6 +47,7 @@ var getHQCmd = &cobra.Command{
 				ServerAddress:   cfg.PyroscopeAddress,
 				Logger:          nil,
 				Tags:            map[string]string{"hostname": hostname, "job": cfg.Job, "version": Version.Version, "goVersion": Version.GoVersion, "uuid": uuid.New().String()[:5]},
+				UploadRate:      5 * time.Second,
 				ProfileTypes: []pyroscope.ProfileType{
 					pyroscope.ProfileCPU,
 					pyroscope.ProfileAllocObjects,

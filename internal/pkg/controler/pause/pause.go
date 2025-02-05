@@ -47,6 +47,11 @@ func Pause(message ...string) {
 	if !swap {
 		return
 	}
+
+	if len(message) == 0 {
+		message = append(message, "Paused")
+	}
+
 	manager.message = message[0]
 
 	manager.subscribers.Range(func(key, _ interface{}) bool {

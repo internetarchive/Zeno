@@ -14,6 +14,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -266,6 +267,12 @@ func preprocess(item *models.Item) {
 			tiktok.AddHeaders(req)
 		case reddit.IsRedditURL(children[i].GetURL()):
 			reddit.AddCookies(req)
+		case truthsocial.IsStatusAPIURL(children[i].GetURL()) ||
+			truthsocial.IsVideoAPIURL(children[i].GetURL()) ||
+			truthsocial.IsLookupURL(children[i].GetURL()):
+			truthsocial.AddStatusAPIHeaders(req)
+		case truthsocial.IsAccountsAPIURL(children[i].GetURL()):
+			truthsocial.AddAccountsAPIHeaders(req)
 		}
 
 		children[i].GetURL().SetRequest(req)

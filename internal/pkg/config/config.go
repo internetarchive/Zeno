@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -30,55 +31,56 @@ type Config struct {
 	DisableSeencheck bool `mapstructure:"disable-seencheck"`
 	UseSeencheck     bool
 
-	UserAgent             string   `mapstructure:"user-agent"`
-	Cookies               string   `mapstructure:"cookies"`
-	APIPort               string   `mapstructure:"api-port"`
-	PrometheusPrefix      string   `mapstructure:"prometheus-prefix"`
-	WARCPrefix            string   `mapstructure:"warc-prefix"`
-	WARCOperator          string   `mapstructure:"warc-operator"`
-	WARCTempDir           string   `mapstructure:"warc-temp-dir"`
-	WARCSize              int      `mapstructure:"warc-size"`
-	WARCOnDisk            bool     `mapstructure:"warc-on-disk"`
-	WARCPoolSize          int      `mapstructure:"warc-pool-size"`
-	WARCDedupeSize        int      `mapstructure:"warc-dedupe-size"`
-	CDXDedupeServer       string   `mapstructure:"warc-cdx-dedupe-server"`
-	CDXCookie             string   `mapstructure:"warc-cdx-cookie"`
-	HQAddress             string   `mapstructure:"hq-address"`
-	HQKey                 string   `mapstructure:"hq-key"`
-	HQSecret              string   `mapstructure:"hq-secret"`
-	HQProject             string   `mapstructure:"hq-project"`
-	HQStrategy            string   `mapstructure:"hq-strategy"`
-	HQBatchSize           int      `mapstructure:"hq-batch-size"`
-	HQBatchConcurrency    int      `mapstructure:"hq-batch-concurrency"`
-	DisableHTMLTag        []string `mapstructure:"disable-html-tag"`
-	ExcludeHosts          []string `mapstructure:"exclude-host"`
-	IncludeHosts          []string `mapstructure:"include-host"`
-	IncludeString         []string `mapstructure:"include-string"`
-	ExcludeString         []string `mapstructure:"exclude-string"`
-	ExclusionFile         []string `mapstructure:"exclusion-file"`
-	WorkersCount          int      `mapstructure:"workers"`
-	MaxConcurrentAssets   int      `mapstructure:"max-concurrent-assets"`
-	MaxHops               int      `mapstructure:"max-hops"`
-	MaxRedirect           int      `mapstructure:"max-redirect"`
-	MaxRetry              int      `mapstructure:"max-retry"`
-	HTTPTimeout           int      `mapstructure:"http-timeout"`
-	CrawlTimeLimit        int      `mapstructure:"crawl-time-limit"`
-	CrawlMaxTimeLimit     int      `mapstructure:"crawl-max-time-limit"`
-	MinSpaceRequired      int      `mapstructure:"min-space-required"`
-	KeepCookies           bool     `mapstructure:"keep-cookies"`
-	Headless              bool     `mapstructure:"headless"`
-	JSON                  bool     `mapstructure:"json"`
-	API                   bool     `mapstructure:"api"`
-	Prometheus            bool     `mapstructure:"prometheus"`
-	DomainsCrawl          bool     `mapstructure:"domains-crawl"`
-	CaptureAlternatePages bool     `mapstructure:"capture-alternate-pages"`
-	DisableLocalDedupe    bool     `mapstructure:"disable-local-dedupe"`
-	CertValidation        bool     `mapstructure:"cert-validation"`
-	DisableAssetsCapture  bool     `mapstructure:"disable-assets-capture"`
-	UseHQ                 bool     // Special field to check if HQ is enabled depending on the command called
-	HQRateLimitSendBack   bool     `mapstructure:"hq-rate-limiting-send-back"`
-	NoBatchWriteWAL       bool     `mapstructure:"ultrasafe-queue"`
-	Handover              bool     `mapstructure:"handover"`
+	UserAgent              string   `mapstructure:"user-agent"`
+	Cookies                string   `mapstructure:"cookies"`
+	APIPort                string   `mapstructure:"api-port"`
+	PrometheusPrefix       string   `mapstructure:"prometheus-prefix"`
+	WARCPrefix             string   `mapstructure:"warc-prefix"`
+	WARCOperator           string   `mapstructure:"warc-operator"`
+	WARCTempDir            string   `mapstructure:"warc-temp-dir"`
+	WARCSize               int      `mapstructure:"warc-size"`
+	WARCOnDisk             bool     `mapstructure:"warc-on-disk"`
+	WARCPoolSize           int      `mapstructure:"warc-pool-size"`
+	WARCDedupeSize         int      `mapstructure:"warc-dedupe-size"`
+	CDXDedupeServer        string   `mapstructure:"warc-cdx-dedupe-server"`
+	CDXCookie              string   `mapstructure:"warc-cdx-cookie"`
+	HQAddress              string   `mapstructure:"hq-address"`
+	HQKey                  string   `mapstructure:"hq-key"`
+	HQSecret               string   `mapstructure:"hq-secret"`
+	HQProject              string   `mapstructure:"hq-project"`
+	HQStrategy             string   `mapstructure:"hq-strategy"`
+	HQBatchSize            int      `mapstructure:"hq-batch-size"`
+	HQBatchConcurrency     int      `mapstructure:"hq-batch-concurrency"`
+	DisableHTMLTag         []string `mapstructure:"disable-html-tag"`
+	ExcludeHosts           []string `mapstructure:"exclude-host"`
+	IncludeHosts           []string `mapstructure:"include-host"`
+	IncludeString          []string `mapstructure:"include-string"`
+	ExcludeString          []string `mapstructure:"exclude-string"`
+	ExclusionFile          []string `mapstructure:"exclusion-file"`
+	WorkersCount           int      `mapstructure:"workers"`
+	MaxConcurrentAssets    int      `mapstructure:"max-concurrent-assets"`
+	MaxHops                int      `mapstructure:"max-hops"`
+	MaxRedirect            int      `mapstructure:"max-redirect"`
+	MaxRetry               int      `mapstructure:"max-retry"`
+	HTTPTimeout            int      `mapstructure:"http-timeout"`
+	HTTPReadDeadline       int      `mapstructure:"http-read-deadline"`
+	CrawlTimeLimit         int      `mapstructure:"crawl-time-limit"`
+	CrawlMaxTimeLimit      int      `mapstructure:"crawl-max-time-limit"`
+	MinSpaceRequired       int      `mapstructure:"min-space-required"`
+	KeepCookies            bool     `mapstructure:"keep-cookies"`
+	Headless               bool     `mapstructure:"headless"`
+	JSON                   bool     `mapstructure:"json"`
+	API                    bool     `mapstructure:"api"`
+	Prometheus             bool     `mapstructure:"prometheus"`
+	DomainsCrawl           []string `mapstructure:"domains-crawl"`
+	CaptureAlternatePages  bool     `mapstructure:"capture-alternate-pages"`
+	DisableLocalDedupe     bool     `mapstructure:"disable-local-dedupe"`
+	CertValidation         bool     `mapstructure:"cert-validation"`
+	DisableAssetsCapture   bool     `mapstructure:"disable-assets-capture"`
+	UseHQ                  bool     // Special field to check if HQ is enabled depending on the command called
+	HQRateLimitingSendBack bool     `mapstructure:"hq-rate-limiting-send-back"`
+	NoBatchWriteWAL        bool     `mapstructure:"ultrasafe-queue"`
+	Handover               bool     `mapstructure:"handover"`
 
 	// Network
 	Proxy              string   `mapstructure:"proxy"`
@@ -273,19 +275,24 @@ func GenerateCrawlConfig() error {
 			}
 
 			slog.Info("Compiling exclusion regexes", "regexes", len(regexes))
-			compiledRegexes, err := compileRegexes(regexes)
-			if err != nil {
-				return err
-			}
+			compiledRegexes := compileRegexes(regexes)
 
 			config.ExclusionRegexes = append(config.ExclusionRegexes, compiledRegexes...)
+		}
+	}
+
+	if len(config.DomainsCrawl) > 0 {
+		slog.Info("Domains crawl enabled", "domains/regex", config.DomainsCrawl)
+		err := domainscrawl.AddElements(config.DomainsCrawl)
+		if err != nil {
+			panic(err)
 		}
 	}
 
 	return nil
 }
 
-func compileRegexes(regexes []string) ([]*regexp.Regexp, error) {
+func compileRegexes(regexes []string) []*regexp.Regexp {
 	var compiledRegexes []*regexp.Regexp
 
 	for _, regex := range regexes {
@@ -295,7 +302,7 @@ func compileRegexes(regexes []string) ([]*regexp.Regexp, error) {
 		compiledRegexes = append(compiledRegexes, compiledRegex)
 	}
 
-	return compiledRegexes, nil
+	return compiledRegexes
 }
 
 func readLocalExclusionFile(file string) (regexes []string, err error) {

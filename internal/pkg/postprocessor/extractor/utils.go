@@ -1,7 +1,6 @@
 package extractor
 
 import (
-	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -17,39 +16,40 @@ var (
 	AssetsRegex      = `(?i)\b(?:src|href)=["']([^"']+\.(?:css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot))["']`
 )
 
+// hasFileExtension checks if a URL has a file extension in it.
+// It might yield false positives, like https://example.com/super.idea,
+// but it's good enough for our purposes.
+func hasFileExtension(s string) bool {
+	// Remove fragment portion (#...)
+	if i := strings.IndexByte(s, '#'); i != -1 {
+		s = s[:i]
+	}
+	// Remove query portion (?...)
+	if i := strings.IndexByte(s, '?'); i != -1 {
+		s = s[:i]
+	}
+
+	// Keep only the substring after the last slash
+	if slashPos := strings.LastIndexByte(s, '/'); slashPos != -1 {
+		s = s[slashPos+1:]
+	}
+
+	// Find the last '.' in the file name
+	dotPos := strings.LastIndexByte(s, '.')
+	if dotPos == -1 || dotPos == len(s)-1 {
+		// No '.' or '.' is the last character -> no valid extension
+		return false
+	}
+
+	return true
+}
+
 func isContentType(header, targetContentType string) bool {
 	// Lowercase the header and target content type for case-insensitive comparison
 	header = strings.ToLower(header)
 	targetContentType = strings.ToLower(targetContentType)
 
 	return strings.Contains(header, targetContentType)
-}
-
-// compareURLs compares two slices of *url.URL
-func compareURLs(a, b []*url.URL) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	// Create a map to store the count of each URL in slice a
-	counts := make(map[string]int)
-	for _, url := range a {
-		counts[url.String()]++
-	}
-
-	// Decrement the count for each URL in slice b
-	for _, url := range b {
-		counts[url.String()]--
-	}
-
-	// Check if any count is non-zero, indicating a mismatch
-	for _, count := range counts {
-		if count != 0 {
-			return false
-		}
-	}
-
-	return true
 }
 
 // sortURLs sorts a slice of *url.URL
