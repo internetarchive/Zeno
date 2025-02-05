@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/log/dumper"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
@@ -263,6 +265,8 @@ func preprocess(item *models.Item) {
 		switch {
 		case tiktok.IsTikTokURL(children[i].GetURL()):
 			tiktok.AddHeaders(req)
+		case reddit.IsRedditURL(children[i].GetURL()):
+			reddit.AddCookies(req)
 		case truthsocial.IsStatusAPIURL(children[i].GetURL()) ||
 			truthsocial.IsVideoAPIURL(children[i].GetURL()) ||
 			truthsocial.IsLookupURL(children[i].GetURL()):
