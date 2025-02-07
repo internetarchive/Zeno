@@ -116,10 +116,10 @@ func (p *preprocessor) worker(workerID string) {
 			logger.Debug("received resume event")
 		case seed, ok := <-globalPreprocessor.inputCh:
 			if ok {
-				logger.Debug("received item", "item", seed.GetShortID())
+				logger.Debug("received seed", "seed", seed.GetShortID())
 
 				if err := seed.CheckConsistency(); err != nil {
-					panic(fmt.Sprintf("seed consistency check failed with err: %s, item id %s, worker_id %s", err.Error(), seed.GetShortID(), workerID))
+					panic(fmt.Sprintf("seed consistency check failed with err: %s, seed id %s, worker_id %s", err.Error(), seed.GetShortID(), workerID))
 				}
 
 				if seed.GetStatus() == models.ItemFailed || seed.GetStatus() == models.ItemCompleted {
