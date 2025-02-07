@@ -89,7 +89,7 @@ func Stop() {
 }
 
 func (p *preprocessor) worker(workerID string) {
-	defer globalPreprocessor.wg.Done()
+	defer p.wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor.run",
@@ -107,14 +107,14 @@ func (p *preprocessor) worker(workerID string) {
 
 	for {
 		select {
-		case <-globalPreprocessor.ctx.Done():
+		case <-p.ctx.Done():
 			logger.Debug("shutting down")
 			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		case seed, ok := <-globalPreprocessor.inputCh:
+		case seed, ok := <-p.inputCh:
 			if ok {
 				logger.Debug("received seed", "seed", seed.GetShortID())
 
@@ -129,10 +129,10 @@ func (p *preprocessor) worker(workerID string) {
 				preprocess(workerID, seed)
 
 				select {
-				case <-globalPreprocessor.ctx.Done():
+				case <-p.ctx.Done():
 					logger.Debug("aborting seed due to stop", "seed", seed.GetShortID())
 					return
-				case globalPreprocessor.outputCh <- seed:
+				case p.outputCh <- seed:
 				}
 			}
 		}
