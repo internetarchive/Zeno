@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/davecgh/go-spew/spew"
@@ -152,7 +153,24 @@ func (i *Item) CheckConsistency() error {
 func (i *Item) GetID() string { return i.id }
 
 // GetShortID returns the short ID of the item
-func (i *Item) GetShortID() string { return i.id[:5] }
+func (i *Item) GetShortID() string {
+	hqPrefixes := []string{"seed-", "asset-"}
+	for _, prefix := range hqPrefixes {
+		if strings.HasPrefix(i.id, prefix) {
+			end := len(prefix) + 5
+			if end > len(i.id) {
+				end = len(i.id)
+			}
+			return i.id[:end]
+		}
+	}
+
+	if len(i.id) > 5 {
+		return i.id[:5]
+	}
+
+	return i.id
+}
 
 // GetURL returns the URL of the item
 func (i *Item) GetURL() *URL { return i.url }
