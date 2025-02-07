@@ -92,7 +92,7 @@ func (p *preprocessor) worker(workerID string) {
 	defer p.wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "preprocessor.run",
+		"component": "preprocessor.worker",
 		"worker_id": workerID,
 	})
 
