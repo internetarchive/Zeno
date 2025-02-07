@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -40,7 +41,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	extractBaseTag(item, document)
 
 	// Match <a> tags with href, data-href, data-src, data-srcset, data-lazy-src, data-srcset, src, srcset
-	if !utils.StringInSlice("a", config.Get().DisableHTMLTag) {
+	if !slices.Contains(config.Get().DisableHTMLTag, "a") {
 		var validAssetPath = []string{
 			"static/",
 			"assets/",
@@ -146,7 +147,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	})
 
 	// Extract assets on the page (images, scripts, videos..)
-	if !utils.StringInSlice("img", config.Get().DisableHTMLTag) {
+	if !slices.Contains(config.Get().DisableHTMLTag, "img") {
 		document.Find("img").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
@@ -181,7 +182,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !utils.StringInSlice("video", config.Get().DisableHTMLTag) {
+	if !slices.Contains(config.Get().DisableHTMLTag, "video") {
 		document.Find("video").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
@@ -190,7 +191,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !utils.StringInSlice("style", config.Get().DisableHTMLTag) {
+	if !slices.Contains(config.Get().DisableHTMLTag, "style") {
 		document.Find("style").Each(func(index int, i *goquery.Selection) {
 			matches := urlRegex.FindAllStringSubmatch(i.Text(), -1)
 			for match := range matches {
@@ -212,7 +213,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !utils.StringInSlice("script", config.Get().DisableHTMLTag) {
+	if !slices.Contains(config.Get().DisableHTMLTag, "script") {
 		document.Find("script").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
@@ -294,7 +295,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !utils.StringInSlice("link", config.Get().DisableHTMLTag) {
+	if !slices.Contains(config.Get().DisableHTMLTag, "link") {
 		document.Find("link").Each(func(index int, i *goquery.Selection) {
 			if !config.Get().CaptureAlternatePages {
 				relation, exists := i.Attr("rel")
@@ -310,7 +311,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !utils.StringInSlice("audio", config.Get().DisableHTMLTag) {
+	if !slices.Contains(config.Get().DisableHTMLTag, "audio") {
 		document.Find("audio").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
@@ -319,7 +320,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !utils.StringInSlice("meta", config.Get().DisableHTMLTag) {
+	if !slices.Contains(config.Get().DisableHTMLTag, "meta") {
 		document.Find("meta").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("href")
 			if exists {
@@ -334,7 +335,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !utils.StringInSlice("source", config.Get().DisableHTMLTag) {
+	if !slices.Contains(config.Get().DisableHTMLTag, "source") {
 		document.Find("source").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
