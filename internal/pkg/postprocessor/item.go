@@ -79,6 +79,10 @@ func postprocessItem(item *models.Item) []*models.Item {
 		logger.Debug("item is a child and it's depth (without redirections) is more than 2", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
+	} else if !domainscrawl.Enabled() && (item.GetDepthWithoutRedirections() == 1 && strings.Contains(item.GetURL().GetMIMEType().String(), "html")) {
+		logger.Debug("HTML got extracted as asset, skipping", "item_id", item.GetShortID())
+		item.SetStatus(models.ItemCompleted)
+		return outlinks
 	} else if config.Get().DisableAssetsCapture && !domainscrawl.Enabled() {
 		logger.Debug("assets capture and domains crawl are disabled", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)

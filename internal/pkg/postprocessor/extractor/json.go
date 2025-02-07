@@ -2,56 +2,56 @@ package extractor
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/ImVexed/fasturl"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 func IsJSON(URL *models.URL) bool {
-	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "json")
+	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "json") || strings.Contains(URL.GetMIMEType().String(), "json")
 }
 
 func JSON(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
-	bodyBytes := make([]byte, URL.GetBody().Len())
-	_, err = URL.GetBody().Read(bodyBytes)
+	rawAssets, rawOutlinks, err := GetURLsFromJSON(json.NewDecoder(URL.GetBody()))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	rawURLs, err := GetURLsFromJSON(bodyBytes)
-	if err != nil {
-		return nil, nil, err
+	for _, rawAsset := range rawAssets {
+		assets = append(assets, &models.URL{Raw: rawAsset})
 	}
 
-	// We only consider as assets the URLs in which we can find a file extension
-	for _, rawURL := range rawURLs {
-		if hasFileExtension(rawURL) {
-			assets = append(assets, &models.URL{
-				Raw: rawURL,
-			})
-		} else {
-			outlinks = append(outlinks, &models.URL{
-				Raw: rawURL,
-			})
-		}
+	for _, rawOutlink := range rawOutlinks {
+		outlinks = append(outlinks, &models.URL{Raw: rawOutlink})
 	}
 
 	return assets, outlinks, nil
 }
 
-func GetURLsFromJSON(body []byte) ([]string, error) {
+func GetURLsFromJSON(decoder *json.Decoder) (assets, outlinks []string, err error) {
 	var data interface{}
-	err := json.Unmarshal(body, &data)
+
+	err = decoder.Decode(&data)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	links := make([]string, 0)
 	findURLs(data, &links)
 
-	return links, nil
+	// We only consider as assets the URLs in which we can find a file extension
+	for _, link := range links {
+		if hasFileExtension(link) {
+			assets = append(assets, link)
+		} else {
+			outlinks = append(outlinks, link)
+		}
+	}
+
+	return assets, outlinks, nil
 }
 
 func findURLs(data interface{}, links *[]string) {

@@ -19,6 +19,14 @@ func TestJSON(t *testing.T) {
 		wantErr  bool
 	}{
 		{
+			name: "JSON in script tag",
+			body: `{"ajaxurl":"http:\/\/fakeurl.invalid\/wp-admin\/admin-ajax.php","days":"Days","hours":"Hours","minutes":"Minutes","seconds":"Seconds","ajax_nonce":"c35d389da5"}`,
+			wantURLs: []*models.URL{
+				{Raw: "http://fakeurl.invalid/wp-admin/admin-ajax.php"},
+			},
+			wantErr: false,
+		},
+		{
 			name: "Valid JSON with URLs",
 			body: `{"url": "https://example.com", "nested": {"link": "http://test.com"}}`,
 			wantURLs: []*models.URL{

@@ -19,7 +19,10 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 	// Retrieve the underlying TCP connection and apply a 10s read deadline
 	conn, ok := u.GetResponse().Body.(interface{ SetReadDeadline(time.Time) error })
 	if ok {
-		conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
+		err := conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
+		if err != nil {
+			return err
+		}
 	}
 
 	// If we are not capturing assets, not extracting outlinks, and domains crawl is disabled
@@ -85,7 +88,10 @@ func copyWithTimeout(dst io.Writer, src io.Reader, conn interface{ SetReadDeadli
 		if n > 0 {
 			// Reset the deadline after each successful read
 			if conn != nil {
-				conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
+				err = conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
+				if err != nil {
+					return err
+				}
 			}
 			if _, writeErr := dst.Write(buf[:n]); writeErr != nil {
 				return writeErr
@@ -107,9 +113,13 @@ func copyWithTimeoutN(dst io.Writer, src io.Reader, n int64, conn interface{ Set
 	if err != nil && err != io.EOF {
 		return err
 	}
+
 	// Reset deadline after partial read
 	if conn != nil {
-		conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
+		err = conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

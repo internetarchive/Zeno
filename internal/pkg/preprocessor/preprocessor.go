@@ -163,14 +163,14 @@ func preprocess(item *models.Item) {
 
 		// Normalize the URL
 		if children[i].IsSeed() {
-			err := normalizeURL(children[i].GetURL(), nil)
+			err := NormalizeURL(children[i].GetURL(), nil)
 			if err != nil {
 				logger.Debug("unable to validate URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw, "err", err.Error())
 				children[i].SetStatus(models.ItemFailed)
 				return
 			}
 		} else {
-			err := normalizeURL(children[i].GetURL(), children[i].GetParent().GetURL())
+			err := NormalizeURL(children[i].GetURL(), children[i].GetParent().GetURL())
 			if err != nil {
 				logger.Debug("unable to validate URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw, "err", err.Error())
 				children[i].GetParent().RemoveChild(children[i])
