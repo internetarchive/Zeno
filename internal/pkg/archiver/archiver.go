@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/warc"
+	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
@@ -86,7 +87,20 @@ func Stop() {
 		globalArchiver.wg.Wait()
 
 		// Wait for the WARC writing to finish
+		stopLocalWatcher := make(chan struct{})
+		go func() {
+			for {
+				select {
+				case <-stopLocalWatcher:
+					return
+				case <-time.After(1 * time.Second):
+					logger.Debug("waiting for WARC writing to finish", "queue_size", GetWARCWritingQueueSize(), "bytes_written", humanize.Bytes(uint64(warc.DataTotal.Value())))
+				}
+			}
+		}()
 		globalArchiver.Client.WaitGroup.Wait()
+		stopLocalWatcher <- struct{}{}
+		logger.Debug("WARC writing finished")
 		globalArchiver.Client.Close()
 		if globalArchiver.ClientWithProxy != nil {
 			globalArchiver.ClientWithProxy.WaitGroup.Wait()
