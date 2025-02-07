@@ -1,25 +1,18 @@
 package hq
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 func pathToHops(path string) (hops int) {
 	// For each L in the path, add 1 hop
-	for _, c := range path {
-		if c == 'L' {
-			hops++
-		}
-	}
-
-	return hops
+	return strings.Count(path, "L")
 }
 
 func hopsToPath(hops int) (path string) {
 	// For each hop, add an L to the path
-	for i := 0; i < hops; i++ {
-		path += "L"
-	}
-
-	return path
+	return strings.Repeat("L", hops)
 }
 
 // resetTimer safely resets the timer to the specified duration.
