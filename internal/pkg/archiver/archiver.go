@@ -178,7 +178,7 @@ func archive(workerID string, seed *models.Item) {
 	})
 
 	var (
-		guard = make(chan struct{}, config.Get().MaxConcurrentAssetsPerWorker)
+		guard = make(chan struct{}, config.Get().MaxConcurrentAssets)
 		wg    sync.WaitGroup
 	)
 

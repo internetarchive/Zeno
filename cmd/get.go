@@ -28,7 +28,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("user-agent", "", "User agent to use when requesting URLs.")
 	getCmd.PersistentFlags().String("job", "", "Job name to use, will determine the path for the persistent queue, seencheck database, and WARC files.")
 	getCmd.PersistentFlags().IntP("workers", "w", 1, "Number of concurrent workers to run.")
-	getCmd.PersistentFlags().Int("max-concurrent-assets-per-worker", 1, "Max number of concurrent assets to fetch PER worker. E.g. if you have 100 workers and this setting at 8, Zeno could do up to 800 concurrent requests at any time.")
+	getCmd.PersistentFlags().Int("max-concurrent-assets", 8, "Max number of concurrent assets to fetch PER worker. E.g. if you have 100 workers and this setting at 8, Zeno could do up to 800 concurrent requests at any time.")
 	getCmd.PersistentFlags().Int("max-hops", 0, "Maximum number of hops to execute.")
 	getCmd.PersistentFlags().String("cookies", "", "File containing cookies that will be used for requests.")
 	getCmd.PersistentFlags().Bool("keep-cookies", false, "Keep a global cookie jar")
@@ -111,7 +111,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().MarkHidden("hops")
 
 	getCmd.PersistentFlags().Uint("ca", 8, "Max number of concurrent assets to fetch PER worker. E.g. if you have 100 workers and this setting at 8, Zeno could do up to 800 concurrent requests at any time.")
-	getCmd.PersistentFlags().MarkDeprecated("ca", "use --max-concurrent-assets-per-worker instead")
+	getCmd.PersistentFlags().MarkDeprecated("ca", "use --max-concurrent-assets")
 	getCmd.PersistentFlags().MarkHidden("ca")
 
 	getCmd.PersistentFlags().Int("msr", 20, "Minimum space required in GB to continue the crawl.")
