@@ -43,7 +43,7 @@ var (
 	logger         *log.FieldedLogger
 )
 
-// This functions starts the archiver responsible for capturing the URLs
+// Start initializes the internal archiver structure, start the WARC writer and start routines, should only be called once and returns an error if called more than once
 func Start(inputChan, outputChan chan *models.Item) error {
 	var done bool
 
@@ -68,8 +68,13 @@ func Start(inputChan, outputChan chan *models.Item) error {
 		startWARCWriter()
 		go watchWARCWritingQueue(250 * time.Millisecond)
 
-		globalArchiver.wg.Add(1)
-		go run()
+		logger.Debug("WARC writer started")
+
+		for i := 0; i < config.Get().WorkersCount; i++ {
+			globalArchiver.wg.Add(1)
+			go globalArchiver.worker(strconv.Itoa(i))
+		}
+
 		logger.Info("started")
 		done = true
 	})
@@ -81,6 +86,7 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	return nil
 }
 
+// Stop stops the archiver routines and the WARC writer
 func Stop() {
 	if globalArchiver != nil {
 		globalArchiver.cancel()
@@ -113,75 +119,62 @@ func Stop() {
 	}
 }
 
-func run() {
+func (a *archiver) worker(workerID string) {
+	defer a.wg.Done()
+
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "archiver.run",
+		"component": "archiver.worker",
+		"worker_id": workerID,
 	})
 
-	defer globalArchiver.wg.Done()
-
-	// Create a context to manage goroutines
-	ctx, cancel := context.WithCancel(globalArchiver.ctx)
-	defer cancel()
-
-	// Create a wait group to wait for all goroutines to finish
-	var wg sync.WaitGroup
-
-	// Guard to limit the number of concurrent archiver routines
-	guard := make(chan struct{}, config.Get().WorkersCount)
+	defer logger.Debug("worker stopped")
 
 	// Subscribe to the pause controler
 	controlChans := pause.Subscribe()
 	defer pause.Unsubscribe(controlChans)
 
+	stats.ArchiverRoutinesIncr()
+	defer stats.ArchiverRoutinesDecr()
+
 	for {
 		select {
+		case <-a.ctx.Done():
+			logger.Debug("shutting down")
+			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		case item, ok := <-globalArchiver.inputCh:
+		case seed, ok := <-a.inputCh:
 			if ok {
-				logger.Debug("received item", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
-				guard <- struct{}{}
-				wg.Add(1)
-				stats.ArchiverRoutinesIncr()
-				go func(ctx context.Context) {
-					defer wg.Done()
-					defer func() { <-guard }()
-					defer stats.ArchiverRoutinesDecr()
+				logger.Debug("received seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops())
 
-					if err := item.CheckConsistency(); err != nil {
-						panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), item.GetShortID()))
-					}
+				if err := seed.CheckConsistency(); err != nil {
+					panic(fmt.Sprintf("seed consistency check failed with err: %s, seed id %s", err.Error(), seed.GetShortID()))
+				}
 
-					if item.GetStatus() != models.ItemPreProcessed && item.GetStatus() != models.ItemGotRedirected && item.GetStatus() != models.ItemGotChildren {
-						logger.Debug("skipping item", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", item.GetStatus().String())
-					} else {
-						archive(item)
-					}
+				if seed.GetStatus() != models.ItemPreProcessed && seed.GetStatus() != models.ItemGotRedirected && seed.GetStatus() != models.ItemGotChildren {
+					logger.Debug("skipping seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops(), "status", seed.GetStatus().String())
+				} else {
+					archive(workerID, seed)
+				}
 
-					select {
-					case globalArchiver.outputCh <- item:
-					case <-ctx.Done():
-						logger.Debug("aborting item due to stop", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
-						return
-					}
-				}(ctx)
+				select {
+				case a.outputCh <- seed:
+				case <-a.ctx.Done():
+					logger.Debug("aborting seed due to stop", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops())
+					return
+				}
 			}
-		case <-globalArchiver.ctx.Done():
-			logger.Debug("shutting down")
-			wg.Wait()
-			return
 		}
-		stats.WarcWritingQueueSizeSet(int64(GetWARCWritingQueueSize()))
 	}
 }
 
-func archive(seed *models.Item) {
+func archive(workerID string, seed *models.Item) {
 	// TODO: rate limiting handling
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "archiver.archive",
+		"worker_id": workerID,
 	})
 
 	var (
@@ -251,4 +244,6 @@ func archive(seed *models.Item) {
 
 	// Wait for all goroutines to finish
 	wg.Wait()
+
+	return
 }
