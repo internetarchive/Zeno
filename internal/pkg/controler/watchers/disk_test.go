@@ -1,10 +1,10 @@
-package controler
+package watchers
 
 import (
 	"testing"
 )
 
-func TestCheckDiskUsage(t *testing.T) {
+func TestCheckThreshold(t *testing.T) {
 	tests := []struct {
 		name      string
 		total     uint64
@@ -32,22 +32,22 @@ func TestCheckDiskUsage(t *testing.T) {
 		{
 			name:      "Sufficient disk space on small disk",
 			total:     100 * 1024 * 1024 * 1024, // 100 GiB
-			free:      10 * 1024 * 1024 * 1024,  // 10 GiB
+			free:      60 * 1024 * 1024 * 1024,  // 10 GiB
 			wantError: false,
 		},
 		{
 			name:      "Edge case: exactly at threshold for small disk",
-			total:     200 * 1024 * 1024 * 1024,                                                                        // 200 GiB
-			free:      uint64((20 * 1024 * 1024 * 1024) * (float64(200*1024*1024*1024) / float64(256*1024*1024*1024))), // Threshold value
+			total:     300 * 1024 * 1024 * 1024,                                                                        // 200 GiB
+			free:      uint64((50 * 1024 * 1024 * 1024) * (float64(300*1024*1024*1024) / float64(256*1024*1024*1024))), // Threshold value
 			wantError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := checkDiskUsage(tt.total, tt.free)
+			err := checkThreshold(tt.total, tt.free)
 			if (err != nil) != tt.wantError {
-				t.Errorf("checkDiskUsage() error = %v, wantError %v", err, tt.wantError)
+				t.Errorf("checkThreshold() error = %v, wantError %v", err, tt.wantError)
 			}
 		})
 	}

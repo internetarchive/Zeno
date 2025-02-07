@@ -10,6 +10,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/log/dumper"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
@@ -157,8 +158,7 @@ func preprocess(item *models.Item) {
 		// Panic on any child that is not fresh
 		// This means that an incorrect item was inserted and/or that the finisher is not working correctly
 		if children[i].GetStatus() != models.ItemFresh {
-			dumper.Dump(item)
-			panic(fmt.Sprintf("non-fresh item %s received in preprocessor: %s", children[i].GetShortID(), children[i].GetStatus().String()))
+			dumper.PanicWithDump(fmt.Sprintf("non-fresh item %s received in preprocessor with status: %s", children[i].GetShortID(), children[i].GetStatus().String()), children[i])
 		}
 
 		// Normalize the URL
@@ -263,6 +263,8 @@ func preprocess(item *models.Item) {
 		switch {
 		case tiktok.IsTikTokURL(children[i].GetURL()):
 			tiktok.AddHeaders(req)
+		case reddit.IsRedditURL(children[i].GetURL()):
+			reddit.AddCookies(req)
 		case truthsocial.IsStatusAPIURL(children[i].GetURL()) ||
 			truthsocial.IsVideoAPIURL(children[i].GetURL()) ||
 			truthsocial.IsLookupURL(children[i].GetURL()):
