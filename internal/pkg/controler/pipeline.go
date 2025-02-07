@@ -46,7 +46,7 @@ func startPipeline() {
 	go watchers.WatchDiskSpace(config.Get().JobPath, 5*time.Second)
 
 	// Start the reactor that will receive
-	reactorOutputChan := makeStageChannel()
+	reactorOutputChan := makeStageChannel(config.Get().WorkersCount)
 	err = reactor.Start(config.Get().WorkersCount, reactorOutputChan)
 	if err != nil {
 		logger.Error("error starting reactor", "err", err.Error())
