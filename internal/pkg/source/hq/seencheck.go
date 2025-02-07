@@ -1,6 +1,8 @@
 package hq
 
 import (
+	"context"
+
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 )
@@ -54,7 +56,7 @@ func SeencheckItem(item *models.Item) error {
 
 	// Get seencheck URLs from CrawlHQ
 	// If an URL is not returned it means that it was seen before
-	outputURLs, err := globalHQ.client.Seencheck(URLsToSeencheck)
+	outputURLs, err := globalHQ.client.Seencheck(context.TODO(), URLsToSeencheck)
 	if err != nil {
 		return err
 	}
