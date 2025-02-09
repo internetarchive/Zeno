@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"io"
 	"net/http"
-	// "strings"
+	"os"
 	"testing"
 
+	"github.com/internetarchive/Zeno/internal/pkg/archiver"
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/pkg/models"
-	// "github.com/PuerkitoBio/goquery"
 )
 
 func TestHTMLOutlinks(t *testing.T) {
@@ -23,22 +24,20 @@ func TestHTMLOutlinks(t *testing.T) {
 		</body>
 	</html>
 	`
-	// alternative that also doesn't work
-	// doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
-	// if err != nil {
-	// 	t.Errorf("html doc loading failed %s", err)
-	// }
 
 	resp := &http.Response{
 		Body: io.NopCloser(bytes.NewBufferString(body)),
-  }
+	}
 	newURL := &models.URL{Raw: "http://ex.com"}
-  newURL.SetResponse(resp)
-	//	newURL.SetDocument(doc)
+	newURL.SetResponse(resp)
+	err := archiver.ProcessBody(newURL, false, false, 0, os.TempDir())
+	if err != nil {
+		t.Errorf("ProcessBody() error = %v", err)
+	}
 	item := models.NewItem("test", newURL, "", false)
+	config.InitConfig()
+
 	outlinks, err := HTMLOutlinks(item)
-	// also this doesn't work with a similar error.
-	// outlinks, err := HTMLAssets(item)
 	if err != nil {
 		t.Errorf("Error extracting HTML outlinks %s", err)
 	}
