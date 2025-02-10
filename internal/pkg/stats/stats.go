@@ -11,6 +11,7 @@ type stats struct {
 	PreprocessorRoutines  *counter
 	ArchiverRoutines      *counter
 	PostprocessorRoutines *counter
+	FinisherRoutines      *counter
 	Paused                atomic.Bool
 	HTTPReturnCodes       *rateBucket
 	MeanHTTPResponseTime  *mean
@@ -32,6 +33,7 @@ func Init() error {
 			PreprocessorRoutines:  &counter{},
 			ArchiverRoutines:      &counter{},
 			PostprocessorRoutines: &counter{},
+			FinisherRoutines:      &counter{},
 			HTTPReturnCodes:       newRateBucket(),
 			MeanHTTPResponseTime:  &mean{},
 		}
@@ -51,6 +53,7 @@ func Reset() {
 	globalStats.PreprocessorRoutines.reset()
 	globalStats.ArchiverRoutines.reset()
 	globalStats.PostprocessorRoutines.reset()
+	globalStats.FinisherRoutines.reset()
 	globalStats.HTTPReturnCodes.resetAll()
 	globalStats.MeanHTTPResponseTime.reset()
 }
@@ -65,6 +68,7 @@ func GetMap() map[string]interface{} {
 		"Preprocessor routines":   globalStats.PreprocessorRoutines.get(),
 		"Archiver routines":       globalStats.ArchiverRoutines.get(),
 		"Postprocessor routines":  globalStats.PostprocessorRoutines.get(),
+		"Finisher routines":       globalStats.FinisherRoutines.get(),
 		"Is paused?":              globalStats.Paused.Load(),
 		"HTTP 2xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("2*")),
 		"HTTP 3xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("3*")),

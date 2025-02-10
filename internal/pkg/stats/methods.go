@@ -75,6 +75,22 @@ func PostprocessorRoutinesGet() uint64 { return globalStats.PostprocessorRoutine
 func PostprocessorRoutinesReset() { globalStats.PostprocessorRoutines.reset() }
 
 //////////////////////////
+// FinisherRoutines //
+//////////////////////////
+
+// FinisherRoutinesIncr increments the FinisherRoutines counter by 1.
+func FinisherRoutinesIncr() { globalStats.FinisherRoutines.incr(1) }
+
+// FinisherRoutinesDecr decrements the FinisherRoutines counter by 1.
+func FinisherRoutinesDecr() { globalStats.FinisherRoutines.decr(1) }
+
+// FinisherRoutinesGet returns the current value of the FinisherRoutines counter.
+func FinisherRoutinesGet() uint64 { return globalStats.FinisherRoutines.get() }
+
+// FinisherRoutinesReset resets the FinisherRoutines counter to 0.
+func FinisherRoutinesReset() { globalStats.FinisherRoutines.reset() }
+
+//////////////////////////
 //         Paused       //
 //////////////////////////
 
