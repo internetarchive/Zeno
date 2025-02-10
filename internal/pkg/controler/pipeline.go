@@ -62,14 +62,14 @@ func startPipeline() {
 		}
 	}
 
-	preprocessorOutputChan := makeStageChannel()
+	preprocessorOutputChan := makeStageChannel(config.Get().WorkersCount)
 	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting preprocessor", "err", err.Error())
 		panic(err)
 	}
 
-	archiverOutputChan := makeStageChannel()
+	archiverOutputChan := makeStageChannel(config.Get().WorkersCount)
 	err = archiver.Start(preprocessorOutputChan, archiverOutputChan)
 	if err != nil {
 		logger.Error("error starting archiver", "err", err.Error())
