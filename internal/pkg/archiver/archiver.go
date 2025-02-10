@@ -160,10 +160,10 @@ func (a *archiver) worker(workerID string) {
 				}
 
 				select {
-				case a.outputCh <- seed:
 				case <-a.ctx.Done():
 					logger.Debug("aborting seed due to stop", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops())
 					return
+				case a.outputCh <- seed:
 				}
 			}
 		}
