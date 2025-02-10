@@ -3,8 +3,10 @@ package finisher
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
@@ -48,8 +50,10 @@ func Start(inputChan, sourceFinishedChan, sourceProducedChan chan *models.Item) 
 			wg:               sync.WaitGroup{},
 		}
 		logger.Debug("initialized")
-		globalFinisher.wg.Add(1)
-		go globalFinisher.run()
+		for i := 0; i < config.Get().WorkersCount; i++ {
+			globalFinisher.wg.Add(1)
+			go globalFinisher.worker(strconv.Itoa(i))
+		}
 		logger.Info("started")
 		done = true
 	})
@@ -73,68 +77,75 @@ func Stop() {
 	}
 }
 
-func (f *finisher) run() {
+func (f *finisher) worker(workerID string) {
+	defer f.wg.Done()
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "finisher.worker",
+		"worker_id": workerID,
+	})
+
 	controlChans := pause.Subscribe()
 	defer pause.Unsubscribe(controlChans)
-	defer f.wg.Done()
 
 	for {
 		select {
+		case <-f.ctx.Done():
+			logger.Debug("shutting down")
+			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		case item := <-f.inputCh:
-			if item == nil {
-				panic("received nil item")
-			}
+		case seed, ok := <-f.inputCh:
+			if ok {
+				if seed == nil {
+					panic("received nil seed")
+				}
 
-			if !item.IsSeed() {
-				panic("received non-seed item")
-			}
+				if !seed.IsSeed() {
+					panic("received non-seed item")
+				}
 
-			logger.Debug("received item", "item", item.GetShortID())
+				logger.Debug("received seed", "seed", seed.GetShortID())
 
-			if err := item.CheckConsistency(); err != nil {
-				panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), item.GetShortID()))
-			}
+				if err := seed.CheckConsistency(); err != nil {
+					panic(fmt.Sprintf("seed consistency check failed with err: %s, seed id %s, worker id %s", err.Error(), seed.GetShortID(), workerID))
+				}
 
-			// If the item is fresh, send it to the source
-			if item.GetStatus() == models.ItemFresh {
-				logger.Debug("fresh item received", "item", item)
-				f.sourceProducedCh <- item
-				continue
-			}
+				// If the seed is fresh, send it to the source
+				if seed.GetStatus() == models.ItemFresh {
+					logger.Debug("fresh seed received", "seed", seed)
+					f.sourceProducedCh <- seed
+					continue
+				}
 
-			// If the item has fresh children, send it to feedback
-			isComplete := item.CompleteAndCheck()
-			if !isComplete {
-				logger.Debug("item has fresh children", "item", item.GetShortID())
-				err := reactor.ReceiveFeedback(item)
-				if err != nil && err != reactor.ErrReactorFrozen {
+				// If the seed has fresh children, send it to feedback
+				isComplete := seed.CompleteAndCheck()
+				if !isComplete {
+					logger.Debug("seed has fresh children", "seed", seed.GetShortID())
+					err := reactor.ReceiveFeedback(seed)
+					if err != nil && err != reactor.ErrReactorFrozen {
+						panic(err)
+					}
+					continue
+				}
+
+				// If the seed has no fresh redirection or children, mark it as finished
+				logger.Debug("seed has no fresh redirection or children", "seed", seed.GetShortID())
+				err := reactor.MarkAsFinished(seed)
+				if err != nil {
 					panic(err)
 				}
-				continue
-			}
 
-			// If the item has no fresh redirection or children, mark it as finished
-			logger.Debug("item has no fresh redirection or children", "item", item.GetShortID())
-			err := reactor.MarkAsFinished(item)
-			if err != nil {
-				panic(err)
-			}
+				// Notify the source that the seed has been finished
+				// E.g.: to delete the seed in Crawl HQ
+				if f.sourceFinishedCh != nil {
+					f.sourceFinishedCh <- seed
+				}
 
-			// Notify the source that the item has been finished
-			// E.g.: to delete the item in Crawl HQ
-			if f.sourceFinishedCh != nil {
-				f.sourceFinishedCh <- item
+				stats.SeedsFinishedIncr()
+				logger.Debug("seed finished", "seed", seed.GetShortID())
 			}
-
-			stats.SeedsFinishedIncr()
-			logger.Debug("item finished", "item", item.GetShortID())
-		case <-f.ctx.Done():
-			logger.Debug("shutting down")
-			return
 		}
 	}
 }
