@@ -89,7 +89,8 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	extractBaseTag(item, document)
 
 	// Get assets from JSON payloads in data-item values
-	document.Find("[data-item]").Each(func(index int, i *goquery.Selection) {
+	// Check all elements style attributes for background-image & also data-preview
+	document.Find("[data-item], [style], [data-preview]").Each(func(index int, i *goquery.Selection) {
 		dataItem, exists := i.Attr("data-item")
 		if exists {
 			URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(dataItem)))
@@ -99,10 +100,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 				rawAssets = append(rawAssets, URLsFromJSON...)
 			}
 		}
-	})
 
-	// Check all elements style attributes for background-image & also data-preview
-	document.Find("*").Each(func(index int, i *goquery.Selection) {
 		style, exists := i.Attr("style")
 		if exists {
 			matches := backgroundImageRegex.FindAllStringSubmatch(style, -1)
@@ -205,10 +203,16 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
+	var targetElements = []string{}
 	if !slices.Contains(config.Get().DisableHTMLTag, "video") {
-		document.Find("video").Each(func(index int, i *goquery.Selection) {
-			link, exists := i.Attr("src")
-			if exists {
+		targetElements = append(targetElements, "video[src]")
+	}
+	if !slices.Contains(config.Get().DisableHTMLTag, "audio") {
+		targetElements = append(targetElements, "audio[src]")
+	}
+	if len(targetElements) > 0 {
+		document.Find(strings.Join(targetElements, ", ")).Each(func(index int, i *goquery.Selection) {
+			if link, exists := i.Attr("src"); exists {
 				rawAssets = append(rawAssets, link)
 			}
 		})
@@ -297,15 +301,6 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			}
 
 			link, exists := i.Attr("href")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-		})
-	}
-
-	if !slices.Contains(config.Get().DisableHTMLTag, "audio") {
-		document.Find("audio").Each(func(index int, i *goquery.Selection) {
-			link, exists := i.Attr("src")
 			if exists {
 				rawAssets = append(rawAssets, link)
 			}
