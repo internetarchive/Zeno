@@ -14,7 +14,6 @@ import (
 type Item struct {
 	id         string       // ID is the unique identifier of the item
 	url        *URL         // URL is a struct that contains the URL, the parsed URL, and its hop
-	seed       bool         // Seed is a flag to indicate if the item is a seed or not (true=seed, false=child)
 	seedVia    string       // SeedVia is the source of the seed (shoud not be used for non-seeds)
 	status     ItemState    // Status is the state of the item in the pipeline
 	source     ItemSource   // Source is the source of the item in the pipeline
@@ -104,18 +103,8 @@ func (i *Item) CheckConsistency() error {
 		return fmt.Errorf("id is empty")
 	}
 
-	// If item is a child, it should have a parent
-	if !i.seed && i.parent == nil {
-		return fmt.Errorf("item is a child but has no parent")
-	}
-
-	// If item is a seed, it shouldnt have a parent
-	if i.seed && i.parent != nil {
-		return fmt.Errorf("item is a seed but has a parent")
-	}
-
 	// If item is a child, it shouldnt have a seedVia
-	if !i.seed && i.seedVia != "" {
+	if !i.IsSeed() && i.seedVia != "" {
 		return fmt.Errorf("item is a child but has a seedVia")
 	}
 
@@ -125,7 +114,7 @@ func (i *Item) CheckConsistency() error {
 	}
 
 	// If item is fresh, it should either : have a parent with status ItemGotChildren or ItemGotRedirected, or be a seed
-	if i.status == ItemFresh && !i.seed && i.parent != nil && i.parent.status != ItemGotChildren && i.parent.status != ItemGotRedirected {
+	if i.status == ItemFresh && !i.IsSeed() && i.parent.status != ItemGotChildren && i.parent.status != ItemGotRedirected {
 		return fmt.Errorf("item is not a seed and fresh but parent is not ItemGotChildren or ItemGotRedirected")
 	}
 
@@ -204,14 +193,14 @@ func (i *Item) GetMaxDepth() int64 {
 
 // GetDepth returns the depth of the item
 func (i *Item) GetDepth() int64 {
-	if i.seed {
+	if i.IsSeed() {
 		return 0
 	}
 	return i.parent.GetDepth() + 1
 }
 
 func (i *Item) GetDepthWithoutRedirections() int64 {
-	if i.seed {
+	if i.IsSeed() {
 		return 0
 	}
 
@@ -244,11 +233,11 @@ func (i *Item) GetError() error { return i.err }
 
 // GetSeed returns the seed (topmost parent) of any given item
 func (i *Item) GetSeed() *Item {
-	if i.seed {
+	if i.IsSeed() {
 		return i
 	}
 	for p := i.parent; p != nil; p = p.parent {
-		if p.seed {
+		if p.IsSeed() {
 			return p
 		}
 	}
@@ -261,7 +250,7 @@ func (i *Item) GetSeed() *Item {
 //
 // Returns ErrNotASeed as error if the item is not a seed
 func (i *Item) GetNodesAtLevel(targetLevel int64) ([]*Item, error) {
-	if !i.seed {
+	if !i.IsSeed() {
 		return nil, ErrNotASeed
 	}
 
@@ -291,7 +280,7 @@ func (i *Item) SetStatus(status ItemState) { i.status = status }
 
 // SetSource sets the source of the item
 func (i *Item) SetSource(source ItemSource) error {
-	if !i.seed && (source == ItemSourceInsert || source == ItemSourceQueue || source == ItemSourceHQ) {
+	if !i.IsSeed() && (source == ItemSourceInsert || source == ItemSourceQueue || source == ItemSourceHQ) {
 		return fmt.Errorf("source is invalid for a child")
 	}
 	i.source = source
@@ -304,8 +293,8 @@ func (i *Item) SetBase(base string) { i.base = base }
 // SetError sets the error of the item
 func (i *Item) SetError(err error) { i.err = err }
 
-// NewItem creates a new item with the given ID, URL, seedVia and seed flag
-func NewItem(ID string, URL *URL, seedVia string, isSeed bool) *Item {
+// NewItem creates a new item with the given ID, URL and seedVia
+func NewItem(ID string, URL *URL, seedVia string) *Item {
 	if ID == "" || URL == nil {
 		return nil
 	}
@@ -313,7 +302,7 @@ func NewItem(ID string, URL *URL, seedVia string, isSeed bool) *Item {
 	return &Item{
 		id:      ID,
 		url:     URL,
-		seed:    isSeed,
+		parent:  nil,
 		seedVia: seedVia,
 		status:  ItemFresh,
 	}
@@ -341,7 +330,7 @@ func (i *Item) AddChild(child *Item, from ItemState) error {
 }
 
 // IsSeed returns the seed flag of the item
-func (i *Item) IsSeed() bool { return i.parent == nil && i.seed }
+func (i *Item) IsSeed() bool { return i.parent == nil }
 
 // IsRedirection returns true if the item is from a redirection
 func (i *Item) IsRedirection() bool {
