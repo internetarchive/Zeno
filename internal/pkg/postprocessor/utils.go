@@ -1,10 +1,10 @@
 package postprocessor
 
 func isStatusCodeRedirect(statusCode int) bool {
-	if statusCode == 300 || statusCode == 301 ||
-		statusCode == 302 || statusCode == 307 ||
-		statusCode == 308 {
+	switch statusCode {
+	case 300, 301, 302, 303, 307, 308:
 		return true
+	default:
+		return false
 	}
-	return false
 }
