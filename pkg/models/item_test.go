@@ -7,10 +7,9 @@ import (
 	"testing"
 )
 
-func createTestItem(id string, seed bool, parent *Item) *Item {
+func createTestItem(id string, parent *Item) *Item {
 	item := &Item{
 		id:       id,
-		seed:     seed,
 		parent:   parent,
 		status:   ItemFresh,
 		children: make([]*Item, 0),
@@ -21,8 +20,8 @@ func createTestItem(id string, seed bool, parent *Item) *Item {
 	return item
 }
 
-func createTestItemWithURL(id string, seed bool, parent *Item, url string) *Item {
-	item := createTestItem(id, seed, parent)
+func createTestItemWithURL(id string, parent *Item, url string) *Item {
+	item := createTestItem(id, parent)
 	newURL := &URL{Raw: url}
 	err := newURL.Parse()
 	if err != nil {
@@ -32,10 +31,9 @@ func createTestItemWithURL(id string, seed bool, parent *Item, url string) *Item
 	return item
 }
 
-func createTestItemWithStatus(id string, seed bool, parent *Item, status ItemState) *Item {
+func createTestItemWithStatus(id string, parent *Item, status ItemState) *Item {
 	item := &Item{
 		id:     id,
-		seed:   seed,
 		parent: parent,
 		status: status,
 	}
@@ -58,7 +56,7 @@ func findTestItemByID(root *Item, id string) *Item {
 }
 
 func TestItem_GetID(t *testing.T) {
-	item := createTestItem("testID", true, nil)
+	item := createTestItem("testID", nil)
 	if got := item.GetID(); got != "testID" {
 		t.Errorf("GetID() = %v, want %v", got, "testID")
 	}
@@ -73,7 +71,7 @@ func TestItem_GetShortID(t *testing.T) {
 		{
 			name: "Simple short ID",
 			item: func() *Item {
-				item := createTestItem("short", true, nil)
+				item := createTestItem("short", nil)
 				return item
 			}(),
 			expected: "short",
@@ -81,7 +79,7 @@ func TestItem_GetShortID(t *testing.T) {
 		{
 			name: "UUID ID",
 			item: func() *Item {
-				item := createTestItem("f47ac10b-58cc-4372-a567-0e02b2c3d479", true, nil)
+				item := createTestItem("f47ac10b-58cc-4372-a567-0e02b2c3d479", nil)
 				return item
 			}(),
 			expected: "f47ac",
@@ -89,7 +87,7 @@ func TestItem_GetShortID(t *testing.T) {
 		{
 			name: "SHA1 ID",
 			item: func() *Item {
-				item := createTestItem("f47ac10b58cc4372a5670e02b2c3d479", true, nil)
+				item := createTestItem("f47ac10b58cc4372a5670e02b2c3d479", nil)
 				return item
 			}(),
 			expected: "f47ac",
@@ -97,7 +95,7 @@ func TestItem_GetShortID(t *testing.T) {
 		{
 			name: "HQ seed ID",
 			item: func() *Item {
-				item := createTestItem("seed-bc3446c00ff1bbcc167aa611613264e1adced419bdafe08adbca35f4566297a1", true, nil)
+				item := createTestItem("seed-bc3446c00ff1bbcc167aa611613264e1adced419bdafe08adbca35f4566297a1", nil)
 				return item
 			}(),
 			expected: "seed-bc344",
@@ -105,7 +103,7 @@ func TestItem_GetShortID(t *testing.T) {
 		{
 			name: "HQ asset ID",
 			item: func() *Item {
-				item := createTestItem("asset-bc3446c00ff1bbcc167aa611613264e1adced419bdafe08adbca35f4566297a1", true, nil)
+				item := createTestItem("asset-bc3446c00ff1bbcc167aa611613264e1adced419bdafe08adbca35f4566297a1", nil)
 				return item
 			}(),
 			expected: "asset-bc344",
@@ -124,7 +122,7 @@ func TestItem_GetShortID(t *testing.T) {
 
 func TestItem_GetURL(t *testing.T) {
 	url := &URL{Raw: "http://example.com"}
-	item := createTestItem("testID", true, nil)
+	item := createTestItem("testID", nil)
 	item.url = url
 	if got := item.GetURL(); got != url {
 		t.Errorf("GetURL() = %v, want %v", got, url)
@@ -132,14 +130,14 @@ func TestItem_GetURL(t *testing.T) {
 }
 
 func TestItem_IsSeed(t *testing.T) {
-	item := createTestItem("testID", true, nil)
+	item := createTestItem("testID", nil)
 	if got := item.IsSeed(); got != true {
 		t.Errorf("IsSeed() = %v, want %v", got, true)
 	}
 }
 
 func TestItem_GetSeedVia(t *testing.T) {
-	item := createTestItem("testID", true, nil)
+	item := createTestItem("testID", nil)
 	item.seedVia = "seedViaTest"
 	if got := item.GetSeedVia(); got != "seedViaTest" {
 		t.Errorf("GetSeedVia() = %v, want %v", got, "seedViaTest")
@@ -148,7 +146,7 @@ func TestItem_GetSeedVia(t *testing.T) {
 
 func TestItem_GetStatus(t *testing.T) {
 	status := ItemArchived
-	item := createTestItem("testID", true, nil)
+	item := createTestItem("testID", nil)
 	item.status = status
 	if got := item.GetStatus(); got != status {
 		t.Errorf("GetStatus() = %v, want %v", got, status)
@@ -157,7 +155,7 @@ func TestItem_GetStatus(t *testing.T) {
 
 func TestItem_GetSource(t *testing.T) {
 	source := ItemSourceHQ
-	item := createTestItem("testID", true, nil)
+	item := createTestItem("testID", nil)
 	item.source = source
 	if got := item.GetSource(); got != source {
 		t.Errorf("GetSource() = %v, want %v", got, source)
@@ -165,16 +163,16 @@ func TestItem_GetSource(t *testing.T) {
 }
 
 func TestItem_GetChildren(t *testing.T) {
-	item := createTestItem("testID", true, nil)
-	child := createTestItem("childID", false, item)
+	item := createTestItem("testID", nil)
+	child := createTestItem("childID", item)
 	if got := item.GetChildren(); len(got) != 1 || got[0] != child {
 		t.Errorf("GetChildren() = %v, want %v", got, []*Item{child})
 	}
 }
 
 func TestItem_GetParent(t *testing.T) {
-	parent := createTestItem("parentID", true, nil)
-	item := createTestItem("testID", false, parent)
+	parent := createTestItem("parentID", nil)
+	item := createTestItem("testID", parent)
 	if got := item.GetParent(); got != parent {
 		t.Errorf("GetParent() = %v, want %v", got, parent)
 	}
@@ -182,7 +180,7 @@ func TestItem_GetParent(t *testing.T) {
 
 func TestItem_GetError(t *testing.T) {
 	err := errors.New("test error")
-	item := createTestItem("testID", true, nil)
+	item := createTestItem("testID", nil)
 	item.err = err
 	if got := item.GetError(); got != err {
 		t.Errorf("GetError() = %v, want %v", got, err)
@@ -198,7 +196,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Valid seed item",
 			item: func() *Item {
-				item := createTestItem("testID", true, nil)
+				item := createTestItem("testID", nil)
 				item.url = &URL{Raw: "http://example.com"}
 				return item
 			}(),
@@ -207,9 +205,9 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Valid child item",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				parent.url = &URL{Raw: "http://example.com"}
-				item := createTestItem("testID", false, parent)
+				item := createTestItem("testID", parent)
 				item.url = &URL{Raw: "http://example.com"}
 				item.parent.status = ItemGotChildren
 				return item
@@ -218,13 +216,13 @@ func TestItem_CheckConsistency(t *testing.T) {
 		},
 		{
 			name:     "Item with nil URL",
-			item:     createTestItem("testID", true, nil),
+			item:     createTestItem("testID", nil),
 			expected: errors.New("url is nil"),
 		},
 		{
 			name: "Item with empty ID",
 			item: func() *Item {
-				item := createTestItem("", true, nil)
+				item := createTestItem("", nil)
 				item.url = &URL{Raw: "http://example.com"}
 				return item
 			}(),
@@ -233,9 +231,9 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Child item with seedVia",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				parent.url = &URL{Raw: "http://example.com"}
-				item := createTestItem("testID", false, parent)
+				item := createTestItem("testID", parent)
 				item.url = &URL{Raw: "http://example.com"}
 				item.seedVia = "seedViaTest"
 				return item
@@ -243,32 +241,12 @@ func TestItem_CheckConsistency(t *testing.T) {
 			expected: errors.New("item is a child but has a seedVia"),
 		},
 		{
-			name: "Seed item with parent",
-			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
-				parent.url = &URL{Raw: "http://example.com"}
-				item := createTestItem("testID", true, parent)
-				item.url = &URL{Raw: "http://example.com"}
-				return item
-			}(),
-			expected: errors.New("item is a seed but has a parent"),
-		},
-		{
-			name: "Child item with no parent",
-			item: func() *Item {
-				item := createTestItem("testID", false, nil)
-				item.url = &URL{Raw: "http://example.com"}
-				return item
-			}(),
-			expected: errors.New("item is a child but has no parent"),
-		},
-		{
 			name: "Item is fresh but has children",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
+				root := createTestItem("root", nil)
 				root.url = &URL{Raw: "http://example.com/root"}
 				root.status = ItemFresh
-				createTestItem("child1", false, root)
+				createTestItem("child1", root)
 				return root
 			}(),
 			expected: errors.New("item is fresh but has children"),
@@ -276,10 +254,10 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Item is fresh but parent is not ItemGotChildren or ItemGotRedirected",
 			item: func() *Item {
-				parent := createTestItem("parent", true, nil)
+				parent := createTestItem("parent", nil)
 				parent.url = &URL{Raw: "http://example.com/parent"}
 				parent.status = ItemFresh
-				child := createTestItem("child", false, parent)
+				child := createTestItem("child", parent)
 				child.url = &URL{Raw: "http://example.com/child"}
 				child.status = ItemFresh
 				return child
@@ -289,11 +267,11 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Item has more than one children but is ItemGotRedirected",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
+				root := createTestItem("root", nil)
 				root.url = &URL{Raw: "http://example.com/root"}
 				root.status = ItemGotRedirected
-				createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
+				createTestItem("child1", root)
+				createTestItem("child2", root)
 				return root
 			}(),
 			expected: errors.New("item has more than one children but is ItemGotRedirected"),
@@ -301,10 +279,10 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Item has children but is not ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
+				root := createTestItem("root", nil)
 				root.url = &URL{Raw: "http://example.com/root"}
 				root.status = ItemArchived
-				createTestItem("child1", false, root)
+				createTestItem("child1", root)
 				return root
 			}(),
 			expected: errors.New("item has children but is not ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed"),
@@ -312,7 +290,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Valid seed item",
 			item: func() *Item {
-				item := createTestItem("testID", true, nil)
+				item := createTestItem("testID", nil)
 				item.status = ItemFresh
 				item.url = &URL{Raw: "http://example.com"}
 				return item
@@ -322,10 +300,10 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Valid child item",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				parent.status = ItemGotChildren
 				parent.url = &URL{Raw: "http://example.com"}
-				item := createTestItem("testID", false, parent)
+				item := createTestItem("testID", parent)
 				item.status = ItemFresh
 				item.url = &URL{Raw: "http://example.com"}
 				return item
@@ -335,10 +313,10 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Valid item with children and status ItemGotChildren",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
+				root := createTestItem("root", nil)
 				root.status = ItemGotChildren
 				root.url = &URL{Raw: "http://example.com/root"}
-				child := createTestItem("child1", false, root)
+				child := createTestItem("child1", root)
 				child.url = &URL{Raw: "http://example.com/child"}
 				child.status = ItemFresh
 				return root
@@ -348,10 +326,10 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Valid item with children and status ItemGotRedirected",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
+				root := createTestItem("root", nil)
 				root.status = ItemGotRedirected
 				root.url = &URL{Raw: "http://example.com/root"}
-				child := createTestItem("child1", false, root)
+				child := createTestItem("child1", root)
 				child.url = &URL{Raw: "http://example.com/child"}
 				child.status = ItemFresh
 				return root
@@ -361,10 +339,10 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Valid item with fresh children and status ItemCompleted",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
+				root := createTestItem("root", nil)
 				root.status = ItemCompleted
 				root.url = &URL{Raw: "http://example.com/root"}
-				child := createTestItem("child1", false, root)
+				child := createTestItem("child1", root)
 				child.url = &URL{Raw: "http://example.com/child"}
 				child.status = ItemFresh
 				return root
@@ -374,10 +352,10 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name: "Valid item with seen children and status ItemCompleted",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
+				root := createTestItem("root", nil)
 				root.status = ItemCompleted
 				root.url = &URL{Raw: "http://example.com/root"}
-				child := createTestItem("child1", false, root)
+				child := createTestItem("child1", root)
 				child.url = &URL{Raw: "http://example.com/child"}
 				child.status = ItemSeen
 				return root
@@ -414,7 +392,7 @@ func TestGetNodesAtLevel(t *testing.T) {
 		{
 			// root
 			name:          "1-level seed",
-			root:          createTestItem("root", true, nil),
+			root:          createTestItem("root", nil),
 			targetLevel:   0,
 			expectedIDs:   []string{"root"},
 			expectedError: nil,
@@ -425,9 +403,9 @@ func TestGetNodesAtLevel(t *testing.T) {
 			// └── child2
 			name: "1-level tree",
 			root: func() *Item {
-				root := createTestItem("root", true, nil)
-				createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
+				root := createTestItem("root", nil)
+				createTestItem("child1", root)
+				createTestItem("child2", root)
 				return root
 			}(),
 			targetLevel:   1,
@@ -441,10 +419,10 @@ func TestGetNodesAtLevel(t *testing.T) {
 			// └── child2
 			name: "3-level tree",
 			root: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
-				createTestItem("grandchild1", false, child1)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				createTestItem("child2", root)
+				createTestItem("grandchild1", child1)
 				return root
 			}(),
 			targetLevel:   2,
@@ -458,10 +436,10 @@ func TestGetNodesAtLevel(t *testing.T) {
 			// └── child2
 			name: "3-level tree with no Greatgrandchildren",
 			root: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
-				createTestItem("grandchild1", false, child1)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				createTestItem("child2", root)
+				createTestItem("grandchild1", child1)
 				return root
 			}(),
 			targetLevel:   3,
@@ -476,11 +454,11 @@ func TestGetNodesAtLevel(t *testing.T) {
 			// └── child2
 			name: "3-level tree with 2 grandchildren at desired level",
 			root: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
-				createTestItem("grandchild1", false, child1)
-				createTestItem("grandchild2", false, child1)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				createTestItem("child2", root)
+				createTestItem("grandchild1", child1)
+				createTestItem("grandchild2", child1)
 				return root
 			}(),
 			targetLevel:   2,
@@ -496,12 +474,12 @@ func TestGetNodesAtLevel(t *testing.T) {
 			// └── child3
 			name: "3-level tree with 2 grandchildren from different parent at desired level",
 			root: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				child2 := createTestItem("child2", false, root)
-				createTestItem("child3", false, root)
-				createTestItem("grandchild1", false, child1)
-				createTestItem("grandchild2", false, child2)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				child2 := createTestItem("child2", root)
+				createTestItem("child3", root)
+				createTestItem("grandchild1", child1)
+				createTestItem("grandchild2", child2)
 				return root
 			}(),
 			targetLevel:   2,
@@ -518,13 +496,13 @@ func TestGetNodesAtLevel(t *testing.T) {
 			//     └── grandchild3
 			name: "4-level tree with 3 Grandchild with 1 Greatgrandchildren at desired level",
 			root: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				child2 := createTestItem("child2", false, root)
-				grandchild1 := createTestItem("grandchild1", false, child1)
-				createTestItem("grandchild2", false, child1)
-				createTestItem("grandchild3", false, child2)
-				createTestItem("greatgrandchild1", false, grandchild1)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				child2 := createTestItem("child2", root)
+				grandchild1 := createTestItem("grandchild1", child1)
+				createTestItem("grandchild2", child1)
+				createTestItem("grandchild3", child2)
+				createTestItem("greatgrandchild1", grandchild1)
 				return root
 			}(),
 			targetLevel:   3,
@@ -556,31 +534,31 @@ func TestGetNodesAtLevel(t *testing.T) {
 			//         └── greatgrandchild8
 			name: "5-level Ultra Complex Tree",
 			root: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				child2 := createTestItem("child2", false, root)
-				child3 := createTestItem("child3", false, root)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				child2 := createTestItem("child2", root)
+				child3 := createTestItem("child3", root)
 
-				grandchild1 := createTestItem("grandchild1", false, child1)
-				grandchild2 := createTestItem("grandchild2", false, child1)
-				grandchild3 := createTestItem("grandchild3", false, child2)
-				grandchild4 := createTestItem("grandchild4", false, child2)
-				createTestItem("grandchild5", false, child3)
-				grandchild6 := createTestItem("grandchild6", false, child3)
+				grandchild1 := createTestItem("grandchild1", child1)
+				grandchild2 := createTestItem("grandchild2", child1)
+				grandchild3 := createTestItem("grandchild3", child2)
+				grandchild4 := createTestItem("grandchild4", child2)
+				createTestItem("grandchild5", child3)
+				grandchild6 := createTestItem("grandchild6", child3)
 
-				greatgrandchild1 := createTestItem("greatgrandchild1", false, grandchild1)
-				createTestItem("greatgrandchild2", false, grandchild1)
-				greatgrandchild3 := createTestItem("greatgrandchild3", false, grandchild2)
-				createTestItem("greatgrandchild4", false, grandchild3)
-				createTestItem("greatgrandchild5", false, grandchild4)
-				createTestItem("greatgrandchild6", false, grandchild4)
-				greatgrandchild7 := createTestItem("greatgrandchild7", false, grandchild6)
-				createTestItem("greatgrandchild8", false, grandchild6)
+				greatgrandchild1 := createTestItem("greatgrandchild1", grandchild1)
+				createTestItem("greatgrandchild2", grandchild1)
+				greatgrandchild3 := createTestItem("greatgrandchild3", grandchild2)
+				createTestItem("greatgrandchild4", grandchild3)
+				createTestItem("greatgrandchild5", grandchild4)
+				createTestItem("greatgrandchild6", grandchild4)
+				greatgrandchild7 := createTestItem("greatgrandchild7", grandchild6)
+				createTestItem("greatgrandchild8", grandchild6)
 
-				createTestItem("greatgreatgrandchild1", false, greatgrandchild1)
-				createTestItem("greatgreatgrandchild2", false, greatgrandchild1)
-				createTestItem("greatgreatgrandchild3", false, greatgrandchild3)
-				createTestItem("greatgreatgrandchild4", false, greatgrandchild7)
+				createTestItem("greatgreatgrandchild1", greatgrandchild1)
+				createTestItem("greatgreatgrandchild2", greatgrandchild1)
+				createTestItem("greatgreatgrandchild3", greatgrandchild3)
+				createTestItem("greatgreatgrandchild4", greatgrandchild7)
 
 				return root
 			}(),
@@ -589,15 +567,8 @@ func TestGetNodesAtLevel(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name:          "Non-seed item",
-			root:          createTestItem("child", false, nil),
-			targetLevel:   1,
-			expectedIDs:   nil,
-			expectedError: ErrNotASeed,
-		},
-		{
 			name:          "Level not present",
-			root:          createTestItem("root", true, nil),
+			root:          createTestItem("root", nil),
 			targetLevel:   1,
 			expectedIDs:   nil,
 			expectedError: nil,
@@ -605,8 +576,8 @@ func TestGetNodesAtLevel(t *testing.T) {
 		{
 			name: "Nil node",
 			root: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
 				child.children = append(child.children, nil) // Adding a nil child
 				return root
 			}(),
@@ -651,15 +622,15 @@ func TestGetSeed(t *testing.T) {
 	}{
 		{
 			name:        "Seed item",
-			item:        createTestItem("root", true, nil),
+			item:        createTestItem("root", nil),
 			expectedID:  "root",
 			expectedErr: nil,
 		},
 		{
 			name: "Child item with seed parent",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
 				return child
 			}(),
 			expectedID:  "root",
@@ -668,18 +639,12 @@ func TestGetSeed(t *testing.T) {
 		{
 			name: "Grandchild item with seed grandparent",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
-				grandchild := createTestItem("grandchild", false, child)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
+				grandchild := createTestItem("grandchild", child)
 				return grandchild
 			}(),
 			expectedID:  "root",
-			expectedErr: nil,
-		},
-		{
-			name:        "Non-seed item with no parent",
-			item:        createTestItem("child", false, nil),
-			expectedID:  "",
 			expectedErr: nil,
 		},
 	}
@@ -705,14 +670,14 @@ func TestItem_GetDepth(t *testing.T) {
 	}{
 		{
 			name:     "Seed item",
-			item:     createTestItem("root", true, nil),
+			item:     createTestItem("root", nil),
 			expected: 0,
 		},
 		{
 			name: "Child item with depth 1",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
 				return child
 			}(),
 			expected: 1,
@@ -720,9 +685,9 @@ func TestItem_GetDepth(t *testing.T) {
 		{
 			name: "Grandchild item with depth 2",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
-				grandchild := createTestItem("grandchild", false, child)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
+				grandchild := createTestItem("grandchild", child)
 				return grandchild
 			}(),
 			expected: 2,
@@ -730,10 +695,10 @@ func TestItem_GetDepth(t *testing.T) {
 		{
 			name: "Great-grandchild item with depth 3",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
-				grandchild := createTestItem("grandchild", false, child)
-				greatGrandchild := createTestItem("greatGrandchild", false, grandchild)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
+				grandchild := createTestItem("grandchild", child)
+				greatGrandchild := createTestItem("greatGrandchild", grandchild)
 				return greatGrandchild
 			}(),
 			expected: 3,
@@ -757,14 +722,14 @@ func TestItem_GetDepthWithoutRedirections(t *testing.T) {
 	}{
 		{
 			name:     "Seed item",
-			item:     createTestItem("root", true, nil),
+			item:     createTestItem("root", nil),
 			expected: 0,
 		},
 		{
 			name: "Child item without redirections",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
 				return child
 			}(),
 			expected: 1,
@@ -772,9 +737,9 @@ func TestItem_GetDepthWithoutRedirections(t *testing.T) {
 		{
 			name: "Grandchild item without redirections",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
-				grandchild := createTestItem("grandchild", false, child)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
+				grandchild := createTestItem("grandchild", child)
 				return grandchild
 			}(),
 			expected: 2,
@@ -782,10 +747,10 @@ func TestItem_GetDepthWithoutRedirections(t *testing.T) {
 		{
 			name: "Child item with redirection",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
 				child.status = ItemGotRedirected
-				grandchild := createTestItem("grandchild", false, child)
+				grandchild := createTestItem("grandchild", child)
 				return grandchild
 			}(),
 			expected: 1,
@@ -793,12 +758,12 @@ func TestItem_GetDepthWithoutRedirections(t *testing.T) {
 		{
 			name: "Great-grandchild item with multiple redirections",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
 				child.status = ItemGotRedirected
-				grandchild := createTestItem("grandchild", false, child)
+				grandchild := createTestItem("grandchild", child)
 				grandchild.status = ItemGotRedirected
-				greatGrandchild := createTestItem("greatGrandchild", false, grandchild)
+				greatGrandchild := createTestItem("greatGrandchild", grandchild)
 				return greatGrandchild
 			}(),
 			expected: 1,
@@ -822,14 +787,14 @@ func TestItem_GetMaxDepth(t *testing.T) {
 	}{
 		{
 			name:     "Single seed item",
-			item:     createTestItem("root", true, nil),
+			item:     createTestItem("root", nil),
 			expected: 0,
 		},
 		{
 			name: "Seed with one child",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				createTestItem("child", false, root)
+				root := createTestItem("root", nil)
+				createTestItem("child", root)
 				return root
 			}(),
 			expected: 1,
@@ -837,9 +802,9 @@ func TestItem_GetMaxDepth(t *testing.T) {
 		{
 			name: "Seed with two levels of children",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
-				createTestItem("grandchild", false, child)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
+				createTestItem("grandchild", child)
 				return root
 			}(),
 			expected: 2,
@@ -847,28 +812,28 @@ func TestItem_GetMaxDepth(t *testing.T) {
 		{
 			name: "Seed with multiple children at different levels",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				child2 := createTestItem("child2", false, root)
-				createTestItem("grandchild1", false, child1)
-				createTestItem("grandchild2", false, child2)
-				createTestItem("greatGrandchild", false, child1.children[0])
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				child2 := createTestItem("child2", root)
+				createTestItem("grandchild1", child1)
+				createTestItem("grandchild2", child2)
+				createTestItem("greatGrandchild", child1.children[0])
 				return root
 			}(),
 			expected: 3,
 		},
 		{
 			name:     "Seed with no children",
-			item:     createTestItem("root", true, nil),
+			item:     createTestItem("root", nil),
 			expected: 0,
 		},
 		{
 			name: "Seed with multiple children at same level",
 			item: func() *Item {
-				root := createTestItem("root", true, nil)
-				createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
-				createTestItem("child3", false, root)
+				root := createTestItem("root", nil)
+				createTestItem("child1", root)
+				createTestItem("child2", root)
+				createTestItem("child3", root)
 				return root
 			}(),
 			expected: 1,
@@ -894,33 +859,33 @@ func TestAddChild(t *testing.T) {
 		{
 			name: "Valid AddChild with ItemGotRedirected",
 			parent: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				parent.status = ItemGotRedirected
 				return parent
 			}(),
-			child:       createTestItem("childID", false, nil),
+			child:       createTestItem("childID", nil),
 			from:        ItemGotRedirected,
 			expectedErr: nil,
 		},
 		{
 			name: "Valid AddChild with ItemGotChildren",
 			parent: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				parent.status = ItemGotChildren
 				return parent
 			}(),
-			child:       createTestItem("childID", false, nil),
+			child:       createTestItem("childID", nil),
 			from:        ItemGotChildren,
 			expectedErr: nil,
 		},
 		{
 			name: "Invalid AddChild with wrong state",
 			parent: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				parent.status = ItemFresh
 				return parent
 			}(),
-			child:       createTestItem("childID", false, nil),
+			child:       createTestItem("childID", nil),
 			from:        ItemFresh,
 			expectedErr: fmt.Errorf("from state is invalid, only ItemGotRedirected and ItemGotChildren are allowed"),
 		},
@@ -955,61 +920,61 @@ func TestItem_SetSource(t *testing.T) {
 	}{
 		{
 			name:        "Set source for seed item to ItemSourceInsert",
-			item:        createTestItem("testID", true, nil),
+			item:        createTestItem("testID", nil),
 			source:      ItemSourceInsert,
 			expectedErr: nil,
 		},
 		{
 			name:        "Set source for seed item to ItemSourceQueue",
-			item:        createTestItem("testID", true, nil),
+			item:        createTestItem("testID", nil),
 			source:      ItemSourceQueue,
 			expectedErr: nil,
 		},
 		{
 			name:        "Set source for seed item to ItemSourceHQ",
-			item:        createTestItem("testID", true, nil),
+			item:        createTestItem("testID", nil),
 			source:      ItemSourceHQ,
 			expectedErr: nil,
 		},
 		{
 			name:        "Set source for seed item to ItemSourcePostprocess",
-			item:        createTestItem("testID", true, nil),
+			item:        createTestItem("testID", nil),
 			source:      ItemSourcePostprocess,
 			expectedErr: nil,
 		},
 		{
 			name:        "Set source for seed item to ItemSourceFeedback",
-			item:        createTestItem("testID", true, nil),
+			item:        createTestItem("testID", nil),
 			source:      ItemSourceFeedback,
 			expectedErr: nil,
 		},
 		{
 			name:        "Set source for child item to ItemSourceInsert",
-			item:        createTestItem("testID", false, createTestItem("parentID", true, nil)),
+			item:        createTestItem("testID", createTestItem("parentID", nil)),
 			source:      ItemSourceInsert,
 			expectedErr: fmt.Errorf("source is invalid for a child"),
 		},
 		{
 			name:        "Set source for child item to ItemSourceQueue",
-			item:        createTestItem("testID", false, createTestItem("parentID", true, nil)),
+			item:        createTestItem("testID", createTestItem("parentID", nil)),
 			source:      ItemSourceQueue,
 			expectedErr: fmt.Errorf("source is invalid for a child"),
 		},
 		{
 			name:        "Set source for child item to ItemSourceHQ",
-			item:        createTestItem("testID", false, createTestItem("parentID", true, nil)),
+			item:        createTestItem("testID", createTestItem("parentID", nil)),
 			source:      ItemSourceHQ,
 			expectedErr: fmt.Errorf("source is invalid for a child"),
 		},
 		{
 			name:        "Set source for child item to ItemSourcePostprocess",
-			item:        createTestItem("testID", false, createTestItem("parentID", true, nil)),
+			item:        createTestItem("testID", createTestItem("parentID", nil)),
 			source:      ItemSourcePostprocess,
 			expectedErr: nil,
 		},
 		{
 			name:        "Set source for child item to ItemSourceFeedback",
-			item:        createTestItem("testID", false, createTestItem("parentID", true, nil)),
+			item:        createTestItem("testID", createTestItem("parentID", nil)),
 			source:      ItemSourceFeedback,
 			expectedErr: nil,
 		},
@@ -1040,43 +1005,43 @@ func TestItem_SetStatus(t *testing.T) {
 	}{
 		{
 			name:     "Set status to ItemFresh",
-			item:     createTestItem("testID", true, nil),
+			item:     createTestItem("testID", nil),
 			status:   ItemFresh,
 			expected: ItemFresh,
 		},
 		{
 			name:     "Set status to ItemPreProcessed",
-			item:     createTestItem("testID", true, nil),
+			item:     createTestItem("testID", nil),
 			status:   ItemPreProcessed,
 			expected: ItemPreProcessed,
 		},
 		{
 			name:     "Set status to ItemArchived",
-			item:     createTestItem("testID", true, nil),
+			item:     createTestItem("testID", nil),
 			status:   ItemArchived,
 			expected: ItemArchived,
 		},
 		{
 			name:     "Set status to ItemFailed",
-			item:     createTestItem("testID", true, nil),
+			item:     createTestItem("testID", nil),
 			status:   ItemFailed,
 			expected: ItemFailed,
 		},
 		{
 			name:     "Set status to ItemCompleted",
-			item:     createTestItem("testID", true, nil),
+			item:     createTestItem("testID", nil),
 			status:   ItemCompleted,
 			expected: ItemCompleted,
 		},
 		{
 			name:     "Set status to ItemGotRedirected",
-			item:     createTestItem("testID", true, nil),
+			item:     createTestItem("testID", nil),
 			status:   ItemGotRedirected,
 			expected: ItemGotRedirected,
 		},
 		{
 			name:     "Set status to ItemGotChildren",
-			item:     createTestItem("testID", true, nil),
+			item:     createTestItem("testID", nil),
 			status:   ItemGotChildren,
 			expected: ItemGotChildren,
 		},
@@ -1101,19 +1066,19 @@ func TestItem_SetError(t *testing.T) {
 	}{
 		{
 			name:        "Set error to nil",
-			item:        createTestItem("testID", true, nil),
+			item:        createTestItem("testID", nil),
 			err:         nil,
 			expectedErr: nil,
 		},
 		{
 			name:        "Set error to non-nil error",
-			item:        createTestItem("testID", true, nil),
+			item:        createTestItem("testID", nil),
 			err:         errors.New("test error"),
 			expectedErr: errors.New("test error"),
 		},
 		{
 			name:        "Set error to another non-nil error",
-			item:        createTestItem("testID", true, nil),
+			item:        createTestItem("testID", nil),
 			err:         errors.New("another test error"),
 			expectedErr: errors.New("another test error"),
 		},
@@ -1138,7 +1103,6 @@ func TestNewItem(t *testing.T) {
 		id       string
 		url      *URL
 		via      string
-		isSeed   bool
 		expected *Item
 	}{
 		{
@@ -1146,11 +1110,9 @@ func TestNewItem(t *testing.T) {
 			id:     "testID",
 			url:    &URL{Raw: "http://example.com"},
 			via:    "seedViaTest",
-			isSeed: true,
 			expected: &Item{
 				id:      "testID",
 				url:     &URL{Raw: "http://example.com"},
-				seed:    true,
 				seedVia: "seedViaTest",
 				status:  ItemFresh,
 			},
@@ -1160,11 +1122,9 @@ func TestNewItem(t *testing.T) {
 			id:     "childID",
 			url:    &URL{Raw: "http://example.com/child"},
 			via:    "",
-			isSeed: false,
 			expected: &Item{
 				id:      "childID",
 				url:     &URL{Raw: "http://example.com/child"},
-				seed:    false,
 				seedVia: "",
 				status:  ItemFresh,
 			},
@@ -1174,11 +1134,9 @@ func TestNewItem(t *testing.T) {
 			id:     "testID2",
 			url:    &URL{Raw: "http://example.com/2"},
 			via:    "",
-			isSeed: true,
 			expected: &Item{
 				id:      "testID2",
 				url:     &URL{Raw: "http://example.com/2"},
-				seed:    true,
 				seedVia: "",
 				status:  ItemFresh,
 			},
@@ -1188,11 +1146,9 @@ func TestNewItem(t *testing.T) {
 			id:     "childID2",
 			url:    &URL{Raw: "http://example.com/child2"},
 			via:    "seedViaTest2",
-			isSeed: false,
 			expected: &Item{
 				id:      "childID2",
 				url:     &URL{Raw: "http://example.com/child2"},
-				seed:    false,
 				seedVia: "seedViaTest2",
 				status:  ItemFresh,
 			},
@@ -1202,7 +1158,6 @@ func TestNewItem(t *testing.T) {
 			id:       "testID3",
 			url:      nil,
 			via:      "",
-			isSeed:   true,
 			expected: nil,
 		},
 		{
@@ -1210,14 +1165,13 @@ func TestNewItem(t *testing.T) {
 			id:       "",
 			url:      &URL{Raw: "http://example.com/child3"},
 			via:      "",
-			isSeed:   false,
 			expected: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			item := NewItem(tt.id, tt.url, tt.via, tt.isSeed)
+			item := NewItem(tt.id, tt.url, tt.via)
 			if tt.expected == nil && item != nil {
 				t.Errorf("expected nil, got: %v", item)
 			} else if item != nil {
@@ -1230,8 +1184,8 @@ func TestNewItem(t *testing.T) {
 				if item.url.Raw != tt.expected.url.Raw {
 					t.Errorf("expected url: %v, got: %v", tt.expected.url.Raw, item.url.Raw)
 				}
-				if item.seed != tt.expected.seed {
-					t.Errorf("expected seed: %v, got: %v", tt.expected.seed, item.seed)
+				if item.IsSeed() != tt.expected.IsSeed() {
+					t.Errorf("expected seed: %v, got: %v", tt.expected.IsSeed(), item.IsSeed())
 				}
 				if item.seedVia != tt.expected.seedVia {
 					t.Errorf("expected seedVia: %v, got: %v", tt.expected.seedVia, item.seedVia)
@@ -1253,9 +1207,9 @@ func TestItem_IsRedirection(t *testing.T) {
 		{
 			name: "Item with parent having status ItemGotRedirected",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				parent.status = ItemGotRedirected
-				child := createTestItem("childID", false, parent)
+				child := createTestItem("childID", parent)
 				return child
 			}(),
 			expected: true,
@@ -1263,16 +1217,16 @@ func TestItem_IsRedirection(t *testing.T) {
 		{
 			name: "Item with parent having status ItemGotChildren",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				parent.status = ItemGotChildren
-				child := createTestItem("childID", false, parent)
+				child := createTestItem("childID", parent)
 				return child
 			}(),
 			expected: false,
 		},
 		{
 			name:     "Item with no parent",
-			item:     createTestItem("testID", true, nil),
+			item:     createTestItem("testID", nil),
 			expected: false,
 		},
 	}
@@ -1295,9 +1249,9 @@ func TestItem_IsChild(t *testing.T) {
 		{
 			name: "Item with parent having status ItemGotChildren",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				parent.status = ItemGotChildren
-				child := createTestItem("childID", false, parent)
+				child := createTestItem("childID", parent)
 				return child
 			}(),
 			expected: true,
@@ -1305,16 +1259,16 @@ func TestItem_IsChild(t *testing.T) {
 		{
 			name: "Item with parent having status ItemGotRedirected",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				parent.status = ItemGotRedirected
-				child := createTestItem("childID", false, parent)
+				child := createTestItem("childID", parent)
 				return child
 			}(),
 			expected: false,
 		},
 		{
 			name:     "Item with no parent",
-			item:     createTestItem("testID", true, nil),
+			item:     createTestItem("testID", nil),
 			expected: false,
 		},
 	}
@@ -1329,7 +1283,7 @@ func TestItem_IsChild(t *testing.T) {
 }
 
 func TestConcurrentAddChild(t *testing.T) {
-	parent := createTestItem("parentID", true, nil)
+	parent := createTestItem("parentID", nil)
 	parent.status = ItemGotChildren
 
 	var wg sync.WaitGroup
@@ -1339,7 +1293,7 @@ func TestConcurrentAddChild(t *testing.T) {
 	for i := 0; i < numChildren; i++ {
 		go func(i int) {
 			defer wg.Done()
-			child := createTestItem(fmt.Sprintf("childID%d", i), false, nil)
+			child := createTestItem(fmt.Sprintf("childID%d", i), nil)
 			err := parent.AddChild(child, ItemGotChildren)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -1362,8 +1316,8 @@ func TestItem_HasRedirection(t *testing.T) {
 		{
 			name: "Item with one child having status ItemGotRedirected",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
-				child := createTestItem("childID", false, parent)
+				parent := createTestItem("parentID", nil)
+				child := createTestItem("childID", parent)
 				parent.status = ItemGotRedirected
 				parent.children = []*Item{child}
 				return parent
@@ -1373,8 +1327,8 @@ func TestItem_HasRedirection(t *testing.T) {
 		{
 			name: "Item with one child having status ItemGotChildren",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
-				child := createTestItem("childID", false, parent)
+				parent := createTestItem("parentID", nil)
+				child := createTestItem("childID", parent)
 				parent.status = ItemGotChildren
 				parent.children = []*Item{child}
 				return parent
@@ -1384,7 +1338,7 @@ func TestItem_HasRedirection(t *testing.T) {
 		{
 			name: "Item with no children",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				return parent
 			}(),
 			expected: false,
@@ -1409,8 +1363,8 @@ func TestItem_HasChildren(t *testing.T) {
 		{
 			name: "Item with one child having status ItemGotRedirected",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
-				child := createTestItem("childID", false, parent)
+				parent := createTestItem("parentID", nil)
+				child := createTestItem("childID", parent)
 				parent.status = ItemGotRedirected
 				parent.children = []*Item{child}
 				return parent
@@ -1420,8 +1374,8 @@ func TestItem_HasChildren(t *testing.T) {
 		{
 			name: "Item with one child having status ItemGotChildren",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
-				child := createTestItem("childID", false, parent)
+				parent := createTestItem("parentID", nil)
+				child := createTestItem("childID", parent)
 				parent.status = ItemGotChildren
 				parent.children = []*Item{child}
 				return parent
@@ -1431,7 +1385,7 @@ func TestItem_HasChildren(t *testing.T) {
 		{
 			name: "Item with no children",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
+				parent := createTestItem("parentID", nil)
 				return parent
 			}(),
 			expected: false,
@@ -1439,9 +1393,9 @@ func TestItem_HasChildren(t *testing.T) {
 		{
 			name: "Item with multiple children",
 			item: func() *Item {
-				parent := createTestItem("parentID", true, nil)
-				child1 := createTestItem("childID1", false, parent)
-				child2 := createTestItem("childID2", false, parent)
+				parent := createTestItem("parentID", nil)
+				child1 := createTestItem("childID1", parent)
+				child2 := createTestItem("childID2", parent)
 				parent.status = ItemGotChildren
 				parent.children = []*Item{child1, child2}
 				return parent
@@ -1470,9 +1424,9 @@ func TestItem_GetNodesAtLevel_GetMaxDepth(t *testing.T) {
 		{
 			name: "Simple tree",
 			setupTree: func() *Item {
-				root := createTestItem("root", true, nil)
-				createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
+				root := createTestItem("root", nil)
+				createTestItem("child1", root)
+				createTestItem("child2", root)
 				return root
 			},
 			expectedDepth: 1,
@@ -1481,10 +1435,10 @@ func TestItem_GetNodesAtLevel_GetMaxDepth(t *testing.T) {
 		{
 			name: "Three level tree",
 			setupTree: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
-				createTestItem("grandchild1", false, child1)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				createTestItem("child2", root)
+				createTestItem("grandchild1", child1)
 				return root
 			},
 			expectedDepth: 2,
@@ -1493,16 +1447,16 @@ func TestItem_GetNodesAtLevel_GetMaxDepth(t *testing.T) {
 		{
 			name: "Complex tree",
 			setupTree: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				child2 := createTestItem("child2", false, root)
-				child3 := createTestItem("child3", false, root)
-				grandchild1 := createTestItem("grandchild1", false, child1)
-				createTestItem("grandchild2", false, child2)
-				grandchild3 := createTestItem("grandchild3", false, child2)
-				createTestItem("grandchild4", false, child3)
-				createTestItem("greatgrandchild1", false, grandchild1)
-				createTestItem("greatgrandchild2", false, grandchild3)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				child2 := createTestItem("child2", root)
+				child3 := createTestItem("child3", root)
+				grandchild1 := createTestItem("grandchild1", child1)
+				createTestItem("grandchild2", child2)
+				grandchild3 := createTestItem("grandchild3", child2)
+				createTestItem("grandchild4", child3)
+				createTestItem("greatgrandchild1", grandchild1)
+				createTestItem("greatgrandchild2", grandchild3)
 				return root
 			},
 			expectedDepth: 3,
@@ -1511,7 +1465,7 @@ func TestItem_GetNodesAtLevel_GetMaxDepth(t *testing.T) {
 		{
 			name: "Single node tree",
 			setupTree: func() *Item {
-				return createTestItem("root", true, nil)
+				return createTestItem("root", nil)
 			},
 			expectedDepth: 0,
 			expectedNodes: []string{"root"},
@@ -1519,10 +1473,10 @@ func TestItem_GetNodesAtLevel_GetMaxDepth(t *testing.T) {
 		{
 			name: "Two level tree with multiple children",
 			setupTree: func() *Item {
-				root := createTestItem("root", true, nil)
-				createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
-				createTestItem("child3", false, root)
+				root := createTestItem("root", nil)
+				createTestItem("child1", root)
+				createTestItem("child2", root)
+				createTestItem("child3", root)
 				return root
 			},
 			expectedDepth: 1,
@@ -1569,9 +1523,9 @@ func TestItem_RemoveChild(t *testing.T) {
 		{
 			name: "Remove existing child",
 			setupTree: func() (*Item, *Item) {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				createTestItem("child2", root)
 				return root, child1
 			},
 			expectedIDs: []string{"child2"},
@@ -1579,10 +1533,10 @@ func TestItem_RemoveChild(t *testing.T) {
 		{
 			name: "Remove non-existing child",
 			setupTree: func() (*Item, *Item) {
-				root := createTestItem("root", true, nil)
-				createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
-				nonExistingChild := createTestItem("nonExistingChild", false, nil)
+				root := createTestItem("root", nil)
+				createTestItem("child1", root)
+				createTestItem("child2", root)
+				nonExistingChild := createTestItem("nonExistingChild", nil)
 				return root, nonExistingChild
 			},
 			expectedIDs: []string{"child1", "child2"},
@@ -1590,8 +1544,8 @@ func TestItem_RemoveChild(t *testing.T) {
 		{
 			name: "Remove child from single child",
 			setupTree: func() (*Item, *Item) {
-				root := createTestItem("root", true, nil)
-				child := createTestItem("child", false, root)
+				root := createTestItem("root", nil)
+				child := createTestItem("child", root)
 				return root, child
 			},
 			expectedIDs: []string{},
@@ -1632,9 +1586,9 @@ func TestItem_Traverse(t *testing.T) {
 		{
 			name: "Simple tree",
 			setupTree: func() *Item {
-				root := createTestItem("root", true, nil)
-				createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
+				root := createTestItem("root", nil)
+				createTestItem("child1", root)
+				createTestItem("child2", root)
 				return root
 			},
 			traverseFn: func(item *Item) {
@@ -1645,10 +1599,10 @@ func TestItem_Traverse(t *testing.T) {
 		{
 			name: "Three level tree",
 			setupTree: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				createTestItem("child2", false, root)
-				createTestItem("grandchild1", false, child1)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				createTestItem("child2", root)
+				createTestItem("grandchild1", child1)
 				return root
 			},
 			traverseFn: func(item *Item) {
@@ -1659,15 +1613,15 @@ func TestItem_Traverse(t *testing.T) {
 		{
 			name: "Complex tree",
 			setupTree: func() *Item {
-				root := createTestItem("root", true, nil)
-				child1 := createTestItem("child1", false, root)
-				child2 := createTestItem("child2", false, root)
-				child3 := createTestItem("child3", false, root)
-				grandchild1 := createTestItem("grandchild1", false, child1)
-				createTestItem("grandchild2", false, child1)
-				createTestItem("grandchild3", false, child2)
-				createTestItem("grandchild4", false, child3)
-				createTestItem("greatgrandchild1", false, grandchild1)
+				root := createTestItem("root", nil)
+				child1 := createTestItem("child1", root)
+				child2 := createTestItem("child2", root)
+				child3 := createTestItem("child3", root)
+				grandchild1 := createTestItem("grandchild1", child1)
+				createTestItem("grandchild2", child1)
+				createTestItem("grandchild3", child2)
+				createTestItem("grandchild4", child3)
+				createTestItem("greatgrandchild1", grandchild1)
 				return root
 			},
 			traverseFn: func(item *Item) {
@@ -1678,11 +1632,11 @@ func TestItem_Traverse(t *testing.T) {
 		{
 			name: "Very large tree",
 			setupTree: func() *Item {
-				root := createTestItem("root", true, nil)
+				root := createTestItem("root", nil)
 				for i := 0; i < 100; i++ {
-					child := createTestItem(fmt.Sprintf("child%d", i), false, root)
+					child := createTestItem(fmt.Sprintf("child%d", i), root)
 					for j := 0; j < 10; j++ {
-						createTestItem(fmt.Sprintf("grandchild%d", i*10+j), false, child)
+						createTestItem(fmt.Sprintf("grandchild%d", i*10+j), child)
 					}
 				}
 				return root
@@ -1734,23 +1688,23 @@ func TestCompleteAndCheck(t *testing.T) {
 		{
 			name: "Non-seed item",
 			setup: func() *Item {
-				return createTestItemWithStatus("item1", false, nil, ItemFresh)
+				return createTestItemWithStatus("item1", nil, ItemFresh)
 			},
 			expected: false,
 		},
 		{
 			name: "Seed item already completed",
 			setup: func() *Item {
-				return createTestItemWithStatus("item1", true, nil, ItemCompleted)
+				return createTestItemWithStatus("item1", nil, ItemCompleted)
 			},
 			expected: true,
 		},
 		{
 			name: "Seed item with incomplete children",
 			setup: func() *Item {
-				root := createTestItemWithStatus("root", true, nil, ItemFresh)
-				createTestItemWithStatus("child1", false, root, ItemFresh)
-				createTestItemWithStatus("child2", false, root, ItemFresh)
+				root := createTestItemWithStatus("root", nil, ItemFresh)
+				createTestItemWithStatus("child1", root, ItemFresh)
+				createTestItemWithStatus("child2", root, ItemFresh)
 				return root
 			},
 			expected: false,
@@ -1758,9 +1712,9 @@ func TestCompleteAndCheck(t *testing.T) {
 		{
 			name: "Seed item with completed children",
 			setup: func() *Item {
-				root := createTestItemWithStatus("root", true, nil, ItemGotChildren)
-				createTestItemWithStatus("child1", false, root, ItemCompleted)
-				createTestItemWithStatus("child2", false, root, ItemCompleted)
+				root := createTestItemWithStatus("root", nil, ItemGotChildren)
+				createTestItemWithStatus("child1", root, ItemCompleted)
+				createTestItemWithStatus("child2", root, ItemCompleted)
 				return root
 			},
 			expected: true,
@@ -1768,9 +1722,9 @@ func TestCompleteAndCheck(t *testing.T) {
 		{
 			name: "Seed item with mixed status children",
 			setup: func() *Item {
-				root := createTestItemWithStatus("root", true, nil, ItemGotChildren)
-				createTestItemWithStatus("child1", false, root, ItemCompleted)
-				createTestItemWithStatus("child2", false, root, ItemFresh)
+				root := createTestItemWithStatus("root", nil, ItemGotChildren)
+				createTestItemWithStatus("child1", root, ItemCompleted)
+				createTestItemWithStatus("child2", root, ItemFresh)
 				return root
 			},
 			expected: false,

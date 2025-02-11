@@ -27,7 +27,7 @@ func TestExtractBaseTag(t *testing.T) {
 
 	item := models.NewItem("test", &models.URL{
     Raw: "https://example.com/something/page.html",
-  }, "", false)
+  }, "")
 
 	extractBaseTag(item, doc)
 

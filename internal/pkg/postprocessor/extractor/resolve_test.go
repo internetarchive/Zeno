@@ -102,7 +102,7 @@ func TestResolveURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			item := models.NewItem("test", &models.URL{
 				Raw: tt.parentURL,
-			}, "", false)
+			}, "")
 
 			item.SetBase(tt.base)
 

@@ -12,10 +12,10 @@ func TestItem_DedupeChilds(t *testing.T) {
 		{
 			name: "No duplicates",
 			setupTree: func() *Item {
-				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root := createTestItemWithURL("root", nil, "http://example.com/root")
 				root.SetStatus(ItemGotChildren)
-				createTestItemWithURL("child1", false, root, "http://example.com/child1")
-				createTestItemWithURL("child2", false, root, "http://example.com/child2")
+				createTestItemWithURL("child1", root, "http://example.com/child1")
+				createTestItemWithURL("child2", root, "http://example.com/child2")
 				return root
 			},
 			expectedIDs: map[string][]string{
@@ -28,10 +28,10 @@ func TestItem_DedupeChilds(t *testing.T) {
 		{
 			name: "With duplicates",
 			setupTree: func() *Item {
-				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root := createTestItemWithURL("root", nil, "http://example.com/root")
 				root.SetStatus(ItemGotChildren)
-				createTestItemWithURL("child1", false, root, "http://example.com/child")
-				createTestItemWithURL("child2", false, root, "http://example.com/child")
+				createTestItemWithURL("child1", root, "http://example.com/child")
+				createTestItemWithURL("child2", root, "http://example.com/child")
 				return root
 			},
 			expectedIDs: map[string][]string{
@@ -44,11 +44,11 @@ func TestItem_DedupeChilds(t *testing.T) {
 		{
 			name: "Multiple duplicates",
 			setupTree: func() *Item {
-				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root := createTestItemWithURL("root", nil, "http://example.com/root")
 				root.SetStatus(ItemGotChildren)
-				createTestItemWithURL("child1", false, root, "http://example.com/child")
-				createTestItemWithURL("child2", false, root, "http://example.com/child")
-				createTestItemWithURL("child3", false, root, "http://example.com/child")
+				createTestItemWithURL("child1", root, "http://example.com/child")
+				createTestItemWithURL("child2", root, "http://example.com/child")
+				createTestItemWithURL("child3", root, "http://example.com/child")
 				return root
 			},
 			expectedIDs: map[string][]string{
@@ -61,15 +61,15 @@ func TestItem_DedupeChilds(t *testing.T) {
 		{
 			name: "Complex tree with duplicates",
 			setupTree: func() *Item {
-				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root := createTestItemWithURL("root", nil, "http://example.com/root")
 				root.SetStatus(ItemGotChildren)
-				child1 := createTestItemWithURL("child1", false, root, "http://example.com/child1")
+				child1 := createTestItemWithURL("child1", root, "http://example.com/child1")
 				child1.SetStatus(ItemGotChildren)
-				child2 := createTestItemWithURL("child2", false, root, "http://example.com/child2")
+				child2 := createTestItemWithURL("child2", root, "http://example.com/child2")
 				child2.SetStatus(ItemGotChildren)
-				createTestItemWithURL("grandchild1", false, child1, "http://example.com/grandchild")
-				createTestItemWithURL("grandchild2", false, child1, "http://example.com/grandchild")
-				createTestItemWithURL("grandchild3", false, child2, "http://example.com/grandchild")
+				createTestItemWithURL("grandchild1", child1, "http://example.com/grandchild")
+				createTestItemWithURL("grandchild2", child1, "http://example.com/grandchild")
+				createTestItemWithURL("grandchild3", child2, "http://example.com/grandchild")
 				return root
 			},
 			expectedIDs: map[string][]string{
@@ -86,13 +86,13 @@ func TestItem_DedupeChilds(t *testing.T) {
 		{
 			name: "Complex tree with multi-level duplicates",
 			setupTree: func() *Item {
-				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root := createTestItemWithURL("root", nil, "http://example.com/root")
 				root.SetStatus(ItemGotChildren)
-				child1 := createTestItemWithURL("child1", false, root, "http://example.com/child1")
+				child1 := createTestItemWithURL("child1", root, "http://example.com/child1")
 				child1.SetStatus(ItemGotChildren)
-				child2 := createTestItemWithURL("child2", false, root, "http://example.com/this-was-crawled")
+				child2 := createTestItemWithURL("child2", root, "http://example.com/this-was-crawled")
 				child2.SetStatus(ItemCompleted)
-				createTestItemWithURL("grandchild1", false, child1, "http://example.com/this-was-crawled")
+				createTestItemWithURL("grandchild1", child1, "http://example.com/this-was-crawled")
 				return root
 			},
 			expectedIDs: map[string][]string{
@@ -109,10 +109,10 @@ func TestItem_DedupeChilds(t *testing.T) {
 		{
 			name: "Valid seed item with no duplicates",
 			setupTree: func() *Item {
-				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root := createTestItemWithURL("root", nil, "http://example.com/root")
 				root.SetStatus(ItemGotChildren)
-				createTestItemWithURL("child1", false, root, "http://example.com/child1")
-				createTestItemWithURL("child2", false, root, "http://example.com/child2")
+				createTestItemWithURL("child1", root, "http://example.com/child1")
+				createTestItemWithURL("child2", root, "http://example.com/child2")
 				return root
 			},
 			expectedIDs: map[string][]string{
@@ -125,10 +125,10 @@ func TestItem_DedupeChilds(t *testing.T) {
 		{
 			name: "Valid seed item with duplicates",
 			setupTree: func() *Item {
-				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root := createTestItemWithURL("root", nil, "http://example.com/root")
 				root.SetStatus(ItemGotChildren)
-				createTestItemWithURL("child1", false, root, "http://example.com/child")
-				createTestItemWithURL("child2", false, root, "http://example.com/child")
+				createTestItemWithURL("child1", root, "http://example.com/child")
+				createTestItemWithURL("child2", root, "http://example.com/child")
 				return root
 			},
 			expectedIDs: map[string][]string{
@@ -141,10 +141,10 @@ func TestItem_DedupeChilds(t *testing.T) {
 		{
 			name: "Item with completed duplicate",
 			setupTree: func() *Item {
-				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root := createTestItemWithURL("root", nil, "http://example.com/root")
 				root.SetStatus(ItemGotChildren)
-				createTestItemWithURL("child1", false, root, "http://example.com/child")
-				child2 := createTestItemWithURL("child2", false, root, "http://example.com/child")
+				createTestItemWithURL("child1", root, "http://example.com/child")
+				child2 := createTestItemWithURL("child2", root, "http://example.com/child")
 				child2.status = ItemCompleted
 				return root
 			},
@@ -159,7 +159,7 @@ func TestItem_DedupeChilds(t *testing.T) {
 		{
 			name: "Item with nil child",
 			setupTree: func() *Item {
-				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root := createTestItemWithURL("root", nil, "http://example.com/root")
 				root.children = append(root.children, nil)
 				return root
 			},
@@ -173,13 +173,13 @@ func TestItem_DedupeChilds(t *testing.T) {
 		{
 			name: "Same URL for Seed and Child",
 			setupTree: func() *Item {
-				root := createTestItemWithURL("root", true, nil, "http://example.com/root")
+				root := createTestItemWithURL("root", nil, "http://example.com/root")
 				root.SetStatus(ItemGotChildren)
-				child1 := createTestItemWithURL("child1", false, root, "http://example.com/child1")
+				child1 := createTestItemWithURL("child1", root, "http://example.com/child1")
 				child1.SetStatus(ItemGotChildren)
-				grandchild1 := createTestItemWithURL("grandchild1", false, child1, "http://example.com/root")
+				grandchild1 := createTestItemWithURL("grandchild1", child1, "http://example.com/root")
 				grandchild1.SetStatus(ItemCompleted)
-				child2 := createTestItemWithURL("child2", false, root, "http://example.com/child2")
+				child2 := createTestItemWithURL("child2", root, "http://example.com/child2")
 				child2.SetStatus(ItemCompleted)
 				return root
 			},

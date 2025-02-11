@@ -5,10 +5,9 @@ import (
 )
 
 func TestDrawTree(t *testing.T) {
-	drawCreateTestItem := func(id string, seed bool, parent *Item) *Item {
+	drawCreateTestItem := func(id string, parent *Item) *Item {
 		item := &Item{
 			id:     id,
-			seed:   seed,
 			parent: parent,
 		}
 		if parent != nil {
@@ -23,15 +22,15 @@ func TestDrawTree(t *testing.T) {
 	}{
 		{
 			name:     "Single node",
-			root:     drawCreateTestItem("root", true, nil),
+			root:     drawCreateTestItem("root", nil),
 			expected: "root\n",
 		},
 		{
 			name: "Two level tree",
 			root: func() *Item {
-				root := drawCreateTestItem("root", true, nil)
-				drawCreateTestItem("child1", false, root)
-				drawCreateTestItem("child2", false, root)
+				root := drawCreateTestItem("root", nil)
+				drawCreateTestItem("child1", root)
+				drawCreateTestItem("child2", root)
 				return root
 			}(),
 			expected: "root\n├── child1\n└── child2\n",
@@ -39,10 +38,10 @@ func TestDrawTree(t *testing.T) {
 		{
 			name: "Three level tree",
 			root: func() *Item {
-				root := drawCreateTestItem("root", true, nil)
-				child1 := drawCreateTestItem("child1", false, root)
-				drawCreateTestItem("child2", false, root)
-				drawCreateTestItem("grandchild1", false, child1)
+				root := drawCreateTestItem("root", nil)
+				child1 := drawCreateTestItem("child1", root)
+				drawCreateTestItem("child2", root)
+				drawCreateTestItem("grandchild1", child1)
 				return root
 			}(),
 			expected: "root\n├── child1\n│   └── grandchild1\n└── child2\n",
@@ -50,12 +49,12 @@ func TestDrawTree(t *testing.T) {
 		{
 			name: "Complex tree",
 			root: func() *Item {
-				root := drawCreateTestItem("root", true, nil)
-				child1 := drawCreateTestItem("child1", false, root)
-				drawCreateTestItem("child2", false, root)
-				grandchild1 := drawCreateTestItem("grandchild1", false, child1)
-				drawCreateTestItem("grandchild2", false, child1)
-				drawCreateTestItem("greatgrandchild1", false, grandchild1)
+				root := drawCreateTestItem("root", nil)
+				child1 := drawCreateTestItem("child1", root)
+				drawCreateTestItem("child2", root)
+				grandchild1 := drawCreateTestItem("grandchild1", child1)
+				drawCreateTestItem("grandchild2", child1)
+				drawCreateTestItem("greatgrandchild1", grandchild1)
 				return root
 			}(),
 			expected: "root\n├── child1\n│   ├── grandchild1\n│   │   └── greatgrandchild1\n│   └── grandchild2\n└── child2\n",
