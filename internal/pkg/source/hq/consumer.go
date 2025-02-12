@@ -166,7 +166,7 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *g
 			if err != nil {
 				discard = true
 			}
-			newItem := models.NewItem(URL.ID, &parsedURL, URL.Via, true)
+			newItem := models.NewItem(URL.ID, &parsedURL, URL.Via)
 			newItem.SetStatus(models.ItemFresh)
 			newItem.SetSource(models.ItemSourceHQ)
 

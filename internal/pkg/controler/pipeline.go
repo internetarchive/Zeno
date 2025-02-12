@@ -129,7 +129,7 @@ func startPipeline() {
 				panic(err)
 			}
 
-			item := models.NewItem(uuid.New().String(), parsedURL, "", true)
+			item := models.NewItem(uuid.New().String(), parsedURL, "")
 			item.SetSource(models.ItemSourceQueue)
 
 			err = reactor.ReceiveInsert(item)

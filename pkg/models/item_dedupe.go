@@ -2,7 +2,7 @@ package models
 
 // DedupeItems dedupes items from any level, keeping in priority a Completed item
 func (i *Item) DedupeItems() error {
-	if !i.seed {
+	if !i.IsSeed() {
 		return ErrNotASeed
 	}
 
@@ -12,7 +12,7 @@ func (i *Item) DedupeItems() error {
 	// Dedupe the nodes based on their URL
 	urls := make(map[string]*Item)
 	for _, node := range nodes {
-		if node == nil || (!node.seed && node.parent == nil) {
+		if node == nil || node.parent == nil {
 			continue
 		}
 		if existing, ok := urls[node.url.String()]; ok {

@@ -34,7 +34,7 @@ func TestHTMLOutlinks(t *testing.T) {
 	if err != nil {
 		t.Errorf("ProcessBody() error = %v", err)
 	}
-	item := models.NewItem("test", newURL, "", false)
+	item := models.NewItem("test", newURL, "")
 	config.InitConfig()
 
 	outlinks, err := HTMLOutlinks(item)
@@ -68,7 +68,7 @@ func TestHTMLAssetsAudioVideo(t *testing.T) {
 	if err != nil {
 		t.Errorf("ProcessBody() error = %v", err)
 	}
-	item := models.NewItem("test", newURL, "", false)
+	item := models.NewItem("test", newURL, "")
 
 	assets, err := HTMLAssets(item)
 	if err != nil {
@@ -104,7 +104,7 @@ func TestHTMLAssetsAttributes(t *testing.T) {
 	if err != nil {
 		t.Errorf("ProcessBody() error = %v", err)
 	}
-	item := models.NewItem("test", newURL, "", false)
+	item := models.NewItem("test", newURL, "")
 
 	assets, err := HTMLAssets(item)
 	if err != nil {

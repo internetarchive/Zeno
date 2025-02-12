@@ -46,7 +46,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 			Hops:      item.GetURL().GetHops(),
 		}
 
-		newChild := models.NewItem(uuid.New().String(), newURL, "", false)
+		newChild := models.NewItem(uuid.New().String(), newURL, "")
 		err := item.AddChild(newChild, models.ItemGotRedirected)
 		if err != nil {
 			panic(err)
@@ -65,7 +65,6 @@ func postprocessItem(item *models.Item) []*models.Item {
 	// 			uuid.New().String(),
 	// 			facebook.GenerateEmbedURL(item.GetURL()),
 	// 			item.GetURL().String(),
-	// 			false,
 	// 		), models.ItemGotChildren)
 	// 	if err != nil {
 	// 		panic(err)
@@ -124,7 +123,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 						}
 					}
 
-					newChild := models.NewItem(uuid.New().String(), assets[i], "", false)
+					newChild := models.NewItem(uuid.New().String(), assets[i], "")
 					err = item.AddChild(newChild, models.ItemGotChildren)
 					if err != nil {
 						panic(err)
@@ -161,7 +160,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 						continue
 					}
 
-					newOutlinkItem := models.NewItem(uuid.New().String(), newOutlinks[i], item.GetURL().String(), true)
+					newOutlinkItem := models.NewItem(uuid.New().String(), newOutlinks[i], item.GetURL().String())
 					outlinks = append(outlinks, newOutlinkItem)
 				}
 
