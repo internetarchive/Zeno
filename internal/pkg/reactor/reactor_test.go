@@ -1,7 +1,9 @@
 package reactor
 
 import (
+	"context"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -50,11 +52,21 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 	// Channel to collect errors from goroutines
 	fatalChan := make(chan error, consumers)
 
+	// WaitGroup to wait for all goroutines to finish
+	var wg sync.WaitGroup
+
+	// Context to cancel consumers
+	ctx, cancel := context.WithCancel(context.Background())
+
 	// Consume items from the output channel, start 5 goroutines
 	for i := 0; i < consumers; i++ {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for {
 				select {
+				case <-ctx.Done():
+					return
 				case item := <-outputChan:
 					if item == nil {
 						continue
@@ -97,6 +109,8 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 	for _, seed := range mockItems {
 		err := ReceiveInsert(seed)
 		if err != nil {
+			cancel()
+			wg.Wait()
 			Stop()
 			log.Stop()
 			t.Errorf("Error queuing seed to source channel: %s", err)
@@ -108,13 +122,15 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 	for {
 		select {
 		case err := <-fatalChan:
+			cancel()
+			wg.Wait()
 			Stop()
 			log.Stop()
 			t.Errorf("Received error while processing %s", err)
 			return
 		case <-time.After(5 * time.Second):
-			Stop()
-			log.Stop()
+			cancel()
+			wg.Wait()
 			if len(GetStateTable()) > 0 {
 				t.Errorf("State table is not empty: %s", GetStateTable())
 				return
@@ -123,10 +139,14 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 				t.Errorf("Expected %d seeds to be consumed, got %d", seeds, consumedCount.Load())
 				return
 			}
+			Stop()
+			log.Stop()
 			t.Errorf("Timeout waiting for reactor to finish processing")
 			return
 		default:
 			if len(GetStateTable()) == 0 {
+				cancel()
+				wg.Wait()
 				if consumedCount.Load() != int64(seeds) {
 					t.Errorf("Expected %d seeds to be consumed, got %d", seeds, consumedCount.Load())
 					return
