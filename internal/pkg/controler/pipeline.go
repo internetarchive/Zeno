@@ -46,7 +46,7 @@ func startPipeline() {
 	go watchers.WatchDiskSpace(config.Get().JobPath, 5*time.Second)
 
 	// Start the reactor that will receive
-	reactorOutputChan := makeStageChannel()
+	reactorOutputChan := makeStageChannel(config.Get().WorkersCount)
 	err = reactor.Start(config.Get().WorkersCount, reactorOutputChan)
 	if err != nil {
 		logger.Error("error starting reactor", "err", err.Error())
@@ -62,14 +62,14 @@ func startPipeline() {
 		}
 	}
 
-	preprocessorOutputChan := makeStageChannel()
+	preprocessorOutputChan := makeStageChannel(config.Get().WorkersCount)
 	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting preprocessor", "err", err.Error())
 		panic(err)
 	}
 
-	archiverOutputChan := makeStageChannel()
+	archiverOutputChan := makeStageChannel(config.Get().WorkersCount)
 	err = archiver.Start(preprocessorOutputChan, archiverOutputChan)
 	if err != nil {
 		logger.Error("error starting archiver", "err", err.Error())
@@ -79,25 +79,39 @@ func startPipeline() {
 	// Start the WARC writing queue watcher
 	go watchers.WatchWARCWritingQueue(5 * time.Second)
 
-	postprocessorOutputChan := makeStageChannel()
+	postprocessorOutputChan := makeStageChannel(config.Get().WorkersCount)
 	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting postprocessor", "err", err.Error())
 		panic(err)
 	}
 
-	var finisherFinishChan, finisherProduceChan chan *models.Item
+	finisherFinishChan := makeStageChannel(config.Get().WorkersCount)
+	finisherProduceChan := makeStageChannel(config.Get().WorkersCount)
+
 	if config.Get().UseHQ {
 		logger.Info("starting hq")
-
-		finisherFinishChan = makeStageChannel()
-		finisherProduceChan = makeStageChannel()
-
 		err = hq.Start(finisherFinishChan, finisherProduceChan)
 		if err != nil {
 			logger.Error("error starting hq source, retrying", "err", err.Error())
 			panic(err)
 		}
+	} else {
+		// Means we're using the to-be-implemented local queue, for the moment we're just gonna consume the channels
+		go func() {
+			for {
+				select {
+				case _, ok := <-finisherFinishChan:
+					if !ok {
+						return
+					}
+				case _, ok := <-finisherProduceChan:
+					if !ok {
+						return
+					}
+				}
+			}
+		}()
 	}
 
 	err = finisher.Start(postprocessorOutputChan, finisherFinishChan, finisherProduceChan)

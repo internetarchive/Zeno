@@ -1,9 +1,19 @@
+// Package preprocessor is the stage of the pipeline that :
+//
+// 1. Checks that the received seed is consistent and has the correct status
+// 2. Normalizes the seed's lowest level URLs
+// 3. Checks if the URLs should be excluded
+// 4. Removes any false-positive assets
+// 5. Deduplicate the items
+// 6. Seencheck the items
+// 7. Builds the requests before handling them to the archiver
 package preprocessor
 
 import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -34,8 +44,7 @@ var (
 	logger             *log.FieldedLogger
 )
 
-// This functions starts the preprocessor responsible for preparing
-// the seeds sent by the reactor for captures
+// Start initializes the internal preprocessor structure and start routines, should only be called once and returns an error if called more than once
 func Start(inputChan, outputChan chan *models.Item) error {
 	var done bool
 
@@ -55,8 +64,10 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			outputCh: outputChan,
 		}
 		logger.Debug("initialized")
-		globalPreprocessor.wg.Add(1)
-		go run()
+		for i := 0; i < config.Get().WorkersCount; i++ {
+			globalPreprocessor.wg.Add(1)
+			go globalPreprocessor.worker(strconv.Itoa(i))
+		}
 		logger.Info("started")
 		done = true
 	})
@@ -68,6 +79,7 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	return nil
 }
 
+// Stop stops the preprocessor routines
 func Stop() {
 	if globalPreprocessor != nil {
 		globalPreprocessor.cancel()
@@ -76,184 +88,170 @@ func Stop() {
 	}
 }
 
-func run() {
+func (p *preprocessor) worker(workerID string) {
+	defer p.wg.Done()
+
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "preprocessor.run",
+		"component": "preprocessor.worker",
+		"worker_id": workerID,
 	})
 
-	defer globalPreprocessor.wg.Done()
-
-	// Create a context to manage goroutines
-	ctx, cancel := context.WithCancel(globalPreprocessor.ctx)
-	defer cancel()
-
-	// Create a wait group to wait for all goroutines to finish
-	var wg sync.WaitGroup
-
-	// Guard to limit the number of concurrent archiver routines
-	guard := make(chan struct{}, config.Get().WorkersCount)
+	defer logger.Debug("worker stopped")
 
 	// Subscribe to the pause controler
 	controlChans := pause.Subscribe()
 	defer pause.Unsubscribe(controlChans)
 
+	stats.PreprocessorRoutinesIncr()
+	defer stats.PreprocessorRoutinesDecr()
+
 	for {
 		select {
+		case <-p.ctx.Done():
+			logger.Debug("shutting down")
+			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		case item, ok := <-globalPreprocessor.inputCh:
+		case seed, ok := <-p.inputCh:
 			if ok {
-				logger.Debug("received item", "item", item.GetShortID())
-				guard <- struct{}{}
-				wg.Add(1)
-				stats.PreprocessorRoutinesIncr()
-				go func(ctx context.Context) {
-					defer wg.Done()
-					defer func() { <-guard }()
-					defer stats.PreprocessorRoutinesDecr()
+				logger.Debug("received seed", "seed", seed.GetShortID())
 
-					if err := item.CheckConsistency(); err != nil {
-						panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), item.GetShortID()))
-					}
+				if err := seed.CheckConsistency(); err != nil {
+					panic(fmt.Sprintf("seed consistency check failed with err: %s, seed id %s, worker_id %s", err.Error(), seed.GetShortID(), workerID))
+				}
 
-					if item.GetStatus() == models.ItemFailed || item.GetStatus() == models.ItemCompleted {
-						panic(fmt.Sprintf("preprocessor received item with status %d, item id: %s", item.GetStatus(), item.GetShortID()))
-					}
+				if seed.GetStatus() == models.ItemFailed || seed.GetStatus() == models.ItemCompleted {
+					panic(fmt.Sprintf("preprocessor received seed with status %d, seed id: %s, worker_id %s", seed.GetStatus(), seed.GetShortID(), workerID))
+				}
 
-					preprocess(item)
+				preprocess(workerID, seed)
 
-					select {
-					case globalPreprocessor.outputCh <- item:
-					case <-ctx.Done():
-						logger.Debug("aborting item due to stop", "item", item.GetShortID())
-						return
-					}
-				}(ctx)
+				select {
+				case <-p.ctx.Done():
+					logger.Debug("aborting seed due to stop", "seed", seed.GetShortID())
+					return
+				case p.outputCh <- seed:
+				}
 			}
-		case <-globalPreprocessor.ctx.Done():
-			logger.Debug("shutting down")
-			wg.Wait()
-			return
 		}
 	}
 }
 
-func preprocess(item *models.Item) {
-	// Validate the URL of either the item itself and/or its childs
-	// TODO: if an error happen and it's a fresh item, we should mark it as failed in HQ (if it's a HQ-based crawl)
+func preprocess(workerID string, seed *models.Item) {
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "preprocessor.process",
+		"component": "preprocessor.preprocess",
+		"worker_id": workerID,
 	})
 
-	operatingDepth := item.GetMaxDepth()
+	operatingDepth := seed.GetMaxDepth()
 
-	children, err := item.GetNodesAtLevel(operatingDepth)
+	items, err := seed.GetNodesAtLevel(operatingDepth)
 	if err != nil {
 		panic(err)
 	}
 
-	for i := range children {
+	for i := range items {
 		// Panic on any child that is not fresh
 		// This means that an incorrect item was inserted and/or that the finisher is not working correctly
-		if children[i].GetStatus() != models.ItemFresh {
-			dumper.PanicWithDump(fmt.Sprintf("non-fresh item %s received in preprocessor with status: %s", children[i].GetShortID(), children[i].GetStatus().String()), children[i])
+		if items[i].GetStatus() != models.ItemFresh {
+			dumper.PanicWithDump(fmt.Sprintf("non-fresh item %s received in preprocessor worker %s with status: %s", items[i].GetShortID(), workerID, items[i].GetStatus().String()), items[i])
 		}
 
 		// Normalize the URL
-		if children[i].IsSeed() {
-			err := NormalizeURL(children[i].GetURL(), nil)
+		if items[i].IsSeed() {
+			err := NormalizeURL(items[i].GetURL(), nil)
 			if err != nil {
-				logger.Debug("unable to validate URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw, "err", err.Error())
-				children[i].SetStatus(models.ItemFailed)
+				logger.Debug("unable to validate URL", "item_id", items[i].GetShortID(), "seed_id", seed.GetShortID(), "url", items[i].GetURL().Raw, "err", err.Error())
+				items[i].SetStatus(models.ItemFailed)
 				return
 			}
 		} else {
-			err := NormalizeURL(children[i].GetURL(), children[i].GetParent().GetURL())
+			err := NormalizeURL(items[i].GetURL(), items[i].GetParent().GetURL())
 			if err != nil {
-				logger.Debug("unable to validate URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw, "err", err.Error())
-				children[i].GetParent().RemoveChild(children[i])
+				logger.Debug("unable to validate URL", "item_id", items[i].GetShortID(), "seed_id", seed.GetShortID(), "url", items[i].GetURL().Raw, "err", err.Error())
+				items[i].GetParent().RemoveChild(items[i])
 				continue
 			}
 		}
 
 		// Verify if the URL isn't to be excluded
-		if utils.StringContainsSliceElements(children[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) ||
-			utils.StringContainsSliceElements(children[i].GetURL().GetParsed().Path, config.Get().ExcludeString) ||
-			matchRegexExclusion(children[i]) {
-			logger.Debug("URL excluded", "item_id", children[i].GetShortID(), "url", children[i].GetURL().String())
-			if children[i].IsChild() || children[i].IsRedirection() {
-				children[i].GetParent().RemoveChild(children[i])
+		if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) ||
+			utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Path, config.Get().ExcludeString) ||
+			matchRegexExclusion(items[i]) {
+			logger.Debug("URL excluded", "item_id", items[i].GetShortID(), "seed_id", seed.GetShortID(), "url", items[i].GetURL().String())
+			if items[i].IsChild() || items[i].IsRedirection() {
+				items[i].GetParent().RemoveChild(items[i])
 				continue
 			}
 
-			children[i].SetStatus(models.ItemCompleted)
+			items[i].SetStatus(models.ItemCompleted)
 			return
 		}
 
 		// If we are processing assets, then we need to remove childs that are just domains
 		// (which means that they are not assets, but false positives)
-		if children[i].IsChild() {
-			if children[i].GetURL().GetParsed().Path == "" || children[i].GetURL().GetParsed().Path == "/" {
-				logger.Debug("removing child with empty path", "item_id", children[i].GetShortID(), "url", children[i].GetURL().Raw)
-				children[i].GetParent().RemoveChild(children[i])
+		if items[i].IsChild() {
+			if items[i].GetURL().GetParsed().Path == "" || items[i].GetURL().GetParsed().Path == "/" {
+				logger.Debug("removing child with empty path", "item_id", items[i].GetShortID(), "url", items[i].GetURL().Raw)
+				items[i].GetParent().RemoveChild(items[i])
 			}
 		}
 	}
 
 	// Deduplicate items based on their URL and remove duplicates
-	item.DedupeItems()
+	seed.DedupeItems()
 
-	children, err = item.GetNodesAtLevel(operatingDepth)
+	items, err = seed.GetNodesAtLevel(operatingDepth)
 	if err != nil {
 		panic(err)
 	}
 
-	if len(children) == 0 {
-		logger.Info("no more work to do after dedupe", "item_id", item.GetShortID())
-		item.SetStatus(models.ItemCompleted)
+	if len(items) == 0 {
+		logger.Info("no more work to do after dedupe", "seed_id", seed.GetShortID())
+		seed.SetStatus(models.ItemCompleted)
 		return
 	}
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
 	if config.Get().UseHQ {
-		err = hq.SeencheckItem(item)
+		err = hq.SeencheckItem(seed)
 		if err != nil {
-			logger.Warn("unable to seencheck item", "item_id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Warn("unable to seencheck seed", "seed_id", seed.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
 		}
 	} else {
-		err = seencheck.SeencheckItem(item)
+		err = seencheck.SeencheckItem(seed)
 		if err != nil {
-			logger.Warn("unable to seencheck item", "item_id", item.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Warn("unable to seencheck seed", "seed_id", seed.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
 		}
 	}
 
 	// Recreate the items list after deduplication and seencheck
-	children, err = item.GetNodesAtLevel(operatingDepth)
+	items, err = seed.GetNodesAtLevel(operatingDepth)
 	if err != nil {
 		panic(err)
 	}
 
 	// Remove any item that is not fresh from the list
-	for i := len(children) - 1; i >= 0; i-- {
-		if children[i].GetStatus() != models.ItemFresh {
-			children = append(children[:i], children[i+1:]...)
+	for i := len(items) - 1; i >= 0; i-- {
+		if items[i].GetStatus() != models.ItemFresh {
+			items = append(items[:i], items[i+1:]...)
 		}
 	}
 
-	if len(children) == 0 {
-		logger.Info("no more work to do after seencheck", "item_id", item.GetShortID())
-		item.SetStatus(models.ItemCompleted)
+	if len(items) == 0 {
+		logger.Info("no more work to do after seencheck", "seed_id", seed.GetShortID())
+		seed.SetStatus(models.ItemCompleted)
 		return
 	}
 
 	// Finally, we build the requests, applying any site-specific behavior needed
-	for i := range children {
-		req, err := http.NewRequest(http.MethodGet, children[i].GetURL().String(), nil)
+	for i := range items {
+		req, err := http.NewRequest(http.MethodGet, items[i].GetURL().String(), nil)
 		if err != nil {
-			logger.Error("unable to create request for URL", "item_id", children[i].GetShortID(), "url", children[i].GetURL().String(), "err", err.Error())
-			children[i].SetStatus(models.ItemFailed)
+			logger.Error("unable to create request for URL", "item_id", items[i].GetShortID(), "seed_id", seed.GetShortID(), "url", items[i].GetURL().String(), "err", err.Error())
+			items[i].SetStatus(models.ItemFailed)
 			continue
 		}
 
@@ -261,19 +259,21 @@ func preprocess(item *models.Item) {
 		req.Header.Set("User-Agent", config.Get().UserAgent)
 
 		switch {
-		case tiktok.IsTikTokURL(children[i].GetURL()):
+		case tiktok.IsTikTokURL(items[i].GetURL()):
 			tiktok.AddHeaders(req)
-		case reddit.IsRedditURL(children[i].GetURL()):
+		case reddit.IsRedditURL(items[i].GetURL()):
 			reddit.AddCookies(req)
-		case truthsocial.IsStatusAPIURL(children[i].GetURL()) ||
-			truthsocial.IsVideoAPIURL(children[i].GetURL()) ||
-			truthsocial.IsLookupURL(children[i].GetURL()):
+		case truthsocial.IsStatusAPIURL(items[i].GetURL()) ||
+			truthsocial.IsVideoAPIURL(items[i].GetURL()) ||
+			truthsocial.IsLookupURL(items[i].GetURL()):
 			truthsocial.AddStatusAPIHeaders(req)
-		case truthsocial.IsAccountsAPIURL(children[i].GetURL()):
+		case truthsocial.IsAccountsAPIURL(items[i].GetURL()):
 			truthsocial.AddAccountsAPIHeaders(req)
 		}
 
-		children[i].GetURL().SetRequest(req)
-		children[i].SetStatus(models.ItemPreProcessed)
+		items[i].GetURL().SetRequest(req)
+		items[i].SetStatus(models.ItemPreProcessed)
 	}
+
+	return
 }

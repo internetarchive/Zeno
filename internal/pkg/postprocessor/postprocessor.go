@@ -3,6 +3,7 @@ package postprocessor
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -47,8 +48,10 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			outputCh: outputChan,
 		}
 		logger.Debug("initialized")
-		globalPostprocessor.wg.Add(1)
-		go run()
+		for i := 0; i < config.Get().WorkersCount; i++ {
+			globalPostprocessor.wg.Add(1)
+			go globalPostprocessor.worker(strconv.Itoa(i))
+		}
 		logger.Info("started")
 		done = true
 	})
@@ -68,22 +71,15 @@ func Stop() {
 	}
 }
 
-func run() {
+func (p *postprocessor) worker(workerID string) {
+	defer p.wg.Done()
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "postprocessor.run",
+		"component": "postprocessor.worker",
+		"worker_id": workerID,
 	})
 
-	defer globalPostprocessor.wg.Done()
-
-	// Create a context to manage goroutines
-	ctx, cancel := context.WithCancel(globalPostprocessor.ctx)
-	defer cancel()
-
-	// Create a wait group to wait for all goroutines to finish
-	var wg sync.WaitGroup
-
-	// Guard to limit the number of concurrent archiver routines
-	guard := make(chan struct{}, config.Get().WorkersCount)
+	stats.PostprocessorRoutinesIncr()
+	defer stats.PostprocessorRoutinesDecr()
 
 	// Subscribe to the pause controler
 	controlChans := pause.Subscribe()
@@ -91,61 +87,53 @@ func run() {
 
 	for {
 		select {
+		case <-p.ctx.Done():
+			logger.Debug("shutting down")
+			return
 		case <-controlChans.PauseCh:
 			logger.Debug("received pause event")
 			controlChans.ResumeCh <- struct{}{}
 			logger.Debug("received resume event")
-		case item, ok := <-globalPostprocessor.inputCh:
+		case seed, ok := <-p.inputCh:
 			if ok {
-				logger.Debug("received item", "item", item.GetShortID())
-				guard <- struct{}{}
-				wg.Add(1)
-				stats.PostprocessorRoutinesIncr()
-				go func(ctx context.Context) {
-					defer wg.Done()
-					defer func() { <-guard }()
-					defer stats.PostprocessorRoutinesDecr()
+				logger.Debug("received seed", "seed", seed.GetShortID())
 
-					if err := item.CheckConsistency(); err != nil {
-						panic(fmt.Sprintf("item consistency check failed with err: %s, item id %s", err.Error(), item.GetShortID()))
-					}
+				if err := seed.CheckConsistency(); err != nil {
+					panic(fmt.Sprintf("seed consistency check failed with err: %s, seed id %s", err.Error(), seed.GetShortID()))
+				}
 
-					if item.GetStatus() != models.ItemArchived && item.GetStatus() != models.ItemGotRedirected && item.GetStatus() != models.ItemGotChildren {
-						logger.Debug("skipping item", "item", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", item.GetStatus().String())
-					} else {
-						outlinks := postprocess(item)
-						for i := range outlinks {
-							select {
-							case <-ctx.Done():
-								logger.Debug("aborting outlink feeding due to stop", "item", outlinks[i].GetShortID())
-								return
-							case globalPostprocessor.outputCh <- outlinks[i]:
-								logger.Debug("sending outlink", "item", outlinks[i].GetShortID())
-							}
+				if seed.GetStatus() != models.ItemArchived && seed.GetStatus() != models.ItemGotRedirected && seed.GetStatus() != models.ItemGotChildren {
+					logger.Debug("skipping seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops(), "status", seed.GetStatus().String())
+				} else {
+					outlinks := postprocess(workerID, seed)
+					for i := range outlinks {
+						select {
+						case <-p.ctx.Done():
+							logger.Debug("aborting outlink feeding due to stop", "seed", outlinks[i].GetShortID())
+							return
+						case p.outputCh <- outlinks[i]:
+							logger.Debug("sending outlink", "seed", outlinks[i].GetShortID())
 						}
 					}
+				}
 
-					closeBodies(item)
+				closeBodies(seed)
 
-					select {
-					case globalPostprocessor.outputCh <- item:
-					case <-ctx.Done():
-						logger.Debug("aborting item due to stop", "item", item.GetShortID())
-						return
-					}
-				}(ctx)
+				select {
+				case <-p.ctx.Done():
+					logger.Debug("aborting seed due to stop", "seed", seed.GetShortID())
+					return
+				case p.outputCh <- seed:
+				}
 			}
-		case <-globalPostprocessor.ctx.Done():
-			logger.Debug("shutting down")
-			wg.Wait()
-			return
 		}
 	}
 }
 
-func postprocess(seed *models.Item) []*models.Item {
+func postprocess(workerID string, seed *models.Item) []*models.Item {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.postprocess",
+		"worker_id": workerID,
 	})
 
 	outlinks := make([]*models.Item, 0)
@@ -157,26 +145,26 @@ func postprocess(seed *models.Item) []*models.Item {
 	}
 
 	for i := range childs {
-		itemOutlinks := postprocessItem(childs[i])
-		outlinks = append(outlinks, itemOutlinks...)
+		seedOutlinks := postprocessItem(childs[i])
+		outlinks = append(outlinks, seedOutlinks...)
 	}
 
 	return outlinks
 }
 
 func closeBodies(seed *models.Item) {
-	seed.Traverse(func(item *models.Item) {
-		closeBody(item)
+	seed.Traverse(func(seed *models.Item) {
+		closeBody(seed)
 	})
 }
 
-func closeBody(item *models.Item) {
-	if item.GetURL().GetBody() != nil {
-		err := item.GetURL().GetBody().Close()
+func closeBody(seed *models.Item) {
+	if seed.GetURL().GetBody() != nil {
+		err := seed.GetURL().GetBody().Close()
 		if err != nil {
-			panic(fmt.Sprintf("unable to close body, err: %s, item id: %s", err.Error(), item.GetShortID()))
+			panic(fmt.Sprintf("unable to close body, err: %s, seed id: %s", err.Error(), seed.GetShortID()))
 		}
 
-		item.GetURL().SetBody(nil)
+		seed.GetURL().SetBody(nil)
 	}
 }
