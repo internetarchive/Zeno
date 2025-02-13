@@ -2,21 +2,17 @@
 package log
 
 import (
-	"context"
 	"log/slog"
 	"sync"
-	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/log/ringbuffer"
 )
 
 // Global variables
 var (
-	globalConfig *Config
-	logQueue     chan *logEntry
-	once         sync.Once
-	wg           sync.WaitGroup
-	cancelFunc   context.CancelFunc
+	once        sync.Once
+	wg          sync.WaitGroup
+	multiLogger *slog.Logger
 
 	TUIRingBuffer *ringbuffer.MP1COverwritingRingBuffer[string]
 )
@@ -27,8 +23,8 @@ func Start() error {
 	var done = false
 
 	once.Do(func() {
-		globalConfig = makeConfig()
-		setupLogger()
+		config := makeConfig()
+		multiLogger = config.makeMultiLogger()
 		done = true
 	})
 
@@ -39,46 +35,40 @@ func Start() error {
 	return nil
 }
 
-// Public logging methods
-func Debug(msg string, args ...any) {
-	logWithLevel(slog.LevelDebug, msg, args...)
-}
-
-func Info(msg string, args ...any) {
-	logWithLevel(slog.LevelInfo, msg, args...)
-}
-
-func Warn(msg string, args ...any) {
-	logWithLevel(slog.LevelWarn, msg, args...)
-}
-
-func Error(msg string, args ...any) {
-	logWithLevel(slog.LevelError, msg, args...)
-}
-
-// logWithLevel sends the log entry to the logQueue
-func logWithLevel(level slog.Level, msg string, args ...any) {
-	entry := &logEntry{
-		timestamp: time.Now(),
-		level:     level,
-		msg:       msg,
-		args:      args,
-	}
-	select {
-	case logQueue <- entry:
-	default:
-		if globalConfig.StdoutEnabled {
-			slog.Error("Log queue is full, dropping log entry from logger", "msg", msg, "args", args)
-		}
-	}
-}
-
 // Stop gracefully shuts down the logging system
 func Stop() {
-	if cancelFunc != nil {
-		cancelFunc()
+	if rotatedLogFile != nil {
+		rotatedLogFile.Close()
 	}
 	wg.Wait()
-	close(logQueue)
+	multiLogger = nil
 	once = sync.Once{}
+}
+
+// Debug logs a message at the debug level
+func Debug(msg string, args ...any) {
+	if multiLogger != nil {
+		multiLogger.Debug(msg, args...)
+	}
+}
+
+// Info logs a message at the info level
+func Info(msg string, args ...any) {
+	if multiLogger != nil {
+		multiLogger.Info(msg, args...)
+	}
+}
+
+// Warn logs a message at the warn level
+func Warn(msg string, args ...any) {
+	if multiLogger != nil {
+		multiLogger.Warn(msg, args...)
+	}
+}
+
+// Error logs a message at the error level
+func Error(msg string, args ...any) {
+	if multiLogger != nil {
+		multiLogger.Error(msg, args...)
+	}
 }

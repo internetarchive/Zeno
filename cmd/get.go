@@ -81,6 +81,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 
 	// Logging flags
 	getCmd.PersistentFlags().Bool("tui", false, "Display a terminal user interface.")
+	getCmd.PersistentFlags().Bool("no-log-file", false, "Disable log file output.")
 	getCmd.PersistentFlags().String("log-file-output-dir", "", "Directory to write log files to.")
 	getCmd.PersistentFlags().String("log-file-prefix", "ZENO", "Prefix to use when naming the log files. Default is : `ZENO`, without '-'")
 	getCmd.PersistentFlags().String("log-file-level", "info", "Log level for the log file.")

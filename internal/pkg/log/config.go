@@ -2,27 +2,32 @@
 package log
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	slogmulti "github.com/samber/slog-multi"
 )
 
-// Config defines the configuration for the logging package
-type Config struct {
-	FileConfig          *LogfileConfig
+var (
+	rotatedLogFile *rotatedFile
+)
+
+type logConfig struct {
+	FileConfig          *logfileConfig
 	StdoutEnabled       bool
 	StdoutLevel         slog.Level
 	StderrEnabled       bool
 	StderrLevel         slog.Level
-	ElasticsearchConfig *ElasticsearchConfig
-	LogChanTUI          bool
+	ElasticsearchConfig *elasticsearchConfig
+	LogTUI              bool
 }
 
-// LogfileConfig defines the configuration for file logging
-type LogfileConfig struct {
+type logfileConfig struct {
 	Dir          string
 	Prefix       string
 	Level        slog.Level
@@ -30,8 +35,7 @@ type LogfileConfig struct {
 	RotatePeriod time.Duration
 }
 
-// ElasticsearchConfig defines the configuration for Elasticsearch logging
-type ElasticsearchConfig struct {
+type elasticsearchConfig struct {
 	Addresses    string
 	Username     string
 	Password     string
@@ -42,9 +46,9 @@ type ElasticsearchConfig struct {
 }
 
 // makeConfig returns the default configuration
-func makeConfig() *Config {
+func makeConfig() *logConfig {
 	if config.Get() == nil {
-		return &Config{
+		return &logConfig{
 			FileConfig:          nil,
 			StdoutEnabled:       true,
 			StdoutLevel:         slog.LevelInfo,
@@ -68,15 +72,22 @@ func makeConfig() *Config {
 		logFileOutputDir = fmt.Sprintf("%s/logs", config.Get().JobPath)
 	}
 
-	return &Config{
-		FileConfig: &LogfileConfig{
+	var logFileConfig *logfileConfig
+	if !config.Get().NoFileLogging {
+		logFileConfig = &logfileConfig{
 			Dir:          logFileOutputDir,
 			Prefix:       config.Get().LogFilePrefix,
 			Level:        parseLevel(config.Get().LogFileLevel),
 			Rotate:       config.Get().LogFileRotation != "",
 			RotatePeriod: fileRotatePeriod,
-		},
-		ElasticsearchConfig: &ElasticsearchConfig{
+		}
+	} else {
+		logFileConfig = nil
+	}
+
+	var elasticConfig *elasticsearchConfig
+	if config.Get().ElasticSearchURLs != "" {
+		elasticConfig = &elasticsearchConfig{
 			Addresses:    config.Get().ElasticSearchURLs,
 			Username:     config.Get().ElasticSearchUsername,
 			Password:     config.Get().ElasticSearchPassword,
@@ -84,12 +95,19 @@ func makeConfig() *Config {
 			Level:        parseLevel(config.Get().ElasticSearchLogLevel),
 			Rotate:       config.Get().ElasticSearchRotation != "",
 			RotatePeriod: elasticRotatePeriod,
-		},
-		StdoutEnabled: !config.Get().NoStdoutLogging,
-		StdoutLevel:   parseLevel(config.Get().StdoutLogLevel),
-		StderrEnabled: !config.Get().NoStderrLogging,
-		StderrLevel:   parseLevel("error"),
-		LogChanTUI:    config.Get().TUI,
+		}
+	} else {
+		elasticConfig = nil
+	}
+
+	return &logConfig{
+		FileConfig:          logFileConfig,
+		ElasticsearchConfig: elasticConfig,
+		StdoutEnabled:       !config.Get().NoStdoutLogging,
+		StdoutLevel:         parseLevel(config.Get().StdoutLogLevel),
+		StderrEnabled:       !config.Get().NoStderrLogging,
+		StderrLevel:         slog.LevelError,
+		LogTUI:              config.Get().TUI,
 	}
 }
 
@@ -107,4 +125,44 @@ func parseLevel(level string) slog.Level {
 	default:
 		return slog.LevelInfo
 	}
+}
+
+func (c *logConfig) makeMultiLogger() *slog.Logger {
+	baseRouter := slogmulti.Router()
+
+	// Handle stdout/stderr logging configuration
+	// If Stdout and Stderr are both enabled we log every level below stderr level to stdout and the rest (above) to stderr
+	if c.StdoutEnabled && c.StderrEnabled {
+		stderrHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: c.StderrLevel})
+		baseRouter = baseRouter.Add(stderrHandler, func(_ context.Context, r slog.Record) bool {
+			return r.Level >= c.StderrLevel
+		})
+
+		stdoutHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: c.StdoutLevel})
+		baseRouter = baseRouter.Add(stdoutHandler, func(_ context.Context, r slog.Record) bool {
+			return r.Level >= c.StdoutLevel && r.Level < c.StderrLevel
+		})
+	} else if c.StdoutEnabled {
+		stdoutHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: c.StdoutLevel})
+		baseRouter = baseRouter.Add(stdoutHandler, func(_ context.Context, r slog.Record) bool {
+			return r.Level >= c.StdoutLevel
+		})
+	}
+
+	// Handle file logging configuration
+	if c.FileConfig != nil {
+		rotatedLogFile = newRotatedFile(c.FileConfig)
+		fileHandler := slog.NewTextHandler(rotatedLogFile, &slog.HandlerOptions{Level: c.FileConfig.Level})
+		baseRouter = baseRouter.Add(fileHandler, func(_ context.Context, r slog.Record) bool {
+			return r.Level >= c.FileConfig.Level
+		})
+	}
+
+	// Handle TUI logging configuration
+	// TODO
+
+	// Handle Elasticsearch logging configuration
+	// TODO
+
+	return slog.New(baseRouter.Handler())
 }

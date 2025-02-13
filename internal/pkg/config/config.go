@@ -98,6 +98,7 @@ type Config struct {
 	// Logging
 	NoStdoutLogging          bool   `mapstructure:"no-stdout-log"`
 	NoStderrLogging          bool   `mapstructure:"no-stderr-log"`
+	NoFileLogging            bool   `mapstructure:"no-log-file"`
 	StdoutLogLevel           string `mapstructure:"log-level"`
 	TUI                      bool   `mapstructure:"tui"`
 	LogFileLevel             string `mapstructure:"log-file-level"`
