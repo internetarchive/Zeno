@@ -155,6 +155,7 @@ func encodeQuery(v url.Values) string {
 	}
 
 	var buf strings.Builder
+
 	first := true
 
 	for k, vs := range v {
