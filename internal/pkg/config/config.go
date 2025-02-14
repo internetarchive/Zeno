@@ -101,6 +101,7 @@ type Config struct {
 	NoFileLogging            bool   `mapstructure:"no-log-file"`
 	StdoutLogLevel           string `mapstructure:"log-level"`
 	TUI                      bool   `mapstructure:"tui"`
+	TUILogLevel              string `mapstructure:"tui-log-level"`
 	LogFileLevel             string `mapstructure:"log-file-level"`
 	LogFileOutputDir         string `mapstructure:"log-file-output-dir"`
 	LogFilePrefix            string `mapstructure:"log-file-prefix"`

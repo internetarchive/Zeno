@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/log/ringbuffer"
 	slogmulti "github.com/samber/slog-multi"
 )
 
@@ -25,6 +26,7 @@ type logConfig struct {
 	StderrLevel         slog.Level
 	ElasticsearchConfig *elasticsearchConfig
 	LogTUI              bool
+	TUILogLevel         slog.Level
 }
 
 type logfileConfig struct {
@@ -55,8 +57,10 @@ func makeConfig() *logConfig {
 			StderrEnabled:       true,
 			StderrLevel:         slog.LevelError,
 			ElasticsearchConfig: nil,
+			LogTUI:              false,
 		}
 	}
+
 	fileRotatePeriod, err := time.ParseDuration(config.Get().LogFileRotation)
 	if err != nil && config.Get().LogFileRotation != "" {
 		fileRotatePeriod = 1 * time.Hour
@@ -108,6 +112,7 @@ func makeConfig() *logConfig {
 		StderrEnabled:       !config.Get().NoStderrLogging,
 		StderrLevel:         slog.LevelError,
 		LogTUI:              config.Get().TUI,
+		TUILogLevel:         parseLevel(config.Get().TUILogLevel),
 	}
 }
 
@@ -159,7 +164,14 @@ func (c *logConfig) makeMultiLogger() *slog.Logger {
 	}
 
 	// Handle TUI logging configuration
-	// TODO
+	if c.LogTUI {
+		TUIRingBuffer = ringbuffer.NewMP1COverwritingRingBuffer[string](16384)
+		rbWriter := ringbuffer.NewWriter(TUIRingBuffer)
+		rbHandler := slog.NewTextHandler(rbWriter, &slog.HandlerOptions{Level: c.TUILogLevel})
+		baseRouter = baseRouter.Add(rbHandler, func(_ context.Context, r slog.Record) bool {
+			return r.Level >= c.TUILogLevel
+		})
+	}
 
 	// Handle Elasticsearch logging configuration
 	// TODO
