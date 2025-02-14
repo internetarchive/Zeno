@@ -106,12 +106,12 @@ type Config struct {
 	LogFileOutputDir         string `mapstructure:"log-file-output-dir"`
 	LogFilePrefix            string `mapstructure:"log-file-prefix"`
 	LogFileRotation          string `mapstructure:"log-file-rotation"`
-	ElasticSearchURLs        string `mapstructure:"es-urls"`
-	ElasticSearchUsername    string `mapstructure:"es-user"`
-	ElasticSearchPassword    string `mapstructure:"es-password"`
-	ElasticSearchLogLevel    string `mapstructure:"es-log-level"`
-	ElasticSearchIndexPrefix string `mapstructure:"es-index-prefix"`
-	ElasticSearchRotation    string `mapstructure:"es-rotation"`
+	ElasticSearchURLs        string `mapstructure:"log-es-urls"`
+	ElasticSearchUsername    string `mapstructure:"log-es-user"`
+	ElasticSearchPassword    string `mapstructure:"log-es-password"`
+	ElasticSearchLogLevel    string `mapstructure:"log-es-log-level"`
+	ElasticSearchIndexPrefix string `mapstructure:"log-es-index-prefix"`
+	ElasticSearchRotation    string `mapstructure:"log-es-rotation"`
 
 	// Profiling
 	PyroscopeAddress string `mapstructure:"pyroscope-address"`

@@ -87,11 +87,11 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("log-file-prefix", "ZENO", "Prefix to use when naming the log files. Default is : `ZENO`, without '-'")
 	getCmd.PersistentFlags().String("log-file-level", "info", "Log level for the log file.")
 	getCmd.PersistentFlags().String("log-file-rotation", "1h", "Log file rotation period. Default is : `1h`. Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'.")
-	getCmd.PersistentFlags().String("es-urls", "", "comma-separated ElasticSearch URL to use for indexing crawl logs.")
-	getCmd.PersistentFlags().String("es-user", "", "ElasticSearch username to use for indexing crawl logs.")
-	getCmd.PersistentFlags().String("es-password", "", "ElasticSearch password to use for indexing crawl logs.")
-	getCmd.PersistentFlags().String("es-index-prefix", "zeno", "ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno`, without `-`")
-	getCmd.PersistentFlags().String("es-rotation", "1d", "ElasticSearch index rotation period. Default is : `1d`. Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'.")
+	getCmd.PersistentFlags().String("log-es-urls", "", "(Not implemented) Comma-separated ElasticSearch URL to use for indexing crawl logs.")
+	getCmd.PersistentFlags().String("log-es-user", "", "(Not implemented) ElasticSearch username to use for indexing crawl logs.")
+	getCmd.PersistentFlags().String("log-es-password", "", "(Not implemented) ElasticSearch password to use for indexing crawl logs.")
+	getCmd.PersistentFlags().String("log-es-index-prefix", "zeno", "(Not implemented) ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno`, without `-`")
+	getCmd.PersistentFlags().String("log-es-rotation", "1d", "(Not implemented) ElasticSearch index rotation period. Default is : `1d`. Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'.")
 	// log-level is defined in the root command
 	// no-stdout-log is defined in the root command
 
