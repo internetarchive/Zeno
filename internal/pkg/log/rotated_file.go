@@ -9,49 +9,41 @@ import (
 	"time"
 )
 
-// FileDestination logs to a file with rotation
-type FileDestination struct {
+type rotatedFile struct {
 	level     slog.Level
-	config    *LogfileConfig
+	config    *logfileConfig
 	file      *os.File
 	mu        sync.Mutex
 	ticker    *time.Ticker
 	closeChan chan struct{}
 }
 
-func NewFileDestination() *FileDestination {
-	fd := &FileDestination{
-		level:     globalConfig.FileConfig.Level,
-		config:    globalConfig.FileConfig,
+func newRotatedFile(config *logfileConfig) *rotatedFile {
+	rfile := &rotatedFile{
+		config:    config,
 		closeChan: make(chan struct{}),
 	}
 
-	fd.rotateFile()
-	if globalConfig.FileConfig.Rotate && globalConfig.FileConfig.RotatePeriod > 0 {
-		fd.ticker = time.NewTicker(globalConfig.FileConfig.RotatePeriod)
-		go fd.rotationWorker()
+	rfile.rotateFile()
+	if rfile.config.Rotate && rfile.config.RotatePeriod > 0 {
+		rfile.ticker = time.NewTicker(rfile.config.RotatePeriod)
+		wg.Add(1)
+		go rfile.rotationWorker()
 	}
 
-	return fd
+	return rfile
 }
 
-func (d *FileDestination) Enabled() bool {
-	return true
-}
-
-func (d *FileDestination) Level() slog.Level {
-	return d.level
-}
-
-func (d *FileDestination) Write(entry *logEntry) {
+func (d *rotatedFile) Write(p []byte) (int, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.file != nil {
-		fmt.Fprintln(d.file, formatLogEntry(entry))
+	if d.file == nil {
+		return 0, os.ErrClosed
 	}
+	return d.file.Write(p)
 }
 
-func (d *FileDestination) Close() {
+func (d *rotatedFile) Close() {
 	if d.ticker != nil {
 		d.ticker.Stop()
 	}
@@ -64,7 +56,7 @@ func (d *FileDestination) Close() {
 	d.mu.Unlock()
 }
 
-func (d *FileDestination) rotateFile() {
+func (d *rotatedFile) rotateFile() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.file != nil {
@@ -87,7 +79,8 @@ func (d *FileDestination) rotateFile() {
 	d.file = file
 }
 
-func (d *FileDestination) rotationWorker() {
+func (d *rotatedFile) rotationWorker() {
+	defer wg.Done()
 	for {
 		select {
 		case <-d.ticker.C:
