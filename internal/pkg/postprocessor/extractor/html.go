@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -23,6 +24,14 @@ func IsHTML(URL *models.URL) bool {
 	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "html") || strings.Contains(URL.GetMIMEType().String(), "html")
 }
 
+func GetDocument(body spooledtempfile.ReadSeekCloser) (doc *goquery.Document, err error) {
+	document, err := goquery.NewDocumentFromReader(body)
+	if err != nil {
+		return nil, err
+	}
+	return document, nil
+}
+
 func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	defer item.GetURL().RewindBody()
 
@@ -33,7 +42,8 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	var rawOutlinks []string
 
 	// Retrieve (potentially creates it) the document from the body
-	document, err := item.GetURL().GetDocument()
+	document, err := GetDocument(item.GetURL().GetBody())
+	item.GetURL().RewindBody()
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +78,8 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			Raw: rawOutlink,
 		})
 	}
+	// Make sure the goquery document's memory can be freed
+	document = nil
 
 	return outlinks, nil
 }
@@ -80,7 +92,8 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	var rawAssets []string
 
 	// Retrieve (potentially creates it) the document from the body
-	document, err := item.GetURL().GetDocument()
+	document, err := GetDocument(item.GetURL().GetBody())
+	item.GetURL().RewindBody()
 	if err != nil {
 		return nil, err
 	}
@@ -353,6 +366,8 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 
 	}
+	// Make sure the goquery document's memory can be freed
+	document = nil
 
 	return assets, nil
 }

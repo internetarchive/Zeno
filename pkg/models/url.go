@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/CorentinB/warc/pkg/spooledtempfile"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/gabriel-vasile/mimetype"
 	"golang.org/x/net/idna"
 )
@@ -20,7 +19,6 @@ type URL struct {
 	request   *http.Request
 	response  *http.Response
 	body      spooledtempfile.ReadSeekCloser
-	document  *goquery.Document
 	mimetype  *mimetype.MIME
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
 	Redirects int
@@ -37,23 +35,6 @@ func (u *URL) GetBody() spooledtempfile.ReadSeekCloser {
 
 func (u *URL) SetBody(body spooledtempfile.ReadSeekCloser) {
 	u.body = body
-}
-
-func (u *URL) GetDocument() (doc *goquery.Document, err error) {
-	if u.document == nil {
-		u.document, err = goquery.NewDocumentFromReader(u.GetBody())
-		if err != nil {
-			return nil, err
-		}
-
-		u.RewindBody()
-	}
-
-	return u.document, nil
-}
-
-func (u *URL) SetDocument(doc *goquery.Document) {
-	u.document = doc
 }
 
 func (u *URL) GetMIMEType() *mimetype.MIME {
