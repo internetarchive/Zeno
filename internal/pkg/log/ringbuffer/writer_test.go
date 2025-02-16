@@ -10,7 +10,7 @@ import (
 // produces a complete log line in the ring buffer.
 func TestSlogHandlerSingleLine(t *testing.T) {
 	rb := NewMP1COverwritingRingBuffer[string](10)
-	writer := NewRingBufferWriter(rb)
+	writer := NewWriter(rb)
 	handler := slog.NewTextHandler(writer, &slog.HandlerOptions{
 		// For testing, you might disable timestamp, source, etc.
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
@@ -42,7 +42,7 @@ func TestSlogHandlerSingleLine(t *testing.T) {
 // newlines produces multiple entries.
 func TestMultipleLinesOneWrite(t *testing.T) {
 	rb := NewMP1COverwritingRingBuffer[string](10)
-	writer := NewRingBufferWriter(rb)
+	writer := NewWriter(rb)
 
 	// Write a string that contains three complete lines.
 	input := "first line\nsecond line\nthird line\n"
@@ -60,7 +60,7 @@ func TestMultipleLinesOneWrite(t *testing.T) {
 		t.Fatalf("expected 3 log lines, got %d", len(entries))
 	}
 
-	expected := []string{"first line\n", "second line\n", "third line\n"}
+	expected := []string{"first line", "second line", "third line"}
 	for i, exp := range expected {
 		if entries[i] != exp {
 			t.Errorf("line %d: expected %q, got %q", i, exp, entries[i])
@@ -72,7 +72,7 @@ func TestMultipleLinesOneWrite(t *testing.T) {
 // is received.
 func TestIncompleteLine(t *testing.T) {
 	rb := NewMP1COverwritingRingBuffer[string](10)
-	writer := NewRingBufferWriter(rb)
+	writer := NewWriter(rb)
 
 	// Write an incomplete line (no newline yet).
 	writer.Write([]byte("incomplete"))
@@ -88,8 +88,8 @@ func TestIncompleteLine(t *testing.T) {
 	if len(entries) != 1 {
 		t.Fatalf("expected 1 log line, got %d", len(entries))
 	}
-	if entries[0] != "incomplete line\n" {
-		t.Errorf("expected log line %q, got %q", "incomplete line\n", entries[0])
+	if entries[0] != "incomplete line" {
+		t.Errorf("expected log line %q, got %q", "incomplete line", entries[0])
 	}
 }
 
@@ -97,7 +97,7 @@ func TestIncompleteLine(t *testing.T) {
 // into the ring buffer.
 func TestFlushIncomplete(t *testing.T) {
 	rb := NewMP1COverwritingRingBuffer[string](10)
-	writer := NewRingBufferWriter(rb)
+	writer := NewWriter(rb)
 
 	// Write an incomplete log line.
 	writer.Write([]byte("partial line"))
@@ -121,7 +121,7 @@ func TestFlushIncomplete(t *testing.T) {
 // calls is enqueued as one complete line.
 func TestMultipleWritesForSingleLine(t *testing.T) {
 	rb := NewMP1COverwritingRingBuffer[string](10)
-	writer := NewRingBufferWriter(rb)
+	writer := NewWriter(rb)
 
 	// Write parts of a line.
 	writer.Write([]byte("part1 "))
@@ -140,8 +140,8 @@ func TestMultipleWritesForSingleLine(t *testing.T) {
 	if len(entries) != 1 {
 		t.Fatalf("expected 1 complete log line, got %d", len(entries))
 	}
-	if entries[0] != "part1 part2\n" {
-		t.Errorf("expected log line %q, got %q", "part1 part2\n", entries[0])
+	if entries[0] != "part1 part2" {
+		t.Errorf("expected log line %q, got %q", "part1 part2", entries[0])
 	}
 }
 
@@ -149,7 +149,7 @@ func TestMultipleWritesForSingleLine(t *testing.T) {
 func TestEdgeCases(t *testing.T) {
 	// Test empty write.
 	rb := NewMP1COverwritingRingBuffer[string](10)
-	writer := NewRingBufferWriter(rb)
+	writer := NewWriter(rb)
 
 	n, err := writer.Write([]byte(""))
 	if err != nil {
@@ -170,10 +170,10 @@ func TestEdgeCases(t *testing.T) {
 		t.Fatalf("expected 2 log lines, got %d", len(entries))
 	}
 	// The first line should be empty (i.e. just "\n") and the second should be "first line\n".
-	if entries[0] != "\n" {
-		t.Errorf("expected first log line to be \"\\n\", got %q", entries[0])
+	if entries[0] != "" {
+		t.Errorf("expected first log line to be empty, got %q", entries[0])
 	}
-	if entries[1] != "first line\n" {
-		t.Errorf("expected second log line to be \"first line\\n\", got %q", entries[1])
+	if entries[1] != "first line" {
+		t.Errorf("expected second log line to be \"first line\", got %q", entries[1])
 	}
 }
