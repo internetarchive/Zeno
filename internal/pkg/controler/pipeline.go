@@ -21,6 +21,11 @@ import (
 )
 
 func startPipeline() {
+	if err := os.MkdirAll(config.Get().JobPath, 0755); err != nil {
+		fmt.Printf("can't create job directory: %s\n", err)
+		os.Exit(1)
+	}
+
 	if err := watchers.CheckDiskUsage(config.Get().JobPath); err != nil {
 		fmt.Printf("can't start Zeno: %s\n", err)
 		os.Exit(1)
