@@ -175,15 +175,3 @@ func encodeQuery(v url.Values) string {
 
 	return buf.String()
 }
-
-// URLType qualifies the type of URL
-type URLType string
-
-const (
-	// URLTypeSeed is for URLs that came from the queue or HQ
-	URLTypeSeed URLType = "seed"
-	// URLTypeRedirection is for URLs that are redirections
-	URLTypeRedirection = "seed"
-	// URLTypeAsset is for URLs that are assets of a page
-	URLTypeAsset = "asset"
-)

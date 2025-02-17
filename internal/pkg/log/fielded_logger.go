@@ -1,6 +1,7 @@
 package log
 
 import (
+	"context"
 	"log/slog"
 )
 
@@ -19,19 +20,22 @@ func NewFieldedLogger(args *Fields) *FieldedLogger {
 	}
 }
 
-// FieldedLogger methods
+// Debug logs a message at the debug level with the predefined fields
 func (fl *FieldedLogger) Debug(msg string, args ...any) {
 	fl.logWithLevel(slog.LevelDebug, msg, args...)
 }
 
+// Info logs a message at the info level with the predefined fields
 func (fl *FieldedLogger) Info(msg string, args ...any) {
 	fl.logWithLevel(slog.LevelInfo, msg, args...)
 }
 
+// Warn logs a message at the warn level with the predefined fields
 func (fl *FieldedLogger) Warn(msg string, args ...any) {
 	fl.logWithLevel(slog.LevelWarn, msg, args...)
 }
 
+// Error logs a message at the error level with the predefined fields
 func (fl *FieldedLogger) Error(msg string, args ...any) {
 	fl.logWithLevel(slog.LevelError, msg, args...)
 }
@@ -52,5 +56,7 @@ func (fl *FieldedLogger) logWithLevel(level slog.Level, msg string, args ...any)
 		}
 	}
 
-	logWithLevel(level, msg, combinedArgs...)
+	if multiLogger != nil {
+		multiLogger.Log(context.TODO(), level, msg, combinedArgs...)
+	}
 }
