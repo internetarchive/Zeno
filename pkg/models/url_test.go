@@ -1,13 +1,12 @@
-package utils
+package models
 
 import (
+	"sync"
 	"testing"
-
-	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 func TestURLToStringPunycode(t *testing.T) {
-	u := &models.URL{Raw: "https://xn----8sbddjhbicfsohgbg1aeo.xn--p1ia/pic/file/map_of_sarlat.pdf"}
+	u := &URL{Raw: "https://xn----8sbddjhbicfsohgbg1aeo.xn--p1ia/pic/file/map_of_sarlat.pdf"}
 	err := u.Parse()
 	if err != nil {
 		t.Fatalf("error parsing URL: %v", err)
@@ -16,12 +15,12 @@ func TestURLToStringPunycode(t *testing.T) {
 	expected := "https://xn----8sbddjhbicfsohgbg1aeo.xn--p1ia/pic/file/map_of_sarlat.pdf"
 	actual := u.String()
 	if actual != expected {
-		t.Fatalf("expected %s, got %s", expected, actual)
+		t.Fatalf("Expected %s, got %s", expected, actual)
 	}
 }
 
 func TestURLToStringPunycodeWithPort(t *testing.T) {
-	u := &models.URL{Raw: "https://xn----8sbddjhbicfsohgbg1aeo.xn--p1ia:8080/pic/file/map_of_sarlat.pdf"}
+	u := &URL{Raw: "https://xn----8sbddjhbicfsohgbg1aeo.xn--p1ia:8080/pic/file/map_of_sarlat.pdf"}
 	err := u.Parse()
 	if err != nil {
 		t.Fatalf("Error parsing URL: %v", err)
@@ -35,7 +34,7 @@ func TestURLToStringPunycodeWithPort(t *testing.T) {
 }
 
 func TestURLToStringUnicodetoIDNA(t *testing.T) {
-	u := &models.URL{Raw: "https://о-змладйвеклблнозеж.xn--p1ia:8080/pic/file/map_of_sarlat.pdf"}
+	u := &URL{Raw: "https://о-змладйвеклблнозеж.xn--p1ia:8080/pic/file/map_of_sarlat.pdf"}
 	err := u.Parse()
 	if err != nil {
 		t.Fatalf("Error parsing URL: %v", err)
@@ -49,7 +48,7 @@ func TestURLToStringUnicodetoIDNA(t *testing.T) {
 }
 
 func TestURLToStringWithPath(t *testing.T) {
-	u := &models.URL{Raw: "http://παράδειγμα.δοκιμή/Αρχική_σελίδα"}
+	u := &URL{Raw: "http://παράδειγμα.δοκιμή/Αρχική_σελίδα"}
 	err := u.Parse()
 	if err != nil {
 		t.Fatalf("Error parsing URL: %v", err)
@@ -63,7 +62,7 @@ func TestURLToStringWithPath(t *testing.T) {
 }
 
 func TestURLToStringUnicodetoIDNAWithPort(t *testing.T) {
-	u := &models.URL{Raw: "https://о-змладйвеклблнозеж.xn--p1ia:8080/pic/file/map_of_sarlat.pdf"}
+	u := &URL{Raw: "https://о-змладйвеклблнозеж.xn--p1ia:8080/pic/file/map_of_sarlat.pdf"}
 	err := u.Parse()
 	if err != nil {
 		t.Fatalf("Error parsing URL: %v", err)
@@ -77,7 +76,7 @@ func TestURLToStringUnicodetoIDNAWithPort(t *testing.T) {
 }
 
 func TestURLwithIPv6(t *testing.T) {
-	u := &models.URL{Raw: "https://[2600:4040:23c7:a620:3642:ebaa:ab23:735e]/test"}
+	u := &URL{Raw: "https://[2600:4040:23c7:a620:3642:ebaa:ab23:735e]/test"}
 	err := u.Parse()
 	if err != nil {
 		t.Fatalf("Error parsing URL: %v", err)
@@ -91,7 +90,7 @@ func TestURLwithIPv6(t *testing.T) {
 }
 
 func TestURLwithIPv6WithPort(t *testing.T) {
-	u := &models.URL{Raw: "https://[2600:4040:23c7:a620:3642:ebaa:ab23:735e]:8080/test"}
+	u := &URL{Raw: "https://[2600:4040:23c7:a620:3642:ebaa:ab23:735e]:8080/test"}
 	err := u.Parse()
 	if err != nil {
 		t.Fatalf("Error parsing URL: %v", err)
@@ -105,7 +104,7 @@ func TestURLwithIPv6WithPort(t *testing.T) {
 }
 
 func TestURLwithSpacesandUnicode(t *testing.T) {
-	u := &models.URL{Raw: "https://www.youtube.com/watch/0HBwC_wIFF4?t=18363石神視点【Minecraft】平日もど真ん中なんだから早く寝なきゃ【石神のぞみ／にじさんじ所属】https://www.youtube.com/watch/L30uAR9X8Uw?t=10100【倉持エン足中"}
+	u := &URL{Raw: "https://www.youtube.com/watch/0HBwC_wIFF4?t=18363石神視点【Minecraft】平日もど真ん中なんだから早く寝なきゃ【石神のぞみ／にじさんじ所属】https://www.youtube.com/watch/L30uAR9X8Uw?t=10100【倉持エン足中"}
 	err := u.Parse()
 	if err != nil {
 		t.Fatalf("Error parsing URL: %v", err)
@@ -120,7 +119,7 @@ func TestURLwithSpacesandUnicode(t *testing.T) {
 
 // For technical reasons we are not encoding Reddit URLs.
 func TestURLwithRedditOverride(t *testing.T) {
-	u := &models.URL{Raw: "https://styles.redditmedia.com/t5_7wkhw/styles/profileIcon_8w6r6fr3rh2d1.jpeg?width=64&height=64&frame=1&auto=webp&crop=64:64,smart&s=6d8ab9b89c9b846c9eb65622db9ced4992dc0905"}
+	u := &URL{Raw: "https://styles.redditmedia.com/t5_7wkhw/styles/profileIcon_8w6r6fr3rh2d1.jpeg?width=64&height=64&frame=1&auto=webp&crop=64:64,smart&s=6d8ab9b89c9b846c9eb65622db9ced4992dc0905"}
 	err := u.Parse()
 	if err != nil {
 		t.Fatalf("Error parsing URL: %v", err)
@@ -130,5 +129,42 @@ func TestURLwithRedditOverride(t *testing.T) {
 	actual := u.String()
 	if actual != expected {
 		t.Fatalf("Expected %s, got %s", expected, actual)
+	}
+}
+
+func TestURLConcurrentAccess(t *testing.T) {
+	concurrency := 100
+
+	u := &URL{Raw: "https://example.com"}
+	err := u.Parse()
+	if err != nil {
+		t.Fatalf("Error parsing URL: %v", err)
+	}
+
+	resCh := make(chan string, concurrency)
+	var wg sync.WaitGroup
+	wg.Add(concurrency)
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			defer wg.Done()
+			resCh <- u.String()
+		}()
+	}
+	wg.Wait()
+	close(resCh)
+
+	var res []string
+	for r := range resCh {
+		res = append(res, r)
+	}
+
+	if len(res) != concurrency {
+		t.Fatalf("Expected %d results, got %d", concurrency, len(res))
+	}
+
+	for _, r := range res {
+		if r != "https://example.com" {
+			t.Fatalf("Expected https://example.com, got %s", r)
+		}
 	}
 }
