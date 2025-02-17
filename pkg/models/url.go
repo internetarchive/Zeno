@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/PuerkitoBio/goquery"
@@ -24,6 +25,9 @@ type URL struct {
 	mimetype  *mimetype.MIME
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
 	Redirects int
+
+	stringCache string
+	once        sync.Once
 }
 
 func (u *URL) Parse() (err error) {
@@ -108,7 +112,10 @@ func (u *URL) GetHops() int {
 }
 
 func (u *URL) String() string {
-	return URLToString(u.parsed)
+	u.once.Do(func() {
+		u.stringCache = URLToString(u.parsed)
+	})
+	return u.stringCache
 }
 
 // URLToString exists to apply some custom stuff, in opposition of simply
