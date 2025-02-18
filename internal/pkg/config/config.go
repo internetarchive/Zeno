@@ -383,7 +383,7 @@ func handleFlagsAliases() {
 		viper.Set("max-hops", viper.GetUint("hops"))
 	}
 
-	if viper.GetInt("ca") != 8 && viper.GetInt("max-concurrent-assets") == 8 {
+	if viper.GetInt("ca") != 1 && viper.GetInt("max-concurrent-assets") == 1 {
 		viper.Set("max-concurrent-assets", viper.GetInt("ca"))
 	}
 
