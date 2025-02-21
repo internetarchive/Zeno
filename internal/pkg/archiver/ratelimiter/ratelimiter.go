@@ -20,8 +20,8 @@ const (
 	recoveryFactor = 0.1
 )
 
-// TokenBucket implements a token bucket with penalty and recovery.
-type TokenBucket struct {
+// tokenBucket implements a token bucket with penalty and recovery.
+type tokenBucket struct {
 	mu           sync.Mutex
 	tokens       float64   // current tokens available
 	capacity     float64   // maximum tokens in the bucket
@@ -36,10 +36,10 @@ type TokenBucket struct {
 	nowFunc func() time.Time
 }
 
-// NewTokenBucket returns a new token bucket with the given capacity and refill rate.
-func NewTokenBucket(capacity, refillRate float64) *TokenBucket {
+// newTokenBucket returns a new token bucket with the given capacity and refill rate.
+func newTokenBucket(capacity, refillRate float64) *tokenBucket {
 	now := time.Now()
-	return &TokenBucket{
+	return &tokenBucket{
 		tokens:     capacity,
 		capacity:   capacity,
 		refillRate: refillRate,
@@ -50,7 +50,7 @@ func NewTokenBucket(capacity, refillRate float64) *TokenBucket {
 }
 
 // Wait blocks until a token is available.
-func (tb *TokenBucket) Wait() {
+func (tb *tokenBucket) Wait() {
 	for {
 		tb.mu.Lock()
 		tb.refill()
@@ -65,7 +65,7 @@ func (tb *TokenBucket) Wait() {
 }
 
 // refill adds tokens to the bucket based on the time elapsed.
-func (tb *TokenBucket) refill() {
+func (tb *tokenBucket) refill() {
 	now := tb.nowFunc()
 
 	// If we're in a penalty period, don't refill tokens.

@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// AdjustOnFailure applies real-world adjustments based on the HTTP status code.
-func (tb *TokenBucket) AdjustOnFailure(statusCode int) {
+// adjustOnFailure applies real-world adjustments based on the HTTP status code.
+func (tb *tokenBucket) adjustOnFailure(statusCode int) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 
@@ -39,9 +39,9 @@ func (tb *TokenBucket) AdjustOnFailure(statusCode int) {
 	}
 }
 
-// OnSuccess should be called when a request succeeds.
+// onSuccess should be called when a request succeeds.
 // It gradually restores the refill rate and resets the failure count.
-func (tb *TokenBucket) OnSuccess() {
+func (tb *tokenBucket) onSuccess() {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 
