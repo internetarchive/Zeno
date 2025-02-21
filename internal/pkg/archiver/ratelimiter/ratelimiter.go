@@ -30,32 +30,22 @@ type TokenBucket struct {
 	lastRefill   time.Time // last time the bucket was refilled
 	penaltyUntil time.Time // if set, no tokens will be refilled until this time
 	failureCount int       // consecutive failure counter for exponential backoff
+
+	// nowFunc is used to fetch the current time; it defaults to time.Now,
+	// but can be overridden for testing.
+	nowFunc func() time.Time
 }
 
 // NewTokenBucket returns a new token bucket with the given capacity and refill rate.
 func NewTokenBucket(capacity, refillRate float64) *TokenBucket {
+	now := time.Now()
 	return &TokenBucket{
 		tokens:     capacity,
 		capacity:   capacity,
 		refillRate: refillRate,
 		idealRate:  refillRate,
-		lastRefill: time.Now(),
-	}
-}
-
-// refill adds tokens to the bucket based on the time elapsed.
-func (tb *TokenBucket) refill() {
-	now := time.Now()
-
-	// If we're in a penalty period, don't refill tokens.
-	if now.Before(tb.penaltyUntil) {
-		return
-	}
-
-	elapsed := now.Sub(tb.lastRefill).Seconds()
-	if elapsed > 0 {
-		tb.tokens = math.Min(tb.capacity, tb.tokens+elapsed*tb.refillRate)
-		tb.lastRefill = now
+		lastRefill: now,
+		nowFunc:    time.Now,
 	}
 }
 
@@ -71,5 +61,21 @@ func (tb *TokenBucket) Wait() {
 		}
 		tb.mu.Unlock()
 		time.Sleep(50 * time.Millisecond) // adjust as needed
+	}
+}
+
+// refill adds tokens to the bucket based on the time elapsed.
+func (tb *TokenBucket) refill() {
+	now := tb.nowFunc()
+
+	// If we're in a penalty period, don't refill tokens.
+	if now.Before(tb.penaltyUntil) {
+		return
+	}
+
+	elapsed := now.Sub(tb.lastRefill).Seconds()
+	if elapsed > 0 {
+		tb.tokens = math.Min(tb.capacity, tb.tokens+elapsed*tb.refillRate)
+		tb.lastRefill = now
 	}
 }

@@ -10,7 +10,7 @@ func (tb *TokenBucket) AdjustOnFailure(statusCode int) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 
-	now := time.Now()
+	now := tb.nowFunc()
 
 	switch {
 	// For rate limiting errors, impose a penalty period.
@@ -35,6 +35,7 @@ func (tb *TokenBucket) AdjustOnFailure(statusCode int) {
 		tb.tokens = 0
 
 	default:
+		// For non-error status codes, do nothing.
 	}
 }
 
@@ -44,8 +45,10 @@ func (tb *TokenBucket) OnSuccess() {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 
-	// Reset the penalty if it has expired.
-	if time.Now().After(tb.penaltyUntil) {
+	now := tb.nowFunc()
+
+	// Only adjust if the penalty period is over.
+	if now.After(tb.penaltyUntil) {
 		// Gradually restore the refill rate toward the ideal rate.
 		if tb.refillRate < tb.idealRate {
 			// Increase by a fraction of the difference.
