@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-// TestNewTokenBucket verifies that a newly created bucket has the expected idealRate.
-func TestNewTokenBucket(t *testing.T) {
-	tb := NewTokenBucket(10, 5)
+// TestnewTokenBucket verifies that a newly created bucket has the expected idealRate.
+func TestnewTokenBucket(t *testing.T) {
+	tb := newTokenBucket(10, 5)
 	if tb.idealRate != 5 {
 		t.Fatalf("expected idealRate to be 5, got %f", tb.idealRate)
 	}
@@ -23,7 +23,7 @@ func TestNewTokenBucket(t *testing.T) {
 
 // TestWaitWithAvailableToken ensures that Wait consumes a token when one is available.
 func TestWaitWithAvailableToken(t *testing.T) {
-	tb := NewTokenBucket(1, 100)
+	tb := newTokenBucket(1, 100)
 
 	// Ensure tokens are initially full.
 	if tb.tokens != 1 {
@@ -40,7 +40,7 @@ func TestWaitWithAvailableToken(t *testing.T) {
 // TestWaitBlocksUntilTokenIsAvailable tests that Wait will block if no tokens are available,
 // and then return when tokens are refilled.
 func TestWaitBlocksUntilTokenIsAvailable(t *testing.T) {
-	tb := NewTokenBucket(1, 5) // 5 tokens/sec refill rate
+	tb := newTokenBucket(1, 5) // 5 tokens/sec refill rate
 	// Override nowFunc to simulate time progression.
 	baseTime := time.Now()
 	tb.nowFunc = func() time.Time { return baseTime }
@@ -68,8 +68,8 @@ func TestWaitBlocksUntilTokenIsAvailable(t *testing.T) {
 
 // TestAdjustOnFailure429 tests that AdjustOnFailure sets a penalty period for a 429 error.
 func TestAdjustOnFailure429(t *testing.T) {
-	tb := NewTokenBucket(10, 5)
-	tb.AdjustOnFailure(429)
+	tb := newTokenBucket(10, 5)
+	tb.adjustOnFailure(429)
 
 	if tb.tokens != 0 {
 		t.Errorf("expected tokens to be 0 after AdjustOnFailure(429), got %f", tb.tokens)
@@ -87,8 +87,8 @@ func TestAdjustOnFailure429(t *testing.T) {
 
 // TestAdjustOnFailure503 tests that AdjustOnFailure reduces the refill rate for a 503 error.
 func TestAdjustOnFailure503(t *testing.T) {
-	tb := NewTokenBucket(10, 5)
-	tb.AdjustOnFailure(503)
+	tb := newTokenBucket(10, 5)
+	tb.adjustOnFailure(503)
 
 	if tb.tokens != 0 {
 		t.Errorf("expected tokens to be 0 after AdjustOnFailure(503), got %f", tb.tokens)
@@ -101,15 +101,15 @@ func TestAdjustOnFailure503(t *testing.T) {
 
 // TestOnSuccess tests that OnSuccess gradually restores the refill rate and reduces the failureCount.
 func TestOnSuccess(t *testing.T) {
-	tb := NewTokenBucket(10, 5)
+	tb := newTokenBucket(10, 5)
 
 	// Override nowFunc to control time progression.
 	currentTime := time.Now()
 	tb.nowFunc = func() time.Time { return currentTime }
 
 	// Simulate failures that reduce the refill rate.
-	tb.AdjustOnFailure(503)
-	tb.AdjustOnFailure(503)
+	tb.adjustOnFailure(503)
+	tb.adjustOnFailure(503)
 	reducedRate := tb.refillRate
 
 	if reducedRate >= tb.idealRate {
@@ -123,7 +123,7 @@ func TestOnSuccess(t *testing.T) {
 	const maxIterations = 200
 	iterations := 0
 	for math.Abs(tb.refillRate-tb.idealRate) > 0.01 && iterations < maxIterations {
-		tb.OnSuccess()
+		tb.onSuccess()
 		iterations++
 		// simulate time progression between calls
 		currentTime = currentTime.Add(10 * time.Millisecond)
@@ -139,7 +139,7 @@ func TestOnSuccess(t *testing.T) {
 
 // TestConcurrentWait tests the token bucket under concurrent usage.
 func TestConcurrentWait(t *testing.T) {
-	tb := NewTokenBucket(5, 10)
+	tb := newTokenBucket(5, 10)
 	// Preload tokens.
 	tb.tokens = 5
 
@@ -179,12 +179,12 @@ func TestConcurrentWait(t *testing.T) {
 
 // TestNonErrorStatusDoesNothing tests that AdjustOnFailure does not alter the state for non-error codes.
 func TestNonErrorStatusDoesNothing(t *testing.T) {
-	tb := NewTokenBucket(10, 5)
+	tb := newTokenBucket(10, 5)
 	initialTokens := tb.tokens
 	initialRate := tb.refillRate
 	initialFailureCount := tb.failureCount
 
-	tb.AdjustOnFailure(200) // A non-error status
+	tb.adjustOnFailure(200) // A non-error status
 
 	if tb.tokens != initialTokens {
 		t.Errorf("expected tokens to remain %f, got %f", initialTokens, tb.tokens)
@@ -199,13 +199,13 @@ func TestNonErrorStatusDoesNothing(t *testing.T) {
 
 // TestOnSuccessDuringPenalty tests that OnSuccess does not restore refill rate if penalty period is still active.
 func TestOnSuccessDuringPenalty(t *testing.T) {
-	tb := NewTokenBucket(10, 5)
+	tb := newTokenBucket(10, 5)
 	// Set a custom time function.
 	baseTime := time.Now()
 	tb.nowFunc = func() time.Time { return baseTime }
 
 	// Force a penalty period via a 429 error.
-	tb.AdjustOnFailure(429)
+	tb.adjustOnFailure(429)
 	// Save state after failure.
 	penaltyUntil := tb.penaltyUntil
 	reducedRate := tb.refillRate
@@ -215,7 +215,7 @@ func TestOnSuccessDuringPenalty(t *testing.T) {
 	baseTime = baseTime.Add(2 * time.Second)
 
 	// Call OnSuccess; since penalty is still active, state should remain unchanged.
-	tb.OnSuccess()
+	tb.onSuccess()
 
 	if tb.refillRate != reducedRate {
 		t.Errorf("expected refillRate to remain %f during active penalty, got %f", reducedRate, tb.refillRate)
