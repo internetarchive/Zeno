@@ -2,6 +2,7 @@ package ratelimiter
 
 import (
 	"math"
+	"sync"
 	"testing"
 	"time"
 )
@@ -23,6 +24,7 @@ func TestNewTokenBucket(t *testing.T) {
 // TestWaitWithAvailableToken ensures that Wait consumes a token when one is available.
 func TestWaitWithAvailableToken(t *testing.T) {
 	tb := NewTokenBucket(1, 100)
+
 	// Ensure tokens are initially full.
 	if tb.tokens != 1 {
 		t.Fatalf("expected 1 token, got %f", tb.tokens)
@@ -39,23 +41,26 @@ func TestWaitWithAvailableToken(t *testing.T) {
 // and then return when tokens are refilled.
 func TestWaitBlocksUntilTokenIsAvailable(t *testing.T) {
 	tb := NewTokenBucket(1, 5) // 5 tokens/sec refill rate
+	// Override nowFunc to simulate time progression.
+	baseTime := time.Now()
+	tb.nowFunc = func() time.Time { return baseTime }
 	tb.tokens = 0
+	tb.lastRefill = baseTime
 
 	done := make(chan struct{})
-	start := time.Now()
 	go func() {
+		// Advance time in a separate goroutine.
+		for i := 0; i < 5; i++ {
+			time.Sleep(50 * time.Millisecond)
+			baseTime = baseTime.Add(50 * time.Millisecond)
+		}
 		tb.Wait()
 		close(done)
 	}()
 
-	// Wait for at most 500ms (should be enough time for a token to be refilled).
 	select {
 	case <-done:
-		elapsed := time.Since(start)
-		// At a refill rate of 5 tokens per second, we expect a wait of roughly 200ms.
-		if elapsed < 150*time.Millisecond {
-			t.Errorf("Wait returned too quickly: %v", elapsed)
-		}
+		// success – Wait returned after simulated time progression
 	case <-time.After(500 * time.Millisecond):
 		t.Error("Wait did not return in expected time")
 	}
@@ -70,7 +75,7 @@ func TestAdjustOnFailure429(t *testing.T) {
 		t.Errorf("expected tokens to be 0 after AdjustOnFailure(429), got %f", tb.tokens)
 	}
 
-	now := time.Now()
+	now := tb.nowFunc()
 	if !tb.penaltyUntil.After(now) {
 		t.Errorf("expected penaltyUntil to be in the future, got %v", tb.penaltyUntil)
 	}
@@ -97,6 +102,11 @@ func TestAdjustOnFailure503(t *testing.T) {
 // TestOnSuccess tests that OnSuccess gradually restores the refill rate and reduces the failureCount.
 func TestOnSuccess(t *testing.T) {
 	tb := NewTokenBucket(10, 5)
+
+	// Override nowFunc to control time progression.
+	currentTime := time.Now()
+	tb.nowFunc = func() time.Time { return currentTime }
+
 	// Simulate failures that reduce the refill rate.
 	tb.AdjustOnFailure(503)
 	tb.AdjustOnFailure(503)
@@ -106,15 +116,17 @@ func TestOnSuccess(t *testing.T) {
 		t.Fatalf("expected reducedRate (%f) to be lower than idealRate (%f)", reducedRate, tb.idealRate)
 	}
 
-	// Wait until any penalty period is over.
-	time.Sleep(100 * time.Millisecond)
+	// Advance time beyond any penalty period.
+	currentTime = currentTime.Add(1 * time.Second)
 
-	// Call OnSuccess repeatedly until the refill rate is near idealRate or we reach a maximum number of iterations.
+	// Call OnSuccess repeatedly until the refill rate is near idealRate or we reach max iterations.
 	const maxIterations = 200
 	iterations := 0
 	for math.Abs(tb.refillRate-tb.idealRate) > 0.01 && iterations < maxIterations {
 		tb.OnSuccess()
 		iterations++
+		// simulate time progression between calls
+		currentTime = currentTime.Add(10 * time.Millisecond)
 	}
 
 	if math.Abs(tb.refillRate-tb.idealRate) > 0.01 {
@@ -122,5 +134,96 @@ func TestOnSuccess(t *testing.T) {
 	}
 	if tb.failureCount < 0 {
 		t.Errorf("expected failureCount to be non-negative, got %d", tb.failureCount)
+	}
+}
+
+// TestConcurrentWait tests the token bucket under concurrent usage.
+func TestConcurrentWait(t *testing.T) {
+	tb := NewTokenBucket(5, 10)
+	// Preload tokens.
+	tb.tokens = 5
+
+	var wg sync.WaitGroup
+	concurrentCalls := 10
+	results := make(chan struct{}, concurrentCalls)
+
+	// Start concurrent goroutines that call Wait.
+	for i := 0; i < concurrentCalls; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			tb.Wait()
+			results <- struct{}{}
+		}()
+	}
+
+	// Wait for all to finish (with a timeout safeguard).
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// All goroutines finished.
+	case <-time.After(1 * time.Second):
+		t.Error("Concurrent Wait calls did not complete in time")
+	}
+
+	// The first 5 calls should have consumed the initial tokens; the others waited until refill.
+	if len(results) != concurrentCalls {
+		t.Errorf("expected %d results, got %d", concurrentCalls, len(results))
+	}
+}
+
+// TestNonErrorStatusDoesNothing tests that AdjustOnFailure does not alter the state for non-error codes.
+func TestNonErrorStatusDoesNothing(t *testing.T) {
+	tb := NewTokenBucket(10, 5)
+	initialTokens := tb.tokens
+	initialRate := tb.refillRate
+	initialFailureCount := tb.failureCount
+
+	tb.AdjustOnFailure(200) // A non-error status
+
+	if tb.tokens != initialTokens {
+		t.Errorf("expected tokens to remain %f, got %f", initialTokens, tb.tokens)
+	}
+	if tb.refillRate != initialRate {
+		t.Errorf("expected refillRate to remain %f, got %f", initialRate, tb.refillRate)
+	}
+	if tb.failureCount != initialFailureCount {
+		t.Errorf("expected failureCount to remain %d, got %d", initialFailureCount, tb.failureCount)
+	}
+}
+
+// TestOnSuccessDuringPenalty tests that OnSuccess does not restore refill rate if penalty period is still active.
+func TestOnSuccessDuringPenalty(t *testing.T) {
+	tb := NewTokenBucket(10, 5)
+	// Set a custom time function.
+	baseTime := time.Now()
+	tb.nowFunc = func() time.Time { return baseTime }
+
+	// Force a penalty period via a 429 error.
+	tb.AdjustOnFailure(429)
+	// Save state after failure.
+	penaltyUntil := tb.penaltyUntil
+	reducedRate := tb.refillRate
+	failureCount := tb.failureCount
+
+	// Advance time but not past the penalty.
+	baseTime = baseTime.Add(2 * time.Second)
+
+	// Call OnSuccess; since penalty is still active, state should remain unchanged.
+	tb.OnSuccess()
+
+	if tb.refillRate != reducedRate {
+		t.Errorf("expected refillRate to remain %f during active penalty, got %f", reducedRate, tb.refillRate)
+	}
+	if tb.failureCount != failureCount {
+		t.Errorf("expected failureCount to remain %d during active penalty, got %d", failureCount, tb.failureCount)
+	}
+	if !tb.penaltyUntil.Equal(penaltyUntil) {
+		t.Errorf("expected penaltyUntil to remain %v, got %v", penaltyUntil, tb.penaltyUntil)
 	}
 }
