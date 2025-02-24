@@ -58,9 +58,9 @@ func Reset() {
 	globalStats.MeanHTTPResponseTime.reset()
 }
 
-// GetMap returns a map of the current stats.
+// GetMapTUI returns a map of the current stats.
 // This is used by the TUI to update the stats table.
-func GetMap() map[string]interface{} {
+func GetMapTUI() map[string]interface{} {
 	return map[string]interface{}{
 		"URL/s":                   globalStats.URLsCrawled.get(),
 		"Total URL crawled":       globalStats.URLsCrawled.getTotal(),
