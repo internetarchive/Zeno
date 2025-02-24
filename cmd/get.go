@@ -37,8 +37,6 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("json", false, "Output logs in JSON")
 	getCmd.PersistentFlags().Bool("api", false, "Enable API")
 	getCmd.PersistentFlags().String("api-port", "9443", "Port to listen on for the API.")
-	getCmd.PersistentFlags().Bool("prometheus", false, "Export metrics in Prometheus format. (implies --api)")
-	getCmd.PersistentFlags().String("prometheus-prefix", "zeno:", "String used as a prefix for the exported Prometheus metrics.")
 	getCmd.PersistentFlags().Int("max-redirect", 20, "Specifies the maximum number of redirections to follow for a resource.")
 	getCmd.PersistentFlags().Int("max-retry", 5, "Number of retry if error happen when executing HTTP request.")
 	getCmd.PersistentFlags().Int("http-timeout", -1, "Number of seconds to wait before timing out a request. Note: this will CANCEL large files download.")
@@ -101,6 +99,11 @@ func getCMDsFlags(getCmd *cobra.Command) {
 
 	// Profiling flags
 	getCmd.PersistentFlags().String("pyroscope-address", "", "Pyroscope server address. Setting this flag will enable profiling.")
+
+	// Prometheus and metrics flags
+	getCmd.PersistentFlags().Bool("prometheus", false, "Export metrics in Prometheus format. (implies --api)")
+	getCmd.PersistentFlags().String("prometheus-prefix", "zeno:", "String used as a prefix for the exported Prometheus metrics.")
+	getCmd.PersistentFlags().String("stats-polling-interval", "1s", "Interval to poll stats to expose for Prometheus metrics. Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'.")
 
 	// Alias support
 	// As cobra doesn't support aliases natively (couldn't find a way to do it), we have to do it manually
