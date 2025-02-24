@@ -385,7 +385,7 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 		// Write the metadata record for the video
 		if rawJSON != "" {
-			c.Client.WriteRecord(utils.URLToString(item.URL), "metadata", "application/json; metadata-type=ia-video; generator=yt-dlp", rawJSON)
+			c.Client.WriteRecord(utils.URLToString(item.URL), "metadata", "application/json; metadata-type=ia-video; generator=yt-dlp", rawJSON, nil)
 		}
 
 		if len(metaURLs) > 0 {
