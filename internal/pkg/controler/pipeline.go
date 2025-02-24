@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/internetarchive/Zeno/internal/pkg/api"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/watchers"
@@ -49,6 +50,11 @@ func startPipeline() {
 
 	// Start the disk watcher
 	go watchers.WatchDiskSpace(config.Get().JobPath, 5*time.Second)
+
+	// Start the API server if needed
+	if config.Get().API {
+		api.Start()
+	}
 
 	// Start the reactor that will receive
 	reactorOutputChan := makeStageChannel(config.Get().WorkersCount)
@@ -177,6 +183,8 @@ func stopPipeline() {
 			logger.Error("unable to remove temp dir", "err", err.Error())
 		}
 	}
+
+	api.Stop(5 * time.Second)
 
 	logger.Info("done, logs are flushing and will be closed")
 

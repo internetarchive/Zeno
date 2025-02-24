@@ -34,7 +34,6 @@ type Config struct {
 
 	UserAgent              string   `mapstructure:"user-agent"`
 	Cookies                string   `mapstructure:"cookies"`
-	APIPort                string   `mapstructure:"api-port"`
 	WARCPrefix             string   `mapstructure:"warc-prefix"`
 	WARCOperator           string   `mapstructure:"warc-operator"`
 	WARCTempDir            string   `mapstructure:"warc-temp-dir"`
@@ -70,7 +69,6 @@ type Config struct {
 	KeepCookies            bool     `mapstructure:"keep-cookies"`
 	Headless               bool     `mapstructure:"headless"`
 	JSON                   bool     `mapstructure:"json"`
-	API                    bool     `mapstructure:"api"`
 	DomainsCrawl           []string `mapstructure:"domains-crawl"`
 	CaptureAlternatePages  bool     `mapstructure:"capture-alternate-pages"`
 	DisableLocalDedupe     bool     `mapstructure:"disable-local-dedupe"`
@@ -114,10 +112,13 @@ type Config struct {
 	// Profiling
 	PyroscopeAddress string `mapstructure:"pyroscope-address"`
 
+	// API
+	APIPort string `mapstructure:"api-port"`
+	API     bool   `mapstructure:"api"`
+
 	// Prometheus and metrics
-	Prometheus           bool   `mapstructure:"prometheus"`
-	PrometheusPrefix     string `mapstructure:"prometheus-prefix"`
-	StatsPollingInterval string `mapstructure:"stats-polling-interval"`
+	Prometheus       bool   `mapstructure:"prometheus"`
+	PrometheusPrefix string `mapstructure:"prometheus-prefix"`
 
 	InputSeeds       []string         // Special field to store the input URLs
 	ExclusionRegexes []*regexp.Regexp // Special field to store the compiled exclusion regex (from --exclusion-file)
