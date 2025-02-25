@@ -36,9 +36,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("disable-seencheck", false, "Disable the (remote or local) seencheck that avoid re-crawling of URIs.")
 	getCmd.PersistentFlags().Bool("json", false, "Output logs in JSON")
 	getCmd.PersistentFlags().Bool("api", false, "Enable API")
-	getCmd.PersistentFlags().String("api-port", "9443", "Port to listen on for the API.")
-	getCmd.PersistentFlags().Bool("prometheus", false, "Export metrics in Prometheus format. (implies --api)")
-	getCmd.PersistentFlags().String("prometheus-prefix", "zeno:", "String used as a prefix for the exported Prometheus metrics.")
+	getCmd.PersistentFlags().Int("api-port", 9090, "Port to listen on for the API.")
 	getCmd.PersistentFlags().Int("max-redirect", 20, "Specifies the maximum number of redirections to follow for a resource.")
 	getCmd.PersistentFlags().Int("max-retry", 5, "Number of retry if error happen when executing HTTP request.")
 	getCmd.PersistentFlags().Int("http-timeout", -1, "Number of seconds to wait before timing out a request. Note: this will CANCEL large files download.")
@@ -101,6 +99,17 @@ func getCMDsFlags(getCmd *cobra.Command) {
 
 	// Profiling flags
 	getCmd.PersistentFlags().String("pyroscope-address", "", "Pyroscope server address. Setting this flag will enable profiling.")
+
+	// Prometheus and metrics flags
+	getCmd.PersistentFlags().Bool("prometheus", false, "Export metrics in Prometheus format. (implies --api)")
+	getCmd.PersistentFlags().String("prometheus-prefix", "zeno_", "String used as a prefix for the exported Prometheus metrics.")
+
+	// Consul flags
+	getCmd.PersistentFlags().String("consul-address", "", "Consul address to use for service registration.")
+	getCmd.PersistentFlags().String("consul-port", "8500", "Consul port to use for service registration.")
+	getCmd.PersistentFlags().String("consul-acl-token", "", "Consul ACL token to use for service registration.")
+	getCmd.PersistentFlags().Bool("consul-register", false, "Register Zeno in Consul via the API. (useful when Zeno is running on host and not containerized)")
+	getCmd.PersistentFlags().StringSlice("consul-register-tags", []string{}, "Tags to use when registering Zeno in Consul with `--consul-register`.")
 
 	// Alias support
 	// As cobra doesn't support aliases natively (couldn't find a way to do it), we have to do it manually

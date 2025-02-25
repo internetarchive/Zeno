@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/internetarchive/Zeno/internal/pkg/api"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/consul"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/watchers"
 	"github.com/internetarchive/Zeno/internal/pkg/finisher"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -49,6 +51,20 @@ func startPipeline() {
 
 	// Start the disk watcher
 	go watchers.WatchDiskSpace(config.Get().JobPath, 5*time.Second)
+
+	// Start the API server if needed
+	if config.Get().API {
+		api.Start()
+	}
+
+	// Register Zeno as Consul service if needed
+	if config.Get().ConsulRegister {
+		err := consul.Register()
+		if err != nil {
+			logger.Error("error registering Zeno in Consul", "err", err.Error())
+			panic(err)
+		}
+	}
 
 	// Start the reactor that will receive
 	reactorOutputChan := makeStageChannel(config.Get().WorkersCount)
@@ -176,6 +192,12 @@ func stopPipeline() {
 		if err != nil {
 			logger.Error("unable to remove temp dir", "err", err.Error())
 		}
+	}
+
+	api.Stop(5 * time.Second)
+
+	if config.Get().ConsulRegister {
+		consul.Stop()
 	}
 
 	logger.Info("done, logs are flushing and will be closed")

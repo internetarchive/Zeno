@@ -22,7 +22,7 @@ func (ui *UI) updateStatsLoop() {
 		case <-ui.ctx.Done():
 			return
 		case <-ticker.C:
-			statMap := stats.GetMap() // get your stats map
+			statMap := stats.GetMapTUI()
 			ui.app.QueueUpdateDraw(func() {
 				ui.populateStatsTable(statMap)
 			})
