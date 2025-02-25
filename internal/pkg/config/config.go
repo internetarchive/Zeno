@@ -113,12 +113,19 @@ type Config struct {
 	PyroscopeAddress string `mapstructure:"pyroscope-address"`
 
 	// API
-	APIPort string `mapstructure:"api-port"`
-	API     bool   `mapstructure:"api"`
+	APIPort int  `mapstructure:"api-port"`
+	API     bool `mapstructure:"api"`
 
 	// Prometheus and metrics
 	Prometheus       bool   `mapstructure:"prometheus"`
 	PrometheusPrefix string `mapstructure:"prometheus-prefix"`
+
+	// Consul
+	ConsulAddress      string   `mapstructure:"consul-address"`
+	ConsulPort         string   `mapstructure:"consul-port"`
+	ConsulACLToken     string   `mapstructure:"consul-acl-token"`
+	ConsulRegister     bool     `mapstructure:"consul-register"`
+	ConsulRegisterTags []string `mapstructure:"consul-register-tags"`
 
 	InputSeeds       []string         // Special field to store the input URLs
 	ExclusionRegexes []*regexp.Regexp // Special field to store the compiled exclusion regex (from --exclusion-file)

@@ -56,6 +56,8 @@ func startPipeline() {
 		api.Start()
 	}
 
+	// Register Zeno as Consul service if needed
+
 	// Start the reactor that will receive
 	reactorOutputChan := makeStageChannel(config.Get().WorkersCount)
 	err = reactor.Start(config.Get().WorkersCount, reactorOutputChan)

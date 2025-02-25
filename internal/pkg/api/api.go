@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -32,7 +33,7 @@ func Start() error {
 		}
 
 		server = &http.Server{
-			Addr:    ":" + config.Get().APIPort,
+			Addr:    ":" + strconv.Itoa(config.Get().APIPort),
 			Handler: mux,
 		}
 
