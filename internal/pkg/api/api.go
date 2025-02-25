@@ -28,7 +28,7 @@ func Start() error {
 		mux := http.NewServeMux()
 
 		if config.Get().Prometheus {
-			mux.Handle("/metrics", stats.PromHandler())
+			mux.Handle("/metrics", stats.PrometheusHandler())
 		}
 
 		server = &http.Server{

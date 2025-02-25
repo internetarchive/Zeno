@@ -7,7 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type promStats struct {
+type prometheusStats struct {
 	urlCrawled            prometheus.Counter
 	finishedSeeds         prometheus.Counter
 	preprocessorRoutines  prometheus.Gauge
@@ -23,7 +23,7 @@ type promStats struct {
 	warcWritingQueueSize  prometheus.Gauge
 }
 
-func registerPromMetrics() {
+func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.urlCrawled)
 	prometheus.MustRegister(globalPromStats.finishedSeeds)
 	prometheus.MustRegister(globalPromStats.preprocessorRoutines)
@@ -39,6 +39,6 @@ func registerPromMetrics() {
 	prometheus.MustRegister(globalPromStats.warcWritingQueueSize)
 }
 
-func PromHandler() http.Handler {
+func PrometheusHandler() http.Handler {
 	return promhttp.Handler()
 }

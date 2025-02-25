@@ -23,7 +23,7 @@ type stats struct {
 
 var (
 	globalStats     *stats
-	globalPromStats *promStats
+	globalPromStats *prometheusStats
 	doOnce          sync.Once
 )
 
@@ -42,7 +42,7 @@ func Init() error {
 			MeanHTTPResponseTime:  &mean{},
 		}
 
-		globalPromStats = &promStats{
+		globalPromStats = &prometheusStats{
 			urlCrawled:            prometheus.NewCounter(prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "url_crawled", Help: "Total number of URLs crawled"}),
 			finishedSeeds:         prometheus.NewCounter(prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "finished_seeds", Help: "Total number of finished seeds"}),
 			preprocessorRoutines:  prometheus.NewGauge(prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "preprocessor_routines", Help: "Number of preprocessor routines"}),
@@ -59,7 +59,7 @@ func Init() error {
 		}
 
 		if config.Get().Prometheus {
-			registerPromMetrics()
+			registerPrometheusMetrics()
 		}
 
 		done = true
