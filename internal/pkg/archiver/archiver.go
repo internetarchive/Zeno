@@ -225,7 +225,7 @@ func archive(workerID string, seed *models.Item) {
 				item.SetStatus(models.ItemFailed)
 				return
 			}
-			stats.MeanHTTPRespTimeAdd(uint64(time.Since(getStartTime)))
+			stats.MeanHTTPRespTimeAdd(time.Since(getStartTime))
 
 			// Set the response in the URL
 			item.GetURL().SetResponse(resp)

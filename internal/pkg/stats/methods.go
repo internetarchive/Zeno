@@ -2,6 +2,7 @@ package stats
 
 import (
 	"strings"
+	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 )
@@ -201,8 +202,8 @@ func WarcWritingQueueSizeReset() { globalStats.WARCWritingQueueSize.Store(0) }
 //////////////////////////
 
 // MeanHTTPRespTimeAdd adds the given value to the MeanHTTPRespTime.
-func MeanHTTPRespTimeAdd(value uint64) {
-	globalStats.MeanHTTPResponseTime.add(value)
+func MeanHTTPRespTimeAdd(value time.Duration) {
+	globalStats.MeanHTTPResponseTime.add(uint64(value.Milliseconds()))
 	globalPromStats.meanHTTPRespTime.WithLabelValues(config.Get().Job, hostname, version).Observe(float64(value))
 }
 
@@ -217,8 +218,8 @@ func MeanHTTPRespTimeReset() { globalStats.MeanHTTPResponseTime.reset() }
 //////////////////////////
 
 // MeanProcessBodyTimeAdd adds the given value to the MeanProcessBodyTime.
-func MeanProcessBodyTimeAdd(value uint64) {
-	globalStats.MeanProcessBodyTime.add(value)
+func MeanProcessBodyTimeAdd(value time.Duration) {
+	globalStats.MeanProcessBodyTime.add(uint64(value.Milliseconds()))
 	globalPromStats.meanProcessBodyTime.WithLabelValues(config.Get().Job, hostname, version).Observe(float64(value))
 }
 

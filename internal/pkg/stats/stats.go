@@ -19,8 +19,8 @@ type stats struct {
 	FinisherRoutines      *counter
 	Paused                atomic.Bool
 	HTTPReturnCodes       *rateBucket
-	MeanHTTPResponseTime  *mean
-	MeanProcessBodyTime   *mean
+	MeanHTTPResponseTime  *mean // in ms
+	MeanProcessBodyTime   *mean // in ms
 	WARCWritingQueueSize  atomic.Int64
 }
 
