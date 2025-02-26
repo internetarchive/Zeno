@@ -1,8 +1,13 @@
 package stats
 
 import (
+	"fmt"
+	"os"
 	"sync"
 	"sync/atomic"
+
+	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
 type stats struct {
@@ -19,12 +24,16 @@ type stats struct {
 }
 
 var (
-	globalStats *stats
-	doOnce      sync.Once
+	globalStats     *stats
+	globalPromStats *prometheusStats
+	doOnce          sync.Once
+	hostname        string
+	version         string
 )
 
 func Init() error {
 	var done = false
+	var err error
 
 	doOnce.Do(func() {
 		globalStats = &stats{
@@ -37,8 +46,29 @@ func Init() error {
 			HTTPReturnCodes:       newRateBucket(),
 			MeanHTTPResponseTime:  &mean{},
 		}
+
+		globalPromStats = newPrometheusStats()
+
+		if config.Get().Prometheus {
+			// Get the hostname via env or via command
+			hostname, err = os.Hostname()
+			if err != nil {
+				return
+			}
+
+			// Get Zeno version
+			versionStruct := utils.GetVersion()
+			version = versionStruct.Version
+
+			registerPrometheusMetrics()
+		}
+
 		done = true
 	})
+
+	if err != nil {
+		return fmt.Errorf("error getting hostname: %w", err)
+	}
 
 	if !done {
 		return ErrStatsAlreadyInitialized
@@ -58,9 +88,9 @@ func Reset() {
 	globalStats.MeanHTTPResponseTime.reset()
 }
 
-// GetMap returns a map of the current stats.
+// GetMapTUI returns a map of the current stats.
 // This is used by the TUI to update the stats table.
-func GetMap() map[string]interface{} {
+func GetMapTUI() map[string]interface{} {
 	return map[string]interface{}{
 		"URL/s":                   globalStats.URLsCrawled.get(),
 		"Total URL crawled":       globalStats.URLsCrawled.getTotal(),
