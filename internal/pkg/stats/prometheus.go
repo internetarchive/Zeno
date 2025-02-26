@@ -2,6 +2,7 @@ package stats
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
@@ -20,8 +21,8 @@ type prometheusStats struct {
 	http3xx               *prometheus.CounterVec
 	http4xx               *prometheus.CounterVec
 	http5xx               *prometheus.CounterVec
-	meanHTTPRespTime      *prometheus.HistogramVec
-	meanProcessBodyTime   *prometheus.HistogramVec
+	meanHTTPRespTime      *prometheus.HistogramVec // in ns
+	meanProcessBodyTime   *prometheus.HistogramVec // in ns
 	warcWritingQueueSize  *prometheus.GaugeVec
 }
 
@@ -72,11 +73,11 @@ func newPrometheusStats() *prometheusStats {
 			[]string{"project", "hostname", "version"},
 		),
 		meanHTTPRespTime: prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_http_resp_time", Help: "Mean HTTP response time", Buckets: prometheus.ExponentialBuckets(0.01, 2, 10)},
+			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_http_resp_time", Help: "Mean HTTP response time in ns", Buckets: prometheus.ExponentialBucketsRange(float64(20*time.Millisecond), float64(10*time.Second), 50)},
 			[]string{"project", "hostname", "version"},
 		),
 		meanProcessBodyTime: prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_process_body_time", Help: "Mean time to process the body of a response", Buckets: prometheus.ExponentialBuckets(0.01, 2, 10)},
+			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_process_body_time", Help: "Mean time in ns to process the body of a response", Buckets: prometheus.ExponentialBucketsRange(float64(time.Microsecond), float64(10*time.Second), 50)},
 			[]string{"project", "hostname", "version"},
 		),
 		warcWritingQueueSize: prometheus.NewGaugeVec(
