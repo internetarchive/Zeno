@@ -3,24 +3,82 @@ package stats
 import (
 	"net/http"
 
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type prometheusStats struct {
-	urlCrawled            prometheus.Counter
-	finishedSeeds         prometheus.Counter
-	preprocessorRoutines  prometheus.Gauge
-	archiverRoutines      prometheus.Gauge
-	postprocessorRoutines prometheus.Gauge
-	finisherRoutines      prometheus.Gauge
-	paused                prometheus.Gauge
-	http2xx               prometheus.Counter
-	http3xx               prometheus.Counter
-	http4xx               prometheus.Counter
-	http5xx               prometheus.Counter
-	meanHTTPRespTime      prometheus.Gauge
-	warcWritingQueueSize  prometheus.Gauge
+	urlCrawled            *prometheus.CounterVec
+	finishedSeeds         *prometheus.CounterVec
+	preprocessorRoutines  *prometheus.GaugeVec
+	archiverRoutines      *prometheus.GaugeVec
+	postprocessorRoutines *prometheus.GaugeVec
+	finisherRoutines      *prometheus.GaugeVec
+	paused                *prometheus.GaugeVec
+	http2xx               *prometheus.CounterVec
+	http3xx               *prometheus.CounterVec
+	http4xx               *prometheus.CounterVec
+	http5xx               *prometheus.CounterVec
+	meanHTTPRespTime      *prometheus.GaugeVec
+	warcWritingQueueSize  *prometheus.GaugeVec
+}
+
+func newPrometheusStats() *prometheusStats {
+	return &prometheusStats{
+		urlCrawled: prometheus.NewCounterVec(
+			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "url_crawled", Help: "Total number of URLs crawled"},
+			[]string{"project", "hostname"},
+		),
+		finishedSeeds: prometheus.NewCounterVec(
+			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "finished_seeds", Help: "Total number of finished seeds"},
+			[]string{"project", "hostname"},
+		),
+		preprocessorRoutines: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "preprocessor_routines", Help: "Number of preprocessor routines"},
+			[]string{"project", "hostname"},
+		),
+		archiverRoutines: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "archiver_routines", Help: "Number of archiver routines"},
+			[]string{"project", "hostname"},
+		),
+		postprocessorRoutines: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "postprocessor_routines", Help: "Number of postprocessor routines"},
+			[]string{"project", "hostname"},
+		),
+		finisherRoutines: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "finisher_routines", Help: "Number of finisher routines"},
+			[]string{"project", "hostname"},
+		),
+		paused: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "paused", Help: "Is Zeno paused"},
+			[]string{"project", "hostname"},
+		),
+		http2xx: prometheus.NewCounterVec(
+			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "http_2xx", Help: "Number of HTTP 2xx responses"},
+			[]string{"project", "hostname"},
+		),
+		http3xx: prometheus.NewCounterVec(
+			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "http_3xx", Help: "Number of HTTP 3xx responses"},
+			[]string{"project", "hostname"},
+		),
+		http4xx: prometheus.NewCounterVec(
+			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "http_4xx", Help: "Number of HTTP 4xx responses"},
+			[]string{"project", "hostname"},
+		),
+		http5xx: prometheus.NewCounterVec(
+			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "http_5xx", Help: "Number of HTTP 5xx responses"},
+			[]string{"project", "hostname"},
+		),
+		meanHTTPRespTime: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "mean_http_resp_time", Help: "Mean HTTP response time"},
+			[]string{"project", "hostname"},
+		),
+		warcWritingQueueSize: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "warc_writing_queue_size", Help: "Size of the WARC writing queue"},
+			[]string{"project", "hostname"},
+		),
+	}
 }
 
 func registerPrometheusMetrics() {

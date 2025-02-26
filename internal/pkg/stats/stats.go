@@ -1,11 +1,12 @@
 package stats
 
 import (
+	"fmt"
+	"os"
 	"sync"
 	"sync/atomic"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 type stats struct {
@@ -25,10 +26,12 @@ var (
 	globalStats     *stats
 	globalPromStats *prometheusStats
 	doOnce          sync.Once
+	hostname        string
 )
 
 func Init() error {
 	var done = false
+	var err error
 
 	doOnce.Do(func() {
 		globalStats = &stats{
@@ -42,28 +45,23 @@ func Init() error {
 			MeanHTTPResponseTime:  &mean{},
 		}
 
-		globalPromStats = &prometheusStats{
-			urlCrawled:            prometheus.NewCounter(prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "url_crawled", Help: "Total number of URLs crawled"}),
-			finishedSeeds:         prometheus.NewCounter(prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "finished_seeds", Help: "Total number of finished seeds"}),
-			preprocessorRoutines:  prometheus.NewGauge(prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "preprocessor_routines", Help: "Number of preprocessor routines"}),
-			archiverRoutines:      prometheus.NewGauge(prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "archiver_routines", Help: "Number of archiver routines"}),
-			postprocessorRoutines: prometheus.NewGauge(prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "postprocessor_routines", Help: "Number of postprocessor routines"}),
-			finisherRoutines:      prometheus.NewGauge(prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "finisher_routines", Help: "Number of finisher routines"}),
-			paused:                prometheus.NewGauge(prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "paused", Help: "Is Zeno paused"}),
-			http2xx:               prometheus.NewCounter(prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "http_2xx", Help: "Number of HTTP 2xx responses"}),
-			http3xx:               prometheus.NewCounter(prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "http_3xx", Help: "Number of HTTP 3xx responses"}),
-			http4xx:               prometheus.NewCounter(prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "http_4xx", Help: "Number of HTTP 4xx responses"}),
-			http5xx:               prometheus.NewCounter(prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "http_5xx", Help: "Number of HTTP 5xx responses"}),
-			meanHTTPRespTime:      prometheus.NewGauge(prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "mean_http_resp_time", Help: "Mean HTTP response time"}),
-			warcWritingQueueSize:  prometheus.NewGauge(prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "warc_writing_queue_size", Help: "Size of the WARC writing queue"}),
-		}
+		globalPromStats = newPrometheusStats()
 
 		if config.Get().Prometheus {
+			// Get the hostname via env or via command
+			hostname, err = os.Hostname()
+			if err != nil {
+				return
+			}
 			registerPrometheusMetrics()
 		}
 
 		done = true
 	})
+
+	if err != nil {
+		return fmt.Errorf("error getting hostname: %w", err)
+	}
 
 	if !done {
 		return ErrStatsAlreadyInitialized
