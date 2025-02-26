@@ -66,6 +66,15 @@ func TestJSON(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "JSON in JSON string",
+			body: `{"dic": "{\"url\": \"https://example1.com\"}", "array": "[\"https://example2.com\"]"}`,
+			wantURLs: []*models.URL{
+				{Raw: "https://example1.com"},
+				{Raw: "https://example2.com"},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
