@@ -238,7 +238,7 @@ func archive(workerID string, seed *models.Item) {
 				item.SetStatus(models.ItemFailed)
 				return
 			}
-			stats.MeanProcessBodyTimeAdd(uint64(time.Since(processStartTime)))
+			stats.MeanProcessBodyTimeAdd(time.Since(processStartTime))
 
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
 
