@@ -49,9 +49,9 @@ func Init() error {
 			MeanProcessBodyTime:   &mean{},
 		}
 
-		globalPromStats = newPrometheusStats()
-
 		if config.Get().Prometheus {
+			globalPromStats = newPrometheusStats()
+
 			// Get the hostname via env or via command
 			hostname, err = os.Hostname()
 			if err != nil {
