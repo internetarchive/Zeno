@@ -99,6 +99,7 @@ func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.http4xx)
 	prometheus.MustRegister(globalPromStats.http5xx)
 	prometheus.MustRegister(globalPromStats.meanHTTPRespTime)
+	prometheus.MustRegister(globalPromStats.meanProcessBodyTime)
 	prometheus.MustRegister(globalPromStats.warcWritingQueueSize)
 }
 
