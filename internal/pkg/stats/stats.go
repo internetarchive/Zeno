@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
 
 type stats struct {
@@ -27,6 +28,7 @@ var (
 	globalPromStats *prometheusStats
 	doOnce          sync.Once
 	hostname        string
+	version         string
 )
 
 func Init() error {
@@ -53,6 +55,11 @@ func Init() error {
 			if err != nil {
 				return
 			}
+
+			// Get Zeno version
+			versionStruct := utils.GetVersion()
+			version = versionStruct.Version
+
 			registerPrometheusMetrics()
 		}
 
