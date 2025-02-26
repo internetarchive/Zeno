@@ -212,6 +212,9 @@ func archive(workerID string, seed *models.Item) {
 			if req == nil {
 				panic("request is nil")
 			}
+
+			// Get and measure request time
+			getStartTime := time.Now()
 			if config.Get().Proxy != "" {
 				resp, err = globalArchiver.ClientWithProxy.Do(req)
 			} else {
@@ -222,6 +225,7 @@ func archive(workerID string, seed *models.Item) {
 				item.SetStatus(models.ItemFailed)
 				return
 			}
+			stats.MeanHTTPRespTimeAdd(uint64(time.Since(getStartTime)))
 
 			// Set the response in the URL
 			item.GetURL().SetResponse(resp)

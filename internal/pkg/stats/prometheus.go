@@ -20,7 +20,7 @@ type prometheusStats struct {
 	http3xx               *prometheus.CounterVec
 	http4xx               *prometheus.CounterVec
 	http5xx               *prometheus.CounterVec
-	meanHTTPRespTime      *prometheus.GaugeVec
+	meanHTTPRespTime      *prometheus.HistogramVec
 	warcWritingQueueSize  *prometheus.GaugeVec
 }
 
@@ -70,8 +70,8 @@ func newPrometheusStats() *prometheusStats {
 			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "http_5xx", Help: "Number of HTTP 5xx responses"},
 			[]string{"project", "hostname", "version"},
 		),
-		meanHTTPRespTime: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "mean_http_resp_time", Help: "Mean HTTP response time"},
+		meanHTTPRespTime: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_http_resp_time", Help: "Mean HTTP response time", Buckets: prometheus.ExponentialBuckets(0.01, 2, 10)},
 			[]string{"project", "hostname", "version"},
 		),
 		warcWritingQueueSize: prometheus.NewGaugeVec(

@@ -192,3 +192,22 @@ func WarcWritingQueueSizeSet(value int64) {
 
 // WarcWritingQueueSizeGet returns the current value of the WarcWritingQueueSize.
 func WarcWritingQueueSizeGet() int64 { return globalStats.WARCWritingQueueSize.Load() }
+
+// WarcWritingQueueSizeReset resets the WarcWritingQueueSize to 0.
+func WarcWritingQueueSizeReset() { globalStats.WARCWritingQueueSize.Store(0) }
+
+//////////////////////////
+//   MeanHTTPRespTime   //
+//////////////////////////
+
+// MeanHTTPRespTimeAdd adds the given value to the MeanHTTPRespTime.
+func MeanHTTPRespTimeAdd(value uint64) {
+	globalStats.MeanHTTPResponseTime.add(value)
+	globalPromStats.meanHTTPRespTime.WithLabelValues(config.Get().Job, hostname, version).Observe(float64(value))
+}
+
+// MeanHTTPRespTimeGet returns the current value of the MeanHTTPRespTime.
+func MeanHTTPRespTimeGet() float64 { return globalStats.MeanHTTPResponseTime.get() }
+
+// MeanHTTPRespTimeReset resets the MeanHTTPRespTime to 0.
+func MeanHTTPRespTimeReset() { globalStats.MeanHTTPResponseTime.reset() }
