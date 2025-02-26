@@ -67,7 +67,7 @@ func Register() error {
 		return fmt.Errorf("failed to register service: %v", err)
 	}
 
-	logger.Debug("registered service", "serviceID", serviceID, "serviceName", serviceName, "serviceTags", serviceTags)
+	logger.Info("registered service", "serviceID", serviceID, "serviceName", serviceName, "serviceTags", serviceTags)
 
 	// Start a goroutine to periodically update the TTL check.
 	go func() {
@@ -77,7 +77,7 @@ func Register() error {
 			// Update the TTL to indicate the service is healthy.
 			err := client.Agent().UpdateTTL("service:"+serviceID, "passing", api.HealthPassing)
 			if err != nil {
-				log.Error("failed to update TTL", "serviceID", serviceID, "error", err)
+				logger.Error("failed to update TTL", "serviceID", serviceID, "error", err)
 			}
 
 			select {
@@ -85,7 +85,7 @@ func Register() error {
 			case <-ctx.Done():
 				// De-register the service when the context is canceled.
 				if err := client.Agent().ServiceDeregister(serviceID); err != nil {
-					log.Error("failed to deregister service", "serviceID", serviceID, "error", err)
+					logger.Error("failed to deregister service", "serviceID", serviceID, "error", err)
 				}
 				return
 			}
