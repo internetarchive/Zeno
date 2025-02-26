@@ -21,6 +21,7 @@ type prometheusStats struct {
 	http4xx               *prometheus.CounterVec
 	http5xx               *prometheus.CounterVec
 	meanHTTPRespTime      *prometheus.HistogramVec
+	meanProcessBodyTime   *prometheus.HistogramVec
 	warcWritingQueueSize  *prometheus.GaugeVec
 }
 
@@ -72,6 +73,10 @@ func newPrometheusStats() *prometheusStats {
 		),
 		meanHTTPRespTime: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_http_resp_time", Help: "Mean HTTP response time", Buckets: prometheus.ExponentialBuckets(0.01, 2, 10)},
+			[]string{"project", "hostname", "version"},
+		),
+		meanProcessBodyTime: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_process_body_time", Help: "Mean time to process the body of a response", Buckets: prometheus.ExponentialBuckets(0.01, 2, 10)},
 			[]string{"project", "hostname", "version"},
 		),
 		warcWritingQueueSize: prometheus.NewGaugeVec(

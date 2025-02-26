@@ -211,3 +211,19 @@ func MeanHTTPRespTimeGet() float64 { return globalStats.MeanHTTPResponseTime.get
 
 // MeanHTTPRespTimeReset resets the MeanHTTPRespTime to 0.
 func MeanHTTPRespTimeReset() { globalStats.MeanHTTPResponseTime.reset() }
+
+//////////////////////////
+// MeanProcessBodyTime  //
+//////////////////////////
+
+// MeanProcessBodyTimeAdd adds the given value to the MeanProcessBodyTime.
+func MeanProcessBodyTimeAdd(value uint64) {
+	globalStats.MeanProcessBodyTime.add(value)
+	globalPromStats.meanProcessBodyTime.WithLabelValues(config.Get().Job, hostname, version).Observe(float64(value))
+}
+
+// MeanProcessBodyTimeGet returns the current value of the MeanProcessBodyTime.
+func MeanProcessBodyTimeGet() float64 { return globalStats.MeanProcessBodyTime.get() }
+
+// MeanProcessBodyTimeReset resets the MeanProcessBodyTime to 0.
+func MeanProcessBodyTimeReset() { globalStats.MeanProcessBodyTime.reset() }

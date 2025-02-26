@@ -20,6 +20,7 @@ type stats struct {
 	Paused                atomic.Bool
 	HTTPReturnCodes       *rateBucket
 	MeanHTTPResponseTime  *mean
+	MeanProcessBodyTime   *mean
 	WARCWritingQueueSize  atomic.Int64
 }
 
@@ -45,6 +46,7 @@ func Init() error {
 			FinisherRoutines:      &counter{},
 			HTTPReturnCodes:       newRateBucket(),
 			MeanHTTPResponseTime:  &mean{},
+			MeanProcessBodyTime:   &mean{},
 		}
 
 		globalPromStats = newPrometheusStats()
