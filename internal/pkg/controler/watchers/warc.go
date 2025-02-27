@@ -30,6 +30,11 @@ func WatchWARCWritingQueue(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	maxQueueSize := config.Get().WARCQueueSize
+	if maxQueueSize == -1 || maxQueueSize == 0 {
+		maxQueueSize = config.Get().WARCPoolSize
+	}
+
 	for {
 		select {
 		case <-wwqCtx.Done():
@@ -42,13 +47,13 @@ func WatchWARCWritingQueue(interval time.Duration) {
 		case <-ticker.C:
 			queueSize := archiver.GetWARCWritingQueueSize()
 
-			logger.Debug("checking queue size", "queue_size", queueSize, "max_queue_size", config.Get().WorkersCount, "paused", paused)
+			logger.Debug("checking queue size", "queue_size", queueSize, "max_queue_size", maxQueueSize, "paused", paused)
 
-			if queueSize > config.Get().WorkersCount && !paused {
+			if queueSize > maxQueueSize && !paused {
 				logger.Warn("WARC writing queue exceeded the worker count, pausing the pipeline")
 				pause.Pause("WARC writing queue exceeded the worker count")
 				paused = true
-			} else if queueSize < config.Get().WorkersCount && paused {
+			} else if queueSize < maxQueueSize && paused {
 				logger.Info("WARC writing queue size returned to acceptable, resuming the pipeline")
 				pause.Resume()
 				paused = false

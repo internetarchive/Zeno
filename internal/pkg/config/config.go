@@ -40,6 +40,7 @@ type Config struct {
 	WARCSize               int      `mapstructure:"warc-size"`
 	WARCOnDisk             bool     `mapstructure:"warc-on-disk"`
 	WARCPoolSize           int      `mapstructure:"warc-pool-size"`
+	WARCQueueSize          int      `mapstructure:"warc-queue-size"`
 	WARCDedupeSize         int      `mapstructure:"warc-dedupe-size"`
 	CDXDedupeServer        string   `mapstructure:"warc-cdx-dedupe-server"`
 	CDXCookie              string   `mapstructure:"warc-cdx-cookie"`
