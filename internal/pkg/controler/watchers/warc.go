@@ -9,6 +9,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/stats"
 )
 
 var (
@@ -16,48 +17,85 @@ var (
 	wwqWg             sync.WaitGroup
 )
 
-// WatchWARCWritingQueue watches the WARC writing queue size and pauses the pipeline if it exceeds the worker count
-func WatchWARCWritingQueue(interval time.Duration) {
+// StartWatchWARCWritingQueue watches the WARC writing queue size and pauses the pipeline if it exceeds the worker count
+func StartWatchWARCWritingQueue(pauseCheckInterval time.Duration, pauseTimeout time.Duration, statsUpdateInterval time.Duration) {
+	// Watch the WARC writing queue size and pause the pipeline if it exceeds the worker count
 	wwqWg.Add(1)
-	defer wwqWg.Done()
+	go func() {
+		defer wwqWg.Done()
 
-	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "controler.warcWritingQueueWatcher",
-	})
+		logger := log.NewFieldedLogger(&log.Fields{
+			"component": "controler.warcWritingQueueWatcher.pause",
+		})
+		defer logger.Debug("closed")
 
-	paused := false
-	returnASAP := false
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+		var lastPauseTime time.Time
+		paused := false
+		returnAfterResume := false
 
-	for {
-		select {
-		case <-wwqCtx.Done():
-			defer logger.Debug("closed")
-			if paused {
-				logger.Info("returning after resume")
-				returnASAP = true
-			}
-			return
-		case <-ticker.C:
-			queueSize := archiver.GetWARCWritingQueueSize()
+		pauseTicker := time.NewTicker(pauseCheckInterval)
+		defer pauseTicker.Stop()
 
-			logger.Debug("checking queue size", "queue_size", queueSize, "max_queue_size", config.Get().WorkersCount, "paused", paused)
+		maxQueueSize := config.Get().WARCQueueSize
+		if maxQueueSize == -1 || maxQueueSize == 0 {
+			maxQueueSize = config.Get().WARCPoolSize
+		}
 
-			if queueSize > config.Get().WorkersCount && !paused {
-				logger.Warn("WARC writing queue exceeded the worker count, pausing the pipeline")
-				pause.Pause("WARC writing queue exceeded the worker count")
-				paused = true
-			} else if queueSize < config.Get().WorkersCount && paused {
-				logger.Info("WARC writing queue size returned to acceptable, resuming the pipeline")
-				pause.Resume()
-				paused = false
-				if returnASAP {
+		for {
+			select {
+			case <-wwqCtx.Done():
+				if paused && !returnAfterResume {
+					logger.Info("returning after resume")
+					returnAfterResume = true
+				} else {
 					return
+				}
+			case <-pauseTicker.C:
+				queueSize := archiver.GetWARCWritingQueueSize()
+
+				logger.Debug("checking queue size for pause", "queue_size", queueSize, "max_queue_size", config.Get().WorkersCount, "paused", paused)
+
+				if !paused && queueSize > maxQueueSize {
+					logger.Warn("WARC writing queue exceeded the worker count, pausing the pipeline")
+					pause.Pause("WARC writing queue exceeded the worker count")
+					paused = true
+					lastPauseTime = time.Now()
+				} else if paused && time.Since(lastPauseTime) >= pauseTimeout && queueSize < config.Get().WorkersCount {
+					logger.Info("WARC writing queue size returned to acceptable, resuming the pipeline")
+					pause.Resume()
+					paused = false
+					if returnAfterResume {
+						return
+					}
 				}
 			}
 		}
-	}
+	}()
+
+	// Update the stats every statsUpdateInterval
+	wwqWg.Add(1)
+	go func() {
+		defer wwqWg.Done()
+
+		logger := log.NewFieldedLogger(&log.Fields{
+			"component": "controler.warcWritingQueueWatcher.stats",
+		})
+		defer logger.Debug("closed")
+
+		statsTicker := time.NewTicker(statsUpdateInterval)
+		defer statsTicker.Stop()
+
+		for {
+			select {
+			case <-wwqCtx.Done():
+				return
+			case <-statsTicker.C:
+				queueSize := archiver.GetWARCWritingQueueSize()
+
+				stats.WarcWritingQueueSizeSet(int64(queueSize))
+			}
+		}
+	}()
 }
 
 // StopWARCWritingQueueWatcher stops the WARC writing queue watcher by canceling the context and waiting for the goroutine to finish

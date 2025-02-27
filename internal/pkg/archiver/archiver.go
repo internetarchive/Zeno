@@ -66,7 +66,6 @@ func Start(inputChan, outputChan chan *models.Item) error {
 
 		// Setup WARC writing HTTP clients
 		startWARCWriter()
-		go watchWARCWritingQueue(250 * time.Millisecond)
 
 		logger.Debug("WARC writer started")
 
@@ -112,8 +111,6 @@ func Stop() {
 			globalArchiver.ClientWithProxy.WaitGroup.Wait()
 			globalArchiver.ClientWithProxy.Close()
 		}
-
-		watchWARCWritingQueueCancel()
 
 		logger.Info("stopped")
 	}

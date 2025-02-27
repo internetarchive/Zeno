@@ -54,11 +54,28 @@ func GetURLsFromJSON(decoder *json.Decoder) (assets, outlinks []string, err erro
 	return assets, outlinks, nil
 }
 
+func isLikelyJSON(str string) bool {
+	// minimal json with a non-empty string
+	// -> len(`["a"]`)
+	if len(str) < 5 {
+		return false
+	}
+
+	return ((str[0] == '{' && str[len(str)-1] == '}') || (str[0] == '[' && str[len(str)-1] == ']')) && strings.Contains(str, `"`)
+}
+
 func findURLs(data interface{}, links *[]string) {
 	switch v := data.(type) {
 	case string:
 		if isValidURL(v) {
 			*links = append(*links, v)
+		} else if isLikelyJSON(v) {
+			// handle JSON in JSON
+			var jsonstringdata interface{}
+			err := json.Unmarshal([]byte(v), &jsonstringdata)
+			if err == nil {
+				findURLs(jsonstringdata, links)
+			}
 		}
 	case []interface{}:
 		for _, element := range v {
