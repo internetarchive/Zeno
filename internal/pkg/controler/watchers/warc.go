@@ -36,6 +36,11 @@ func StartWatchWARCWritingQueue(pauseCheckInterval time.Duration, pauseTimeout t
 		pauseTicker := time.NewTicker(pauseCheckInterval)
 		defer pauseTicker.Stop()
 
+		maxQueueSize := config.Get().WARCQueueSize
+		if maxQueueSize == -1 || maxQueueSize == 0 {
+			maxQueueSize = config.Get().WARCPoolSize
+		}
+
 		for {
 			select {
 			case <-wwqCtx.Done():
@@ -50,7 +55,7 @@ func StartWatchWARCWritingQueue(pauseCheckInterval time.Duration, pauseTimeout t
 
 				logger.Debug("checking queue size for pause", "queue_size", queueSize, "max_queue_size", config.Get().WorkersCount, "paused", paused)
 
-				if !paused && queueSize > config.Get().WorkersCount {
+				if !paused && queueSize > maxQueueSize {
 					logger.Warn("WARC writing queue exceeded the worker count, pausing the pipeline")
 					pause.Pause("WARC writing queue exceeded the worker count")
 					paused = true
