@@ -98,7 +98,7 @@ func startPipeline() {
 	}
 
 	// Start the WARC writing queue watcher
-	go watchers.WatchWARCWritingQueue(5 * time.Second)
+	watchers.StartWatchWARCWritingQueue(5*time.Second, 1*time.Second, 250*time.Millisecond)
 
 	postprocessorOutputChan := makeStageChannel(config.Get().WorkersCount)
 	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan)
