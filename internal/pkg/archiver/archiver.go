@@ -200,8 +200,9 @@ func archive(workerID string, seed *models.Item) {
 			defer stats.URLsCrawledIncr()
 
 			var (
-				err  error
-				resp *http.Response
+				err          error
+				resp         *http.Response
+				feedbackChan = make(chan struct{}, 1)
 			)
 
 			// Execute the request
@@ -209,6 +210,10 @@ func archive(workerID string, seed *models.Item) {
 			if req == nil {
 				panic("request is nil")
 			}
+
+			// Add the feedback channel to the request context
+			req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
+
 			if config.Get().Proxy != "" {
 				resp, err = globalArchiver.ClientWithProxy.Do(req)
 			} else {
@@ -232,6 +237,9 @@ func archive(workerID string, seed *models.Item) {
 			}
 
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
+
+			// Waiting for WARC writing to finish
+			<-feedbackChan
 
 			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
 

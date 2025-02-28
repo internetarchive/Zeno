@@ -5,7 +5,7 @@ go 1.24
 toolchain go1.24.0
 
 require (
-	github.com/CorentinB/warc v0.8.71
+	github.com/CorentinB/warc v0.8.72
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/ada-url/goada v0.0.0-20250104020233-00cbf4dc9da1
@@ -16,6 +16,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.0
 	github.com/grafov/m3u8 v0.12.1
+	github.com/hashicorp/consul/api v1.31.2
 	github.com/internetarchive/gocrawlhq v1.2.28
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.21.0
@@ -46,7 +47,6 @@ require (
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
-	github.com/hashicorp/consul/api v1.31.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
