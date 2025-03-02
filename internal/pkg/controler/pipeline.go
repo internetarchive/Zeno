@@ -194,7 +194,9 @@ func stopPipeline() {
 		}
 	}
 
-	api.Stop(5 * time.Second)
+	if config.Get().API {
+		api.Stop(5 * time.Second)
+	}
 
 	if config.Get().ConsulRegister {
 		consul.Stop()
