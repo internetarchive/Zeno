@@ -11,16 +11,18 @@ import (
 )
 
 type stats struct {
-	URLsCrawled           *rate
-	SeedsFinished         *rate
-	PreprocessorRoutines  *counter
-	ArchiverRoutines      *counter
-	PostprocessorRoutines *counter
-	FinisherRoutines      *counter
-	Paused                atomic.Bool
-	HTTPReturnCodes       *rateBucket
-	MeanHTTPResponseTime  *mean
-	WARCWritingQueueSize  atomic.Int64
+	URLsCrawled            *rate
+	SeedsFinished          *rate
+	PreprocessorRoutines   *counter
+	ArchiverRoutines       *counter
+	PostprocessorRoutines  *counter
+	FinisherRoutines       *counter
+	Paused                 atomic.Bool
+	HTTPReturnCodes        *rateBucket
+	MeanHTTPResponseTime   *mean // in ms
+	MeanProcessBodyTime    *mean // in ms
+	MeanWaitOnFeedbackTime *mean // in ms
+	WARCWritingQueueSize   atomic.Int64
 }
 
 var (
@@ -37,19 +39,21 @@ func Init() error {
 
 	doOnce.Do(func() {
 		globalStats = &stats{
-			URLsCrawled:           &rate{},
-			SeedsFinished:         &rate{},
-			PreprocessorRoutines:  &counter{},
-			ArchiverRoutines:      &counter{},
-			PostprocessorRoutines: &counter{},
-			FinisherRoutines:      &counter{},
-			HTTPReturnCodes:       newRateBucket(),
-			MeanHTTPResponseTime:  &mean{},
+			URLsCrawled:            &rate{},
+			SeedsFinished:          &rate{},
+			PreprocessorRoutines:   &counter{},
+			ArchiverRoutines:       &counter{},
+			PostprocessorRoutines:  &counter{},
+			FinisherRoutines:       &counter{},
+			HTTPReturnCodes:        newRateBucket(),
+			MeanHTTPResponseTime:   &mean{},
+			MeanProcessBodyTime:    &mean{},
+			MeanWaitOnFeedbackTime: &mean{},
 		}
 
-		globalPromStats = newPrometheusStats()
-
 		if config.Get().Prometheus {
+			globalPromStats = newPrometheusStats()
+
 			// Get the hostname via env or via command
 			hostname, err = os.Hostname()
 			if err != nil {
@@ -86,6 +90,8 @@ func Reset() {
 	globalStats.FinisherRoutines.reset()
 	globalStats.HTTPReturnCodes.resetAll()
 	globalStats.MeanHTTPResponseTime.reset()
+	globalStats.MeanProcessBodyTime.reset()
+	globalStats.MeanWaitOnFeedbackTime.reset()
 }
 
 // GetMapTUI returns a map of the current stats.

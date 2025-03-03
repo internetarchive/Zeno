@@ -211,6 +211,9 @@ func archive(workerID string, seed *models.Item) {
 				panic("request is nil")
 			}
 
+			// Get and measure request time
+			getStartTime := time.Now()
+
 			// If WARC writing is asynchronous, we don't need a feedback channel
 			if !config.Get().WARCWriteAsync {
 				feedbackChan = make(chan struct{}, 1)
@@ -228,24 +231,29 @@ func archive(workerID string, seed *models.Item) {
 				item.SetStatus(models.ItemFailed)
 				return
 			}
+			stats.MeanHTTPRespTimeAdd(time.Since(getStartTime))
 
 			// Set the response in the URL
 			item.GetURL().SetResponse(resp)
 
-			// Process the body
+			// Process the body and measure the time
+			processStartTime := time.Now()
 			err = ProcessBody(item.GetURL(), config.Get().DisableAssetsCapture, domainscrawl.Enabled(), config.Get().MaxHops, config.Get().WARCTempDir)
 			if err != nil {
 				logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 				item.SetStatus(models.ItemFailed)
 				return
 			}
+			stats.MeanProcessBodyTimeAdd(time.Since(processStartTime))
 
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
 
 			// If WARC writing is asynchronous, we don't need to wait for the feedback channel
 			if !config.Get().WARCWriteAsync {
+				feedbackTime := time.Now()
 				// Waiting for WARC writing to finish
 				<-feedbackChan
+				stats.MeanWaitOnFeedbackTimeAdd(time.Since(feedbackTime))
 			}
 
 			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
