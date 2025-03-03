@@ -250,8 +250,10 @@ func archive(workerID string, seed *models.Item) {
 
 			// If WARC writing is asynchronous, we don't need to wait for the feedback channel
 			if !config.Get().WARCWriteAsync {
+				feedbackTime := time.Now()
 				// Waiting for WARC writing to finish
 				<-feedbackChan
+				stats.MeanWaitOnFeedbackTimeAdd(time.Since(feedbackTime))
 			}
 
 			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)

@@ -260,3 +260,21 @@ func MeanProcessBodyTimeGet() float64 { return globalStats.MeanProcessBodyTime.g
 
 // MeanProcessBodyTimeReset resets the MeanProcessBodyTime to 0.
 func MeanProcessBodyTimeReset() { globalStats.MeanProcessBodyTime.reset() }
+
+////////////////////////////
+// MeanWaitOnFeedbackTime //
+////////////////////////////
+
+// MeanWaitOnFeedbackTimeAdd adds the given value to the MeanWaitOnFeedbackTime.
+func MeanWaitOnFeedbackTimeAdd(value time.Duration) {
+	globalStats.MeanWaitOnFeedbackTime.add(uint64(value.Milliseconds()))
+	if globalPromStats != nil {
+		globalPromStats.meanWaitOnFeedbackTime.WithLabelValues(config.Get().Job, hostname, version).Observe(float64(value))
+	}
+}
+
+// MeanWaitOnFeedbackTimeGet returns the current value of the MeanWaitOnFeedbackTime.
+func MeanWaitOnFeedbackTimeGet() float64 { return globalStats.MeanWaitOnFeedbackTime.get() }
+
+// MeanWaitOnFeedbackTimeReset resets the MeanWaitOnFeedbackTime to 0.
+func MeanWaitOnFeedbackTimeReset() { globalStats.MeanWaitOnFeedbackTime.reset() }

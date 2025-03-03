@@ -10,20 +10,21 @@ import (
 )
 
 type prometheusStats struct {
-	urlCrawled            *prometheus.CounterVec
-	finishedSeeds         *prometheus.CounterVec
-	preprocessorRoutines  *prometheus.GaugeVec
-	archiverRoutines      *prometheus.GaugeVec
-	postprocessorRoutines *prometheus.GaugeVec
-	finisherRoutines      *prometheus.GaugeVec
-	paused                *prometheus.GaugeVec
-	http2xx               *prometheus.CounterVec
-	http3xx               *prometheus.CounterVec
-	http4xx               *prometheus.CounterVec
-	http5xx               *prometheus.CounterVec
-	meanHTTPRespTime      *prometheus.HistogramVec // in ns
-	meanProcessBodyTime   *prometheus.HistogramVec // in ns
-	warcWritingQueueSize  *prometheus.GaugeVec
+	urlCrawled             *prometheus.CounterVec
+	finishedSeeds          *prometheus.CounterVec
+	preprocessorRoutines   *prometheus.GaugeVec
+	archiverRoutines       *prometheus.GaugeVec
+	postprocessorRoutines  *prometheus.GaugeVec
+	finisherRoutines       *prometheus.GaugeVec
+	paused                 *prometheus.GaugeVec
+	http2xx                *prometheus.CounterVec
+	http3xx                *prometheus.CounterVec
+	http4xx                *prometheus.CounterVec
+	http5xx                *prometheus.CounterVec
+	meanHTTPRespTime       *prometheus.HistogramVec // in ns
+	meanProcessBodyTime    *prometheus.HistogramVec // in ns
+	meanWaitOnFeedbackTime *prometheus.HistogramVec // in ns
+	warcWritingQueueSize   *prometheus.GaugeVec
 }
 
 func newPrometheusStats() *prometheusStats {
@@ -80,6 +81,10 @@ func newPrometheusStats() *prometheusStats {
 			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_process_body_time", Help: "Mean time in ns to process the body of a response", Buckets: prometheus.ExponentialBucketsRange(float64(time.Microsecond), float64(10*time.Second), 50)},
 			[]string{"project", "hostname", "version"},
 		),
+		meanWaitOnFeedbackTime: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_wait_on_feedback_time", Help: "Mean time in ns to wait on WARC writing feedback signal", Buckets: prometheus.ExponentialBucketsRange(float64(time.Microsecond), float64(10*time.Second), 50)},
+			[]string{"project", "hostname", "version"},
+		),
 		warcWritingQueueSize: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "warc_writing_queue_size", Help: "Size of the WARC writing queue"},
 			[]string{"project", "hostname", "version"},
@@ -102,6 +107,7 @@ func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.meanHTTPRespTime)
 	prometheus.MustRegister(globalPromStats.meanProcessBodyTime)
 	prometheus.MustRegister(globalPromStats.warcWritingQueueSize)
+	prometheus.MustRegister(globalPromStats.meanWaitOnFeedbackTime)
 }
 
 func PrometheusHandler() http.Handler {
