@@ -1,5 +1,5 @@
-github.com/CorentinB/warc v0.8.72 h1:Tpst+p3OD0q81lPm63juO6DUg5QG+qD0osmGSp1bmdY=
-github.com/CorentinB/warc v0.8.72/go.mod h1:1fAGpKVIWnIuC79VdcrX0TyF00CHFzZ2VOYF7g5ivzA=
+github.com/CorentinB/warc v0.8.73 h1:/sHRMa2KeivcRQ6RcEPcYYqNXHCQJ6M8yexokZ3o3Cc=
+github.com/CorentinB/warc v0.8.73/go.mod h1:1fAGpKVIWnIuC79VdcrX0TyF00CHFzZ2VOYF7g5ivzA=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3 h1:ClzzXMDDuUbWfNNZqGeYq4PnYOlwlOVIvSyNaIy0ykg=
 github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3/go.mod h1:we0YA5CsBbH5+/NUzC/AlMmxaDtWlXeNsqrwXjTzmzA=
