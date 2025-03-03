@@ -200,8 +200,9 @@ func archive(workerID string, seed *models.Item) {
 			defer stats.URLsCrawledIncr()
 
 			var (
-				err  error
-				resp *http.Response
+				err          error
+				resp         *http.Response
+				feedbackChan chan struct{}
 			)
 
 			// Execute the request
@@ -212,6 +213,14 @@ func archive(workerID string, seed *models.Item) {
 
 			// Get and measure request time
 			getStartTime := time.Now()
+
+			// If WARC writing is asynchronous, we don't need a feedback channel
+			if !config.Get().WARCWriteAsync {
+				feedbackChan = make(chan struct{}, 1)
+				// Add the feedback channel to the request context
+				req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
+			}
+
 			if config.Get().Proxy != "" {
 				resp, err = globalArchiver.ClientWithProxy.Do(req)
 			} else {
@@ -238,6 +247,12 @@ func archive(workerID string, seed *models.Item) {
 			stats.MeanProcessBodyTimeAdd(time.Since(processStartTime))
 
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
+
+			// If WARC writing is asynchronous, we don't need to wait for the feedback channel
+			if !config.Get().WARCWriteAsync {
+				// Waiting for WARC writing to finish
+				<-feedbackChan
+			}
 
 			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
 
