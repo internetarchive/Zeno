@@ -5,7 +5,7 @@ go 1.24
 toolchain go1.24.0
 
 require (
-	github.com/CorentinB/warc v0.8.72
+	github.com/CorentinB/warc v0.8.73
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/ada-url/goada v0.0.0-20250104020233-00cbf4dc9da1
