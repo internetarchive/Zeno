@@ -139,7 +139,7 @@ func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 
 	// We only consider as assets the URLs in which we can find a file extension
 	for _, rawURL := range rawURLs {
-		if hasFileExtension(rawURL) {
+		if isHTTPLink(rawURL) {
 			assets = append(assets, &models.URL{
 				Raw: rawURL,
 			})
