@@ -12,7 +12,7 @@ func IsTikTokURL(URL *models.URL) bool {
 }
 
 func IsTikTokVideoURL(URL string) bool {
-	return strings.Contains(URL, "webapp.tiktok.com") && strings.Contains(URL, "/video/")
+	return (strings.Contains(URL, "tiktok.com") || strings.Contains(URL, "tiktokcdn-us.com")) && strings.Contains(URL, "/video/")
 }
 
 func AddHeaders(req *http.Request) {
@@ -41,5 +41,4 @@ func AddVideoHeaders(req *http.Request) {
 	req.Header.Set("Sec-Fetch-Dest", "empty")
 	req.Header.Set("Sec-Fetch-Mode", "cors")
 	req.Header.Set("Sec-Fetch-Site", "same-site")
-	req.Header.Set("Connection", "keep-alive")
 }
