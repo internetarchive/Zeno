@@ -7,8 +7,10 @@ import (
 	"hash/fnv"
 	"io"
 	"log/slog"
+	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -48,6 +50,77 @@ func (q *PersistentGroupedQueue) ReadItemAt(position uint64, itemSize uint64) ([
 	}
 
 	return itemBytes, nil
+}
+
+func FetchRemoteList(remoteURL string) (seeds []Item, err error) {
+	var totalCount, validCount int
+
+	// Validate the URL
+	parsedURL, err := url.ParseRequestURI(remoteURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid URL: %w", err)
+	}
+
+	// Perform HTTP GET request
+	resp, err := http.Get(parsedURL.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch remote list: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP request failed with status code: %d", resp.StatusCode)
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "text/plain") && 
+	   !strings.Contains(contentType, "text/csv") && 
+	   !strings.Contains(contentType, "application/text") {
+		slog.Warn("Unexpected content type", "type", contentType)
+	}
+
+	// Create a scanner to read the response body
+	scanner := bufio.NewScanner(resp.Body)
+	
+	slog.Info("Start reading remote input list", "url", remoteURL)
+
+	for scanner.Scan() {
+		totalCount++
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
+		URL, err := url.Parse(line)
+		if err != nil {
+			slog.Warn("Invalid URL", "url", line, "error", err.Error())
+			continue
+		}
+
+		item, err := NewItem(URL, nil, "seed", 0, "", false)
+		if err != nil {
+			slog.Warn("Failed to create new item", "url", line, "error", err.Error())
+			continue
+		}
+
+		seeds = append(seeds, *item)
+		validCount++
+	}
+
+	if err := scanner.Err(); err != nil {
+		return seeds, fmt.Errorf("error reading remote list: %w", err)
+	}
+
+	if len(seeds) == 0 {
+		return seeds, errors.New("seed list is empty")
+	}
+
+	slog.Info("Finished reading remote input list", 
+		"total", totalCount, 
+		"valid", validCount, 
+		"url", remoteURL)
+
+	return seeds, nil
 }
 
 func FileToItems(path string) (seeds []Item, err error) {

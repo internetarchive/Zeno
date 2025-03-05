@@ -8,9 +8,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	remoteFlag bool
+)
+
 var getListCmd = &cobra.Command{
-	Use:   "list [FILE]",
-	Short: "Start crawling with a seed list",
+	Use:   "list [FILE/URL]",
+	Short: "Start crawling with a seed list from a local file or remote URL",
 	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if cfg == nil {
@@ -26,29 +30,49 @@ var getListCmd = &cobra.Command{
 				crawl.Log.WithFields(map[string]interface{}{
 					"crawl": crawl,
 					"err":   err.Error(),
-				}).Error("'get hq' exited due to error")
+				}).Error("'get list' exited due to error")
 			}
 			return err
 		}
 
-		// Initialize initial seed list
-		crawl.SeedList, err = queue.FileToItems(args[0])
-		if err != nil || len(crawl.SeedList) <= 0 {
+		// Determine seed list source
+		input := args[0]
+		var seedList []queue.Item
+
+		// Choose loading method based on flag
+		if remoteFlag {
+			seedList, err = queue.FetchRemoteList(input)
+		} else {
+			seedList, err = queue.FileToItems(input)
+		}
+
+		// Handle loading errors
+		if err != nil {
+			errorSource := map[bool]string{true: "remote", false: "local"}[remoteFlag]
 			crawl.Log.WithFields(map[string]interface{}{
-				"input": args[0],
+				"input": input,
 				"err":   err.Error(),
-			}).Error("This is not a valid input")
+			}).Error("Failed to read %s seed list", errorSource)
 			return err
 		}
 
+		// Validate seed list
+		if len(seedList) == 0 {
+			crawl.Log.WithFields(map[string]interface{}{
+				"input": input,
+			}).Error("Seed list is empty")
+			return fmt.Errorf("empty seed list")
+		}
+
+		crawl.SeedList = seedList
 		crawl.Log.WithFields(map[string]interface{}{
-			"input":      args[0],
+			"input":      input,
 			"seedsCount": len(crawl.SeedList),
+			"source":     map[bool]string{true: "Remote", false: "Local"}[remoteFlag],
 		}).Info("Seed list loaded")
 
 		// Start crawl
-		err = crawl.Start()
-		if err != nil {
+		if err = crawl.Start(); err != nil {
 			crawl.Log.WithFields(map[string]interface{}{
 				"crawl": crawl,
 				"err":   err.Error(),
@@ -58,4 +82,8 @@ var getListCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func init() {
+	getListCmd.Flags().BoolVar(&remoteFlag, "remote", false, "Treat input as a remote URL for seed list")
 }
