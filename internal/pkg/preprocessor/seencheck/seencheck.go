@@ -71,6 +71,7 @@ func seen(hash, value string) {
 
 // SeencheckItem gets the MaxDepth children of the given item and seencheck them locally.
 // The items that were seen before will be marked as seen.
+// Different from the HQ seencheck, the local seencheck performs seencheck on top level seeds.
 func SeencheckItem(item *models.Item) error {
 	h := fnv.New64a()
 
@@ -79,16 +80,7 @@ func SeencheckItem(item *models.Item) error {
 		panic(err)
 	}
 
-	// Never seencheck the seed
-	if len(items) == 1 && items[0].IsSeed() {
-		return nil
-	}
-
 	for i := range items {
-		if items[i].IsSeed() {
-			// Never seencheck the seed
-			continue
-		}
 
 		_, err = h.Write([]byte(items[i].GetURL().String()))
 		if err != nil {
