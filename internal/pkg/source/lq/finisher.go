@@ -18,6 +18,10 @@ type finishBatch struct {
 	ChildsCaptured int
 }
 
+// sqlite only accepts one write at a time, so hardcoding this to 2
+// allows one sender operation to be in progress while another is being prepared/blocking
+const maxFinishSenders = 2
+
 // finisher initializes and starts the finisher and dispatcher processes.
 func finisher() {
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -28,8 +32,7 @@ func finisher() {
 	ctx, cancel := context.WithCancel(globalLQ.ctx)
 	defer cancel()
 
-	maxSenders := getMaxFinishSenders()
-	batchCh := make(chan *finishBatch, maxSenders)
+	batchCh := make(chan *finishBatch, maxFinishSenders)
 
 	var wg sync.WaitGroup
 
@@ -72,7 +75,7 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 		"component": "lq.finisherReceiver",
 	})
 
-	batchSize := getBatchSize()
+	batchSize := config.Get().WorkersCount
 	maxWaitTime := 5 * time.Second
 
 	batch := &finishBatch{
@@ -148,8 +151,7 @@ func finisherDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *f
 		"component": "lq.finisherDispatcher",
 	})
 
-	maxSenders := getMaxFinishSenders()
-	senderSemaphore := make(chan struct{}, maxSenders)
+	senderSemaphore := make(chan struct{}, maxFinishSenders)
 	var senderWg sync.WaitGroup
 
 	for {
@@ -181,9 +183,6 @@ func finisherSender(ctx context.Context, batch *finishBatch, batchUUID string) {
 	})
 	defer logger.Debug("done")
 
-	backoff := time.Second
-	maxBackoff := 5 * time.Second
-
 	logger.Debug("sending batch to LQ", "size", len(batch.URLs))
 
 	for {
@@ -194,29 +193,12 @@ func finisherSender(ctx context.Context, batch *finishBatch, batchUUID string) {
 			return
 		default:
 			if err != nil {
+				// This should never happen with sqlite local queue
 				logger.Error("error sending batch to LQ", "err", err)
-				time.Sleep(backoff)
-				backoff *= 2
-				if backoff > maxBackoff {
-					backoff = maxBackoff
-				}
+				time.Sleep(time.Second)
 				continue
 			}
 			return
 		}
 	}
-}
-
-// getMaxFinishSenders returns the maximum number of sender routines based on configuration.
-func getMaxFinishSenders() int {
-	return 2
-}
-
-// getBatchSize returns the batch size based on configuration.
-func getBatchSize() int {
-	batchSize := config.Get().WorkersCount
-	if batchSize == 0 {
-		batchSize = 100 // Default batch size.
-	}
-	return batchSize
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/internal/pkg/source/lq/sqlc_model"
@@ -22,7 +23,7 @@ func consumer() {
 	defer cancel()
 
 	// Set the batch size for fetching URLs
-	batchSize := 3
+	batchSize := config.Get().WorkersCount
 
 	// Create a fixed-size buffer (channel) for URLs
 	urlBuffer := make(chan *sqlc_model.Url, batchSize)
@@ -153,7 +154,7 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *s
 				discard = true
 			}
 			newItem := models.NewItem(URL.ID, &parsedURL, URL.Via)
-			newItem.SetStatus(models.ItemFresh) // 这行不需要。NewItem 初始化已经是 Fresh 了
+			newItem.SetStatus(models.ItemFresh)
 			newItem.SetSource(models.ItemSourceQueue)
 
 			if discard {

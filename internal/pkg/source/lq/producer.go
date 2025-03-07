@@ -14,6 +14,10 @@ type producerBatch struct {
 	URLs []sqlc_model.Url
 }
 
+// sqlite only accepts one write at a time, so hardcoding this to 2
+// allows one sender operation to be in progress while another is being prepared/blocking
+const maxSenders = 2
+
 func producer() {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "lq.producer",
@@ -23,7 +27,6 @@ func producer() {
 	ctx, cancel := context.WithCancel(globalLQ.ctx)
 	defer cancel()
 
-	maxSenders := 2
 	batchCh := make(chan *producerBatch, maxSenders)
 
 	var wg sync.WaitGroup
@@ -67,7 +70,7 @@ func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *pro
 		"component": "lq.producerReceiver",
 	})
 
-	batchSize := 7
+	batchSize := 100
 	maxWaitTime := 5 * time.Second
 
 	batch := &producerBatch{
