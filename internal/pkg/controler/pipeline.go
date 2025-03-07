@@ -18,6 +18,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
+	"github.com/internetarchive/Zeno/internal/pkg/source/lq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -118,21 +119,12 @@ func startPipeline() {
 			panic(err)
 		}
 	} else {
-		// Means we're using the to-be-implemented local queue, for the moment we're just gonna consume the channels
-		go func() {
-			for {
-				select {
-				case _, ok := <-finisherFinishChan:
-					if !ok {
-						return
-					}
-				case _, ok := <-finisherProduceChan:
-					if !ok {
-						return
-					}
-				}
-			}
-		}()
+		logger.Info("starting local queue")
+		err = lq.Start(finisherFinishChan, finisherProduceChan)
+		if err != nil {
+			logger.Error("error starting local queue source", "err", err.Error())
+			panic(err)
+		}
 	}
 
 	err = finisher.Start(postprocessorOutputChan, finisherFinishChan, finisherProduceChan)
@@ -183,6 +175,8 @@ func stopPipeline() {
 
 	if config.Get().UseHQ {
 		hq.Stop()
+	} else {
+		lq.Stop()
 	}
 
 	reactor.Stop()

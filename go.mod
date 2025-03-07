@@ -18,6 +18,7 @@ require (
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.31.2
 	github.com/internetarchive/gocrawlhq v1.2.28
+	github.com/ncruces/go-sqlite3 v0.24.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.21.0
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
@@ -68,6 +69,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/onsi/gomega v1.34.2 // indirect
 	github.com/paulbellamy/ratecounter v0.2.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
@@ -86,9 +88,10 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
+	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
 	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect

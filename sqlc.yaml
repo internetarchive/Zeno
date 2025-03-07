@@ -1,0 +1,9 @@
+version: "2"
+sql:
+  - engine: "sqlite"
+    queries: "internal/pkg/source/lq/query.sql"
+    schema: "internal/pkg/source/lq/schema.sql"
+    gen:
+      go:
+        package: "sqlc_model"
+        out: "internal/pkg/source/lq/sqlc_model"
