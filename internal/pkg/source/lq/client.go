@@ -120,7 +120,7 @@ func (c *LQClient) Delete(ctx context.Context, urls []sqlc_model.Url, bypassSeen
 	qtx := globalLQ.client.dbWriteSqlc.WithTx(tx)
 
 	for _, url := range urls {
-		err = qtx.DoneURL(ctx, url.ID)
+		err = qtx.DeleteURL(ctx, url.ID)
 		if err != nil {
 			logger.Error("error deleting URL", "err", err.Error(), "func", "lq.Delete", "id", url.ID)
 			return err
