@@ -13,6 +13,7 @@ import (
 )
 
 func TestHTMLOutlinks(t *testing.T) {
+	config.InitConfig()
 	body := `
 	<html>
 		<head></head>
@@ -35,7 +36,6 @@ func TestHTMLOutlinks(t *testing.T) {
 		t.Errorf("ProcessBody() error = %v", err)
 	}
 	item := models.NewItem("test", newURL, "")
-	config.InitConfig()
 
 	outlinks, err := HTMLOutlinks(item)
 	if err != nil {
@@ -48,6 +48,7 @@ func TestHTMLOutlinks(t *testing.T) {
 
 // Test <audio> and <video> src extraction
 func TestHTMLAssetsAudioVideo(t *testing.T) {
+	config.InitConfig()
 	audioVideoBody := `
 	<html>
 		<head></head>
@@ -81,6 +82,7 @@ func TestHTMLAssetsAudioVideo(t *testing.T) {
 
 // Test [data-item], [style], [data-preview] attribute extraction
 func TestHTMLAssetsAttributes(t *testing.T) {
+	config.InitConfig()
 	html := `
 	<html>
 		<head></head>
