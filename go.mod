@@ -1,6 +1,6 @@
 module github.com/internetarchive/Zeno
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/CorentinB/warc v0.8.71
