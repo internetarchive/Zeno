@@ -81,8 +81,8 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 	batch := &finishBatch{
 		URLs: make([]sqlc_model.Url, 0, batchSize),
 	}
-	timer := time.NewTimer(maxWaitTime)
-	defer timer.Stop()
+	ticker := time.NewTicker(maxWaitTime)
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -122,9 +122,9 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 				batch = &finishBatch{
 					URLs: make([]sqlc_model.Url, 0, batchSize),
 				}
-				resetTimer(timer, maxWaitTime)
+				ticker.Reset(maxWaitTime)
 			}
-		case <-timer.C:
+		case <-ticker.C:
 			if len(batch.URLs) > 0 {
 				logger.Debug("sending non-full batch to dispatcher", "size", len(batch.URLs))
 				copyBatch := *batch
@@ -138,7 +138,6 @@ func finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *fin
 					URLs: make([]sqlc_model.Url, 0, batchSize),
 				}
 			}
-			resetTimer(timer, maxWaitTime)
 		}
 	}
 }
