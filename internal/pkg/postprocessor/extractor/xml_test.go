@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"bytes"
+	_ "embed"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,6 +14,9 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
+
+//go:embed testdata/rss2.0.xml
+var rss2_0XML string
 
 func TestXML(t *testing.T) {
 	tests := []struct {
@@ -121,6 +125,18 @@ func TestXML(t *testing.T) {
 			},
 			hasError: false,
 		},
+		{
+			name: "XML RSS",
+			body: rss2_0XML,
+			expected: func() []string {
+				v := make([]string, 217)
+				v[2] = "https://blog.archive.org/wp-content/uploads/2023/03/ia-logo-sq-150x150.png"             // image::url
+				v[14] = "https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3.png" // <a> href in description::CDATA
+				v[185] = "https://archive.org/details/vanishing-culture-report"
+				return v
+			}(),
+			hasError: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -150,8 +166,8 @@ func TestXML(t *testing.T) {
 			}
 
 			for i, URL := range URLs {
-				if URL.Raw != tt.expected[i] {
-					t.Errorf("Expected asset %s, got %s", tt.expected[i], URL.Raw)
+				if URL.Raw != tt.expected[i] && tt.expected[i] != "" {
+					t.Errorf("Expected asset %s, index %d, got %s", tt.expected[i], i, URL.Raw)
 				}
 			}
 		})

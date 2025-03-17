@@ -9,6 +9,7 @@ import (
 	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -43,7 +44,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 	u.SetMIMEType(mimetype.Detect(buffer.Bytes()))
 
 	// Check if the MIME type requires post-processing
-	if (u.GetMIMEType().Parent() != nil && u.GetMIMEType().Parent().String() == "text/plain") ||
+	if (u.GetMIMEType().Parent() != nil && utils.IsMIMETypeInHierarchy(u.GetMIMEType().Parent(), "text/plain")) ||
 		strings.Contains(u.GetMIMEType().String(), "text/") {
 
 		// Create a temp file with a 2MB memory buffer

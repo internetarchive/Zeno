@@ -1,0 +1,937 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>Internet Archive Blogs</title>
+	<atom:link href="https://blog.archive.org/feed/" rel="self" type="application/rss+xml" />
+	<link>https://blog.archive.org</link>
+	<description>A blog from the team at archive.org</description>
+	<lastBuildDate>Fri, 14 Mar 2025 18:53:36 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=6.2</generator>
+
+<image>
+	<url>https://blog.archive.org/wp-content/uploads/2023/03/ia-logo-sq-150x150.png</url>
+	<title>Internet Archive Blogs</title>
+	<link>https://blog.archive.org</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+	<item>
+		<title>Want to help preserve the web? Save Page Now!</title>
+		<link>https://blog.archive.org/2025/03/13/want-to-help-preserve-the-web-save-page-now/</link>
+					<comments>https://blog.archive.org/2025/03/13/want-to-help-preserve-the-web-save-page-now/#respond</comments>
+		
+		<dc:creator><![CDATA[Chris Freeland]]></dc:creator>
+		<pubDate>Thu, 13 Mar 2025 15:43:00 +0000</pubDate>
+				<category><![CDATA[News]]></category>
+		<category><![CDATA[Wayback Machine - Web Archive]]></category>
+		<category><![CDATA[save page now]]></category>
+		<guid isPermaLink="false">https://blog.archive.org/?p=28536</guid>
+
+					<description><![CDATA[The internet is a living, breathing space—constantly growing, changing, and, unfortunately, disappearing. Important articles get taken down. Research papers become inaccessible. Historical records vanish. When content disappears, we lose pieces [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<figure class="wp-block-image size-large"><a href="http://blog.archive.org/wp-content/uploads/2024/02/wayback_logo-scaled.jpg"><img decoding="async" width="1024" height="453" src="http://blog.archive.org/wp-content/uploads/2024/02/wayback_logo-1024x453.jpg" alt="" class="wp-image-27029" srcset="https://blog.archive.org/wp-content/uploads/2024/02/wayback_logo-1024x453.jpg 1024w, https://blog.archive.org/wp-content/uploads/2024/02/wayback_logo-300x133.jpg 300w, https://blog.archive.org/wp-content/uploads/2024/02/wayback_logo-768x340.jpg 768w, https://blog.archive.org/wp-content/uploads/2024/02/wayback_logo-1536x679.jpg 1536w, https://blog.archive.org/wp-content/uploads/2024/02/wayback_logo-2048x906.jpg 2048w, https://blog.archive.org/wp-content/uploads/2024/02/wayback_logo-624x276.jpg 624w" sizes="(max-width: 1024px) 100vw, 1024px" /></a></figure>
+
+
+
+<p>The internet is a living, breathing space—constantly growing, changing, and, unfortunately, disappearing. Important articles get taken down. Research papers become inaccessible. Historical records vanish. When content disappears, we lose pieces of our shared knowledge.</p>
+
+
+
+<p>That’s where the <strong>Wayback Machine</strong> comes in. With the Wayback Machine’s<strong> Save Page Now</strong> tool, you have the power to help preserve the web in real time.</p>
+
+
+
+<h2 class="wp-block-heading">Why It Matters:</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>Prevent Link Rot:</strong> Keep references intact for future research.</li>
+
+
+
+<li><strong>Preserve Digital History:</strong> Ensure cultural moments remain accessible.</li>
+
+
+
+<li><strong>Save What Matters to You:</strong> You choose what to archive and preserve.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">How to Use Save Page Now:</h2>
+
+
+
+<ul class="wp-block-list">
+<li>Visit <a href="http://web.archive.org/save"><strong>web.archive.org/save</strong></a></li>
+
+
+
+<li>Enter the URL of the page you want to archive.</li>
+
+
+
+<li>Click <strong>“Save Page”</strong> and let the Wayback Machine do the rest!</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">Other Tools &amp; APIs</h2>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://archive.org/help/wayback_api.php">Wayback Machine Availability API</a></li>
+
+
+
+<li><a href="https://chrome.google.com/webstore/detail/wayback-machine/fpnmgdkabkmnadcjpehmlllkndpkmiak?hl=en-US">Chrome Extension</a></li>
+
+
+
+<li><a href="https://addons.mozilla.org/en-US/firefox/addon/wayback-machine_new/">Firefox Add-on</a></li>
+
+
+
+<li><a href="https://apps.apple.com/us/app/wayback-machine/id1472432422">Safari Extension</a></li>
+
+
+
+<li><a href="https://microsoftedge.microsoft.com/addons/detail/wayback-machine/kjmickeoogghaimmomagaghnogelpcpn?hl=en-US">MS Edge Add-on</a></li>
+
+
+
+<li><a href="https://itunes.apple.com/us/app/wayback-machine/id1201888313">iOS app</a></li>
+
+
+
+<li><a href="https://play.google.com/store/apps/details?id=com.internetarchive.waybackmachine">Android app</a></li>
+</ul>
+
+
+
+<p>Every page saved is a step toward ensuring the internet’s knowledge remains available for future generations.</p>
+
+
+
+<p><strong>Start Archiving Today!</strong> <a href="https://web.archive.org/save">https://web.archive.org/save</a></p>
+]]></content:encoded>
+					
+					<wfw:commentRss>https://blog.archive.org/2025/03/13/want-to-help-preserve-the-web-save-page-now/feed/</wfw:commentRss>
+			<slash:comments>0</slash:comments>
+		
+		
+			</item>
+		<item>
+		<title>Public Domain Spotlight: LibriVox</title>
+		<link>https://blog.archive.org/2025/03/10/public-domain-spotlight-librivox/</link>
+					<comments>https://blog.archive.org/2025/03/10/public-domain-spotlight-librivox/#respond</comments>
+		
+		<dc:creator><![CDATA[Sean Dudley]]></dc:creator>
+		<pubDate>Mon, 10 Mar 2025 22:08:13 +0000</pubDate>
+				<category><![CDATA[Audio Archive]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[audiobooks]]></category>
+		<category><![CDATA[Librivox]]></category>
+		<guid isPermaLink="false">https://blog.archive.org/?p=28511</guid>
+
+					<description><![CDATA[Access to cultural heritage is not a luxury; it&#8217;s a necessity. Founded in 2005, LibriVox stands out as a crucial resource, ensuring that our cultural heritage is freely and openly [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<figure class="wp-block-image size-large"><img decoding="async" src="https://ia601806.us.archive.org/23/items/librivox_20250310_collage/Librivox%20%281%29.png" alt=""/></figure>
+
+
+
+<p>Access to cultural heritage is not a luxury; it&#8217;s a necessity. Founded in 2005, <a href="https://librivox.org/">LibriVox</a> stands out as a crucial resource, ensuring that our cultural heritage is freely and openly accessible. With its mission &#8220;To make all books in the public domain available, narrated by real people and distributed for free, in audio format on the internet,&#8221; LibriVox brings thousands of texts to modern audiences in audio form. The site operates on a volunteer basis, with community members dedicating time to record and independently publish these works. Each audiobook is dedicated to the public domain upon publication, reinforcing free and unrestricted access to our cultural heritage and history.</p>
+
+
+
+<p>LibriVox’s open structure supports preservation and accessibility. All of the recordings from the site cost nothing, have no limitations on listening time, and are devoid of DRM with the availability to download and keep forever. These positives are especially crucial as more aspects of our digital lives come under tighter corporate controls. The Internet Archive also serves and preserves the digital files in partnership with LibriVox and its community. We host a <a href="https://archive.org/details/librivoxaudio?tab=collection&amp;query=pooh">LibriVox collection</a> full of audios, ensuring these adaptations are accessible.</p>
+
+
+
+<iframe loading="lazy" src="https://archive.org/embed/public-domain-spotlight-librivox" width="640" height="480" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe>
+
+
+
+<p>On a personal note, LibriVox has enriched my own experiences with literature. Their dramatic recordings of A.A. Milne’s <a href="https://archive.org/details/winnie-the-pooh_dr_2306_librivox"><em>Winnie-the-Pooh</em></a> and <a href="https://archive.org/details/poohcornerdr_2411_librivox"><em>The House at Pooh Corner</em></a>—complete with full casts—have brought these beloved stories to life in new and vibrant ways for your ears. These audiobooks have not only made revisiting my favorite texts more convenient but have also deepened my appreciation for these texts. They also have become a reliable companion giving me something to listen to during insomnia-fueled nights of tossing and turning in bed.&nbsp;</p>
+
+
+
+<p>History and shared culture are worth preserving. LibriVox’s mission helps to make that preservation more accessible, available, and engaging for us all. LibriVox works utilize books provided by Project Gutenberg, an organization dedicated to making public domain texts available. Take some time to explore our <a href="https://archive.org/details/librivoxaudio?tab=collection&amp;query=pooh">LibriVox Collection</a> and see what stands out to you. You might even find your next favorite book. Or, consider helping to build this rich collection by <a href="https://librivox.org/pages/volunteer-for-librivox/">volunteering with Librivox</a>. Happy listening.</p>
+
+
+
+<p><strong>This post is published with a CC0 Waiver dedicating it to the public domain.</strong></p>
+]]></content:encoded>
+					
+					<wfw:commentRss>https://blog.archive.org/2025/03/10/public-domain-spotlight-librivox/feed/</wfw:commentRss>
+			<slash:comments>0</slash:comments>
+		
+		
+			</item>
+		<item>
+		<title>Vanishing Culture: No Film Left Unscanned</title>
+		<link>https://blog.archive.org/2025/03/05/vanishing-culture-no-film-left-unscanned/</link>
+					<comments>https://blog.archive.org/2025/03/05/vanishing-culture-no-film-left-unscanned/#respond</comments>
+		
+		<dc:creator><![CDATA[vanishingculture]]></dc:creator>
+		<pubDate>Wed, 05 Mar 2025 12:00:00 +0000</pubDate>
+				<category><![CDATA[Movie Archive]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[film]]></category>
+		<category><![CDATA[preservation]]></category>
+		<category><![CDATA[vanishingculture]]></category>
+		<guid isPermaLink="false">https://blog.archive.org/?p=28490</guid>
+
+					<description><![CDATA[The following guest post from archivist and filmmaker&#160;Rick Prelinger&#160;is part of our&#160;Vanishing Culture&#160;series, highlighting the power and importance of preservation in our digital age.&#160;Read more essays online&#160;or&#160;download the full report&#160;now. [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<p><em>The following guest post from archivist and filmmaker&nbsp;<strong>Rick Prelinger</strong>&nbsp;is part of our&nbsp;<strong>Vanishing Culture</strong>&nbsp;series, highlighting the power and importance of preservation in our digital age.&nbsp;<a href="https://blog.archive.org/tag/vanishingculture/">Read more essays online</a>&nbsp;or&nbsp;<a href="https://archive.org/details/vanishing-culture-report">download the full report</a>&nbsp;now.</em></p>
+
+
+
+<p>Soon after the cinema was born in the 1890s, a few visionaries realized that film could become one of the most vivid and engaging means of recording history. But when they proposed creating archives to collect and preserve moving images, no one seemed to respond. Most movie studios treated films as expendable objects to be discarded after their theatrical runs, and most collections that actually survived were hidden in specialized spaces: newsreel archives, stock footage libraries, universities, and collectors’ basements.&nbsp;</p>
+
+
+<div class="wp-block-image">
+<figure class="alignleft size-large is-resized"><a href="https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3.png"><img decoding="async" loading="lazy" width="1024" height="1024" src="https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3-1024x1024.png" alt="" class="wp-image-28491" style="width:316px;height:auto" srcset="https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3-1024x1024.png 1024w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3-300x300.png 300w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3-150x150.png 150w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3-768x768.png 768w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3-624x624.png 624w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3-650x650.png 650w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3.png 1080w" sizes="(max-width: 1024px) 100vw, 1024px" /></a></figure></div>
+
+
+<p>In the 1930s, a handful of courageous archivists in Europe and America inaugurated the modern film archives movement. Asserting that cinema should be seen not only as valuable documentation but as an art in its own right, they collected as best they could. But they encountered great resistance. They fought pushback from copyright holders who saw archives as a violation of their ownership, aesthetes and government bureaucrats who considered movies to be vulgar commercialism and unworthy of preservation, and fire inspectors who treated film as explosive hazmat. Ultimately, film’s immense popularity won out. In half a century, the first four film archives expanded to hundreds, and today it’s impossible to count how many thousands of archives collect film, video, and digital materials.</p>
+
+
+
+<p>But film has always been hard to collect and preserve. Until the 1970s, film was generally made from organic gelatin bonded to various forms of plastic that inevitably decomposed. Much but not all pre-1951 35mm film was doubly vulnerable, made from cellulose nitrate stock that if heated or exposed to flame could burn rapidly or explode. Film, therefore, was and still is a deeply inconvenient object, requiring very cool and very dry storage in order to survive. Archives fires throughout the twentieth and twenty-first centuries have destroyed large collections, and almost every film is still at risk from decay and decomposition.</p>
+
+
+
+<p>For many years the gold standard of film preservation was film-to-film copying coupled with restoration—aiming to preserve films as their makers intended, and trying to preserve the theatrical film experience. This process is difficult and expensive. The turn toward digital technologies came in the 1990s, and now almost all film preservation is digitally-based, even if the product is a long-lasting film print for storage projection.</p>
+
+
+
+<p>To think about film preservation is to think about much more than what we call movies. While to most people film and cinema describe the stories we see in theaters or on television, feature films are really a special case. The majority of films are “useful cinema”—films produced to do a job, to sell, train, teach, promote, document, convince. Almost none of these films have been preserved. And the supermajority of films, totalling in the billions, are home movies.&nbsp;</p>
+
+
+
+<iframe loading="lazy" src="https://archive.org/embed/201047_Home_Movie_003791" width="640" height="480" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe>
+
+
+
+<p><em>From the Prelinger Archives, </em>&#8220;<em><a href="https://archive.org/details/201047_Home_Movie_003791">Home Movie: 003791</a>,&#8221; preserved and available to view at the Internet Archive.</em></p>
+
+
+
+<p>Home movies—8mm, Super 8, 9.5mm 16mm and even 35mm—are ancestors of the videos we shot on camcorders and now capture on cell phones. We might think of each home movie as a pixel in a giant collective documentary spanning a hundred years, endless films picturing family, friends, travels, rituals and celebrations. Home movies picture our own experience of daily life, work and leisure, rather than narratives cooked up by commercial studios. And every home movie is evidence: a gesture of permanence. While there are large collections of home movies, most still live with the families that made them, often in damp basements or hot attics, all vulnerable to deterioration and the vagaries of a changing climate. Of all films, home movies are the closest to our hearts, the most charismatic, the most fascinating—and they are in the greatest jeopardy.</p>
+
+
+
+<iframe loading="lazy" src="https://archive.org/embed/200732_New_York_Worlds_Fair_6" width="640" height="480" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe>
+
+
+
+<p><em>From the Prelinger Archives, &#8220;<a href="https://archive.org/details/200732_New_York_Worlds_Fair_6">New York World&#8217;s Fair (Part 6)</a></em>,<em>&#8221; preserved and available to view at the Internet Archive.</em></p>
+
+
+
+<p>Fortunately, we now have digital tools and workflows to extend the life of film. While scanning film to produce digital files demands considerable skill, technology, and resources, it is more achievable than ever before. It’s possible to digitize most films that have not completely decayed and turn these inconvenient reels into digital files that can be viewed, shared, studied, edited, and woven together with other images and sounds. It’s now easy to take a film that may exist in only a single copy and share it around the world via the internet.&nbsp;</p>
+
+
+
+<p>Beginning in 2000, Prelinger Archives collaborated with Internet Archive to digitize and offer thousands of useful films online, and since then our films have been seen and downloaded over 200 million times on the Internet Archive and arguably billions of times elsewhere. Our three-year collaboration with Filecoin Foundation for the Decentralized Web, now in progress, is allowing us to scan thousands of films (especially home movies) every year and make them available in a safer, decentralized environment where we hope they will survive for many years. While this is not classic film-to-film preservation creating restored film copies that sit on archival shelves, digital scans of films are likely to exist in many places, avoiding the vulnerability of unique copies in individual repositories. And the quality of digital scanning now exceeds the quality of film-to-film copying.</p>
+
+
+<div class="wp-block-image">
+<figure class="alignleft size-large is-resized"><a href="https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-10.png"><img decoding="async" loading="lazy" width="1024" height="1024" src="https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-10-1024x1024.png" alt="" class="wp-image-28492" style="width:310px;height:auto" srcset="https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-10-1024x1024.png 1024w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-10-300x300.png 300w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-10-150x150.png 150w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-10-768x768.png 768w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-10-624x624.png 624w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-10-650x650.png 650w, https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-10.png 1080w" sizes="(max-width: 1024px) 100vw, 1024px" /></a></figure></div>
+
+
+<p>Perhaps most importantly, digital scans are easy to share. While film preservation should enable universal access to the sum of cinematic creativity, much film is enclosed by copyright or business restrictions. Most films held in archives are still not visible and even fewer are available for reuse. By scanning films that are out of copyright or have no surviving rightsholder, we can open up an immense reservoir of images, sounds and ideas for the makers of the present and the future. Scanning has made film preservation practical, and it’s also enabled preservation of “smaller” films like home movies and useful films, which reveal evidence and truths absent from feature films and television.</p>
+
+
+
+<p>No film left unscanned: this is our dream. We have the opportunity to preserve deteriorating films in digital form and make them available for viewing, reuse, and computation as never before. As thoughtful archivists have said for many years, “preservation without access is pointless.” Digital scanning can and should enable both as it helps us to build moving and permanent memories.</p>
+
+
+
+<p><strong>About the author</strong></p>
+
+
+
+<p><a href="https://en.wikipedia.org/wiki/Rick_Prelinger">Rick Prelinger</a> is an archivist, filmmaker, writer and educator. He began collecting &#8220;ephemeral films&#8221; (films made for specific purposes at specific times, such as advertising, educational and industrial films; more recently called &#8220;<a href="https://www.dukeupress.edu/useful-cinema">useful cinema</a>&#8220;) in 1983. His collection of 60,000 films was acquired by <a href="http://www.loc.gov/rr/mopic/">Library of Congress</a> in 2002, and since that time Prelinger Archives has again grown to include some 40,000 home movies and 7,000 other film items. Beginning in 2000, he partnered with <a href="http://archive.org/">Internet Archive</a> to make a subset of the Prelinger Collection (now over 9,700 items) available online for free viewing, downloading and reuse. Prelinger Archives currently collaborates with Filecoin Foundation for the Decentralized Web to scan historical films and make them available online. His archival feature <a href="https://vimeo.com/277208141"><em>Panorama Ephemera</em></a> (2004) played in venues around the world, and his feature project <a href="https://vimeo.com/69781280"><em>No More Road Trips?</em></a> received a <a href="https://creative-capital.org/artists/rick-prelinger/">Creative Capital grant</a> in 2012. His 30 <a href="https://inquiry.ucsc.edu/2018-19/viewing-lost-landscapes/"><em>Lost Landscapes</em></a> participatory urban history projects have played to many thousands of viewers in San Francisco, Detroit, Oakland, Los Angeles, New York and elsewhere. He is a board member of <a href="http://archive.org/">Internet Archive</a> and frequently writes and <a href="https://www.slideshare.net/footage/presentations">speaks</a> on the future of archives. With <a href="https://en.wikipedia.org/wiki/Megan_Prelinger">Megan Prelinger</a>, he co-founded <a href="http://www.prelingerlibrary.org/">Prelinger Library</a> in 2004, which continues to serve the needs of researchers, artists, activists and readers in downtown San Francisco. He is currently <a href="https://film.ucsc.edu/faculty/rick_prelinger">Emerit Professor of Film &amp; Digital Media</a> at University of California, Santa Cruz.</p>
+]]></content:encoded>
+					
+					<wfw:commentRss>https://blog.archive.org/2025/03/05/vanishing-culture-no-film-left-unscanned/feed/</wfw:commentRss>
+			<slash:comments>0</slash:comments>
+		
+		
+			</item>
+		<item>
+		<title>Current Affairs Magazine Demonstrates Paywalls Are Not Necessary for Publications to Thrive</title>
+		<link>https://blog.archive.org/2025/03/04/current-affairs-magazine-demonstrates-paywalls-are-not-necessary-for-publications-to-thrive/</link>
+					<comments>https://blog.archive.org/2025/03/04/current-affairs-magazine-demonstrates-paywalls-are-not-necessary-for-publications-to-thrive/#comments</comments>
+		
+		<dc:creator><![CDATA[Caralee Adams]]></dc:creator>
+		<pubDate>Tue, 04 Mar 2025 15:59:01 +0000</pubDate>
+				<category><![CDATA[Books Archive]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[Wayback Machine - Web Archive]]></category>
+		<guid isPermaLink="false">https://blog.archive.org/?p=28469</guid>
+
+					<description><![CDATA[An independent magazine published in New Orleans is proving that it’s possible to succeed without accepting advertising or putting up barriers requiring readers to pay for content. In 2015, Nathan [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<figure class="wp-block-image size-large"><a href="https://blog.archive.org/wp-content/uploads/2025/02/njr6-scaled.jpg"><img decoding="async" loading="lazy" width="1024" height="683" src="https://blog.archive.org/wp-content/uploads/2025/02/njr6-1024x683.jpg" alt="" class="wp-image-28500" srcset="https://blog.archive.org/wp-content/uploads/2025/02/njr6-1024x683.jpg 1024w, https://blog.archive.org/wp-content/uploads/2025/02/njr6-300x200.jpg 300w, https://blog.archive.org/wp-content/uploads/2025/02/njr6-768x513.jpg 768w, https://blog.archive.org/wp-content/uploads/2025/02/njr6-1536x1025.jpg 1536w, https://blog.archive.org/wp-content/uploads/2025/02/njr6-2048x1367.jpg 2048w, https://blog.archive.org/wp-content/uploads/2025/02/njr6-624x417.jpg 624w" sizes="(max-width: 1024px) 100vw, 1024px" /></a><figcaption class="wp-element-caption">Nathan J. Robinson, editor-in-chief of <em>Current Affairs</em>.</figcaption></figure>
+
+
+
+<p>An independent magazine published in New Orleans is proving that it’s possible to succeed without accepting advertising or putting up barriers requiring readers to pay for content.</p>
+
+
+
+<p>In 2015, Nathan J. Robinson and Oren Nimni raised more than $16,000 in a Kickstarter campaign to launch <a href="https://www.currentaffairs.org/"><em>Current Affairs</em></a>, a print magazine featuring political analysis and satire. Its lean staff of six produces six issues a year, as well as a podcast and digital newsletter. To operate, the magazine relies on donations, grants and individual subscriptions—although its content is available to the public online for free.</p>
+
+
+
+<p>Robinson said he’s motivated by the all-too-common and damaging problem that <a href="https://www.currentaffairs.org/news/2020/08/the-truth-is-paywalled-but-the-lies-are-free">“the truth is paywalled but the lies are free,</a>” which he’s famously written about in the magazine. Outrageous stories and misinformation are easy to access, while factual news stories often require subscriptions to read.</p>
+
+
+
+<figure class="wp-block-image size-large"><a href="https://www.currentaffairs.org/news/2020/08/the-truth-is-paywalled-but-the-lies-are-free"><img decoding="async" loading="lazy" width="1024" height="576" src="https://blog.archive.org/wp-content/uploads/2025/02/CurrentAffairsQUote-1024x576.png" alt="" class="wp-image-28501" srcset="https://blog.archive.org/wp-content/uploads/2025/02/CurrentAffairsQUote-1024x576.png 1024w, https://blog.archive.org/wp-content/uploads/2025/02/CurrentAffairsQUote-300x169.png 300w, https://blog.archive.org/wp-content/uploads/2025/02/CurrentAffairsQUote-768x432.png 768w, https://blog.archive.org/wp-content/uploads/2025/02/CurrentAffairsQUote-624x351.png 624w, https://blog.archive.org/wp-content/uploads/2025/02/CurrentAffairsQUote.png 1480w" sizes="(max-width: 1024px) 100vw, 1024px" /></a></figure>
+
+
+
+<p>“The moment you put in a paywall, you&#8217;re cutting down the potential audience—and you&#8217;re cutting it down to the people who are really committed, rather than those who need to read the piece the most. I want to reach the people who need to read it closely,” Robinson said. “It’s really important for democracy, because people need to be able to make informed decisions.”</p>
+
+
+
+<p>Running a progressive magazine not backed by corporate interests gives the editorial staff latitude to tackle issues with a different lens, said Robinson, 35, who has a law degree and PhD in sociology. With so many distractions in the daily news, <em>Current Affairs</em> tries to keep people focused on what matters; for instance, critiquing how climate change policies should be addressed, and analyzing U.S. policy with Haiti over time. In 2023, Robinson wrote an article on the <a href="https://www.currentaffairs.org/news/2023/12/the-old-left-renaissance-of-the-new-masses-magazine">history of the <em>New Masses</em> magazine,</a> exploring its mission as a left-leaning publication from 1926-1948.</p>
+
+
+
+<p>“Being independent gives us so much creative freedom,” Robinson said. “We’re very experimental.”</p>
+
+
+
+<p><em>Current Affairs</em> has 3,000 subscribers (who pay about $70 a year), and staff work to build deep connections to secure their loyalty. Robinson hosts regular online Zoom sessions to get feedback from subscribers and extends an open invitation to stop by the magazine’s office in the Central Business District of New Orleans for a cup of tea.&nbsp;</p>
+
+
+
+<figure class="wp-block-image size-large"><a href="https://www.currentaffairs.org/"><img decoding="async" loading="lazy" width="1024" height="543" src="https://blog.archive.org/wp-content/uploads/2025/02/Current-Affairs-Magazine-Covers-1024x543.jpg" alt="" class="wp-image-28502" srcset="https://blog.archive.org/wp-content/uploads/2025/02/Current-Affairs-Magazine-Covers-1024x543.jpg 1024w, https://blog.archive.org/wp-content/uploads/2025/02/Current-Affairs-Magazine-Covers-300x159.jpg 300w, https://blog.archive.org/wp-content/uploads/2025/02/Current-Affairs-Magazine-Covers-768x407.jpg 768w, https://blog.archive.org/wp-content/uploads/2025/02/Current-Affairs-Magazine-Covers-1536x814.jpg 1536w, https://blog.archive.org/wp-content/uploads/2025/02/Current-Affairs-Magazine-Covers-2048x1086.jpg 2048w, https://blog.archive.org/wp-content/uploads/2025/02/Current-Affairs-Magazine-Covers-624x331.jpg 624w" sizes="(max-width: 1024px) 100vw, 1024px" /></a><figcaption class="wp-element-caption"><em>Current Affairs</em> covers</figcaption></figure>
+
+
+
+<p>Robinson’s goal: cultivate a community that wants to support the publication, rather than thinking of subscribing as transactions. When there is a new project or initiative, the magazine reaches out to subscribers for additional donations and often finds they are responsive.</p>
+
+
+
+<p>“We’re trying to demonstrate the viability of independent media,” Robinson said. “We hope we inspire others to believe it’s possible and not accept the conventional wisdom that you need to put content behind paywalls, because you don’t.”</p>
+
+
+
+<p>Content is produced by three editors (the other staff members cover graphics and operations) and freelance writers. Robinson said salaries and payments for submissions are modest to keep costs down, with an annual budget of just $600,000. The publication relies on traffic from social media to attract new readers. The team is dedicated to do what it can to persuade others about policy and culture, he said, and provides easy access to the public to join in the discourse.&nbsp;</p>
+
+
+
+<p>Robinson said the work of <em>Current Affairs</em> and the Internet Archive intersects, as both strive to remove barriers to knowledge.&nbsp;</p>
+
+
+
+<p>“The Internet Archive functions as a library should, putting out a lot of raw information,” Robinson said. “Our job is to sift through the information. Collection is important, but analysis is also important.”</p>
+
+
+
+<p>In his work, Robinson said he frequently turns to the Internet Archive. After finishing graduate school at Harvard University, he lost access to the campus library. “The Wayback Machine is unbelievably important to anyone who wants to seriously research anything, because stuff goes away,” he said.&nbsp;</p>
+
+
+
+<p>Robinson co-authored a book with Noam Chomsky, <a href="https://www.penguinrandomhouse.com/books/738224/the-myth-of-american-idealism-by-noam-chomsky-and-nathan-j-robinson/">The Myth of American Idealism,</a> which was released by Penguin Random House last year. Since many of the books cited in endnotes were out of print, Robinson said the Internet Archive was invaluable in verifying sources.</p>
+
+
+
+<p>Recently, the magazine became registered with the Internal Revenue Services as a 501(c)(3) nonprofit organization. With that new designation, it began to seek additional support and just received its first grant from the Craigslist Foundation. The hope is to expand its funding to be able to hire reporters to do more original reporting, Robinson said.</p>
+
+
+
+<p>New start-ups, especially in the media space, struggle to find a sustainable business model, but <em>Current Affairs</em> continues to grow: “It feels amazing to bring something into the world that isn&#8217;t like everything else,” he said. “We’ve been around for eight years now, and we’re going to stay around many more.”</p>
+]]></content:encoded>
+					
+					<wfw:commentRss>https://blog.archive.org/2025/03/04/current-affairs-magazine-demonstrates-paywalls-are-not-necessary-for-publications-to-thrive/feed/</wfw:commentRss>
+			<slash:comments>1</slash:comments>
+		
+		
+			</item>
+		<item>
+		<title>Wyden to FTC: Stop digital “bait-and-switch” sales</title>
+		<link>https://blog.archive.org/2025/02/28/wyden-to-ftc-stop-digital-bait-and-switch-sales/</link>
+					<comments>https://blog.archive.org/2025/02/28/wyden-to-ftc-stop-digital-bait-and-switch-sales/#comments</comments>
+		
+		<dc:creator><![CDATA[Chris Freeland]]></dc:creator>
+		<pubDate>Fri, 28 Feb 2025 20:59:25 +0000</pubDate>
+				<category><![CDATA[Books Archive]]></category>
+		<category><![CDATA[Lending Books]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[digital ownership]]></category>
+		<guid isPermaLink="false">https://blog.archive.org/?p=28473</guid>
+
+					<description><![CDATA[Senator Ron Wyden (D-Oregon) is urging the Federal Trade Commission to crack down on digital platforms that mislead consumers into believing they own purchased content when, in reality, they are [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<p>Senator Ron Wyden (D-Oregon) is urging the Federal Trade Commission to crack down on digital platforms that mislead consumers into believing they own purchased content when, in reality, they are only granted temporary access. <a href="https://www.wyden.senate.gov/news/press-releases/wyden-to-ftc-stop-companies-from-offering-bait-and-switch-sales-of-digital-tv-e-book-music-and-video-game-purchases">In his statement</a>, Wyden highlights how companies selling digital TV shows, e-books, music, and video games often retain the right to revoke access, leaving consumers without the content they paid for. He calls on the FTC to enforce transparency and prevent these deceptive sales practices. Read the <a href="https://www.wyden.senate.gov/imo/media/doc/letter_to_ftc_on_digital_ownership_transparencypdf.pdf">full letter</a>.</p>
+
+
+
+<p>This push for fairness and transparency in digital media sales is important for libraries as well as consumers. Over the last decade, publishers have fundamentally changed the relationship between libraries and their collections, phasing out digital sales and even “perpetual access” license models in favor of <a href="https://clarivate.com/news/clarivate-unveils-transformative-subscription-based-access-strategy-for-academia/">subscription-only access</a> models. While the companies behind these changes claim they will improve library services through enhanced discovery and integration of research content, <a href="https://www.uksg.org/newsletter/uksg-enews-582/opinion-a-librarians-summary-of-and-response-to-the-clarivate-announcement/">librarians</a> and <a href="https://svpow.com/2025/02/18/burn-it-all-down/">scholars</a> argue that renting rather than owning materials ultimately harms the libraries and their patrons.&nbsp;</p>
+
+
+
+<figure class="wp-block-pullquote"><blockquote><p>“[T]he transition to subscription-only access represents more than a change in purchasing models – it fundamentally undermines the ability of academic libraries to build collections that serve their specific institutional needs. It is likely to impede our ability to maintain comprehensive research — let alone teaching — collections.”</p><cite><strong>Siobhan Haimé</strong>, Birkbeck, University of London</cite></blockquote></figure>
+
+
+
+<p>The shift to a streaming-only model doesn’t just harm libraries and consumers—it’s also devastating for artists, authors, and independent publishers. Without the ability to sell their work outright, creators are forced into licensing arrangements that give platforms control over distribution, pricing, and even availability. Independent publishers are pushing back, albeit unsuccessfully, as seen in their <a href="https://authorsalliance.substack.com/p/independent-publishers-lawsuit-against">failed lawsuit against Amazon</a>, alleging that the company’s dominance in digital books forces unfair terms on publishers and authors alike. Musicians, too, are speaking out—Max Collins, lead singer of famed alt-rock band Eve 6, <a href="https://popula.com/2022/08/11/own-music-own-books/">explains how his band</a> with popular songs averages a million streams each month on Spotify, paying out $3,000, on average, per month. As Collins writes in his op-ed, “It’s a pretty sick deal…for the corporations.”</p>
+
+
+
+<p>Senator Wyden’s letter isn’t a sudden development—it’s the culmination of years of warnings about the risks of a “streaming-only” model and its impact on libraries and the communities they support. The shift away from ownership to perpetual leasing threatens long-term access to knowledge and culture. <strong>To explore what’s at stake, check out these additional resources:</strong></p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide"/>
+
+
+
+<h2 class="wp-block-heading"><strong>The End of Ownership: Personal Property in the Digital Economy</strong></h2>
+
+
+<div class="wp-block-image">
+<figure class="alignleft size-full is-resized"><a href="https://mitpress.mit.edu/9780262535243/the-end-of-ownership/"><img decoding="async" loading="lazy" width="298" height="447" src="https://blog.archive.org/wp-content/uploads/2025/02/The-End-of-Ownership.png" alt="" class="wp-image-28475" style="width:147px;height:auto" srcset="https://blog.archive.org/wp-content/uploads/2025/02/The-End-of-Ownership.png 298w, https://blog.archive.org/wp-content/uploads/2025/02/The-End-of-Ownership-200x300.png 200w" sizes="(max-width: 298px) 100vw, 298px" /></a></figure></div>
+
+
+<p>By Aaron Perzanowski and Jason Schultz<br>From the publisher, MIT Press: If you buy a book at the bookstore, you own it. You can take it home, scribble in the margins, put it on the shelf, lend it to a friend, sell it at a garage sale. But is the same thing true for the ebooks or other digital goods you buy? Retailers and copyright holders argue that you don&#8217;t own those purchases, you merely license them. That means your ebook vendor can delete the book from your device without warning or explanation—as Amazon deleted Orwell&#8217;s <em>1984</em> from the Kindles of surprised readers several years ago. These readers thought they owned their copies of <em>1984</em>. Until, it turned out, they didn&#8217;t. In <em>The End of Ownership</em>, Aaron Perzanowski and Jason Schultz explore how notions of ownership have shifted in the digital marketplace, and make an argument for the benefits of personal property.</p>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://mitpress.mit.edu/9780262535243/the-end-of-ownership/">Buy the book</a></li>
+
+
+
+<li><a href="https://www.perzanow.ski/the-end-of-ownership">Download a PDF</a> of the book from the authors.</li>
+</ul>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide"/>
+
+
+
+<h2 class="wp-block-heading"><strong>Data Cartels: The Companies that Control and Monopolize Our Information</strong></h2>
+
+
+<div class="wp-block-image">
+<figure class="alignleft size-large is-resized"><a href="https://www.sup.org/books/law/data-cartels"><img decoding="async" loading="lazy" width="683" height="1024" src="https://blog.archive.org/wp-content/uploads/2025/02/data-cartels-1-683x1024.png" alt="" class="wp-image-28477" style="width:148px;height:auto" srcset="https://blog.archive.org/wp-content/uploads/2025/02/data-cartels-1-683x1024.png 683w, https://blog.archive.org/wp-content/uploads/2025/02/data-cartels-1-200x300.png 200w, https://blog.archive.org/wp-content/uploads/2025/02/data-cartels-1-768x1152.png 768w, https://blog.archive.org/wp-content/uploads/2025/02/data-cartels-1-1024x1536.png 1024w, https://blog.archive.org/wp-content/uploads/2025/02/data-cartels-1-1365x2048.png 1365w, https://blog.archive.org/wp-content/uploads/2025/02/data-cartels-1-624x936.png 624w, https://blog.archive.org/wp-content/uploads/2025/02/data-cartels-1.png 1500w" sizes="(max-width: 683px) 100vw, 683px" /></a></figure></div>
+
+
+<p>By Sarah Lamdan<br>From the publisher, Stanford University Press: In our digital world, data is power. Information hoarding businesses reign supreme, using intimidation, aggression, and force to maintain influence and control. Sarah Lamdan brings us into the unregulated underworld of these &#8220;data cartels&#8221;, demonstrating how the entities mining, commodifying, and selling our data and informational resources perpetuate social inequalities and threaten the democratic sharing of knowledge.</p>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://www-sup.stanford.edu/books/cite/?id=33205">Purchase the book</a></li>
+
+
+
+<li><a href="https://archive.org/details/book-talk-data-cartels">Watch the book talk</a></li>
+
+
+
+<li><a href="https://blog.archive.org/2022/12/06/recap-data-cartels-book-talk/">Read the recap</a></li>
+</ul>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide"/>
+
+
+
+<h2 class="wp-block-heading">Four Digital Rights For Protecting Memory Institutions Online</h2>
+
+
+
+<p>By Lila Bailey, Michael Lind Menna<br>The rights and responsibilities that memory institutions have always enjoyed offline must also be protected online. To accomplish this goal, libraries, archives and museums must have the legal rights and practical ability to:</p>
+
+
+
+<ul class="wp-block-list">
+<li>Collect materials in digital form, whether through digitization of physical collections, or through purchase on the open market or by other legal means;</li>
+
+
+
+<li>Preserve digital materials, and where necessary repair, back up, or reformat them, to ensure their long-term existence and availability;</li>
+
+
+
+<li>Provide controlled access to digital materials for advanced research techniques and to patrons where they are—online;</li>
+
+
+
+<li>Cooperate with other memory institutions, by sharing or transferring digital collections, so as to aid preservation and access.</li>
+</ul>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://archive.org/details/four-digital-rights-for-protecting-memory-institutions-online">Read the full statement</a></li>
+</ul>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide"/>
+
+
+
+<h2 class="wp-block-heading">The Publisher Playbook: A Brief History of the Publishing Industry’s Obstruction of the Library Mission.</h2>
+
+
+
+<p>By Kyle K. Courtney and Juliya Ziskina <br>Abstract: Libraries have continuously evolved their ability to provide access to collections in innovative ways. Many of these advancements in access, however, were not achieved without overcoming serious resistance and obstruction from the rightsholder and publishing industry. The struggle to maintain the library’s access-based mission and serve the public interest began as early as the late 1800s and continues through today. <strong>We call these tactics the “publishers’ playbook.”</strong> Libraries and their readers have routinely engaged in lengthy battles to defend the ability for libraries to fulfill their mission and serve the public good. The following is a brief review of the times and methods that publishers and rightsholder interests have attempted to hinder the library mission. This pattern of conduct, as reflected in ongoing controlled digital lending litigation, is not unexpected and belies a historical playbook on the part of publishers and rightsholders to maximize their own profits and control over the public’s informational needs. Thankfully, as outlined in this paper, Congress and the courts have historically upheld libraries’ attempts to expand access to information for the public’s benefit.</p>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://dash.harvard.edu/handle/1/37374618">Read the article</a></li>
+
+
+
+<li><a href="https://archive.org/details/the-publisher-playbook">Watch the book talk</a> with authors Kyle Courtney and Juliya Ziskina</li>
+</ul>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide"/>
+
+
+
+<h2 class="wp-block-heading">Vanishing Culture: A Report on Our Fragile Cultural Record</h2>
+
+
+<div class="wp-block-image">
+<figure class="alignleft size-full is-resized"><a href="https://archive.org/details/vanishing-culture-report"><img decoding="async" loading="lazy" width="1000" height="1000" src="http://blog.archive.org/wp-content/uploads/2025/02/V_C_COVER_IG_SQUARE_1000.png" alt="" class="wp-image-28486" style="width:146px;height:auto" srcset="https://blog.archive.org/wp-content/uploads/2025/02/V_C_COVER_IG_SQUARE_1000.png 1000w, https://blog.archive.org/wp-content/uploads/2025/02/V_C_COVER_IG_SQUARE_1000-300x300.png 300w, https://blog.archive.org/wp-content/uploads/2025/02/V_C_COVER_IG_SQUARE_1000-150x150.png 150w, https://blog.archive.org/wp-content/uploads/2025/02/V_C_COVER_IG_SQUARE_1000-768x768.png 768w, https://blog.archive.org/wp-content/uploads/2025/02/V_C_COVER_IG_SQUARE_1000-624x624.png 624w, https://blog.archive.org/wp-content/uploads/2025/02/V_C_COVER_IG_SQUARE_1000-650x650.png 650w" sizes="(max-width: 1000px) 100vw, 1000px" /></a></figure></div>
+
+
+<p>By Luca Messarra, Chris Freeland and Juliya Ziskina<br>In today’s digital landscape, corporate interests, shifting distribution models, and malicious cyber attacks are threatening public access to our shared cultural history. <em>Vanishing Culture: A Report on Our Fragile Cultural Record</em> aims to raise awareness of these growing issues. The report details recent instances of cultural loss, highlights the underlying causes, and emphasizes the critical role that public-serving libraries and archives must play in preserving these materials for future generations. By empowering libraries and archives legally, culturally, and financially, we can safeguard the public’s ability to maintain access to our cultural history and our digital future.</p>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://archive.org/details/vanishing-culture-report">Read the report</a></li>
+</ul>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide"/>
+
+
+
+<h2 class="wp-block-heading">Chokepoint Capitalism: How Big Tech and Big Content Captured Creative Labor Markets and How We’ll Win Them Back</h2>
+
+
+<div class="wp-block-image">
+<figure class="alignleft size-full is-resized"><a href="https://chokepointcapitalism.com/"><img decoding="async" loading="lazy" width="800" height="1224" src="https://blog.archive.org/wp-content/uploads/2025/02/9781761380075_rev2.png" alt="" class="wp-image-28482" style="width:150px;height:auto" srcset="https://blog.archive.org/wp-content/uploads/2025/02/9781761380075_rev2.png 800w, https://blog.archive.org/wp-content/uploads/2025/02/9781761380075_rev2-196x300.png 196w, https://blog.archive.org/wp-content/uploads/2025/02/9781761380075_rev2-669x1024.png 669w, https://blog.archive.org/wp-content/uploads/2025/02/9781761380075_rev2-768x1175.png 768w, https://blog.archive.org/wp-content/uploads/2025/02/9781761380075_rev2-624x955.png 624w" sizes="(max-width: 800px) 100vw, 800px" /></a></figure></div>
+
+
+<p>By Cory Doctorow &amp; Rebecca Giblin<br>This book examines how monopolistic corporations have structured markets—especially in digital media—to extract wealth while limiting access and competition. It also explores ways creators and the public can push back against these restrictive systems.</p>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://chokepointcapitalism.com/">Purchase the book</a></li>
+</ul>
+]]></content:encoded>
+					
+					<wfw:commentRss>https://blog.archive.org/2025/02/28/wyden-to-ftc-stop-digital-bait-and-switch-sales/feed/</wfw:commentRss>
+			<slash:comments>2</slash:comments>
+		
+		
+			</item>
+		<item>
+		<title>Blending Art and Technology Opens New Doors for Internet Archive’s Recent Artist in Residence</title>
+		<link>https://blog.archive.org/2025/02/27/blending-art-and-technology-opens-new-doors-for-internet-archives-recent-artist-in-residence/</link>
+		
+		<dc:creator><![CDATA[Caralee Adams]]></dc:creator>
+		<pubDate>Thu, 27 Feb 2025 20:52:41 +0000</pubDate>
+				<category><![CDATA[News]]></category>
+		<category><![CDATA[artist]]></category>
+		<category><![CDATA[installation]]></category>
+		<guid isPermaLink="false">https://blog.archive.org/?p=28461</guid>
+
+					<description><![CDATA[As an Artist in Residence, Swilk said the Internet Archive provided them with the time, space, and support to create a meaningful piece of art that has opened up new [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<p>As an Artist in Residence, Swilk said the Internet Archive provided them with the time, space, and support to create a meaningful piece of art that has opened up new possibilities.</p>
+
+
+
+<figure class="wp-block-image size-large"><a href="https://blog.archive.org/wp-content/uploads/2025/02/Swilk-4-scaled.jpg"><img decoding="async" loading="lazy" width="1024" height="683" src="https://blog.archive.org/wp-content/uploads/2025/02/Swilk-4-1024x683.jpg" alt="" class="wp-image-28462" srcset="https://blog.archive.org/wp-content/uploads/2025/02/Swilk-4-1024x683.jpg 1024w, https://blog.archive.org/wp-content/uploads/2025/02/Swilk-4-300x200.jpg 300w, https://blog.archive.org/wp-content/uploads/2025/02/Swilk-4-768x512.jpg 768w, https://blog.archive.org/wp-content/uploads/2025/02/Swilk-4-1536x1024.jpg 1536w, https://blog.archive.org/wp-content/uploads/2025/02/Swilk-4-2048x1365.jpg 2048w, https://blog.archive.org/wp-content/uploads/2025/02/Swilk-4-624x416.jpg 624w" sizes="(max-width: 1024px) 100vw, 1024px" /></a><figcaption class="wp-element-caption">&#8220;<em>When you’re looking for something, it’s important to know who was in love</em>&#8221; by Swilk.</figcaption></figure>
+
+
+
+<p>Unveiled in November 2024, their immersive art exhibit combined weaving and technology to highlight the critical role of the internet during the HIV/AIDS crisis. Swilk, a 30-year-old artist based in Oakland, California, spent six months on the project with their colleague, Patty Pacheco — researching, designing and producing it for a show at the Internet Archive’s headquarters in San Francisco.</p>
+
+
+
+<p>“I felt like the Archive placed a lot of trust in me,” said Swilk of the sprawling installation in the Great Room. “They let me experiment in a space that was very important to them. I was grateful to be among people who would let me really dream.”</p>
+
+
+
+<p>The finished piece, <em>When you’re looking for something, it’s important to know who was in love</em>, drew on thousands of historic HIV/AIDS documents and web resources in the Archive’s collection — many of which have since been altered or scrubbed off the live web. Swilk’s weavings were programmed with motors to breathe and pulse whenever users interacted with those archived resources on Internet Archive servers.</p>
+
+
+
+<p>The idea for the project, like much of Swilk’s work, centers on concepts of home and historic origins.</p>
+
+
+
+<figure class="wp-block-embed is-type-video is-provider-youtube wp-block-embed-youtube wp-embed-aspect-16-9 wp-has-aspect-ratio"><div class="wp-block-embed__wrapper">
+<iframe loading="lazy" title="Swilk Internet Archive Artist Residence" width="625" height="352" src="https://www.youtube.com/embed/zdJVbV2M1XU?feature=oembed" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div></figure>
+
+
+
+<figure class="wp-block-pullquote"><blockquote><p>Swilk’s weavings were programmed with motors to breathe and pulse whenever users interacted with those archived resources on Internet Archive servers.</p></blockquote></figure>
+
+
+
+<p>“As a queer person growing up in the Midwest, I found a lot of solace on the internet, and community,” Swilk said. “The more I was able to connect with my own history through content I found on the internet, the more at home I felt.”</p>
+
+
+
+<p>In their household, HIV was a very charged subject, and misinformation swirled around, so Swilk turned online for answers.</p>
+
+
+
+<p>“The internet was this deeply impactful, incredible resource that was harboring so much information,” Swilk said. “I wanted to make something that highlighted that.”</p>
+
+
+
+<p>Swilk said they long wanted to automate their work, and the Internet Archive provided the appropriate development space to mount motors and technical assistance to make the piece come to life.</p>
+
+
+
+<p>“I didn&#8217;t know anything about computers,” Swilk said, prior to coming into the Artist in Residence program. “Being able to incorporate mechanization into my art feels like I have a completely new medium to paint with now — and that feels really exciting.”</p>
+
+
+
+<p>Swilk credits the team at the Archive (Amir Esfahani, Evan Sirchuk, David Eisenberg) for helping make the exhibit happen.&nbsp;</p>
+
+
+
+<p class="has-light-gray-background-color has-background"><strong>Artist in Residence Program</strong><br>The Internet Archive&#8217;s Artist in Residency is organized by Amir Saber Esfahani, and is designed to connect artists with the archive&#8217;s collections to show what is possible when open access to information meets the arts. Please contact Amir at <a href="mailto:amir@archive.org">amir@archive.org</a> for any inquiries.</p>
+
+
+
+<iframe loading="lazy" src="https://archive.org/embed/swilk-installation-opening" width="640" height="480" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe>
+
+
+
+<p>Swilk was pleased with the response to the installation, which was viewed by hundreds of people during the Archive’s annual event in October and a reception in November. They look forward to incorporating more technology into their art. Swilk also composed music that played in the background with the exhibit. It was composed over field recordings of spaces HIV information was traditionally spread, such as coffee shops, night clubs, and hospitals. It included a quote from a 1997 interview by HIV activist Kiyoshi Kuromiya. Other synths were made from modulated retro computer sounds.&nbsp;</p>
+
+
+
+<p>“Whenever I’m given the opportunity to be a resident artist somewhere, my work explodes,” Swilk said. “I really feel like this is putting my work in a different direction. I don’t think I’m going to make something that doesn’t move again.”</p>
+
+
+
+<p>Although the program ended with the show, Swilk said it doesn’t feel like it’s over. “I very much feel like this is the start of something. I’m very excited about what comes next,” they said. “I think that&#8217;s the point of a successful residency: to develop work that we can use to jump off.”</p>
+
+
+
+<p>Swilk said there are so many ways to use the Internet Archive, both digitally and physically, to do creative and interesting projects outside of the box. “It’s a place where you can come with big ideas and leave with them realized.”</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Internet Archive Submits Comments in UK’s Open Consultation on AI and Copyright</title>
+		<link>https://blog.archive.org/2025/02/26/internet-archive-submits-comments-in-uks-open-consultation-on-ai-and-copyright/</link>
+		
+		<dc:creator><![CDATA[Lila Bailey]]></dc:creator>
+		<pubDate>Wed, 26 Feb 2025 21:48:31 +0000</pubDate>
+				<category><![CDATA[News]]></category>
+		<category><![CDATA[AI]]></category>
+		<category><![CDATA[copyright]]></category>
+		<category><![CDATA[policy]]></category>
+		<guid isPermaLink="false">https://blog.archive.org/?p=28453</guid>
+
+					<description><![CDATA[Yesterday, every major newspaper in the UK had the exact same headline, demanding the government “Make It Fair” by ensuring that the country’s copyright laws make it impossible, or at [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<figure class="wp-block-image size-full"><a href="https://blog.archive.org/wp-content/uploads/2025/02/MakeItFairCampaign-newspaper-headlines.jpg"><img decoding="async" loading="lazy" width="680" height="668" src="https://blog.archive.org/wp-content/uploads/2025/02/MakeItFairCampaign-newspaper-headlines.jpg" alt="" class="wp-image-28458" srcset="https://blog.archive.org/wp-content/uploads/2025/02/MakeItFairCampaign-newspaper-headlines.jpg 680w, https://blog.archive.org/wp-content/uploads/2025/02/MakeItFairCampaign-newspaper-headlines-300x295.jpg 300w, https://blog.archive.org/wp-content/uploads/2025/02/MakeItFairCampaign-newspaper-headlines-624x613.jpg 624w" sizes="(max-width: 680px) 100vw, 680px" /></a><figcaption class="wp-element-caption">Image credit: <a href="https://x.com/newsmediaorg/status/1894336976498696654"><em>News Media Association via X</em></a></figcaption></figure>
+
+
+
+<p>Yesterday, every major newspaper in the UK had the <a href="https://www.theverge.com/news/619063/uk-newspapers-covers-protest-government-ai-rights-proposal">exact same headline</a>, demanding the government “Make It Fair” by ensuring that the country’s copyright laws make it impossible, or at least very expensive, for AI models to be trained there.<br><br>This stunt is apparently a response to the UK’s <a href="https://www.gov.uk/government/consultations/copyright-and-artificial-intelligence/copyright-and-artificial-intelligence#bcopyright-and-artificial-intelligence">open consultation</a> on the topic of AI and Copyright that welcomed anyone with an interest in the subject to weigh in on the government’s proposed “plan to deliver a copyright and AI framework that rewards human creativity, incentivises innovation and provides the legal certainty required for long-term growth in both sectors.” <br><br>There are, of course, legitimate concerns surrounding AI development and its impact across all sectors of society. While this consultation is ostensibly focused on commercial players, libraries and archives—and the public they serve—would be affected by possible sweeping new copyright rules. These are mission-driven organizations that can help with giving citizens historical background to current issues and help counter propaganda campaigns, among other social benefits. <br><br>Without a change to its current law, universities and libraries in the UK might not be able to work with universities in other countries on many research projects. While we urge the UK government to retain some form of noncommercial exception for text and data mining (TDM), as we point out in our submission, the current version is burdensome—for example, requiring that any digitized versions of physical materials made for the purpose of one project be scanned again and again for any other projects. Non-commercial actors, many of which are government-funded, should be encouraged to work together and be efficient, not to have to digitize the same materials over and over. <br><br>Unfortunately, libraries and other cultural heritage institutions do not control the front pages of newspapers. Nevertheless, we hope the UK government will pay attention to what such noncommercial public interest organizations have to say about the future of our information ecosystem and the development of AI tools that work for everybody. <br><br>You can read the Internet Archive’s full comments <a href="https://archive.org/details/internet-archive-comments-on-uk-ai-and-copyright-consultation">here</a>.<br></p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Public Domain Spotlight: Rhapsody in Blue</title>
+		<link>https://blog.archive.org/2025/02/18/public-domain-spotlight-rhapsody-in-blue/</link>
+					<comments>https://blog.archive.org/2025/02/18/public-domain-spotlight-rhapsody-in-blue/#comments</comments>
+		
+		<dc:creator><![CDATA[Sean Dudley]]></dc:creator>
+		<pubDate>Tue, 18 Feb 2025 18:05:20 +0000</pubDate>
+				<category><![CDATA[78rpm]]></category>
+		<category><![CDATA[Announcements]]></category>
+		<category><![CDATA[Audio Archive]]></category>
+		<category><![CDATA[Cool items]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[public domain]]></category>
+		<category><![CDATA[public domain day]]></category>
+		<guid isPermaLink="false">https://blog.archive.org/?p=28420</guid>
+
+					<description><![CDATA[Rhapsody in Blue stands as an iconic piece of American music with riveting orchestration, and a cultural footprint that reflects the modernity of the early 20th century. Beyond its artistic [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<iframe loading="lazy" src="https://archive.org/embed/public-domain-spotlight-rhapsody-in-blue" width="640" height="480" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe>
+
+
+
+<p><a href="https://archive.org/details/rhapsodyinblue00geor/mode/2up"><em>Rhapsody in Blue</em></a> stands as an iconic piece of American music with riveting orchestration, and a cultural footprint that reflects the modernity of the early 20th century. Beyond its artistic merits, the composition has provided numerous cultural touchstones, including its usage as the theme for United Airlines commercials, score backing for films such as &#8220;Fantasia 2000,&#8221; and countless memorable recorded performances, including a personal favorite by Leonard Bernstein. Among these recordings is a <a href="https://archive.org/details/rhapsody-in-blue-1924-recording-part-1">significant one</a> performed by George Gershwin himself at the piano, with accompaniment by the Paul Whiteman Orchestra.</p>
+
+
+<div class="wp-block-image">
+<figure class="alignleft size-large is-resized"><img decoding="async" src="https://ia902301.us.archive.org/BookReader/BookReaderImages.php?zip=/24/items/rhapsodyinblue00geor/rhapsodyinblue00geor_jp2.zip&amp;file=rhapsodyinblue00geor_jp2/rhapsodyinblue00geor_0001.jp2&amp;id=rhapsodyinblue00geor&amp;scale=4&amp;rotate=0" alt="" style="width:228px;height:auto"/></figure></div>
+
+
+<p>Recorded on June 10, 1924, and released that October, this version is not just historic for its timing, produced shortly after the piece’s premiere in February of the same year, but also for its details. While today&#8217;s audiences might not find it unusual, the phenomenon of a composer or musical artist performing their own work is rare in the history of human experience. Until the late 19th Century, the only way to experience music was in a live setting. By 1924, it had become more and more commonplace to experience music through commercially available recordings. When listening to the 1924 recording by Gershwin, listeners today have a direct auditory link to the piece’s 1924 inception. This is in stark contrast to classical pieces by composers like Mozart, Beethoven, and Bach, who never had the opportunity to record their works. Our understanding of these compositions is shaped by interpretations that are decades or centuries removed from their original creation. Yet, Gershwin&#8217;s personal interpretation of his composition offers a unique connection to the moment of its creation, allowing us to hear the piano played with the intensity Gershwin intended. It invokes a feeling of closeness to a time long removed from the current moment.</p>
+
+
+
+<p>The accessibility of Gershwin&#8217;s 1924 recording is enhanced by its passage into the public domain. Such accessibility enriches our cultural heritage and allows for a deeper understanding of the moment in which it was produced. It is not some far-off German or French musical masterpiece, but a living document in which we can hear the direct influence of the composer. This direct access to Gershwin&#8217;s performance is an invaluable resource, providing a rare auditory bridge to the past. So, the next time you listen to &#8220;Rhapsody in Blue,&#8221; consider choosing the 1924 version performed by Gershwin. Imagine the uniqueness of that experience and the profound connection to history it offers, replicating the original sound and transporting us to the moment of a bygone era.</p>
+
+
+
+<p><strong>Published with a CC0 Waiver</strong>.</p>
+]]></content:encoded>
+					
+					<wfw:commentRss>https://blog.archive.org/2025/02/18/public-domain-spotlight-rhapsody-in-blue/feed/</wfw:commentRss>
+			<slash:comments>3</slash:comments>
+		
+		
+			</item>
+		<item>
+		<title>Vanishing Culture: Punch Card Knitting</title>
+		<link>https://blog.archive.org/2025/02/12/vanishing-culture-punch-card-knitting/</link>
+					<comments>https://blog.archive.org/2025/02/12/vanishing-culture-punch-card-knitting/#comments</comments>
+		
+		<dc:creator><![CDATA[vanishingculture]]></dc:creator>
+		<pubDate>Wed, 12 Feb 2025 12:00:00 +0000</pubDate>
+				<category><![CDATA[Announcements]]></category>
+		<category><![CDATA[vanishingculture]]></category>
+		<guid isPermaLink="false">https://blog.archive.org/?p=28413</guid>
+
+					<description><![CDATA[The following guest post from digital humanities scholar Nichole Misako Nomura is part of our Vanishing Culture series, highlighting the power and importance of preservation in our digital age. Read more essays online or download [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<p><em>The following guest post from digital humanities scholar <strong>Nichole Misako Nomura</strong> is part of our <strong>Vanishing Culture</strong> series, highlighting the power and importance of preservation in our digital age. <a href="https://blog.archive.org/tag/vanishingculture/">Read more essays online</a> or <a href="https://archive.org/details/vanishing-culture-report">download the full report</a> now.</em></p>
+
+
+
+<p>Punch cards are a fascinating binary data storage format that aren’t just history—they’re still used by knitting machines today! Thanks to the Internet Archive and other collections, we still have access to historic punch cards, but there are some technical challenges to using them in the format they’re stored in. Meet a few folx working on those challenges. </p>
+
+
+
+<figure class="wp-block-image"><img decoding="async" src="https://lh7-rt.googleusercontent.com/docsz/AD_4nXc4VvR9RSdP6RgHyipeGNDrKxEciFfnjwF24OQb32RyDRJYqddlKprqBheUbUv09OZbhp3RIUSqYy-b0gckotFmYzn2-1Yvz1XJbbgKS2zlETJ3PZDLjNee09L-VVA5Et6OB2NigfxhXSKslIX9zKCK1YQ?key=cYTOqnTQVmbIqacNZjlKWw" alt=""/></figure>
+
+
+
+<p>Punch card computation—the good old days, or the bad old days, depending on who you talk to—lives firmly in the land of “the old days” for most—a piece of history, with pedagogical and nostalgic benefit—but it’s alive and well in the textile world.&nbsp;</p>
+
+
+
+<p>Histories of computing frequently point to the Jacquard loom as the example of the “first” code,&nbsp; used to create fabric in a variety of patterns—like this 1839 commemorative portrait of the Jacquard loom’s inventor, J.M. Jacquard: <a href="https://www.loc.gov/pictures/item/2002737214/">https://www.loc.gov/pictures/item/2002737214/</a>. These looms use punch cards to lift warp threads above or below the weft, allowing for the mechanized creation of non-repeating patterns across the loom. (<a href="https://americanhistory.si.edu/collections/nmah_645517">https://americanhistory.si.edu/collections/nmah_645517</a>)&nbsp;</p>
+
+
+
+<figure class="wp-block-image"><img decoding="async" src="https://lh7-rt.googleusercontent.com/docsz/AD_4nXfuJUuNlvFeqRrBDGDNaJmKrfo8Wj4pbfEP1_7_IHBi562HaC9w-uS8N22UIPc4rRccLTAwA9X50FXsDOxHe96EQRhzMg7KJvX6TZdU58GMFb4oetBINgPueGJF0lj6fWEhg6gQWW_tPyKF35aqSuf3zftn?key=cYTOqnTQVmbIqacNZjlKWw" alt=""/></figure>
+
+
+
+<p><a href="https://americanhistory.si.edu/collections/nmah_645517"></a></p>
+
+
+
+<p>While the Jacquard loom gets all the attention for being the first code, the punch card knitting machine transitioned from being a Jacquard attachment on lace and knitting machines in industrial textile production to the kind of local, DIY code that a lot of people in textiles interacted with—many of whom were women. By the 1970s, they were used by people knitting for themselves and their families, for take-home piece-work, and in textile factory settings. The punch card machine was eventually replaced in commercial and, if you can afford it, home contexts by machines that could control individual needles, instead of depending on a punch card’s repeat—but the machines are still in use in a number of hobbyist workshops (like my own!) and are even still in&nbsp; production (albeit much-reduced).&nbsp;</p>
+
+
+
+<p>The knitting machines I own share their punch card dimensions (24 stitches wide) with one of the first punch cards (the Hollerith card, used for the 1890 census, was a 24-column punch card). They’re an important piece of computing history—and crucially, one of the few that isn’t <em>only</em> history because a broad community of people, on- and off-line, are still sharing knowledge on how to hack, restore, and use them.&nbsp;</p>
+
+
+
+<p>All punch cards are fundamentally digital, even if we don’t generally think of “digital” as a property physical objects can have. It is only recently that our associations of computing with “the cloud” and other ephemeral metaphors have superseded the fundamentally physical processes that support computation. Working with knitting machine punch cards reminds me that the cloud is a metaphor, and lets me own and manipulate my code in a way I find both challenging and creatively liberating.&nbsp;</p>
+
+
+
+<p>The coolest thing about knitting punch cards is that they really are just sequences of “yes” and “no”—and that information is actionable in a wide variety of machines, all of which perform different functions based on that information. Some machines can knit two different colors at once—one color is “yes,” and the other is “no.” Others can skip the stitches marked as “no.” Some machines can make tuck or slip stitches, and others still do something called “weaving,” a variation on the aforementioned two-color knitting. The information encoded by these punch cards, regardless of the actual dimensions of the cards, is interoperable across most machines—and when it is not, it is because the number of holes in the punch card doesn’t permit the same numeric repeat (30 and 24 are divisible by a similar, but not identical, set of numbers).&nbsp;</p>
+
+
+
+<p>There are a lot of punch card knitting patterns stored on the internet, found in multi-purpose archives like the Internet Archive and in countless community-hosted Google Drives. Unlike a pattern written for hand-knitting, these punch cards are not, strictly-speaking, usable in the format they are stored in. While I could knit a sweater from a set of directions that look like <em>knit 1, purl 40 </em>from an image, working with images of punch card knitting patterns requires a different workflow—one that, counterintuitively, is challenging because of the digital nature of the punch card itself.&nbsp;</p>
+
+
+
+<p><strong>Digitizing the already-digital</strong></p>
+
+
+
+<p>Knitting machine punchcards are relatively easy to digitize in a way that preserves the information, but relatively difficult to digitize in a way that makes the transition back from stored-on-the-computer to stored-in-physical-material feasible. It is entirely possible to recreate a punch card using an image—by hand, laboriously, with a physical hole punch. (Image: <a href="https://archive.org/details/handypunch/HandyPunchDirections/mode/2up">https://archive.org/details/handypunch/HandyPunchDirections/mode/2up</a>) Usually I work row-by-row, with a ruler across the image, to make sure I’m putting holes in the right spots and chanting things like “3 yes, 1 no, 3 yes, 4 no” in repeating patterns. It is error-prone, but consistent with how generations pre-internet worked with these patterns—translating an image in a book or magazine into binary data of “punch this, not that.”&nbsp;</p>
+
+
+
+<p>However, those with more patience for debugging than patience for tedious card-punching have been experimenting with a variety of methods that allow for computer-controlled punching—or, more often, cutting that imitates punching. The Cricut is the standout piece of hardware here, although any machine that can precision cut paper using code will do. These machines, called CNC machines (CNC stands for “computer numerical control”), can have laser or blade attachments, and they work the same way as the massive plasma cutters used for cutting steel. A layer of software, which can be open-source or proprietary, translates an image stored as a SVG (scalable vector graphic) into strings of numbers that control the cutting head.&nbsp;</p>
+
+
+
+<p>SVGs aren’t that hard to generate off of images; the challenge here is generating an SVG off an image that actually fits in a punch card knitting machine. There is exactly one spot a hole can go that will work with the dimensions of a knitting machine, and unfortunately, low-quality scans (even pretty-good quality scans) are often too noisy to make it possible to blow up the image and then cut out all the dark spots. I tried, and was rewarded with a punch card that jammed, ripped, and complained loudly for several rows before I gave up. With higher-quality scans, this one-to-one kind of reproduction might work—but only for the machine the punch card was originally designed for. So there’s an incentive to extract the information in those punch cards in a way that is not tied to the specific dimensions of one knitting machine or another. Knitting magazines frequently turned to standardized grid formats for this, preserving the information (“yes, no, yes, yes, no”) but not the specific dimensions of any given punch card.&nbsp;</p>
+
+
+
+<p>I work with punch cards in my home workshop for fun, but I’m also fortunate enough to work with them at <a href="https://making.stanford.edu/textile-makerspace">Stanford’s Textile Makerspace</a>, where Quinn Dombrowski has been <a href="https://explorecourses.stanford.edu/search?view=catalog&amp;filter-coursestatus-Active=on&amp;page=0&amp;catalog=&amp;academicYear=&amp;q=DLCL203&amp;collapse=">teaching data visualization using textiles</a> on an assortment of knitting machines, looms, and sewing machines. Quinn’s colleague Simon Wiles, a Digital Scholarship Research Developer at Stanford’s Center for Interdisciplinary Digital Research, has worked on a computer-vision approach for converting images of punch cards into data that could be used to generate new physical punch cards. He previously worked on an incredible digitization effort on behalf of the Stanford Libraries to <a href="https://exhibits.stanford.edu/supra">digitize their player piano rolls</a>, which posed related technical challenges, so knitting-machine punch cards seemed like a challenge right up his alley. </p>
+
+
+
+<p>When I asked Simon to describe his ideal digitization and preservation workflow for knitting machine punch cards, he said something that surprised me—that the encoded information preserved in magazines and books might be a better starting place than the punch cards themselves, depending on the goals of the project. It’s really hard to scan a punch card well. He pointed out that all sorts of things happen to physical punch cards that make them harder to digitize—they get bent or torn (and in the case of the player piano rolls he’s worked on, people repair and modify them in a variety of ways)—all of which are interesting material information about use, but which pose challenges for computer vision. The question of what to do with a hole that has been taped over is not only a creative decision, but also a technical one: will the scan be able to capture that? Do we introduce a new character to represent the tape in the encoding? Not that magazines are foolproof, he stresses—there are plenty of challenges in digitizing shiny paper, especially if one is trying to do it quickly or automatically.&nbsp;</p>
+
+
+
+<p>Regardless of source material, Simon stresses the importance of high-quality scans: “From the point of view of posterity: the scan quality is really important—preserve it the best you can: things that are difficult to parse now will only get easier to parse in the future.”</p>
+
+
+
+<p><strong>Punch Card Encoding&nbsp;</strong></p>
+
+
+
+<p>Storing the parse—and circulating that information without having to repeat the process of either manual or computer-vision-assisted encoding—relies, at the moment, on community-supported infrastructure.&nbsp;</p>
+
+
+
+<p>The format accepted by <a href="https://brendaabell.com/knittingtools/pcgenerator/">Brenda A. Bell’s generator</a>, which generates SVGs for a given punch card style based on a user’s plain text file, has become one of the de facto encodings for this information as a .txt file encoded in ASCII—a way to archive and share punch cards that skips over the limitations of image-based archiving, even as it requires more upfront investment in labor. See image below for an example of what this looks like.&nbsp;</p>
+
+
+
+<figure class="wp-block-image"><img decoding="async" src="https://lh7-rt.googleusercontent.com/docsz/AD_4nXeG44HWLnAcbrvkH3tZ0lMFuH_uaFkh_zT_qR0Me6Ss_wdoESPXj2LXHfrBndvV23aLgQg-ibzD07E4Ho7hx4nCjWcKIVJcSTicDJVHaSSTRAk8sJAXaXT0z54TeD3YR_VeKlx1-T5IyPEdEQSs5rNqFVtL?key=cYTOqnTQVmbIqacNZjlKWw" alt=""/></figure>
+
+
+
+<p>Text files are a lot smaller than images, and can be stored easily on both personal hard drives and cloud storage. There are many community-run Google Drives that act as repositories for these punch cards. As far as storing and circulating go, the ASCII format accepted by Bell’s generator offers a lot in terms of flexibility—allowing us to quickly remix, edit, and modify punch card patterns using lightweight, open-source software, even if the current format decontextualizes the information from its original conditions of use. Simon pointed out that a standardized metadata structure could do a lot there—maybe a standardized plain-text header—and I imagine what I could do with a corpus of punch card encoding linked to metadata about its provenance and digitization and to source images stored somewhere like the Internet Archive. What would we learn about knitting and textile history? What creative remixes would be possible?&nbsp;</p>
+
+
+
+<p><strong>Punch cards preserve the past and future</strong></p>
+
+
+
+<p>Knitting punch cards are an important part of any feminist computing history, and surprisingly resilient. They’re interoperable across machines with the same repeat, can be stored as physical (but still fundamentally digital) copies without worrying about hard drives going bad or requiring ongoing power consumption, and are also, in the age of seemingly-endless proprietary software and terms and conditions, refreshingly punk, in a <a href="https://go-dh.github.io/mincomp/about/">minimal computing</a>, open-source sort of way. How many people actually read the source code of the open-source software they use? Punch cards are the source, in something so fundamentally binary that fluency is not hard to come by. (Fluency in binary for almost all other tasks is nearly impossible.) I can repeat a row as many times as I wish. I can change whether my machine ignores the 1s, knits the 1s, purls the 1s, etc. I can perform subsequent operations on the punch card’s outputs with manual manipulation. And I own it. I own my knitting machine, can take it apart and repair it without violating some terms of service, and can hack and modify it and my punch cards to my heart’s content.&nbsp;</p>
+
+
+
+<p>In a dream world, we’d have naming conventions or databases that let us link the .txt files to their corresponding stored images, in a system that balances the practicalities of storage and future use with the incredibly rich history available to us in the images. Punch card archiving supports an active, developing space where folx continue to develop computational and coding expertise in a variety of formats and ways—from working with mathematical modeling software to generate new punch cards to working out new designs with a hole punch and the memory cartridges at their machine. Our digitization and archiving practices can help us better understand the history of computing at the same time as they support an ongoing community working in creative computation. The Internet Archive and other community archives—which Simon says “are our best hope against enclosure”—don’t only preserve history, they enable communities to continue using and developing our technological resources.&nbsp;</p>
+
+
+
+<p><strong>About the author</strong></p>
+
+
+
+<p>Nichole Misako Nomura has a PhD from Stanford in English and an MA in Education, and studies digital humanities pedagogy. She’s currently an Associate Director at the Stanford Literary Lab, a digital-humanities research collective, and a lecturer in the Stanford Department of English.</p>
+]]></content:encoded>
+					
+					<wfw:commentRss>https://blog.archive.org/2025/02/12/vanishing-culture-punch-card-knitting/feed/</wfw:commentRss>
+			<slash:comments>6</slash:comments>
+		
+		
+			</item>
+		<item>
+		<title>Update on the 2024/2025 End of Term Web Archive</title>
+		<link>https://blog.archive.org/2025/02/06/update-on-the-2024-2025-end-of-term-web-archive/</link>
+					<comments>https://blog.archive.org/2025/02/06/update-on-the-2024-2025-end-of-term-web-archive/#comments</comments>
+		
+		<dc:creator><![CDATA[Caralee Adams]]></dc:creator>
+		<pubDate>Thu, 06 Feb 2025 12:00:00 +0000</pubDate>
+				<category><![CDATA[Announcements]]></category>
+		<category><![CDATA[Web & Data Services]]></category>
+		<category><![CDATA[#EOTArchive]]></category>
+		<category><![CDATA[End of Term Web Archive]]></category>
+		<guid isPermaLink="false">https://blog.archive.org/?p=28400</guid>
+
+					<description><![CDATA[Every four years, before and after the U.S. presidential election, a team of libraries and research organizations, including the Internet Archive, work together to preserve material from U.S. government websites [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<figure class="wp-block-image"><img decoding="async" src="https://lh7-rt.googleusercontent.com/docsz/AD_4nXcwi_8vv-YlHzhej47tr8UHgn3Mm7GPmc14NuNdfwa--9Dpc4V23UPYgK2vE2GieBFARaIc1XZ3oeIC-Q_R7reWnkGRbccGEQaZIxigWdpR6MS9nWnmtNICO8tHKoehHFxLZq0vEg?key=qwfIrsMbEEX4kDkmU9m7DX75" alt=""/><figcaption class="wp-element-caption"><em>Whitehouse.gov captures from: </em><a href="https://web.archive.org/web/20080915222725/http://www.whitehouse.gov/"><em>2008 Sept. 15</em></a><em>; </em><a href="https://web.archive.org/web/20130321232018/http://www.whitehouse.gov//"><em>2013 Mar. 21</em></a><em>; </em><a href="https://web.archive.org/web/20170203225337/https://www.whitehouse.gov/"><em>2017 Feb. 3</em></a><em>; and </em><a href="https://web.archive.org/web/20210225225137/https://www.whitehouse.gov/"><em>2021 Feb. 25</em></a></figcaption></figure>
+
+
+
+<p></p>
+
+
+
+<p>Every four years, before and after the U.S. presidential election, a team of <a href="https://eotarchive.org/partners/">libraries and research organizations</a>, including the Internet Archive, work together to preserve material from U.S. government websites during the transition of administrations.</p>
+
+
+
+<p>These “<a href="https://eotarchive.org/">End of Term</a>” (EOT) Web Archive projects have been completed for term transitions in <a href="https://eotarchive.org/data/data-2004/">2004</a>, <a href="https://eotarchive.org/data/data-2008/">2008</a>, <a href="https://eotarchive.org/data/data-2012/">2012</a>, <a href="https://eotarchive.org/data/data-2016/">2016</a>, and <a href="https://eotarchive.org/data/data-2020/">2020</a>, with 2024 well underway. The effort preserves a record of the U.S. government as it changes over time for historical and research purposes.</p>
+
+
+
+<p>With two-thirds of the process complete, the 2024/2025 EOT crawl has collected more than 500 terabytes of material, including more than 100 million unique web pages. All this information, produced by the U.S. government—the largest publisher in the world—is preserved and available for public access at the Internet Archive.</p>
+
+
+
+<p>“Access by the people to the records and output of the government is critical,” said Mark Graham, director of the Internet Archive’s Wayback Machine and a participant in the EOT Web Archive project. “Much of the material published by the government has health, safety, security and education benefits for us all.”</p>
+
+
+
+<p>The EOT Web Archive project is part of the Internet Archive’s daily routine of recording what’s happening on the web. For more than 25 years, the Internet Archive has worked to preserve material from web-based social media platforms, news sources, governments, and elsewhere across the web. Access to these preserved web pages is provided by the <a href="https://web.archive.org/">Wayback Machine</a>. “It’s just part of what we do day in and day out,” Graham said.&nbsp;</p>
+
+
+
+<p>To support the EOT Web Archive project, the Internet Archive devotes staff and technical infrastructure to focus on preserving U.S. government sites. The web archives are based on seed lists of government websites and nominations from the general public. Coverage includes websites in the .gov and .mil web domains, as well as government websites hosted on .org, .edu, and other top level domains.&nbsp;</p>
+
+
+
+<p>The Internet Archive provides a variety of discovery and access interfaces to help the public search and understand the material, including APIs and a <a href="https://web.archive.org/collection-search/EndOfTerm2024WebCrawls">full text index</a> of the collection. Researchers, journalists, students, and citizens from across the political spectrum rely on these archives to help understand changes on policy, regulations, staffing and other dimensions of the U.S. government. </p>
+
+
+
+<p>As an added layer of preservation, the 2024/2025 EOT Web Archive will be uploaded to the Filecoin network for long-term storage, where previous term archives are already stored. While separate from the EOT collaboration, this effort is part of the Internet Archive’s <a href="https://archive.org/details/democracys-library">Democracy’s Library</a> project. Filecoin Foundation (FF) and Filecoin Foundation for the Decentralized Web (FFDW) support Democracy’s Library to ensure public access to government research and publications worldwide.</p>
+
+
+
+<p>According to Graham, the large volume of material in the 2024/2025 EOT crawl is because the team gets better with experience every term, and an increasing use of the web as a publishing platform means more material to archive. He also credits the EOT Web Archive’s success to the support and collaboration from its partners.</p>
+
+
+
+<p>Web archiving is more than just preserving history—it’s about ensuring access to information for future generations.The End of Term Web Archive serves to safeguard versions of government websites that might otherwise be lost. By preserving this information and making it accessible, the EOT Web Archive has empowered researchers, journalists and citizens to trace the evolution of government policies and decisions.</p>
+
+
+
+<p><strong>More questions? </strong>Visit <a href="https://eotarchive.org/">https://eotarchive.org/</a> to learn more about the End of Term Web Archive.</p>
+]]></content:encoded>
+					
+					<wfw:commentRss>https://blog.archive.org/2025/02/06/update-on-the-2024-2025-end-of-term-web-archive/feed/</wfw:commentRss>
+			<slash:comments>5</slash:comments>
+		
+		
+			</item>
+	</channel>
+</rss>
