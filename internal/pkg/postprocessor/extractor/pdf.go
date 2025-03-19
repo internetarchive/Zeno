@@ -23,13 +23,11 @@ func PDF(URL *models.URL) (outlinks []*models.URL, err error) {
 		return nil, err
 	}
 
-	// Parse PDF file.
 	isEncrypted, err := pdfReader.IsEncrypted()
 	if err != nil {
 		return nil, err
 	}
 
-	// If PDF is encrypted, exit with message.
 	if isEncrypted {
 		return nil, errors.New("pdf is encrypted")
 	}
@@ -40,7 +38,6 @@ func PDF(URL *models.URL) (outlinks []*models.URL, err error) {
 		log.Fatal(err)
 	}
 
-	// Iterate through pages and print text.
 	for i := 1; i <= numPages; i++ {
 		page, err := pdfReader.GetPage(i)
 		if err != nil {
