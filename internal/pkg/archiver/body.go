@@ -45,6 +45,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 
 	// Check if the MIME type requires post-processing
 	if (u.GetMIMEType().Parent() != nil && utils.IsMIMETypeInHierarchy(u.GetMIMEType().Parent(), "text/plain")) ||
+		u.GetMIMEType().Is("application/pdf") ||
 		strings.Contains(u.GetMIMEType().String(), "text/") {
 
 		// Create a temp file with a 2MB memory buffer
