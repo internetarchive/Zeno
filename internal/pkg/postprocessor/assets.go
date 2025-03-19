@@ -55,6 +55,18 @@ func extractAssets(item *models.Item) (assets, outlinks []*models.URL, err error
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
 			return assets, outlinks, err
 		}
+	case extractor.IsEPUB(item.GetURL()):
+		assets, err = extractor.EPUBAssets(item)
+		if err != nil {
+			logger.Error("unable to extract assets from EPUB", "err", err.Error(), "item", item.GetShortID())
+			return assets, outlinks, err
+		}
+		outlinks, err = extractor.EPUBOutlinks(item)
+		if err != nil {
+			logger.Error("unable to extract outlinks from EPUB", "err", err.Error(), "item", item.GetShortID())
+		}
+		
+		logger.Debug("processed ebook", "content-type", contentType, "item", item.GetShortID())
 	case extractor.IsXML(item.GetURL()):
 		assets, outlinks, err = extractor.XML(item.GetURL())
 		if err != nil {
