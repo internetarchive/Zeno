@@ -60,10 +60,11 @@ func Start(finishChan, produceChan chan *models.Item) error {
 			client:    HQclient,
 		}
 
-		globalHQ.wg.Add(3)
+		globalHQ.wg.Add(4)
 		go consumer()
 		go producer()
 		go finisher()
+		go websocket()
 
 		logger.Info("started")
 
