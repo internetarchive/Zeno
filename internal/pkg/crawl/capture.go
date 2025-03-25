@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/djimenez/iconv-go"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/dependencies/ytdlp"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
@@ -26,6 +28,81 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
+
+func returnEncoded(resp *http.Response) string {
+	// reading body for HTML inspection first
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return "utf-8"
+	}
+
+	resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+	// Parse the HTML
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(bodyBytes))
+	if err != nil {
+		fmt.Println("Error parsing HTML:", err)
+		return "utf-8"
+	}
+
+	// Checking modern charset attribute
+	charset, exists := doc.Find("meta[charset]").Attr("charset")
+	if exists {
+		fmt.Printf("Debug - Found modern charset meta tag: %s\n", charset)
+		return strings.ToLower(charset)
+	}
+
+	// Check older http-equiv='Content-Type' format
+	var detectedCharset string
+	doc.Find("meta[http-equiv]").Each(func(i int, s *goquery.Selection) {
+		if detectedCharset != "" {
+			return
+		}
+
+		httpEquiv, _ := s.Attr("http-equiv")
+		if strings.ToLower(httpEquiv) == "content-type" {
+			content, _ := s.Attr("content")
+			fmt.Printf("Debug - Found http-equiv meta tag with content: %s\n", content)
+			charset := extractCharsetFromContentType(content)
+			if charset != "" {
+				detectedCharset = strings.ToLower(charset)
+				fmt.Printf("Debug - Detected charset from http-equiv: %s\n", detectedCharset)
+			}
+		}
+	})
+
+	if detectedCharset != "" {
+		return detectedCharset
+	}
+
+	// If no charset in meta tags, check Content-Type header
+	contentType := resp.Header.Get("Content-Type")
+	fmt.Printf("Debug - Content-Type header: %s\n", contentType)
+	if strings.Contains(strings.ToLower(contentType), "charset=") {
+		charset := extractCharsetFromContentType(contentType)
+		fmt.Printf("Debug - Charset from Content-Type: %s\n", charset)
+		if charset != "" {
+			return strings.ToLower(charset)
+		}
+	}
+
+	fmt.Println("Debug - No charset detected, defaulting to utf-8")
+	return "utf-8"
+}
+
+func extractCharsetFromContentType(contentType string) string {
+	fmt.Printf("Debug - Extracting charset from: %s\n", contentType)
+	parts := strings.Split(strings.ToLower(contentType), "charset=")
+	if len(parts) > 1 {
+		charset := strings.TrimSpace(parts[1])
+		charset = strings.Split(charset, ";")[0]
+		fmt.Printf("Debug - Extracted charset: %s\n", charset)
+		return charset
+	}
+	fmt.Println("Debug - No charset found in Content-Type")
+	return ""
+}
 
 func (c *Crawl) executeGET(item *queue.Item, req *http.Request, isRedirection bool) (resp *http.Response, err error) {
 	var (
@@ -499,8 +576,30 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 		return err
 	} else {
+
+		// Get the type of charset from resp (e.g. "utf-8", "iso-8859-1", "windows-1252", etc.)
+		charset := returnEncoded(resp)
+		var utfBody io.Reader
+
+		// If the charset is not utf-8, convert the body to utf-8
+		if charset != "utf-8" {
+			utfBody, err = iconv.NewReader(resp.Body, charset, "utf-8")
+			if err != nil {
+				return err
+			}
+
+			convertedBytes, err := io.ReadAll(utfBody)
+			if err != nil {
+				return err
+			}
+
+			utfBody = bytes.NewReader(convertedBytes)
+		} else {
+			utfBody = resp.Body
+		}
+
 		// Turn the response into a doc that we will scrape for outlinks and assets.
-		doc, err := goquery.NewDocumentFromReader(resp.Body)
+		doc, err := goquery.NewDocumentFromReader(utfBody)
 		if err != nil {
 			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating goquery document")
 			return err
