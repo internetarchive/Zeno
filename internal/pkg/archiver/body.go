@@ -9,7 +9,6 @@ import (
 	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -46,7 +45,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 
 	// Check if the MIME type requires post-processing
 	if (u.GetMIMEType().Parent() != nil && utils.IsMIMETypeInHierarchy(u.GetMIMEType().Parent(), "text/plain")) ||
-		extractor.IsPDF(u) ||
+		u.GetMIMEType().Is("application/pdf") ||
 		strings.Contains(u.GetMIMEType().String(), "text/") {
 
 		// Create a temp file with a 2MB memory buffer
