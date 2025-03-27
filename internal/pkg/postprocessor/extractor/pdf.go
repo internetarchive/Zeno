@@ -28,29 +28,25 @@ func PDF(URL *models.URL) (outlinks []*models.URL, err error) {
 	}
 
 	for _, pageAnnots := range annots {
-		for t, anno := range pageAnnots {
-			if t == pdfmodel.AnnLink {
-				for _, renderer := range anno.Map {
-					if renderer.Type() == pdfmodel.AnnLink {
-						if link, ok := renderer.(pdfmodel.LinkAnnotation); ok {
-							if link.URI == "" {
-								continue
-							}
+		linkAnnots, ok := pageAnnots[pdfmodel.AnnLink]
+		if !ok {
+			continue
+		}
 
-							if strings.HasPrefix(link.URI, "mailto:") || strings.HasPrefix(link.URI, "tel:") || strings.HasPrefix(link.URI, "file:") {
-								continue
-							}
-
-							outlinks = append(outlinks, &models.URL{
-								Raw: link.URI,
-							})
-						} else {
-							// should never happen
-							panic("not a LinkAnnotation, even though the type is")
-						}
-					}
-				}
+		for _, renderer := range linkAnnots.Map {
+			link, ok := renderer.(pdfmodel.LinkAnnotation)
+			if !ok || link.URI == "" {
+				continue
 			}
+
+			// Skip unwanted URIs
+			if strings.HasPrefix(link.URI, "mailto:") ||
+				strings.HasPrefix(link.URI, "tel:") ||
+				strings.HasPrefix(link.URI, "file:") {
+				continue
+			}
+
+			outlinks = append(outlinks, &models.URL{Raw: link.URI})
 		}
 	}
 
