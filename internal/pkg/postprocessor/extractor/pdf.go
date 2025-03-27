@@ -1,15 +1,19 @@
 package extractor
 
 import (
-	"errors"
-	"log"
 	"strings"
 
 	"github.com/internetarchive/Zeno/pkg/models"
 
-	"github.com/unidoc/unipdf/v3/core"
-	pdf "github.com/unidoc/unipdf/v3/model"
+	pdfapi "github.com/pdfcpu/pdfcpu/pkg/api"
+	pdfmodel "github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
+
+func init() {
+	// https://pkg.go.dev/github.com/pdfcpu/pdfcpu@v0.9.1/pkg/pdfcpu/model#ConfigPath
+	// > If you want to disable config dir usage in a multi threaded environment you are encouraged to use api.DisableConfigDir().
+	pdfapi.DisableConfigDir()
+}
 
 func IsPDF(URL *models.URL) bool {
 	return URL.GetMIMEType().Is("application/pdf")
@@ -18,56 +22,34 @@ func IsPDF(URL *models.URL) bool {
 func PDF(URL *models.URL) (outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
-	pdfReader, err := pdf.NewPdfReader(URL.GetBody())
+	annots, err := pdfapi.Annotations(URL.GetBody(), nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	isEncrypted, err := pdfReader.IsEncrypted()
-	if err != nil {
-		return nil, err
-	}
+	for _, pageAnnots := range annots {
+		for t, anno := range pageAnnots {
+			if t == pdfmodel.AnnLink {
+				for _, renderer := range anno.Map {
+					if renderer.Type() == pdfmodel.AnnLink {
+						if link, ok := renderer.(pdfmodel.LinkAnnotation); ok {
+							if link.URI == "" {
+								continue
+							}
 
-	if isEncrypted {
-		return nil, errors.New("pdf is encrypted")
-	}
+							if strings.HasPrefix(link.URI, "mailto:") || strings.HasPrefix(link.URI, "tel:") || strings.HasPrefix(link.URI, "file:") {
+								continue
+							}
 
-	// Get number of pages.
-	numPages, err := pdfReader.GetNumPages()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for i := 1; i <= numPages; i++ {
-		page, err := pdfReader.GetPage(i)
-		if err != nil {
-			log.Fatal(err)
-		}
-		annotations, err := page.GetAnnotations()
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, annotation := range annotations {
-			switch t := annotation.GetContext().(type) {
-			case *pdf.PdfAnnotationLink:
-				dict, ok := core.GetDict(t.A)
-				if !ok {
-					continue
+							outlinks = append(outlinks, &models.URL{
+								Raw: link.URI,
+							})
+						} else {
+							// should never happen
+							panic("not a LinkAnnotation, even though the type is")
+						}
+					}
 				}
-
-				url, ok := dict.GetString("URI")
-				if !ok {
-					continue
-				}
-
-				// Skip mailto and file links
-				if strings.HasPrefix(url, "mailto:") || strings.HasPrefix(url, "file://") {
-					continue
-				}
-
-				outlinks = append(outlinks, &models.URL{
-					Raw: url,
-				})
 			}
 		}
 	}
