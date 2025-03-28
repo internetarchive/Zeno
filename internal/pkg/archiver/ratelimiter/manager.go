@@ -93,9 +93,11 @@ func (bm *BucketManager) evictLFU() {
 }
 
 // Wait blocks until a token is available for the given host.
-func (bm *BucketManager) Wait(host string) {
+func (bm *BucketManager) Wait(host string) time.Duration {
+	start := time.Now()
 	mb := bm.getBucket(host)
 	mb.bucket.Wait()
+	return time.Since(start)
 }
 
 // AdjustOnFailure applies failure adjustments for the given host's bucket.
