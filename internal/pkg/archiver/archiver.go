@@ -66,10 +66,10 @@ func Start(inputChan, outputChan chan *models.Item) error {
 		}
 		if !config.Get().DisableRateLimit {
 			globalBucketManager = ratelimiter.NewBucketManager(ctx,
-				config.Get().WorkersCount*config.Get().MaxConcurrentAssets, // default maxBuckets
-				config.Get().RateLimitCapacity,                             // default capacity
-				config.Get().RateLimitRefillRate,                           // default refill rate
-				config.Get().RateLimitCleanupFrequency,                     // default cleanup frequency
+				config.Get().WorkersCount*config.Get().MaxConcurrentAssets, // maxBuckets
+				config.Get().RateLimitCapacity,
+				config.Get().RateLimitRefillRate,
+				config.Get().RateLimitCleanupFrequency,
 			)
 			logger.Info("bucket manager started")
 		}
