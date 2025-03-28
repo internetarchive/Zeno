@@ -11,6 +11,7 @@ import (
 	"github.com/CorentinB/warc"
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -38,9 +39,10 @@ type archiver struct {
 }
 
 var (
-	globalArchiver *archiver
-	once           sync.Once
-	logger         *log.FieldedLogger
+	globalArchiver      *archiver
+	globalBucketManager *ratelimiter.BucketManager
+	once                sync.Once
+	logger              *log.FieldedLogger
 )
 
 // Start initializes the internal archiver structure, start the WARC writer and start routines, should only be called once and returns an error if called more than once
@@ -61,6 +63,15 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			cancel:   cancel,
 			inputCh:  inputChan,
 			outputCh: outputChan,
+		}
+		if !config.Get().DisableRateLimit {
+			globalBucketManager = ratelimiter.NewBucketManager(ctx,
+				config.Get().WorkersCount*config.Get().MaxConcurrentAssets, // default maxBuckets
+				config.Get().RateLimitCapacity,                             // default capacity
+				config.Get().RateLimitRefillRate,                           // default refill rate
+				config.Get().RateLimitCleanupFrequency,                     // default cleanup frequency
+			)
+			logger.Info("bucket manager started")
 		}
 		logger.Debug("initialized")
 
@@ -113,6 +124,11 @@ func Stop() {
 		}
 
 		logger.Info("stopped")
+	}
+	if globalBucketManager != nil {
+		logger.Debug("closing bucket manager")
+		globalBucketManager.Close()
+		logger.Info("closed bucket manager")
 	}
 }
 
@@ -168,7 +184,6 @@ func (a *archiver) worker(workerID string) {
 }
 
 func archive(workerID string, seed *models.Item) {
-	// TODO: rate limiting handling
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "archiver.archive",
 		"worker_id": workerID,
@@ -211,6 +226,12 @@ func archive(workerID string, seed *models.Item) {
 				panic("request is nil")
 			}
 
+			// Wait for the rate limiter if enabled
+			if globalBucketManager != nil {
+				elapsed := globalBucketManager.Wait(req.URL.Host)
+				logger.Debug("got token from bucket", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "elapsed", elapsed)
+			}
+
 			// Get and measure request time
 			getStartTime := time.Now()
 
@@ -247,6 +268,14 @@ func archive(workerID string, seed *models.Item) {
 			stats.MeanProcessBodyTimeAdd(time.Since(processStartTime))
 
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
+
+			if globalBucketManager != nil {
+				if resp.StatusCode == 200 {
+					globalBucketManager.OnSuccess(req.URL.Host)
+				} else {
+					globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
+				}
+			}
 
 			// If WARC writing is asynchronous, we don't need to wait for the feedback channel
 			if !config.Get().WARCWriteAsync {
