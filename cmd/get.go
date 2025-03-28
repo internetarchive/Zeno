@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 )
 
@@ -62,6 +64,12 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("disable-ipv4", false, "Disable IPv4 for requests.")
 	getCmd.PersistentFlags().Bool("disable-ipv6", false, "Disable IPv6 for requests.")
 	getCmd.PersistentFlags().Bool("ipv6-anyip", false, "Use AnyIP kernel feature for requests. (only IPv6, need --random-local-ip)")
+
+	// Rate limiting flags
+	getCmd.PersistentFlags().Bool("disable-rate-limit", false, "Disable the Token Bucket rate limiting.")
+	getCmd.PersistentFlags().Float64("rate-limit-capacity", 10, "Bucket capacity for each host.")
+	getCmd.PersistentFlags().Float64("rate-limit-refill-rate", 2, "Ideal requests per second for each host.")
+	getCmd.PersistentFlags().Duration("rate-limit-cleanup-frequency", time.Duration(5*time.Minute), "How often to run cleanup of stale buckets that are not accessed in the duration.")
 
 	// WARC flags
 	getCmd.PersistentFlags().String("warc-prefix", "ZENO", "Prefix to use when naming the WARC files.")

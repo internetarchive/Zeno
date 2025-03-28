@@ -89,6 +89,12 @@ type Config struct {
 	DisableIPv6        bool     `mapstructure:"disable-ipv6"`
 	IPv6AnyIP          bool     `mapstructure:"ipv6-anyip"`
 
+	// Rate limiting
+	DisableRateLimit          bool          `mapstructure:"disable-rate-limit"`
+	RateLimitCapacity         float64       `mapstructure:"rate-limit-capacity"`
+	RateLimitRefillRate       float64       `mapstructure:"rate-limit-refill-rate"`
+	RateLimitCleanupFrequency time.Duration `mapstructure:"rate-limit-cleanup-frequency"`
+
 	// Dependencies
 	NoYTDLP   bool   `mapstructure:"no-ytdlp"`
 	YTDLPPath string `mapstructure:"ytdlp-path"`
