@@ -67,8 +67,8 @@ func getCMDsFlags(getCmd *cobra.Command) {
 
 	// Rate limiting flags
 	getCmd.PersistentFlags().Bool("disable-rate-limit", false, "Disable the Token Bucket rate limiting.")
-	getCmd.PersistentFlags().Float64("rate-limit-capacity", 10, "Bucket capacity for each host.")
-	getCmd.PersistentFlags().Float64("rate-limit-refill-rate", 2, "Ideal requests per second for each host.")
+	getCmd.PersistentFlags().Float64("rate-limit-capacity", 150, "Bucket capacity for each host.")
+	getCmd.PersistentFlags().Float64("rate-limit-refill-rate", 50, "Ideal requests per second for each host.")
 	getCmd.PersistentFlags().Duration("rate-limit-cleanup-frequency", time.Duration(5*time.Minute), "How often to run cleanup of stale buckets that are not accessed in the duration.")
 
 	// WARC flags
