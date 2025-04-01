@@ -42,13 +42,37 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	extractBaseTag(item, document)
 
 	// Match <a> tags with href, data-href, data-src, data-srcset, data-lazy-src, data-srcset, src, srcset
+	// Extract potential URLs from <a> tags using common attributes
 	if !slices.Contains(config.Get().DisableHTMLTag, "a") {
-		document.Find("a").Each(func(index int, i *goquery.Selection) {
-			for _, node := range i.Nodes {
-				for _, attr := range node.Attr {
-					link := attr.Val
-					rawOutlinks = append(rawOutlinks, link)
+		attrs := []string{
+			"href",
+			"data-href",
+			"data-url",
+			"data-link",
+			"data-redirect-url",
+			"ping",
+			"onclick",
+			"router-link",
+			"to",
+		}
+
+		document.Find("a").Each(func(index int, sel *goquery.Selection) {
+			for _, key := range attrs {
+				val, exists := sel.Attr(key)
+				if !exists || val == "" {
+					continue
 				}
+
+				if key == "onclick" {
+					// Attempt to extract URL from JS like window.location = '...';
+					re := regexp.MustCompile(`window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]`)
+					if matches := re.FindStringSubmatch(val); len(matches) > 1 {
+						rawOutlinks = append(rawOutlinks, matches[1])
+					}
+					continue
+				}
+
+				rawOutlinks = append(rawOutlinks, val)
 			}
 		})
 	}
@@ -61,6 +85,12 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			outlinks = append(outlinks, &models.URL{
 				Raw: resolvedURL,
 			})
+			continue
+		}
+
+		// Discard URLs that are the same as the base URL or the current URL
+		if rawOutlink == item.GetBase() || rawOutlink == item.GetURL().String() {
+			logger.Debug("discarding outlink because it is the same as the base URL or current URL", "url", rawOutlink, "item", item.GetShortID())
 			continue
 		}
 
@@ -265,7 +295,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			if err != nil {
 				logger.Debug("unable to extract outer HTML from script tag", "err", err, "url", item.GetURL().String(), "item", item.GetShortID())
 			} else {
-				scriptLinks := utils.DedupeStrings(LinkRegexRelaxed.FindAllString(outerHTML, -1))
+				scriptLinks := utils.DedupeStrings(LinkRegexStrict.FindAllString(outerHTML, -1))
 				for _, scriptLink := range scriptLinks {
 					if strings.HasPrefix(scriptLink, "http") {
 						// Escape URLs when unicode runes are present in the extracted URLs

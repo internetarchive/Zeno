@@ -1,6 +1,8 @@
 package postprocessor
 
 import (
+	"slices"
+
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
@@ -70,6 +72,29 @@ func extractAssets(item *models.Item) (assets, outlinks []*models.URL, err error
 	default:
 		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
 		return assets, outlinks, nil
+	}
+
+	for i := 0; i < len(assets); {
+		asset := assets[i]
+
+		// Case 1: asset is nil
+		if asset == nil {
+			logger.Debug("asset is nil, removing", "item", item.GetShortID())
+			assets = slices.Delete(assets, i, i+1)
+			continue // don't increment i, next item is now at same index
+		}
+
+		// Case 2: asset is a duplicate of the item's URL
+		itemURL := item.GetURL()
+		if itemURL != nil && asset.Raw == itemURL.String() {
+			logger.Debug("removing asset that is a duplicate of the item URL",
+				"item", item.GetShortID(), "asset", asset.Raw)
+			assets = slices.Delete(assets, i, i+1)
+			continue // same: skip increment to check the next item now at index i
+		}
+
+		// Nothing to delete → move to next item
+		i++
 	}
 
 	// For assets, set the hops level to the item's level
