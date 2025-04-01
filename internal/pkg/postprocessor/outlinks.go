@@ -32,19 +32,19 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	case truthsocial.IsAccountURL(item.GetURL()):
 		outlinks, err = truthsocial.GenerateAccountLookupURL(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateAccountLookupURL", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateAccountLookupURL", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
 			return outlinks, err
 		}
 	case truthsocial.IsAccountLookupURL(item.GetURL()):
 		outlinks, err = truthsocial.GenerateOutlinksURLsFromLookup(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateOutlinksURLsFromLookup", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateOutlinksURLsFromLookup", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
 			return outlinks, err
 		}
 	case extractor.IsS3(item.GetURL()):
 		outlinks, err = extractor.S3(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks from S3", "extractor", "S3", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract outlinks from S3", "extractor", "S3", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
 			return outlinks, err
 		}
 	case extractor.IsSitemapXML(item.GetURL()):
@@ -52,7 +52,7 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 
 		assets, outlinks, err = extractor.XML(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "XML", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract outlinks", "extractor", "XML", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
 			return outlinks, err
 		}
 
@@ -62,23 +62,23 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	case extractor.IsHTML(item.GetURL()):
 		outlinks, err = extractor.HTMLOutlinks(item)
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "HTMLOutlinks", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract outlinks", "extractor", "HTMLOutlinks", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
 			return outlinks, err
 		}
 	case extractor.IsPDF(item.GetURL()):
 		outlinks, err = extractor.PDF(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "PDF", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract outlinks", "extractor", "PDF", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
 			return outlinks, err
 		}
 	case reddit.IsPostAPI(item.GetURL()):
 		outlinks, err = reddit.ExtractAPIPostPermalinks(item)
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "reddit.ExtractAPIPostPermalinks", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract outlinks", "extractor", "reddit.ExtractAPIPostPermalinks", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
 			return outlinks, err
 		}
 	default:
-		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
+		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID(), "url", item.GetURL().String())
 		return outlinks, nil
 	}
 
@@ -110,7 +110,7 @@ func extractLinksFromPage(URL *models.URL) (links []*models.URL) {
 		return links
 	}
 
-	rawLinks := utils.DedupeStrings(extractor.LinkRegexRelaxed.FindAllString(string(source), -1))
+	rawLinks := utils.DedupeStrings(extractor.LinkRegexStrict.FindAllString(string(source), -1))
 
 	// Validate links
 	for _, link := range rawLinks {

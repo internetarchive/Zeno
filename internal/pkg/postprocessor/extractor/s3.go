@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -41,7 +42,8 @@ type CommonPrefix struct {
 
 // IsS3 checks if the response is from an S3 server
 func IsS3(URL *models.URL) bool {
-	return utils.StringContainsSliceElements(URL.GetResponse().Header.Get("Server"), validS3Servers)
+	return utils.StringContainsSliceElements(URL.GetResponse().Header.Get("Server"), validS3Servers) &&
+		strings.Contains(URL.GetResponse().Header.Get("Content-Type"), "xml")
 }
 
 // S3 decides which helper to call based on the query param: old style (no list-type=2) vs. new style (list-type=2)
