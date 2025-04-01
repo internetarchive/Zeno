@@ -10,10 +10,9 @@ import (
 )
 
 var (
-	LinkRegexRelaxed = xurls.Relaxed()
-	LinkRegexStrict  = xurls.Strict()
-	LinkRegex        = regexp.MustCompile(`['"]((http|https)://[^'"]+)['"]`)
-	AssetsRegex      = `(?i)\b(?:src|href)=["']([^"']+\.(?:css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot))["']`
+	LinkRegexStrict = xurls.Strict()
+	LinkRegex       = regexp.MustCompile(`['"]((http|https)://[^'"]+)['"]`)
+	AssetsRegex     = `(?i)\b(?:src|href)=["']([^"']+\.(?:css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot))["']`
 )
 
 // hasFileExtension checks if a URL has a file extension in it.

@@ -134,7 +134,7 @@ func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 				rawURLs = append(rawURLs, string(tok))
 			} else {
 				// Try to extract URLs from the text
-				rawURLs = append(rawURLs, utils.DedupeStrings(LinkRegexRelaxed.FindAllString(string(tok), -1))...)
+				rawURLs = append(rawURLs, utils.DedupeStrings(LinkRegexStrict.FindAllString(string(tok), -1))...)
 			}
 		}
 	}
