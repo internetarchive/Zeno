@@ -209,7 +209,7 @@ func preprocess(workerID string, seed *models.Item) {
 	}
 
 	if len(items) == 0 {
-		logger.Info("no more work to do after dedupe", "seed_id", seed.GetShortID())
+		logger.Debug("no more work to do after dedupe", "seed_id", seed.GetShortID())
 		seed.SetStatus(models.ItemCompleted)
 		return
 	}
@@ -241,7 +241,7 @@ func preprocess(workerID string, seed *models.Item) {
 	}
 
 	if len(items) == 0 {
-		logger.Info("no more work to do after seencheck", "seed_id", seed.GetShortID())
+		logger.Debug("no more work to do after seencheck", "seed_id", seed.GetShortID())
 		seed.SetStatus(models.ItemCompleted)
 		return
 	}
