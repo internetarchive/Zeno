@@ -3,6 +3,7 @@ package archiver
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"sync"
@@ -274,12 +275,22 @@ func archive(workerID string, seed *models.Item) {
 				if resp.StatusCode >= 500 || resp.StatusCode == 403 || resp.StatusCode == 408 || resp.StatusCode == 425 || resp.StatusCode == 429 {
 					globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
 					if retry < config.Get().MaxRetry {
-						logger.Warn("retrying request", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime.String())
+						logger.Warn("bad response code, retrying", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime.String())
+
+						// Consume body, needed to avoid leaking RAM & storage
+						io.Copy(io.Discard, resp.Body)
+						resp.Body.Close()
+
 						time.Sleep(retrySleepTime)
 						continue
 					} else {
-						logger.Error("unable to execute request", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+						logger.Error("bad response code, retries exceeded", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 						item.SetStatus(models.ItemFailed)
+
+						// Consume body, needed to avoid leaking RAM & storage
+						io.Copy(io.Discard, resp.Body)
+						resp.Body.Close()
+
 						return
 					}
 				} else {
