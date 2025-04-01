@@ -73,7 +73,15 @@ func (tb *tokenBucket) refill() {
 		return
 	}
 
-	elapsed := now.Sub(tb.lastRefill).Seconds()
+	// Calculate the elapsed time since the last refill or penalty.
+	// If the penalty period is active, use that as the time.
+	// This prevents the tokens from being refilled too much after recovering from a penalty.
+	lastRefillOrPenaltyUntil := tb.lastRefill
+	if tb.penaltyUntil.After(tb.lastRefill) {
+		lastRefillOrPenaltyUntil = tb.penaltyUntil
+	}
+	elapsed := now.Sub(lastRefillOrPenaltyUntil).Seconds()
+
 	if elapsed > 0 {
 		tb.tokens = math.Min(tb.capacity, tb.tokens+elapsed*tb.refillRate)
 		tb.lastRefill = now

@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// TestnewTokenBucket verifies that a newly created bucket has the expected idealRate.
-func TestnewTokenBucket(t *testing.T) {
+// TestNewTokenBucket verifies that a newly created bucket has the expected idealRate.
+func TestNewTokenBucket(t *testing.T) {
 	tb := newTokenBucket(10, 5)
 	if tb.idealRate != 5 {
 		t.Fatalf("expected idealRate to be 5, got %f", tb.idealRate)
