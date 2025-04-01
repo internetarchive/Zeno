@@ -288,12 +288,13 @@ func archive(workerID string, seed *models.Item) {
 
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
 
-			if globalBucketManager != nil {
-				if resp.StatusCode == 200 {
-					globalBucketManager.OnSuccess(req.URL.Host)
-				} else {
-					globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
-				}
+			// Retries on 5XX, or 403, 408, 425 and 429
+			// TODO: 403 is too broad, we should retry only if/when we detect that some middleman or the server itself
+			// rate-limited us, like cloudflare with the cf-mitigate header etc.
+			if resp.StatusCode >= 500 || resp.StatusCode == 403 || resp.StatusCode == 408 || resp.StatusCode == 425 || resp.StatusCode == 429 {
+				globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
+			} else {
+				globalBucketManager.OnSuccess(req.URL.Host)
 			}
 
 			// If WARC writing is asynchronous, we don't need to wait for the feedback channel
