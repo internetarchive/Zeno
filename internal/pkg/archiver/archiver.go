@@ -3,6 +3,7 @@ package archiver
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"github.com/CorentinB/warc"
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -38,9 +40,10 @@ type archiver struct {
 }
 
 var (
-	globalArchiver *archiver
-	once           sync.Once
-	logger         *log.FieldedLogger
+	globalArchiver      *archiver
+	globalBucketManager *ratelimiter.BucketManager
+	once                sync.Once
+	logger              *log.FieldedLogger
 )
 
 // Start initializes the internal archiver structure, start the WARC writer and start routines, should only be called once and returns an error if called more than once
@@ -61,6 +64,15 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			cancel:   cancel,
 			inputCh:  inputChan,
 			outputCh: outputChan,
+		}
+		if !config.Get().DisableRateLimit {
+			globalBucketManager = ratelimiter.NewBucketManager(ctx,
+				config.Get().WorkersCount*config.Get().MaxConcurrentAssets, // maxBuckets
+				config.Get().RateLimitCapacity,
+				config.Get().RateLimitRefillRate,
+				config.Get().RateLimitCleanupFrequency,
+			)
+			logger.Info("bucket manager started")
 		}
 		logger.Debug("initialized")
 
@@ -113,6 +125,11 @@ func Stop() {
 		}
 
 		logger.Info("stopped")
+	}
+	if globalBucketManager != nil {
+		logger.Debug("closing bucket manager")
+		globalBucketManager.Close()
+		logger.Info("closed bucket manager")
 	}
 }
 
@@ -168,7 +185,6 @@ func (a *archiver) worker(workerID string) {
 }
 
 func archive(workerID string, seed *models.Item) {
-	// TODO: rate limiting handling
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "archiver.archive",
 		"worker_id": workerID,
@@ -211,27 +227,84 @@ func archive(workerID string, seed *models.Item) {
 				panic("request is nil")
 			}
 
-			// Get and measure request time
-			getStartTime := time.Now()
-
-			// If WARC writing is asynchronous, we don't need a feedback channel
-			if !config.Get().WARCWriteAsync {
-				feedbackChan = make(chan struct{}, 1)
-				// Add the feedback channel to the request context
-				req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
+			// Wait for the rate limiter if enabled
+			if globalBucketManager != nil {
+				elapsed := globalBucketManager.Wait(req.URL.Host)
+				logger.Debug("got token from bucket", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "elapsed", elapsed)
 			}
 
-			if config.Get().Proxy != "" {
-				resp, err = globalArchiver.ClientWithProxy.Do(req)
-			} else {
-				resp, err = globalArchiver.Client.Do(req)
+			// Don't use the global bucket manager in the retry loop.
+			// Most failed requests won't reach the server anyway, so we don't need to wait for the rate limit.
+			// This prevents workers from being blocked for too long by dead sites, such as host unreachable or DNS errors.
+			for retry := 0; retry <= config.Get().MaxRetry; retry++ {
+				// This is unused unless there is an error
+				retrySleepTime := time.Second * time.Duration(retry*2)
+
+				// Get and measure request time
+				getStartTime := time.Now()
+
+				// If WARC writing is asynchronous, we don't need a feedback channel
+				if !config.Get().WARCWriteAsync {
+					feedbackChan = make(chan struct{}, 1)
+					// Add the feedback channel to the request context
+					req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
+				}
+
+				if config.Get().Proxy != "" {
+					resp, err = globalArchiver.ClientWithProxy.Do(req)
+				} else {
+					resp, err = globalArchiver.Client.Do(req)
+				}
+
+				if err != nil {
+					if retry < config.Get().MaxRetry {
+						logger.Warn("retrying request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime.String())
+						time.Sleep(retrySleepTime)
+						continue
+					}
+
+					// retries exhausted
+					logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+					item.SetStatus(models.ItemFailed)
+					return
+				}
+
+				// Retries on 5XX, or 403, 408, 425 and 429
+				// TODO: 403 is too broad, we should retry only if/when we detect that some middleman or the server itself
+				// rate-limited us, like cloudflare with the cf-mitigate header etc.
+				if resp.StatusCode >= 500 || resp.StatusCode == 403 || resp.StatusCode == 408 || resp.StatusCode == 425 || resp.StatusCode == 429 {
+					if globalBucketManager != nil {
+						globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
+					}
+					if retry < config.Get().MaxRetry {
+						logger.Warn("bad response code, retrying", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime.String())
+
+						// Consume body, needed to avoid leaking RAM & storage
+						io.Copy(io.Discard, resp.Body)
+						resp.Body.Close()
+
+						time.Sleep(retrySleepTime)
+						continue
+					} else {
+						logger.Error("bad response code, retries exceeded", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+						item.SetStatus(models.ItemFailed)
+
+						// Consume body, needed to avoid leaking RAM & storage
+						io.Copy(io.Discard, resp.Body)
+						resp.Body.Close()
+
+						return
+					}
+				} else {
+					if globalBucketManager != nil {
+						globalBucketManager.OnSuccess(req.URL.Host)
+					}
+				}
+
+				// OK
+				stats.MeanHTTPRespTimeAdd(time.Since(getStartTime))
+				break
 			}
-			if err != nil {
-				logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
-				item.SetStatus(models.ItemFailed)
-				return
-			}
-			stats.MeanHTTPRespTimeAdd(time.Since(getStartTime))
 
 			// Set the response in the URL
 			item.GetURL().SetResponse(resp)
@@ -244,8 +317,8 @@ func archive(workerID string, seed *models.Item) {
 				item.SetStatus(models.ItemFailed)
 				return
 			}
-			stats.MeanProcessBodyTimeAdd(time.Since(processStartTime))
 
+			stats.MeanProcessBodyTimeAdd(time.Since(processStartTime))
 			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
 
 			// If WARC writing is asynchronous, we don't need to wait for the feedback channel
