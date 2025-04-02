@@ -1,5 +1,7 @@
 github.com/CorentinB/warc v0.8.71 h1:b8RKjkoH0lkh9eU1RQirlh1Xh6dh9hs33WkDz6SLenM=
 github.com/CorentinB/warc v0.8.71/go.mod h1:1fAGpKVIWnIuC79VdcrX0TyF00CHFzZ2VOYF7g5ivzA=
+github.com/CorentinB/warc v0.8.75-0.20250402001404-98cb3873b94d h1:fc8dy+g4Mx/F6o0FWQedT0wpv2MDJ4V5cmb9lweXrtE=
+github.com/CorentinB/warc v0.8.75-0.20250402001404-98cb3873b94d/go.mod h1:1fAGpKVIWnIuC79VdcrX0TyF00CHFzZ2VOYF7g5ivzA=
 github.com/PuerkitoBio/goquery v1.9.3 h1:mpJr/ikUA9/GNJB/DBZcGeFDXUtosHRyRrwh7KGdTG0=
 github.com/PuerkitoBio/goquery v1.9.3/go.mod h1:1ndLHPdTz+DyQPICCWYlYQMPl0oXZj0G6D4LCYA6u4U=
 github.com/andybalholm/brotli v1.1.1 h1:PR2pgnyFznKEugtsUo0xLdDop5SKXd5Qf5ysW+7XdTA=
