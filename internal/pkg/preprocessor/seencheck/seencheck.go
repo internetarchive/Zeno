@@ -81,7 +81,6 @@ func SeencheckItem(item *models.Item) error {
 	}
 
 	for i := range items {
-
 		_, err = h.Write([]byte(items[i].GetURL().String()))
 		if err != nil {
 			return err
@@ -96,13 +95,24 @@ func SeencheckItem(item *models.Item) error {
 			URLType = "seed"
 		}
 
-		found, foundURLType := isSeen(hash)
-		if !found || (foundURLType == "asset" && URLType == "seed") {
-			seen(hash, string(URLType))
-		} else if found && foundURLType == URLType {
-			items[i].SetStatus(models.ItemSeen)
+		found, foundType := isSeen(hash)
+
+		if !found {
+			// First time seen: mark and process
+			seen(hash, URLType)
+			h.Reset()
+			continue
 		}
 
+		if foundType == "asset" && URLType == "seed" {
+			// Promotion: allow processing again as seed
+			seen(hash, "seed")
+			h.Reset()
+			continue
+		}
+
+		// All other cases: already seen, skip
+		items[i].SetStatus(models.ItemSeen)
 		h.Reset()
 	}
 
