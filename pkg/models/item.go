@@ -201,6 +201,11 @@ func (i *Item) GetDepth() int64 {
 
 func (i *Item) GetDepthWithoutRedirections() int64 {
 	if i.IsSeed() {
+		if i.status == ItemGotRedirected {
+			// If the topmost parent is a redirection, we need to -1
+			// to make sure the final depth result is 0.
+			return -1
+		}
 		return 0
 	}
 

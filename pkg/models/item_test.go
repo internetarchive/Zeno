@@ -726,6 +726,17 @@ func TestItem_GetDepthWithoutRedirections(t *testing.T) {
 			expected: 0,
 		},
 		{
+			name: "Top-level redirect item",
+			item: func() *Item {
+				root := createTestItem("root", nil)
+				root.status = ItemGotRedirected
+				child := createTestItem("child", root)
+				child.status = ItemArchived
+				return child
+			}(),
+			expected: 0,
+		},
+		{
 			name: "Child item without redirections",
 			item: func() *Item {
 				root := createTestItem("root", nil)
@@ -1106,10 +1117,10 @@ func TestNewItem(t *testing.T) {
 		expected *Item
 	}{
 		{
-			name:   "Create seed item",
-			id:     "testID",
-			url:    &URL{Raw: "http://example.com"},
-			via:    "seedViaTest",
+			name: "Create seed item",
+			id:   "testID",
+			url:  &URL{Raw: "http://example.com"},
+			via:  "seedViaTest",
 			expected: &Item{
 				id:      "testID",
 				url:     &URL{Raw: "http://example.com"},
@@ -1118,10 +1129,10 @@ func TestNewItem(t *testing.T) {
 			},
 		},
 		{
-			name:   "Create child item",
-			id:     "childID",
-			url:    &URL{Raw: "http://example.com/child"},
-			via:    "",
+			name: "Create child item",
+			id:   "childID",
+			url:  &URL{Raw: "http://example.com/child"},
+			via:  "",
 			expected: &Item{
 				id:      "childID",
 				url:     &URL{Raw: "http://example.com/child"},
@@ -1130,10 +1141,10 @@ func TestNewItem(t *testing.T) {
 			},
 		},
 		{
-			name:   "Create seed item with empty seedVia",
-			id:     "testID2",
-			url:    &URL{Raw: "http://example.com/2"},
-			via:    "",
+			name: "Create seed item with empty seedVia",
+			id:   "testID2",
+			url:  &URL{Raw: "http://example.com/2"},
+			via:  "",
 			expected: &Item{
 				id:      "testID2",
 				url:     &URL{Raw: "http://example.com/2"},
@@ -1142,10 +1153,10 @@ func TestNewItem(t *testing.T) {
 			},
 		},
 		{
-			name:   "Create child item with non-empty seedVia",
-			id:     "childID2",
-			url:    &URL{Raw: "http://example.com/child2"},
-			via:    "seedViaTest2",
+			name: "Create child item with non-empty seedVia",
+			id:   "childID2",
+			url:  &URL{Raw: "http://example.com/child2"},
+			via:  "seedViaTest2",
 			expected: &Item{
 				id:      "childID2",
 				url:     &URL{Raw: "http://example.com/child2"},
