@@ -16,10 +16,7 @@ func (tb *tokenBucket) adjustOnFailure(statusCode int) {
 	// For rate limiting errors, impose a penalty period.
 	case statusCode == 429 || statusCode == 403 || statusCode == 408 || statusCode == 425:
 		tb.failureCount++
-		penalty := time.Duration(float64(basePenaltyDuration) * math.Pow(2, float64(tb.failureCount-1)))
-		if penalty > maxPenaltyDuration {
-			penalty = maxPenaltyDuration
-		}
+		penalty := min(time.Duration(float64(basePenaltyDuration)*math.Pow(2, float64(tb.failureCount-1))), maxPenaltyDuration)
 		tb.penaltyUntil = now.Add(penalty)
 		// Optionally, clear tokens to prevent immediate further requests.
 		tb.tokens = 0
@@ -27,10 +24,7 @@ func (tb *tokenBucket) adjustOnFailure(statusCode int) {
 	// For server errors like 503 or 5xx, reduce the refill rate exponentially.
 	case statusCode >= 500:
 		tb.failureCount++
-		newRefillRate := tb.refillRate * math.Pow(0.5, float64(tb.failureCount))
-		if newRefillRate < minRefillRate {
-			newRefillRate = minRefillRate
-		}
+		newRefillRate := max(tb.refillRate*math.Pow(0.5, float64(tb.failureCount)), minRefillRate)
 		tb.refillRate = newRefillRate
 		tb.tokens = 0
 

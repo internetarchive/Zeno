@@ -273,7 +273,9 @@ func archive(workerID string, seed *models.Item) {
 				// TODO: 403 is too broad, we should retry only if/when we detect that some middleman or the server itself
 				// rate-limited us, like cloudflare with the cf-mitigate header etc.
 				if resp.StatusCode >= 500 || resp.StatusCode == 403 || resp.StatusCode == 408 || resp.StatusCode == 425 || resp.StatusCode == 429 {
-					globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
+					if globalBucketManager != nil {
+						globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
+					}
 					if retry < config.Get().MaxRetry {
 						logger.Warn("bad response code, retrying", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime.String())
 
@@ -294,7 +296,9 @@ func archive(workerID string, seed *models.Item) {
 						return
 					}
 				} else {
-					globalBucketManager.OnSuccess(req.URL.Host)
+					if globalBucketManager != nil {
+						globalBucketManager.OnSuccess(req.URL.Host)
+					}
 				}
 
 				// OK
