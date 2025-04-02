@@ -176,11 +176,36 @@ func preprocess(workerID string, seed *models.Item) {
 			}
 		}
 
-		// Verify if the URL isn't to be excluded
+		// Apply include filters first, if any are defined
+		if len(config.Get().IncludeHosts) > 0 || len(config.Get().IncludeString) > 0 {
+			if !utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().IncludeHosts) &&
+				!utils.StringContainsSliceElements(items[i].GetURL().String(), config.Get().IncludeString) {
+
+				logger.Debug("URL excluded (does not match include filters)",
+					"item_id", items[i].GetShortID(),
+					"seed_id", seed.GetShortID(),
+					"url", items[i].GetURL().String())
+
+				if items[i].IsChild() || items[i].IsRedirection() {
+					items[i].GetParent().RemoveChild(items[i])
+					continue
+				}
+
+				items[i].SetStatus(models.ItemCompleted)
+				return
+			}
+		}
+
+		// Apply exclusion filters even if it passed inclusion
 		if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) ||
 			utils.StringContainsSliceElements(items[i].GetURL().String(), config.Get().ExcludeString) ||
 			matchRegexExclusion(items[i]) {
-			logger.Debug("URL excluded", "item_id", items[i].GetShortID(), "seed_id", seed.GetShortID(), "url", items[i].GetURL().String())
+
+			logger.Debug("URL excluded (matches exclusion filters)",
+				"item_id", items[i].GetShortID(),
+				"seed_id", seed.GetShortID(),
+				"url", items[i].GetURL().String())
+
 			if items[i].IsChild() || items[i].IsRedirection() {
 				items[i].GetParent().RemoveChild(items[i])
 				continue
