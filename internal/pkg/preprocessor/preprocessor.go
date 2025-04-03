@@ -22,6 +22,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/log/dumper"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/npr"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
@@ -286,6 +287,8 @@ func preprocess(workerID string, seed *models.Item) {
 		switch {
 		case tiktok.IsTikTokURL(items[i].GetURL()):
 			tiktok.AddHeaders(req)
+		case npr.IsNPRURL(items[i].GetURL()):
+			npr.AddHeaders(req)
 		case reddit.IsRedditURL(items[i].GetURL()):
 			reddit.AddCookies(req)
 		case truthsocial.IsStatusAPIURL(items[i].GetURL()) ||
