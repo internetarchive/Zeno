@@ -285,6 +285,8 @@ func preprocess(workerID string, seed *models.Item) {
 		req.Header.Set("User-Agent", config.Get().UserAgent)
 
 		switch {
+		case tiktok.IsTikTokVideoURL(items[i].GetURL().String()):
+			tiktok.AddVideoHeaders(req)
 		case tiktok.IsTikTokURL(items[i].GetURL()):
 			tiktok.AddHeaders(req)
 		case npr.IsNPRURL(items[i].GetURL()):

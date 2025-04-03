@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"encoding/json"
+	"net/url"
 	"strings"
 
 	"github.com/ImVexed/fasturl"
@@ -44,7 +45,7 @@ func GetURLsFromJSON(decoder *json.Decoder) (assets, outlinks []string, err erro
 
 	// We only consider as assets the URLs in which we can find a file extension
 	for _, link := range links {
-		if hasFileExtension(link) {
+		if isHTTPLink(link) {
 			assets = append(assets, link)
 		} else {
 			outlinks = append(outlinks, link)
@@ -52,6 +53,26 @@ func GetURLsFromJSON(decoder *json.Decoder) (assets, outlinks []string, err erro
 	}
 
 	return assets, outlinks, nil
+}
+
+func isHTTPLink(s string) bool {
+	u, err := url.Parse(s)
+	if err != nil {
+		return false
+	}
+	// Ensure scheme is http or https.
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return false
+	}
+	// The host must be present.
+	if u.Host == "" {
+		return false
+	}
+	// The path must be non-empty and not just "/".
+	if u.Path == "" || u.Path == "/" {
+		return false
+	}
+	return true
 }
 
 func isLikelyJSON(str string) bool {
