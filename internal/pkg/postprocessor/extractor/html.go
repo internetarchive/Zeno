@@ -279,7 +279,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 			scriptType, exists := i.Attr("type")
 			if exists {
-				if scriptType == "application/json" {
+				if strings.Contains(scriptType, "json") {
 					URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(i.Text())))
 					if err != nil {
 						// TODO: maybe add back when https://github.com/internetarchive/Zeno/issues/147 is fixed
