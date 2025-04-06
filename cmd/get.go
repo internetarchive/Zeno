@@ -33,10 +33,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("max-concurrent-assets", 1, "Max number of concurrent assets to fetch PER worker. E.g. if you have 100 workers and this setting at 8, Zeno could do up to 800 concurrent requests at any time.")
 	getCmd.PersistentFlags().Int("max-hops", 0, "Maximum number of hops to execute.")
 	getCmd.PersistentFlags().String("cookies", "", "File containing cookies that will be used for requests.")
-	getCmd.PersistentFlags().Bool("keep-cookies", false, "Keep a global cookie jar")
-	getCmd.PersistentFlags().Bool("headless", false, "Use headless browsers instead of standard GET requests.")
 	getCmd.PersistentFlags().Bool("disable-seencheck", false, "Disable the (remote or local) seencheck that avoid re-crawling of URIs.")
-	getCmd.PersistentFlags().Bool("json", false, "Output logs in JSON")
 	getCmd.PersistentFlags().Bool("api", false, "Enable API")
 	getCmd.PersistentFlags().Int("api-port", 9090, "Port to listen on for the API.")
 	getCmd.PersistentFlags().Int("max-redirect", 20, "Specifies the maximum number of redirections to follow for a resource.")
@@ -54,12 +51,9 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().StringSlice("exclude-string", []string{}, "Discard any (discovered) URLs containing this string.")
 	getCmd.PersistentFlags().StringSlice("exclusion-file", []string{}, "File containing regex to apply on URLs for exclusion. If the path start with http or https, it will be treated as a URL of a file to download.")
 	getCmd.PersistentFlags().Int("min-space-required", 20, "Minimum space required in GB to continue the crawl.")
-	getCmd.PersistentFlags().Bool("handover", false, "Use the handover mechanism that dispatch URLs via a buffer before enqueuing on disk. (UNSTABLE)")
-	getCmd.PersistentFlags().Bool("ultrasafe-queue", false, "Don't use committed batch writes to the WAL and instead fsync() after each write.")
 
 	// Network flags
 	getCmd.PersistentFlags().String("proxy", "", "Proxy to use when requesting pages.")
-	getCmd.PersistentFlags().StringSlice("bypass-proxy", []string{}, "Domains that should not be proxied.")
 	getCmd.PersistentFlags().Bool("random-local-ip", false, "Use random local IP for requests. (will be ignored if a proxy is set)")
 	getCmd.PersistentFlags().Bool("disable-ipv4", false, "Disable IPv4 for requests.")
 	getCmd.PersistentFlags().Bool("disable-ipv6", false, "Disable IPv6 for requests.")
@@ -95,17 +89,6 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("log-file-prefix", "ZENO", "Prefix to use when naming the log files. Default is : `ZENO`, without '-'")
 	getCmd.PersistentFlags().String("log-file-level", "info", "Log level for the log file.")
 	getCmd.PersistentFlags().String("log-file-rotation", "1h", "Log file rotation period. Default is : `1h`. Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'.")
-	getCmd.PersistentFlags().String("log-es-urls", "", "(Not implemented) Comma-separated ElasticSearch URL to use for indexing crawl logs.")
-	getCmd.PersistentFlags().String("log-es-user", "", "(Not implemented) ElasticSearch username to use for indexing crawl logs.")
-	getCmd.PersistentFlags().String("log-es-password", "", "(Not implemented) ElasticSearch password to use for indexing crawl logs.")
-	getCmd.PersistentFlags().String("log-es-index-prefix", "zeno", "(Not implemented) ElasticSearch index prefix to use for indexing crawl logs. Default is : `zeno`, without `-`")
-	getCmd.PersistentFlags().String("log-es-rotation", "1d", "(Not implemented) ElasticSearch index rotation period. Default is : `1d`. Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'.")
-	// log-level is defined in the root command
-	// no-stdout-log is defined in the root command
-
-	// Dependencies flags
-	getCmd.PersistentFlags().Bool("no-ytdlp", false, "Disable youtube-dlp usage for video extraction.")
-	getCmd.PersistentFlags().String("ytdlp-path", "", "Path to youtube-dlp binary.")
 
 	// Profiling flags
 	getCmd.PersistentFlags().String("pyroscope-address", "", "Pyroscope server address. Setting this flag will enable profiling.")

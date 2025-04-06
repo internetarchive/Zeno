@@ -19,14 +19,13 @@ var (
 )
 
 type logConfig struct {
-	FileConfig          *logfileConfig
-	StdoutEnabled       bool
-	StdoutLevel         slog.Level
-	StderrEnabled       bool
-	StderrLevel         slog.Level
-	ElasticsearchConfig *elasticsearchConfig
-	LogTUI              bool
-	TUILogLevel         slog.Level
+	FileConfig    *logfileConfig
+	StdoutEnabled bool
+	StdoutLevel   slog.Level
+	StderrEnabled bool
+	StderrLevel   slog.Level
+	LogTUI        bool
+	TUILogLevel   slog.Level
 }
 
 type logfileConfig struct {
@@ -37,38 +36,22 @@ type logfileConfig struct {
 	RotatePeriod time.Duration
 }
 
-type elasticsearchConfig struct {
-	Addresses    string
-	Username     string
-	Password     string
-	IndexPrefix  string
-	Level        slog.Level
-	Rotate       bool
-	RotatePeriod time.Duration
-}
-
 // makeConfig returns the default configuration
 func makeConfig() *logConfig {
 	if config.Get() == nil {
 		return &logConfig{
-			FileConfig:          nil,
-			StdoutEnabled:       true,
-			StdoutLevel:         slog.LevelInfo,
-			StderrEnabled:       true,
-			StderrLevel:         slog.LevelError,
-			ElasticsearchConfig: nil,
-			LogTUI:              false,
+			FileConfig:    nil,
+			StdoutEnabled: true,
+			StdoutLevel:   slog.LevelInfo,
+			StderrEnabled: true,
+			StderrLevel:   slog.LevelError,
+			LogTUI:        false,
 		}
 	}
 
 	fileRotatePeriod, err := time.ParseDuration(config.Get().LogFileRotation)
 	if err != nil && config.Get().LogFileRotation != "" {
 		fileRotatePeriod = 1 * time.Hour
-	}
-
-	elasticRotatePeriod, err := time.ParseDuration(config.Get().ElasticSearchRotation)
-	if err != nil && config.Get().ElasticSearchRotation != "" {
-		elasticRotatePeriod = 24 * time.Hour
 	}
 
 	var logFileOutputDir string
@@ -89,30 +72,14 @@ func makeConfig() *logConfig {
 		logFileConfig = nil
 	}
 
-	var elasticConfig *elasticsearchConfig
-	if config.Get().ElasticSearchURLs != "" {
-		elasticConfig = &elasticsearchConfig{
-			Addresses:    config.Get().ElasticSearchURLs,
-			Username:     config.Get().ElasticSearchUsername,
-			Password:     config.Get().ElasticSearchPassword,
-			IndexPrefix:  config.Get().ElasticSearchIndexPrefix,
-			Level:        parseLevel(config.Get().ElasticSearchLogLevel),
-			Rotate:       config.Get().ElasticSearchRotation != "",
-			RotatePeriod: elasticRotatePeriod,
-		}
-	} else {
-		elasticConfig = nil
-	}
-
 	return &logConfig{
-		FileConfig:          logFileConfig,
-		ElasticsearchConfig: elasticConfig,
-		StdoutEnabled:       !config.Get().NoStdoutLogging,
-		StdoutLevel:         parseLevel(config.Get().StdoutLogLevel),
-		StderrEnabled:       !config.Get().NoStderrLogging,
-		StderrLevel:         slog.LevelError,
-		LogTUI:              config.Get().TUI,
-		TUILogLevel:         parseLevel(config.Get().TUILogLevel),
+		FileConfig:    logFileConfig,
+		StdoutEnabled: !config.Get().NoStdoutLogging,
+		StdoutLevel:   parseLevel(config.Get().StdoutLogLevel),
+		StderrEnabled: !config.Get().NoStderrLogging,
+		StderrLevel:   slog.LevelError,
+		LogTUI:        config.Get().TUI,
+		TUILogLevel:   parseLevel(config.Get().TUILogLevel),
 	}
 }
 

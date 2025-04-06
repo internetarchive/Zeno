@@ -67,9 +67,6 @@ type Config struct {
 	CrawlTimeLimit         int      `mapstructure:"crawl-time-limit"`
 	CrawlMaxTimeLimit      int      `mapstructure:"crawl-max-time-limit"`
 	MinSpaceRequired       int      `mapstructure:"min-space-required"`
-	KeepCookies            bool     `mapstructure:"keep-cookies"`
-	Headless               bool     `mapstructure:"headless"`
-	JSON                   bool     `mapstructure:"json"`
 	DomainsCrawl           []string `mapstructure:"domains-crawl"`
 	CaptureAlternatePages  bool     `mapstructure:"capture-alternate-pages"`
 	DisableLocalDedupe     bool     `mapstructure:"disable-local-dedupe"`
@@ -77,16 +74,13 @@ type Config struct {
 	DisableAssetsCapture   bool     `mapstructure:"disable-assets-capture"`
 	UseHQ                  bool     // Special field to check if HQ is enabled depending on the command called
 	HQRateLimitingSendBack bool     `mapstructure:"hq-rate-limiting-send-back"`
-	NoBatchWriteWAL        bool     `mapstructure:"ultrasafe-queue"`
-	Handover               bool     `mapstructure:"handover"`
 
 	// Network
-	Proxy              string   `mapstructure:"proxy"`
-	DomainsBypassProxy []string `mapstructure:"bypass-proxy"`
-	RandomLocalIP      bool     `mapstructure:"random-local-ip"`
-	DisableIPv4        bool     `mapstructure:"disable-ipv4"`
-	DisableIPv6        bool     `mapstructure:"disable-ipv6"`
-	IPv6AnyIP          bool     `mapstructure:"ipv6-anyip"`
+	Proxy         string `mapstructure:"proxy"`
+	RandomLocalIP bool   `mapstructure:"random-local-ip"`
+	DisableIPv4   bool   `mapstructure:"disable-ipv4"`
+	DisableIPv6   bool   `mapstructure:"disable-ipv6"`
+	IPv6AnyIP     bool   `mapstructure:"ipv6-anyip"`
 
 	// Rate limiting
 	DisableRateLimit          bool          `mapstructure:"disable-rate-limit"`
@@ -94,27 +88,17 @@ type Config struct {
 	RateLimitRefillRate       float64       `mapstructure:"rate-limit-refill-rate"`
 	RateLimitCleanupFrequency time.Duration `mapstructure:"rate-limit-cleanup-frequency"`
 
-	// Dependencies
-	NoYTDLP   bool   `mapstructure:"no-ytdlp"`
-	YTDLPPath string `mapstructure:"ytdlp-path"`
-
 	// Logging
-	NoStdoutLogging          bool   `mapstructure:"no-stdout-log"`
-	NoStderrLogging          bool   `mapstructure:"no-stderr-log"`
-	NoFileLogging            bool   `mapstructure:"no-log-file"`
-	StdoutLogLevel           string `mapstructure:"log-level"`
-	TUI                      bool   `mapstructure:"tui"`
-	TUILogLevel              string `mapstructure:"tui-log-level"`
-	LogFileLevel             string `mapstructure:"log-file-level"`
-	LogFileOutputDir         string `mapstructure:"log-file-output-dir"`
-	LogFilePrefix            string `mapstructure:"log-file-prefix"`
-	LogFileRotation          string `mapstructure:"log-file-rotation"`
-	ElasticSearchURLs        string `mapstructure:"log-es-urls"`
-	ElasticSearchUsername    string `mapstructure:"log-es-user"`
-	ElasticSearchPassword    string `mapstructure:"log-es-password"`
-	ElasticSearchLogLevel    string `mapstructure:"log-es-log-level"`
-	ElasticSearchIndexPrefix string `mapstructure:"log-es-index-prefix"`
-	ElasticSearchRotation    string `mapstructure:"log-es-rotation"`
+	NoStdoutLogging  bool   `mapstructure:"no-stdout-log"`
+	NoStderrLogging  bool   `mapstructure:"no-stderr-log"`
+	NoFileLogging    bool   `mapstructure:"no-log-file"`
+	StdoutLogLevel   string `mapstructure:"log-level"`
+	TUI              bool   `mapstructure:"tui"`
+	TUILogLevel      string `mapstructure:"tui-log-level"`
+	LogFileLevel     string `mapstructure:"log-file-level"`
+	LogFileOutputDir string `mapstructure:"log-file-output-dir"`
+	LogFilePrefix    string `mapstructure:"log-file-prefix"`
+	LogFileRotation  string `mapstructure:"log-file-rotation"`
 
 	// Profiling
 	PyroscopeAddress string `mapstructure:"pyroscope-address"`

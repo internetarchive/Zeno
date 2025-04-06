@@ -47,8 +47,6 @@ func Run() error {
 	rootCmd.PersistentFlags().Bool("consul-config", false, "Use this flag to enable consul config support")
 	rootCmd.PersistentFlags().String("consul-address", "", "The consul address used to retreive config")
 	rootCmd.PersistentFlags().String("consul-path", "", "The full Consul K/V path where the config is stored")
-	rootCmd.PersistentFlags().String("consul-user", "", "The Consul user used to retreive config")
-	rootCmd.PersistentFlags().String("consul-password", "", "The Consul password used to retreive config")
 
 	// Add get subcommands
 	getCmd := getCMDs()

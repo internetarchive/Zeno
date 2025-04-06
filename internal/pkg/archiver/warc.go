@@ -66,9 +66,7 @@ func startWARCWriter() {
 	}
 
 	// Even if a proxied client has been set, we want to create an non-proxied one
-	// if DomainsBypassProxy is used. The domains specified in this slice won't go
-	// through the proxied client, but through a "normal" client
-	if config.Get().Proxy == "" || len(config.Get().DomainsBypassProxy) > 0 {
+	if config.Get().Proxy == "" {
 		globalArchiver.Client, err = warc.NewWARCWritingHTTPClient(WARCSettings)
 		if err != nil {
 			logger.Error("unable to init WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
