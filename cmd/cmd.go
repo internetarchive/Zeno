@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/internetarchive/Zeno/config"
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +27,7 @@ Authors:
 			return fmt.Errorf("error initializing config: %s", err)
 		}
 
-		cfg = config.GetConfig()
+		cfg = config.Get()
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -43,11 +43,10 @@ func Run() error {
 	rootCmd.PersistentFlags().String("log-level", "info", "stdout log level (debug, info, warn, error)")
 	rootCmd.PersistentFlags().String("config-file", "", "config file (default is $HOME/zeno-config.yaml)")
 	rootCmd.PersistentFlags().Bool("no-stdout-log", false, "disable stdout logging.")
+	rootCmd.PersistentFlags().Bool("no-stderr-log", false, "disable stderr logging.")
 	rootCmd.PersistentFlags().Bool("consul-config", false, "Use this flag to enable consul config support")
 	rootCmd.PersistentFlags().String("consul-address", "", "The consul address used to retreive config")
 	rootCmd.PersistentFlags().String("consul-path", "", "The full Consul K/V path where the config is stored")
-	rootCmd.PersistentFlags().String("consul-user", "", "The Consul user used to retreive config")
-	rootCmd.PersistentFlags().String("consul-password", "", "The Consul password used to retreive config")
 
 	// Add get subcommands
 	getCmd := getCMDs()
