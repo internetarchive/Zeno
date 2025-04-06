@@ -17,6 +17,9 @@ func startWARCWriter() {
 	rotatorSettings.WarcSize = float64(config.Get().WARCSize)
 	rotatorSettings.OutputDirectory = path.Join(config.Get().JobPath, "warcs")
 
+	if config.Get().WARCOperator != "" {
+		rotatorSettings.WarcinfoContent.Set("operator", config.Get().WARCOperator)
+	}
 	// Configure WARC dedupe settings
 	dedupeOptions := warc.DedupeOptions{LocalDedupe: !config.Get().DisableLocalDedupe, SizeThreshold: config.Get().WARCDedupeSize}
 	if config.Get().CDXDedupeServer != "" {
