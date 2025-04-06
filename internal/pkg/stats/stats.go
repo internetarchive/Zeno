@@ -51,7 +51,7 @@ func Init() error {
 			MeanWaitOnFeedbackTime: &mean{},
 		}
 
-		if config.Get().Prometheus {
+		if config.Get() != nil && config.Get().Prometheus {
 			globalPromStats = newPrometheusStats()
 
 			// Get the hostname via env or via command
