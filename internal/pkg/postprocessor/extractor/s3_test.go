@@ -32,7 +32,8 @@ func TestIsS3(t *testing.T) {
 
 			URLObj.SetResponse(&http.Response{
 				Header: http.Header{
-					"Server": []string{tt.server},
+					"Server":       []string{tt.server},
+					"Content-Type": []string{"text/xml"},
 				},
 			})
 

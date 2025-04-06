@@ -129,11 +129,12 @@ func TestXML(t *testing.T) {
 			name: "XML RSS",
 			body: rss2_0XML,
 			expected: func() []string {
-				v := make([]string, 217)
-				v[2] = "https://blog.archive.org/wp-content/uploads/2023/03/ia-logo-sq-150x150.png"             // image::url
-				v[14] = "https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3.png" // <a> href in description::CDATA
-				v[185] = "https://archive.org/details/vanishing-culture-report"
+				v := make([]string, 213)
+				v[1] = "https://blog.archive.org/wp-content/uploads/2023/03/ia-logo-sq-150x150.png"             // image::url
+				v[13] = "https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3.png" // <a> href in description::CDATA
+				v[181] = "https://archive.org/details/vanishing-culture-report"
 				return v
+				
 			}(),
 			hasError: false,
 		},
