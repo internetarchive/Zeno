@@ -49,7 +49,6 @@ type Config struct {
 	HQKey                  string   `mapstructure:"hq-key"`
 	HQSecret               string   `mapstructure:"hq-secret"`
 	HQProject              string   `mapstructure:"hq-project"`
-	HQStrategy             string   `mapstructure:"hq-strategy"`
 	HQBatchSize            int      `mapstructure:"hq-batch-size"`
 	HQBatchConcurrency     int      `mapstructure:"hq-batch-concurrency"`
 	DisableHTMLTag         []string `mapstructure:"disable-html-tag"`

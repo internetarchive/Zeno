@@ -197,7 +197,7 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *g
 func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 	// Fetch URLs from CrawlHQ with optional concurrency
 	if config.Get().HQBatchConcurrency == 1 {
-		return globalHQ.client.Get(context.TODO(), batchSize, config.Get().HQStrategy)
+		return globalHQ.client.Get(context.TODO(), batchSize)
 	}
 
 	var wg sync.WaitGroup
@@ -211,7 +211,7 @@ func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			URLs, err := globalHQ.client.Get(context.TODO(), subBatchSize, config.Get().HQStrategy)
+			URLs, err := globalHQ.client.Get(context.TODO(), subBatchSize)
 			if err != nil {
 				logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.getURLs")
 				return
