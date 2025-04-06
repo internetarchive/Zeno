@@ -7,7 +7,6 @@ Zeno is a web crawler designed to operate wide crawls or to simply archive one w
 Zeno's key concepts are: portability, performance, simplicity.
 With an emphasis on performance.
 
-It has been originally developed by [Corentin Barreau](https://github.com/CorentinB) at the [Internet Archive](https://archive.org).
 It heavily relies on the [warc](https://github.com/CorentinB/warc) module for traffic recording into [WARC](https://iipc.github.io/warc-specifications/) files.
 
 The name Zeno comes from Zenodotus (Ζηνόδοτος), a Greek grammarian, literary critic, Homeric scholar,
@@ -31,6 +30,12 @@ Zeno is highly configurable with many parameters that can be customized. To see 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request & open issues!
+
+Zeno is being developed and maintained by [Corentin Barreau](https://github.com/CorentinB) at the [Internet Archive](https://archive.org). The project has evolved into what it is today thanks to the invaluable contributions from the community. While we can't list everyone, special thanks to:
+
+- [Jake LaFountain](https://github.com/NGTmeaty), Wayback Machine Software Engineer at the [Internet Archive](https://archive.org).
+- [Thomas Foubert](https://github.com/equals215), Wayback Machine Platform Engineer at the [Internet Archive](https://archive.org).
+- [yzqzss](https://github.com/yzqzss), Lead Developer of the [Save The Web Project](https://github.com/saveweb).
 
 ## License
 
