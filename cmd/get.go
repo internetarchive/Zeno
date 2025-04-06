@@ -79,6 +79,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("warc-dedupe-size", 1024, "Minimum size to deduplicate WARC records with revisit records.")
 	getCmd.PersistentFlags().String("warc-cdx-cookie", "", "Pass custom cookie during CDX requests. Example: 'cdx_auth_token=test_value'")
 	getCmd.PersistentFlags().Int("warc-size", 1024, "Size of the WARC files in MB.")
+	getCmd.PersistentFlags().IntSlice("warc-discard-status", []int{429}, "HTTP status codes to discard from WARC files. By default, 429 is always discarded.")
 	getCmd.PersistentFlags().Bool("async-warc-write", false, "Write WARC records asynchronously. EXPERIMENTAL - may cause OOMs, lost data, or other unknown/unpredicted issues. No support will be provided for this feature.")
 
 	// Logging flags

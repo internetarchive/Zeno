@@ -37,7 +37,7 @@ func startWARCWriter() {
 		RotatorSettings:     rotatorSettings,
 		DedupeOptions:       dedupeOptions,
 		DecompressBody:      true,
-		SkipHTTPStatusCodes: []int{429},
+		SkipHTTPStatusCodes: config.Get().WARCDiscardStatus,
 		VerifyCerts:         config.Get().CertValidation,
 		TempDir:             config.Get().WARCTempDir,
 		FullOnDisk:          config.Get().WARCOnDisk,

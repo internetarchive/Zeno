@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 )
@@ -23,10 +24,14 @@ func checkThreshold(total, free uint64) error {
 	)
 	var threshold float64
 
-	if total <= 256*GB {
-		threshold = float64(50*GB) * (float64(total) / float64(256*GB))
+	if config.Get().MinSpaceRequired > 0 {
+		threshold = float64(config.Get().MinSpaceRequired) * float64(GB)
 	} else {
-		threshold = 50 * GB
+		if total <= 256*GB {
+			threshold = float64(50*GB) * (float64(total) / float64(256*GB))
+		} else {
+			threshold = 50 * GB
+		}
 	}
 
 	// Compare free space with threshold

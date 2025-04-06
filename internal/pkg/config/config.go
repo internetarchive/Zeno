@@ -43,6 +43,7 @@ type Config struct {
 	WARCQueueSize          int      `mapstructure:"warc-queue-size"`
 	WARCDedupeSize         int      `mapstructure:"warc-dedupe-size"`
 	WARCWriteAsync         bool     `mapstructure:"async-warc-write"`
+	WARCDiscardStatus      []int    `mapstructure:"warc-discard-status"`
 	CDXDedupeServer        string   `mapstructure:"warc-cdx-dedupe-server"`
 	CDXCookie              string   `mapstructure:"warc-cdx-cookie"`
 	HQAddress              string   `mapstructure:"hq-address"`
