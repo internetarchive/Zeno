@@ -261,11 +261,13 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			}
 
 			scriptType, exists := i.Attr("type")
-			if exists && scriptType == "application/json" {
-				URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(i.Text())))
-				if err == nil {
-					for _, url := range URLsFromJSON {
-						addRawAsset(url)
+			if exists {
+				if strings.Contains(scriptType, "json") {
+					URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(i.Text())))
+					if err == nil {
+						for _, url := range URLsFromJSON {
+							addRawAsset(url)
+						}
 					}
 				}
 			}
