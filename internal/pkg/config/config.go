@@ -67,7 +67,7 @@ type Config struct {
 	HTTPReadDeadline       int      `mapstructure:"http-read-deadline"`
 	CrawlTimeLimit         int      `mapstructure:"crawl-time-limit"`
 	CrawlMaxTimeLimit      int      `mapstructure:"crawl-max-time-limit"`
-	MinSpaceRequired       int      `mapstructure:"min-space-required"`
+	MinSpaceRequired       float64  `mapstructure:"min-space-required"`
 	DomainsCrawl           []string `mapstructure:"domains-crawl"`
 	CaptureAlternatePages  bool     `mapstructure:"capture-alternate-pages"`
 	DisableLocalDedupe     bool     `mapstructure:"disable-local-dedupe"`

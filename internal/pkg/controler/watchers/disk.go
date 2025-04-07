@@ -18,14 +18,14 @@ var (
 )
 
 // Implements f(x)={ if total <= 256GB then threshold = 50GB * (total / 256GB) else threshold = 50GB }
-func checkThreshold(total, free uint64) error {
+func checkThreshold(total, free uint64, minSpaceRequired float64) error {
 	const (
 		GB = 1024 * 1024 * 1024
 	)
 	var threshold float64
 
-	if config.Get().MinSpaceRequired > 0 {
-		threshold = float64(config.Get().MinSpaceRequired) * float64(GB)
+	if minSpaceRequired > 0 {
+		threshold = float64(minSpaceRequired) * float64(GB)
 	} else {
 		if total <= 256*GB {
 			threshold = float64(50*GB) * (float64(total) / float64(256*GB))
@@ -51,7 +51,7 @@ func CheckDiskUsage(path string) error {
 	total := stat.Blocks * uint64(stat.Bsize)
 	free := stat.Bavail * uint64(stat.Bsize)
 
-	return checkThreshold(total, free)
+	return checkThreshold(total, free, config.Get().MinSpaceRequired)
 }
 
 // WatchDiskSpace watches the disk space and pauses the pipeline if it's low
