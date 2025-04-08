@@ -336,15 +336,26 @@ func (c *Crawl) Capture(item *queue.Item) error {
 
 	// If it was a YouTube watch page, we potentially want to run it through the YouTube extractor
 	// TODO: support other watch page URLs
-	if !c.NoYTDLP && youtube.IsYouTubeWatchPage(item.URL) {
-		streamURLs, metaURLs, rawJSON, HTTPHeaders, err := ytdlp.Parse(resp.Body)
+	if !c.NoYTDLP && (youtube.IsYouTubeWatchPage(item.URL) || vimeo.IsVimeoWatchPage(item.URL) || dailymotion.IsDailymotionWatchPage(item.URL)) {
+		var streamURLs, metaURLs []*url.URL
+		var rawJSON string
+		var HTTPHeaders http.Header
+
+		if youtube.IsYouTubeWatchPage(item.URL) {
+			streamURLs, metaURLs, rawJSON, HTTPHeaders, err = ytdlp.Parse(resp.Body)
+		} else if vimeo.IsVimeoWatchPage(item.URL) {
+			streamURLs, metaURLs, rawJSON, HTTPHeaders, err = vimeo.Parse(resp.Body)
+		} else if dailymotion.IsDailymotionWatchPage(item.URL) {
+			streamURLs, metaURLs, rawJSON, HTTPHeaders, err = dailymotion.Parse(resp.Body)
+		}
+
 		if err != nil {
-			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing YouTube watch page")
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while parsing watch page")
 			return err
 		}
 		resp.Body.Close()
 
-		// Capture the 2 stream URLs for the video
+		// Capture the stream URLs
 		var streamErrs []error
 		var streamWg sync.WaitGroup
 

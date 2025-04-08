@@ -78,10 +78,16 @@ func extractLinksFromText(source string) (links []*url.URL) {
 	return links
 }
 
-// TODO: re-implement host limitation
-// func (c *Crawl) shouldPause(host string) bool {
-// 	return c.Frontier.GetActiveHostCount(host) >= c.MaxConcurrentRequestsPerDomain
-// }
+// Re-implement host limitation
+func (c *Crawl) shouldPause(host string) bool {
+	activeHostCount := c.Frontier.GetActiveHostCount(host)
+	if activeHostCount >= c.MaxConcurrentRequestsPerDomain {
+		logrus.Warnf("Pausing crawl for host %s: active requests (%d) exceed limit (%d)", 
+			host, activeHostCount, c.MaxConcurrentRequestsPerDomain)
+		return true
+	}
+	return false
+}
 
 func isStatusCodeRedirect(statusCode int) bool {
 	if statusCode == 300 || statusCode == 301 ||

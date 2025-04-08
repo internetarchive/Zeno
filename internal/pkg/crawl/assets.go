@@ -70,16 +70,14 @@ func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie, headers m
 }
 
 func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*http.Cookie, headers map[string]string) {
-	// TODO: implement a counter for the number of assets
-	// currently being processed
-	// c.Frontier.QueueCount.Incr(int64(len(assets)))
+	// Implement a counter for the number of assets currently being processed
+	c.Frontier.QueueCount.Incr(int64(len(assets)))
 	swg := sizedwaitgroup.New(int(c.MaxConcurrentAssets))
 	excluded := false
 
 	for _, asset := range assets {
-		// TODO: implement a counter for the number of assets
-		// currently being processed
-		// c.Frontier.QueueCount.Incr(-1)
+		// Decrement the counter when an asset is skipped
+		defer c.Frontier.QueueCount.Incr(-1)
 
 		// Just making sure we do not over archive by archiving the original URL
 		if utils.URLToString(item.URL) == utils.URLToString(asset) {
@@ -104,6 +102,7 @@ func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*ht
 
 		go func(asset *url.URL, swg *sizedwaitgroup.SizedWaitGroup) {
 			defer swg.Done()
+			defer c.Frontier.QueueCount.Incr(-1) // Decrement the counter after processing
 
 			// Create the asset's item
 			newAsset, err := queue.NewItem(asset, item.URL, "asset", item.Hop, "", false)
@@ -127,7 +126,7 @@ func (c *Crawl) captureAssets(item *queue.Item, assets []*url.URL, cookies []*ht
 				return
 			}
 
-			// If we made it to this point, it means that the asset have been crawled successfully,
+			// If we made it to this point, it means that the asset has been crawled successfully,
 			// then we can increment the locallyCrawled variable
 			atomic.AddUint64(&item.LocallyCrawled, 1)
 		}(asset, &swg)
