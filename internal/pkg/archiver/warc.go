@@ -1,8 +1,10 @@
 package archiver
 
 import (
+	"net/http"
 	"os"
 	"path"
+	"slices"
 	"time"
 
 	"github.com/CorentinB/warc"
@@ -32,19 +34,28 @@ func startWARCWriter() {
 		}
 	}
 
+	// Build DiscardHook function
+	discardHook := func(resp *http.Response) bool {
+		if len(config.Get().WARCDiscardStatus) > 0 && slices.Contains(config.Get().WARCDiscardStatus, resp.StatusCode) {
+			return true
+		}
+
+		return false
+	}
+
 	// Configure WARC settings
 	WARCSettings := warc.HTTPClientSettings{
-		RotatorSettings:     rotatorSettings,
-		DedupeOptions:       dedupeOptions,
-		DecompressBody:      true,
-		SkipHTTPStatusCodes: config.Get().WARCDiscardStatus,
-		VerifyCerts:         config.Get().CertValidation,
-		TempDir:             config.Get().WARCTempDir,
-		FullOnDisk:          config.Get().WARCOnDisk,
-		RandomLocalIP:       config.Get().RandomLocalIP,
-		DisableIPv4:         config.Get().DisableIPv4,
-		DisableIPv6:         config.Get().DisableIPv6,
-		IPv6AnyIP:           config.Get().IPv6AnyIP,
+		RotatorSettings: rotatorSettings,
+		DedupeOptions:   dedupeOptions,
+		DecompressBody:  true,
+		DiscardHook:     discardHook,
+		VerifyCerts:     config.Get().CertValidation,
+		TempDir:         config.Get().WARCTempDir,
+		FullOnDisk:      config.Get().WARCOnDisk,
+		RandomLocalIP:   config.Get().RandomLocalIP,
+		DisableIPv4:     config.Get().DisableIPv4,
+		DisableIPv6:     config.Get().DisableIPv6,
+		IPv6AnyIP:       config.Get().IPv6AnyIP,
 	}
 
 	// Instantiate WARC client
