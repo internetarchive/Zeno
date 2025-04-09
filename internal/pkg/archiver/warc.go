@@ -36,6 +36,12 @@ func startWARCWriter() {
 
 	// Build DiscardHook function
 	discardHook := func(resp *http.Response) bool {
+		// Cloudflare challenge
+		if resp.StatusCode == 403 && resp.Header.Get("cf-mitigated") == "challenge" {
+			return true
+		}
+
+		// --warc-discard-status
 		if len(config.Get().WARCDiscardStatus) > 0 && slices.Contains(config.Get().WARCDiscardStatus, resp.StatusCode) {
 			return true
 		}
