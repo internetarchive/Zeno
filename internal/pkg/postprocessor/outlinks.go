@@ -47,6 +47,12 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			logger.Error("unable to extract outlinks from S3", "extractor", "S3", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
 			return outlinks, err
 		}
+	case extractor.IsEPUB(item.GetURL()):
+		outlinks, err = extractor.EPUBOutlinks(item)
+		if err != nil {
+			logger.Error("unable to extract outlinks from EPUB", "err", err.Error(), "item", item.GetShortID())
+			return outlinks, err
+		}
 	case extractor.IsSitemapXML(item.GetURL()):
 		var assets []*models.URL
 
