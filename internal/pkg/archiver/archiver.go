@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -271,22 +272,30 @@ func archive(workerID string, seed *models.Item) {
 				}
 
 				discarded := false
-				reason := ""
+				discardReason := ""
 				if globalArchiver.Client.DiscardHook == nil {
-					reason = reasoncode.HookNotSet
+					discardReason = reasoncode.HookNotSet
 				} else {
-					discarded, reason = globalArchiver.Client.DiscardHook(resp)
+					discarded, discardReason = globalArchiver.Client.DiscardHook(resp)
 				}
 
 				// Retries on:
 				// 	- 5XX, 408, 425 and 429
 				// 	- Discarded challenge pages (Cloudflare, Akamai, etc.)
-				if resp.StatusCode >= 500 || resp.StatusCode == 408 || resp.StatusCode == 425 || resp.StatusCode == 429 || (discarded && reasoncode.IsChallengePage(reason)) {
+				isBadStatusCode := resp.StatusCode >= 500 || slices.Contains([]int{408, 425, 429}, resp.StatusCode)
+				isDiscardedChallengePage := discarded && reasoncode.IsChallengePage(discardReason)
+				if isBadStatusCode || isDiscardedChallengePage {
 					if globalBucketManager != nil {
 						globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
 					}
+
+					retryReason := "bad response code"
+					if isDiscardedChallengePage {
+						retryReason = discardReason
+					}
+
 					if retry < config.Get().MaxRetry {
-						logger.Warn("bad response code, retrying", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime.String(), "status_code", resp.StatusCode, "url", req.URL.String())
+						logger.Warn("retrying", "why_retry", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime.String(), "status_code", resp.StatusCode, "url", req.URL.String())
 
 						// Consume body, needed to avoid leaking RAM & storage
 						io.Copy(io.Discard, resp.Body)
@@ -295,7 +304,7 @@ func archive(workerID string, seed *models.Item) {
 						time.Sleep(retrySleepTime)
 						continue
 					} else {
-						logger.Error("bad response code, retries exceeded", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL.String())
+						logger.Error("retries exceeded", "why_retry", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL.String())
 						item.SetStatus(models.ItemFailed)
 
 						// Consume body, needed to avoid leaking RAM & storage
