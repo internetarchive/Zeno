@@ -1,13 +1,12 @@
 package archiver
 
 import (
-	"net/http"
 	"os"
 	"path"
-	"slices"
 	"time"
 
 	"github.com/CorentinB/warc"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 )
 
@@ -34,27 +33,17 @@ func startWARCWriter() {
 		}
 	}
 
-	// Build DiscardHook function
-	discardHook := func(resp *http.Response) bool {
-		// Cloudflare challenge
-		if resp.StatusCode == 403 && resp.Header.Get("cf-mitigated") == "challenge" {
-			return true
-		}
-
-		// --warc-discard-status
-		if len(config.Get().WARCDiscardStatus) > 0 && slices.Contains(config.Get().WARCDiscardStatus, resp.StatusCode) {
-			return true
-		}
-
-		return false
-	}
+	// Configure WARC discard hook
+	discardBuilder := discard.NewBuilder()
+	discardBuilder.AddDefaultHooks()
+	discardHooksChain := discardBuilder.Build()
 
 	// Configure WARC settings
 	WARCSettings := warc.HTTPClientSettings{
 		RotatorSettings: rotatorSettings,
 		DedupeOptions:   dedupeOptions,
 		DecompressBody:  true,
-		DiscardHook:     discardHook,
+		DiscardHook:     discardHooksChain,
 		VerifyCerts:     config.Get().CertValidation,
 		TempDir:         config.Get().WARCTempDir,
 		FullOnDisk:      config.Get().WARCOnDisk,

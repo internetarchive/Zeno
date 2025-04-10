@@ -12,6 +12,7 @@ import (
 	"github.com/CorentinB/warc"
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
@@ -269,11 +270,18 @@ func archive(workerID string, seed *models.Item) {
 					return
 				}
 
-				discarded := globalArchiver.Client.DiscardHook != nil && globalArchiver.Client.DiscardHook(resp)
+				discarded := false
+				reason := ""
+				if globalArchiver.Client.DiscardHook == nil {
+					reason = reasoncode.HookNotSet
+				} else {
+					discarded, reason = globalArchiver.Client.DiscardHook(resp)
+				}
 
-				// Retries on 5XX, or 403, 408, 425 and 429
-				// NOTE: 403 is too broad, we retry only if the response is discarded by the discard hook
-				if resp.StatusCode >= 500 || (resp.StatusCode == 403 && discarded) || resp.StatusCode == 408 || resp.StatusCode == 425 || resp.StatusCode == 429 {
+				// Retries on:
+				// 	- 5XX, 408, 425 and 429
+				// 	- Discarded challenge pages (Cloudflare, Akamai, etc.)
+				if resp.StatusCode >= 500 || resp.StatusCode == 408 || resp.StatusCode == 425 || resp.StatusCode == 429 || (discarded && reasoncode.IsChallengePage(reason)) {
 					if globalBucketManager != nil {
 						globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
 					}
