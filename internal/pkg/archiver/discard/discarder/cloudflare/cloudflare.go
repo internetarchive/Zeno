@@ -1,4 +1,4 @@
-package dc_cloudflare
+package cloudflare
 
 import "net/http"
 

@@ -1,4 +1,4 @@
-package dc_common
+package warcdiscardstatus
 
 import (
 	"net/http"

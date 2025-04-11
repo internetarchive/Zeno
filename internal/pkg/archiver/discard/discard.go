@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/CorentinB/warc"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/dc_cloudflare"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/dc_common"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/cloudflare"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/warcdiscardstatus"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
 )
 
@@ -24,8 +24,8 @@ func (b *Builder) AddHook(hook warc.DiscardHook) *Builder {
 }
 
 func (b *Builder) AddDefaultHooks() *Builder {
-	b.AddHook(dc_cloudflare.ChallengePageHook)
-	b.AddHook(dc_common.WARCDiscardStatusHook)
+	b.AddHook(cloudflare.ChallengePageHook)
+	b.AddHook(warcdiscardstatus.WARCDiscardStatusHook)
 	return b
 }
 
