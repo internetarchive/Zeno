@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/CorentinB/warc"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 )
 
@@ -32,19 +33,24 @@ func startWARCWriter() {
 		}
 	}
 
+	// Configure WARC discard hook
+	discardBuilder := discard.NewBuilder()
+	discardBuilder.AddDefaultHooks()
+	discardHooksChain := discardBuilder.Build()
+
 	// Configure WARC settings
 	WARCSettings := warc.HTTPClientSettings{
-		RotatorSettings:     rotatorSettings,
-		DedupeOptions:       dedupeOptions,
-		DecompressBody:      true,
-		SkipHTTPStatusCodes: config.Get().WARCDiscardStatus,
-		VerifyCerts:         config.Get().CertValidation,
-		TempDir:             config.Get().WARCTempDir,
-		FullOnDisk:          config.Get().WARCOnDisk,
-		RandomLocalIP:       config.Get().RandomLocalIP,
-		DisableIPv4:         config.Get().DisableIPv4,
-		DisableIPv6:         config.Get().DisableIPv6,
-		IPv6AnyIP:           config.Get().IPv6AnyIP,
+		RotatorSettings: rotatorSettings,
+		DedupeOptions:   dedupeOptions,
+		DecompressBody:  true,
+		DiscardHook:     discardHooksChain,
+		VerifyCerts:     config.Get().CertValidation,
+		TempDir:         config.Get().WARCTempDir,
+		FullOnDisk:      config.Get().WARCOnDisk,
+		RandomLocalIP:   config.Get().RandomLocalIP,
+		DisableIPv4:     config.Get().DisableIPv4,
+		DisableIPv6:     config.Get().DisableIPv6,
+		IPv6AnyIP:       config.Get().IPv6AnyIP,
 	}
 
 	// Instantiate WARC client
