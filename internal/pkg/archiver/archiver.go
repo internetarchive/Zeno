@@ -252,12 +252,14 @@ func archive(workerID string, seed *models.Item) {
 					req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
 				}
 
+				var client *warc.CustomHTTPClient
 				if config.Get().Proxy != "" {
-					resp, err = globalArchiver.ClientWithProxy.Do(req)
+					client = globalArchiver.ClientWithProxy
 				} else {
-					resp, err = globalArchiver.Client.Do(req)
+					client = globalArchiver.Client
 				}
 
+				resp, err = client.Do(req)
 				if err != nil {
 					if retry < config.Get().MaxRetry {
 						logger.Warn("retrying request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime.String())
@@ -273,10 +275,10 @@ func archive(workerID string, seed *models.Item) {
 
 				discarded := false
 				discardReason := ""
-				if globalArchiver.Client.DiscardHook == nil {
+				if client.DiscardHook == nil {
 					discardReason = reasoncode.HookNotSet
 				} else {
-					discarded, discardReason = globalArchiver.Client.DiscardHook(resp)
+					discarded, discardReason = client.DiscardHook(resp)
 				}
 
 				// Retries on:
