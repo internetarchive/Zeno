@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/ImVexed/fasturl"
+	
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -67,16 +67,22 @@ func isLikelyJSON(str string) bool {
 func findURLs(data interface{}, links *[]string) {
 	switch v := data.(type) {
 	case string:
-		if isValidURL(v) {
-			*links = append(*links, v)
-		} else if isLikelyJSON(v) {
-			// handle JSON in JSON
+		isLikelyNestedJSON := isLikelyJSON(v)
+		successfullyParsedNestedJSON := false
+
+		if isLikelyNestedJSON {
 			var jsonstringdata interface{}
 			err := json.Unmarshal([]byte(v), &jsonstringdata)
 			if err == nil {
+				successfullyParsedNestedJSON = true
 				findURLs(jsonstringdata, links)
 			}
 		}
+
+		if v != "" && !successfullyParsedNestedJSON {
+			*links = append(*links, v)
+		}
+
 	case []interface{}:
 		for _, element := range v {
 			findURLs(element, links)
@@ -86,9 +92,4 @@ func findURLs(data interface{}, links *[]string) {
 			findURLs(value, links)
 		}
 	}
-}
-
-func isValidURL(str string) bool {
-	u, err := fasturl.ParseURL(str)
-	return err == nil && u.Host != ""
 }
