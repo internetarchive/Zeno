@@ -9,7 +9,7 @@ require (
 	github.com/ada-url/goada v0.0.0-20250104020233-00cbf4dc9da1
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/dustin/go-humanize v1.0.1
-	github.com/gabriel-vasile/mimetype v1.4.8
+	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.2
