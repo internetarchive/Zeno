@@ -127,6 +127,8 @@ func TestEPUBAssets(t *testing.T) {
 		"OEBPS/assets/video.mp4",
 		"OEBPS/assets/font.woff2",
 		"OEBPS/styles.css",
+		"OEBPS/scripts/script.js",
+		"https://api.example.com/data",
 	}
 
 	if len(assets) != len(expectedAssets) {

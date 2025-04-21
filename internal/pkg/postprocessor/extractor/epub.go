@@ -5,17 +5,13 @@ import (
 	"encoding/xml"
 	"io"
 	"path/filepath"
-	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
+
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
-
-var epubStyleURLRegex = regexp.MustCompile(`url\(['"]?([^'"]+)['"]?\)`)
 
 type EPUBContainerXML struct {
 	XMLName  xml.Name `xml:"container"`
@@ -51,7 +47,6 @@ func IsEPUB(URL *models.URL) bool {
 		strings.Contains(URL.GetMIMEType().String(), "epub")
 }
 
-// EPUBOutlinks extracts outlinks from an EPUB file
 func EPUBOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	defer item.GetURL().RewindBody()
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -99,6 +94,8 @@ func EPUBOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		}
 	}
 
+	extractedOutlinksMap := make(map[string]bool)
+
 	for _, htmlPath := range htmlFiles {
 		htmlFile, err := reader.Open(htmlPath)
 		if err != nil {
@@ -113,23 +110,24 @@ func EPUBOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			continue
 		}
 
-		if !slices.Contains(config.Get().DisableHTMLTag, "a") {
-			doc.Find("a").Each(func(index int, selection *goquery.Selection) {
-				if href, exists := selection.Attr("href"); exists {
-					if strings.HasPrefix(href, "http") {
-						outlinks = append(outlinks, &models.URL{
-							Raw: href,
-						})
-					}
-				}
-			})
-		}
+		rawLinks := ExtractOutlinksFromDocument(doc, "", nil)
+
 		htmlFile.Close()
+
+		for _, rawLink := range rawLinks {
+			if strings.HasPrefix(rawLink, "http://") || strings.HasPrefix(rawLink, "https://") {
+				if !extractedOutlinksMap[rawLink] {
+					outlinks = append(outlinks, &models.URL{
+						Raw: rawLink,
+					})
+					extractedOutlinksMap[rawLink] = true
+				}
+			}
+		}
 	}
 	return outlinks, nil
 }
 
-// EPUBAssets extracts assets from an EPUB file
 func EPUBAssets(item *models.Item) (assets []*models.URL, err error) {
 	defer item.GetURL().RewindBody()
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -169,7 +167,7 @@ func EPUBAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	basePath := filepath.Dir(contentPath)
-	extractedAssets := make(map[string]bool)
+	extractedAssetsMap := make(map[string]bool)
 
 	for _, manifest := range content.Manifests {
 		if strings.Contains(manifest.MediaType, "html") || strings.Contains(manifest.MediaType, "xhtml") {
@@ -181,13 +179,13 @@ func EPUBAssets(item *models.Item) (assets []*models.URL, err error) {
 			strings.Contains(manifest.MediaType, "font") ||
 			strings.Contains(manifest.MediaType, "css") {
 
-			assetPath := ensureBasePath(basePath, manifest.Href)
+			assetPath := filepath.Join(basePath, manifest.Href)
 
-			if !extractedAssets[assetPath] {
+			if !extractedAssetsMap[assetPath] {
 				assets = append(assets, &models.URL{
 					Raw: assetPath,
 				})
-				extractedAssets[assetPath] = true
+				extractedAssetsMap[assetPath] = true
 			}
 		}
 	}
@@ -207,138 +205,45 @@ func EPUBAssets(item *models.Item) (assets []*models.URL, err error) {
 				continue
 			}
 
-			if !slices.Contains(config.Get().DisableHTMLTag, "img") {
-				doc.Find("img").Each(func(index int, selection *goquery.Selection) {
-					if src, exists := selection.Attr("src"); exists {
-						var assetURL string
-						if strings.HasPrefix(src, "http") {
-							assetURL = src
-						} else {
-							resolvedPath := resolveEPUBPath(htmlPath, src)
-							assetURL = ensureBasePath(basePath, resolvedPath)
-						}
+			currentHTMLBaseDirInEPUB := filepath.Dir(htmlPath)
 
-						if !extractedAssets[assetURL] {
-							assets = append(assets, &models.URL{
-								Raw: assetURL,
-							})
-							extractedAssets[assetURL] = true
-						}
-					}
-				})
-			}
+			rawAssetLinks := ExtractAssetsFromDocument(doc, "", nil)
 
-			var mediaSelectors []string
-			if !slices.Contains(config.Get().DisableHTMLTag, "audio") {
-				mediaSelectors = append(mediaSelectors, "audio[src]")
-			}
-			if !slices.Contains(config.Get().DisableHTMLTag, "video") {
-				mediaSelectors = append(mediaSelectors, "video[src]")
-			}
-			if len(mediaSelectors) > 0 {
-				doc.Find(strings.Join(mediaSelectors, ", ")).Each(func(index int, selection *goquery.Selection) {
-					if src, exists := selection.Attr("src"); exists {
-						var assetURL string
-						if strings.HasPrefix(src, "http") {
-							assetURL = src
-						} else {
-							resolvedPath := resolveEPUBPath(htmlPath, src)
-							assetURL = ensureBasePath(basePath, resolvedPath)
-						}
-						if !extractedAssets[assetURL] {
-							assets = append(assets, &models.URL{
-								Raw: assetURL,
-							})
-							extractedAssets[assetURL] = true
-						}
-					}
-				})
-			}
-
-			if !slices.Contains(config.Get().DisableHTMLTag, "link") {
-				doc.Find("link[rel='stylesheet']").Each(func(index int, selection *goquery.Selection) {
-					if href, exists := selection.Attr("href"); exists {
-						var assetURL string
-						if strings.HasPrefix(href, "http") {
-							assetURL = href
-						} else {
-							resolvedPath := resolveEPUBPath(htmlPath, href)
-							assetURL = ensureBasePath(basePath, resolvedPath)
-						}
-						if !extractedAssets[assetURL] {
-							assets = append(assets, &models.URL{
-								Raw: assetURL,
-							})
-							extractedAssets[assetURL] = true
-						}
-
-						if !strings.HasPrefix(href, "http") {
-							cssFilePath := strings.TrimPrefix(assetURL, basePath+"/")
-							cssFile, err := reader.Open(filepath.Join(basePath, cssFilePath))
-							if err == nil {
-								defer cssFile.Close()
-								cssContent, err := io.ReadAll(cssFile)
-								if err == nil {
-									cssText := string(cssContent)
-									cssURLs := epubStyleURLRegex.FindAllStringSubmatch(cssText, -1)
-									for _, match := range cssURLs {
-										if len(match) > 1 {
-											url := match[1]
-											var cssAssetURL string
-											if strings.HasPrefix(url, "http") {
-												cssAssetURL = url
-											} else {
-												cssBaseDir := filepath.Dir(cssFilePath)
-												resolvedPath := resolveEPUBPath(filepath.Join(basePath, cssBaseDir), url)
-												cssAssetURL = ensureBasePath(basePath, resolvedPath)
-											}
-											if !extractedAssets[cssAssetURL] {
-												assets = append(assets, &models.URL{
-													Raw: cssAssetURL,
-												})
-												extractedAssets[cssAssetURL] = true
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				})
-			}
 			htmlFile.Close()
+
+			for _, rawLink := range rawAssetLinks {
+				var assetURL string
+				if strings.HasPrefix(rawLink, "http://") || strings.HasPrefix(rawLink, "https://") {
+					assetURL = rawLink
+				} else {
+					assetURL = ensureBasePath(resolveEPUBPath(currentHTMLBaseDirInEPUB, rawLink))
+				}
+
+				if !extractedAssetsMap[assetURL] {
+					assets = append(assets, &models.URL{
+						Raw: assetURL,
+					})
+					extractedAssetsMap[assetURL] = true
+				}
+			}
 		}
 	}
+
 	return assets, nil
 }
 
-// resolveEPUBPath resolves a relative path in an EPUB file
-func resolveEPUBPath(basePath, relativePath string) string {
-	if strings.HasPrefix(relativePath, "../") || strings.HasPrefix(relativePath, "./") {
-		baseDir := filepath.Dir(basePath)
-		return filepath.Clean(filepath.Join(baseDir, relativePath))
-	}
-	return relativePath
+func resolveEPUBPath(htmlBaseDir, relativePath string) string {
+	return filepath.Clean(filepath.Join(htmlBaseDir, relativePath))
 }
 
-// ensureBasePath ensures that the asset path includes the basePath prefix
-func ensureBasePath(basePath, assetPath string) string {
-	cleanBasePath := filepath.Clean(basePath)
+func ensureBasePath(assetPath string) string {
 	cleanAssetPath := filepath.Clean(assetPath)
 
-	testBasePath := cleanBasePath + string(filepath.Separator)
-	if strings.HasPrefix(cleanAssetPath, testBasePath) {
+	if strings.HasPrefix(cleanAssetPath, "http://") || strings.HasPrefix(cleanAssetPath, "https://") {
 		return cleanAssetPath
 	}
 
-	basePathName := filepath.Base(cleanBasePath)
-	testBasePathName := basePathName + string(filepath.Separator)
-	
-	if strings.HasPrefix(cleanAssetPath, testBasePathName) {
-		return filepath.Join(cleanBasePath, strings.TrimPrefix(cleanAssetPath, testBasePathName))
-	}
-
-	return filepath.Join(cleanBasePath, cleanAssetPath)
+	return filepath.Clean(assetPath)
 }
 
 // helper function using file.SEEK() to determine file size while ensuring the

@@ -1,22 +1,13 @@
 package extractor
 
 import (
-	"encoding/json"
-	"regexp"
-	"slices"
-	"strconv"
+	"fmt"
+	"net/url"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
-)
-
-var (
-	backgroundImageRegex = regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
-	urlRegex             = regexp.MustCompile(`(?m)url\((.*?)\)`)
 )
 
 func IsHTML(URL *models.URL) bool {
@@ -30,10 +21,20 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		"component": "postprocessor.extractor.HTMLOutlinks",
 	})
 
-	var rawOutlinks []string
+	itemURL := item.GetURL()
+	if itemURL == nil {
+		logger.Error("item has no URL object, cannot extract outlinks", "item_id", item.GetShortID())
+		return nil, fmt.Errorf("item has no URL object")
+	}
+
+	itemParsedURL := itemURL.GetParsed()
+	if itemParsedURL == nil {
+		logger.Error("item's URL object has no parsed URL, cannot extract outlinks", "item_id", item.GetShortID(), "item_raw_url", itemURL.Raw)
+		return nil, fmt.Errorf("item URL's parsed form is nil, cannot extract outlinks")
+	}
 
 	// Retrieve (potentially creates it) the document from the body
-	document, err := item.GetURL().GetDocument()
+	document, err := itemURL.GetDocument()
 	if err != nil {
 		return nil, err
 	}
@@ -41,347 +42,161 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	// Extract the base tag if it exists
 	extractBaseTag(item, document)
 
-	// Match <a> tags with href, data-href, data-src, data-srcset, data-lazy-src, data-srcset, src, srcset
-	// Extract potential URLs from <a> tags using common attributes
-	if !slices.Contains(config.Get().DisableHTMLTag, "a") {
-		attrs := []string{
-			"href",
-			"data-href",
-			"data-url",
-			"data-link",
-			"data-redirect-url",
-			"ping",
-			"onclick",
-			"router-link",
-			"to",
-		}
+	rawOutlinks := ExtractOutlinksFromDocument(document, item.GetBase(), config.Get())
 
-		document.Find("a").Each(func(index int, sel *goquery.Selection) {
-			for _, key := range attrs {
-				val, exists := sel.Attr(key)
-				if !exists || val == "" {
-					continue
-				}
-
-				if key == "onclick" {
-					// Attempt to extract URL from JS like window.location = '...';
-					re := regexp.MustCompile(`window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]`)
-					if matches := re.FindStringSubmatch(val); len(matches) > 1 {
-						rawOutlinks = append(rawOutlinks, matches[1])
-					}
-					continue
-				}
-
-				rawOutlinks = append(rawOutlinks, val)
-			}
-		})
-	}
+	extractedResolvedURLsMap := make(map[string]bool)
 
 	for _, rawOutlink := range rawOutlinks {
-		resolvedURL, err := resolveURL(rawOutlink, item)
+		resolvedURLString, resolveErr := resolveRawURLString(rawOutlink, item, logger)
+
+		if resolveErr != nil {
+			logger.Error("critical error resolving raw outlink", "raw_url", rawOutlink, "error", resolveErr, "item", item.GetShortID())
+			continue
+		}
+
+		if resolvedURLString == "" {
+			continue
+		}
+
+		itemMainURLString := itemParsedURL.String()
+
+		if resolvedURLString == item.GetBase() || resolvedURLString == itemMainURLString {
+			logger.Debug("discarding outlink because it is the same as the base URL or current URL after resolution", "resolved_url", resolvedURLString, "item", item.GetShortID())
+			continue
+		}
+
+		if extractedResolvedURLsMap[resolvedURLString] {
+			logger.Debug("discarding duplicate resolved outlink", "resolved_url", resolvedURLString, "item", item.GetShortID())
+			continue
+		}
+		extractedResolvedURLsMap[resolvedURLString] = true
+
+		resolvedURLParsed, parseErr := url.Parse(resolvedURLString)
+		if parseErr != nil {
+			logger.Error("failed to parse resolved outlink URL string for scheme check", "resolved_url", resolvedURLString, "error", parseErr, "item", item.GetShortID())
+			continue
+		}
+
+		if !resolvedURLParsed.IsAbs() || (resolvedURLParsed.Scheme != "http" && resolvedURLParsed.Scheme != "https") {
+			logger.Debug("discarding non-http/s or non-absolute outlink", "resolved_url", resolvedURLString, "item", item.GetShortID())
+			continue
+		}
+
+
+		newOutlinkURL := &models.URL{
+			Raw: resolvedURLString, 
+		}
+
+		err = newOutlinkURL.Parse()
 		if err != nil {
-			logger.Debug("unable to resolve URL", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
-		} else if resolvedURL != "" {
-			outlinks = append(outlinks, &models.URL{
-				Raw: resolvedURL,
-			})
+			logger.Error("failed to parse resolved outlink string for models.URL object", "resolved_url", resolvedURLString, "error", err, "item", item.GetShortID())
 			continue
 		}
 
-		// Discard URLs that are the same as the base URL or the current URL
-		if rawOutlink == item.GetBase() || rawOutlink == item.GetURL().String() {
-			logger.Debug("discarding outlink because it is the same as the base URL or current URL", "url", rawOutlink, "item", item.GetShortID())
-			continue
-		}
-
-		outlinks = append(outlinks, &models.URL{
-			Raw: rawOutlink,
-		})
+		outlinks = append(outlinks, newOutlinkURL)
 	}
 
 	return outlinks, nil
 }
 
+func resolveRawURLString(rawURL string, item *models.Item, logger *log.FieldedLogger) (string, error) {
+	if item == nil {
+		return "", fmt.Errorf("cannot resolve URL, item is nil")
+	}
+	itemURL := item.GetURL()
+	if itemURL == nil {
+		return "", fmt.Errorf("cannot resolve URL, item URL is nil")
+	}
+
+	itemParsedURL := itemURL.GetParsed()
+	if itemParsedURL == nil {
+		return "", fmt.Errorf("item URL's parsed form is unexpectedly nil in helper")
+	}
+
+	var baseURL *url.URL
+	itemBase := item.GetBase()
+	if itemBase != "" {
+		parsedBaseFromTag, parseErr := url.Parse(itemBase)
+		if parseErr != nil {
+			logger.Warn("invalid base URL string from item's GetBase(), falling back to item's main URL for resolution", "base", itemBase, "item_url", itemURL.Raw, "item_id", item.GetShortID())
+			baseURL = itemParsedURL
+		} else {
+			baseURL = parsedBaseFromTag
+		}
+	} else {
+		baseURL = itemParsedURL
+	}
+
+	parsedRawURL, err := url.Parse(rawURL)
+	if err != nil {
+		logger.Debug("invalid raw URL string found, cannot parse for resolution", "raw_url", rawURL, "error", err, "item_id", item.GetShortID())
+		return "", nil
+	}
+
+	resolvedURL := baseURL.ResolveReference(parsedRawURL)
+
+	return resolvedURL.String(), nil
+}
+
+
 func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
+	defer item.GetURL().RewindBody()
+
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.extractor.HTMLAssets",
 	})
 
-	var rawAssets []string
+	itemURL := item.GetURL()
+	if itemURL == nil {
+		logger.Error("item has no URL object, cannot extract assets", "item_id", item.GetShortID())
+		return nil, fmt.Errorf("item has no URL object")
+	}
 
-	// Retrieve (potentially creates it) the document from the body
-	document, err := item.GetURL().GetDocument()
+	itemParsedURL := itemURL.GetParsed()
+	if itemParsedURL == nil {
+		logger.Error("item's URL object has no parsed URL, cannot extract assets", "item_id", item.GetShortID(), "item_raw_url", itemURL.Raw)
+		return nil, fmt.Errorf("item URL's parsed form is nil, cannot extract assets")
+	}
+
+	document, err := itemURL.GetDocument()
 	if err != nil {
+		logger.Debug("unable to get document from item URL", "error", err, "item", item.GetShortID())
 		return nil, err
 	}
 
 	// Extract the base tag if it exists
 	extractBaseTag(item, document)
-
-	// Get assets from JSON payloads in data-item values
-	// Check all elements style attributes for background-image & also data-preview
-	document.Find("[data-item], [style], [data-preview]").Each(func(index int, i *goquery.Selection) {
-		dataItem, exists := i.Attr("data-item")
-		if exists {
-			URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(dataItem)))
-			if err != nil {
-				logger.Debug("unable to extract URLs from JSON in data-item attribute", "err", err, "url", item.GetURL().String(), "item", item.GetShortID())
-			} else {
-				rawAssets = append(rawAssets, URLsFromJSON...)
-			}
-		}
-
-		style, exists := i.Attr("style")
-		if exists {
-			matches := backgroundImageRegex.FindAllStringSubmatch(style, -1)
-
-			for match := range matches {
-				if len(matches[match]) > 0 {
-					matchFound := matches[match][1]
-
-					// Don't extract CSS elements that aren't URLs
-					if strings.Contains(matchFound, "%") ||
-						strings.HasPrefix(matchFound, "0.") ||
-						strings.HasPrefix(matchFound, "--font") ||
-						strings.HasPrefix(matchFound, "--size") ||
-						strings.HasPrefix(matchFound, "--color") ||
-						strings.HasPrefix(matchFound, "--shreddit") ||
-						strings.HasPrefix(matchFound, "100vh") {
-						continue
-					}
-
-					rawAssets = append(rawAssets, matchFound)
-				}
-			}
-		}
-
-		dataPreview, exists := i.Attr("data-preview")
-		if exists {
-			if strings.HasPrefix(dataPreview, "http") {
-				rawAssets = append(rawAssets, dataPreview)
-			}
-		}
-	})
-
-	// Try to find assets in <a> tags.. this is a bit funky
-	if !slices.Contains(config.Get().DisableHTMLTag, "a") {
-		var validAssetPath = []string{
-			"static/",
-			"assets/",
-			"asset/",
-			"images/",
-			"image/",
-			"img/",
-		}
-
-		var validAssetAttributes = []string{
-			"href",
-			"data-href",
-			"data-src",
-			"data-srcset",
-			"data-lazy-src",
-			"data-srcset",
-			"src",
-			"srcset",
-		}
-
-		document.Find("a").Each(func(index int, i *goquery.Selection) {
-			for _, attr := range validAssetAttributes {
-				link, exists := i.Attr(attr)
-				if exists {
-					if utils.StringContainsSliceElements(link, validAssetPath) {
-						rawAssets = append(rawAssets, link)
-					}
-				}
-			}
-		})
-	}
-
-	// Extract assets on the page (images, scripts, videos..)
-	if !slices.Contains(config.Get().DisableHTMLTag, "img") {
-		document.Find("img").Each(func(index int, i *goquery.Selection) {
-			link, exists := i.Attr("src")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-
-			link, exists = i.Attr("data-src")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-
-			link, exists = i.Attr("data-lazy-src")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-
-			link, exists = i.Attr("data-srcset")
-			if exists {
-				links := strings.Split(link, ",")
-				for _, link := range links {
-					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
-				}
-			}
-
-			link, exists = i.Attr("srcset")
-			if exists {
-				links := strings.Split(link, ",")
-				for _, link := range links {
-					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
-				}
-			}
-		})
-	}
-
-	var targetElements = []string{}
-	if !slices.Contains(config.Get().DisableHTMLTag, "video") {
-		targetElements = append(targetElements, "video[src]")
-	}
-	if !slices.Contains(config.Get().DisableHTMLTag, "audio") {
-		targetElements = append(targetElements, "audio[src]")
-	}
-	if len(targetElements) > 0 {
-		document.Find(strings.Join(targetElements, ", ")).Each(func(index int, i *goquery.Selection) {
-			if link, exists := i.Attr("src"); exists {
-				rawAssets = append(rawAssets, link)
-			}
-		})
-	}
-
-	if !slices.Contains(config.Get().DisableHTMLTag, "style") {
-		document.Find("style").Each(func(index int, i *goquery.Selection) {
-			matches := urlRegex.FindAllStringSubmatch(i.Text(), -1)
-			for match := range matches {
-				matchReplacement := matches[match][1]
-				matchReplacement = strings.Replace(matchReplacement, "'", "", -1)
-				matchReplacement = strings.Replace(matchReplacement, "\"", "", -1)
-
-				// If the URL already has http (or https), we don't need add anything to it.
-				if !strings.Contains(matchReplacement, "http") {
-					matchReplacement = strings.Replace(matchReplacement, "//", "http://", -1)
-				}
-
-				if strings.HasPrefix(matchReplacement, "#wp-") {
-					continue
-				}
-
-				rawAssets = append(rawAssets, matchReplacement)
-			}
-		})
-	}
-
-	if !slices.Contains(config.Get().DisableHTMLTag, "script") {
-		document.Find("script").Each(func(index int, i *goquery.Selection) {
-			link, exists := i.Attr("src")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-
-			scriptType, exists := i.Attr("type")
-			if exists {
-				if strings.Contains(scriptType, "json") {
-					URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(i.Text())))
-					if err != nil {
-						// TODO: maybe add back when https://github.com/internetarchive/Zeno/issues/147 is fixed
-						// c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
-					} else {
-						rawAssets = append(rawAssets, URLsFromJSON...)
-					}
-				}
-			}
-
-			// Apply regex on the script's HTML to extract potential assets
-			outerHTML, err := goquery.OuterHtml(i)
-			if err != nil {
-				logger.Debug("unable to extract outer HTML from script tag", "err", err, "url", item.GetURL().String(), "item", item.GetShortID())
-			} else {
-				scriptLinks := utils.DedupeStrings(LinkRegexStrict.FindAllString(outerHTML, -1))
-				for _, scriptLink := range scriptLinks {
-					if strings.HasPrefix(scriptLink, "http") {
-						// Escape URLs when unicode runes are present in the extracted URLs
-						scriptLink, err := strconv.Unquote(`"` + scriptLink + `"`)
-						if err != nil {
-							logger.Debug("unable to escape URL from JSON in script tag", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
-							continue
-						}
-						rawAssets = append(rawAssets, scriptLink)
-					}
-				}
-			}
-
-			// Some <script> embed variable initialisation, we can strip the variable part and just scrape JSON
-			if !strings.HasPrefix(i.Text(), "{") {
-				assetsFromScriptContent, err := extractFromScriptContent(i.Text())
-				if err != nil {
-					logger.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
-				} else {
-					rawAssets = append(rawAssets, assetsFromScriptContent...)
-				}
-			}
-		})
-	}
-
-	if !slices.Contains(config.Get().DisableHTMLTag, "link") {
-		document.Find("link").Each(func(index int, i *goquery.Selection) {
-			if !config.Get().CaptureAlternatePages {
-				relation, exists := i.Attr("rel")
-				if exists && relation == "alternate" {
-					return
-				}
-			}
-
-			link, exists := i.Attr("href")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-		})
-	}
-
-	if !slices.Contains(config.Get().DisableHTMLTag, "meta") {
-		document.Find("meta").Each(func(index int, i *goquery.Selection) {
-			link, exists := i.Attr("href")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-			link, exists = i.Attr("content")
-			if exists {
-				if strings.Contains(link, "http") {
-					rawAssets = append(rawAssets, link)
-				}
-			}
-		})
-	}
-
-	if !slices.Contains(config.Get().DisableHTMLTag, "source") {
-		document.Find("source").Each(func(index int, i *goquery.Selection) {
-			link, exists := i.Attr("src")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-
-			link, exists = i.Attr("srcset")
-			if exists {
-				links := strings.Split(link, ",")
-				for _, link := range links {
-					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
-				}
-			}
-
-			link, exists = i.Attr("data-srcset")
-			if exists {
-				links := strings.Split(link, ",")
-				for _, link := range links {
-					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
-				}
-			}
-		})
-	}
+	rawAssets := ExtractAssetsFromDocument(document, item.GetBase(), config.Get())
+	extractedResolvedURLsMap := make(map[string]bool)
 
 	for _, rawAsset := range rawAssets {
-		assets = append(assets, &models.URL{
-			Raw: rawAsset,
-		})
+		resolvedAssetString, resolveErr := resolveRawURLString(rawAsset, item, logger)
 
+		if resolveErr != nil {
+			logger.Error("critical error resolving raw asset link", "raw_url", rawAsset, "error", resolveErr, "item", item.GetShortID())
+			continue
+		}
+
+		if resolvedAssetString == "" {
+			continue
+		}
+
+		if extractedResolvedURLsMap[resolvedAssetString] {
+			logger.Debug("discarding duplicate resolved asset", "resolved_url", resolvedAssetString, "item", item.GetShortID())
+			continue
+		}
+		extractedResolvedURLsMap[resolvedAssetString] = true
+
+		newAssetURL := &models.URL{
+			Raw: resolvedAssetString, 
+		}
+		err = newAssetURL.Parse()
+		if err != nil {
+			logger.Error("failed to parse resolved asset string for models.URL object", "resolved_url", resolvedAssetString, "error", err, "item", item.GetShortID())
+			continue
+		}
+
+		assets = append(assets, newAssetURL)
 	}
 
 	return assets, nil
