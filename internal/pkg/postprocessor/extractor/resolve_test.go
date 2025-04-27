@@ -117,7 +117,6 @@ func TestResolveURL(t *testing.T) {
 			item := models.NewItem("test", &models.URL{
 				Raw: tt.parentURL,
 			}, "")
-			item.GetURL().Parse()
 
 			var doc *goquery.Document
 			if tt.base != "" {
