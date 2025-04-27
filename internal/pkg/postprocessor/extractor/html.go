@@ -89,7 +89,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		}
 
 		// Discard URLs that are the same as the base URL or the current URL
-		if rawOutlink == item.GetBase() || rawOutlink == item.GetURL().String() {
+		if (item.GetBase() != nil && rawOutlink == item.GetBase().String()) || rawOutlink == item.GetURL().String() {
 			logger.Debug("discarding outlink because it is the same as the base URL or current URL", "url", rawOutlink, "item", item.GetShortID())
 			continue
 		}
@@ -378,6 +378,16 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	for _, rawAsset := range rawAssets {
+		resolvedURL, err := resolveURL(rawAsset, item)
+		if err != nil {
+			logger.Debug("unable to resolve URL", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
+		} else if resolvedURL != "" {
+			assets = append(assets, &models.URL{
+				Raw: resolvedURL,
+			})
+			continue
+		}
+
 		assets = append(assets, &models.URL{
 			Raw: rawAsset,
 		})

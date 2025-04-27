@@ -1,20 +1,23 @@
 package extractor
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
 func TestResolveURL(t *testing.T) {
 	tests := []struct {
-		name      string
-		URL       string
-		parentURL string
-		base      string
-		want      string
-		expectErr bool
+		name          string
+		URL           string
+		parentURL     string
+		base          string
+		want          string
+		wantBaseUnset bool
+		expectErr     bool
 	}{
 		{
 			name:      "Absolute URL passed",
@@ -65,11 +68,22 @@ func TestResolveURL(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:      "Invalid base URL",
-			URL:       "page.html",
-			parentURL: "https://example.com/index.html",
-			base:      "https://example.com/%zz",
-			expectErr: true,
+			name:          "Invalid base URL with bad URL escape",
+			URL:           "page.html",
+			parentURL:     "https://example.com/index.html",
+			base:          "https://example.com/%zz/",
+			want:          "https://example.com/page.html",
+			wantBaseUnset: true,
+			expectErr:     false,
+		},
+		{
+			name:          "Invalid base URL with disallowed data scheme",
+			URL:           "page.html",
+			parentURL:     "https://example.com/index.html",
+			base:          "data://abcdef/",
+			want:          "https://example.com/page.html",
+			wantBaseUnset: true,
+			expectErr:     false,
 		},
 		{
 			name:      "Empty URL should return base",
@@ -103,14 +117,29 @@ func TestResolveURL(t *testing.T) {
 			item := models.NewItem("test", &models.URL{
 				Raw: tt.parentURL,
 			}, "")
+			item.GetURL().Parse()
 
-			item.SetBase(tt.base)
+			var doc *goquery.Document
+			if tt.base != "" {
+				doc = newDocumentWithBaseTag(tt.base)
+			} else {
+				// empty html
+				tt.wantBaseUnset = true
+				doc, _ = goquery.NewDocumentFromReader(strings.NewReader(`<html></html>`))
+			}
+
+			extractBaseTag(item, doc)
+
+			isBaseUnset := item.GetBase() == nil
+			if tt.wantBaseUnset != isBaseUnset {
+				t.Errorf("resolveURL() isBaseUnset = %v, test_name = %s, wantBaseUnset %v", isBaseUnset, tt.name, tt.wantBaseUnset)
+			}
 
 			preprocessor.NormalizeURL(item.GetURL(), nil)
 
 			got, err := resolveURL(tt.URL, item)
 			if (err != nil) != tt.expectErr {
-				t.Errorf("resolveURL() error = %v, expectErr %v", err, tt.expectErr)
+				t.Errorf("resolveURL() error = %v, test_name = %s, expectErr %v", err, tt.name, tt.expectErr)
 				return
 			}
 			if !tt.expectErr && got != tt.want {
