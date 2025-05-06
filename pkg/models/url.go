@@ -9,9 +9,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 	"golang.org/x/net/idna"
 )
 

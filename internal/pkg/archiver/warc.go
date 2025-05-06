@@ -5,7 +5,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/CorentinB/warc"
+	"github.com/internetarchive/gowarc"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 )

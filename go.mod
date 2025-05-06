@@ -3,7 +3,6 @@ module github.com/internetarchive/Zeno
 go 1.24.2
 
 require (
-	github.com/CorentinB/warc v0.8.76
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/ada-url/goada v0.0.0-20250104020233-00cbf4dc9da1
@@ -16,6 +15,7 @@ require (
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.32.0
 	github.com/internetarchive/gocrawlhq v1.2.31
+	github.com/internetarchive/gowarc v0.8.77
 	github.com/ncruces/go-sqlite3 v0.25.0
 	github.com/pdfcpu/pdfcpu v0.9.1
 	github.com/philippgille/gokv/leveldb v0.7.0

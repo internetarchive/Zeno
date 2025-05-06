@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CorentinB/warc"
+	"github.com/internetarchive/gowarc"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"

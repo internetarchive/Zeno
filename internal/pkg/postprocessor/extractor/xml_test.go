@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
 //go:embed testdata/rss2.0.xml
@@ -134,7 +134,7 @@ func TestXML(t *testing.T) {
 				v[13] = "https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3.png" // <a> href in description::CDATA
 				v[181] = "https://archive.org/details/vanishing-culture-report"
 				return v
-				
+
 			}(),
 			hasError: false,
 		},

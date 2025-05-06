@@ -32,7 +32,7 @@ func GetVersion() (version Version) {
 		}
 
 		for _, dep := range info.Deps {
-			if dep.Path == "github.com/CorentinB/warc" {
+			if dep.Path == "github.com/internetarchive/gowarc" {
 				version.WarcVersion = dep.Version
 			}
 		}
