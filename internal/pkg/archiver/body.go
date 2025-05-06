@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
 // ProcessBody processes the body of a URL response, loading it into memory or a temporary file

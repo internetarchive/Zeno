@@ -3,7 +3,7 @@ package discard
 import (
 	"net/http"
 
-	"github.com/CorentinB/warc"
+	"github.com/internetarchive/gowarc"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/cloudflare"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/warcdiscardstatus"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"

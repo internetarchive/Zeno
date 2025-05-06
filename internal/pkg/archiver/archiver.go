@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CorentinB/warc"
+	"github.com/internetarchive/gowarc"
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"

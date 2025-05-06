@@ -7,7 +7,7 @@ Zeno is a web crawler designed to operate wide crawls or to simply archive one w
 Zeno's key concepts are: portability, performance, simplicity.
 With an emphasis on performance.
 
-It heavily relies on the [warc](https://github.com/CorentinB/warc) module for traffic recording into [WARC](https://iipc.github.io/warc-specifications/) files.
+It heavily relies on the [warc](https://github.com/internetarchive/gowarc) module for traffic recording into [WARC](https://iipc.github.io/warc-specifications/) files.
 
 The name Zeno comes from Zenodotus (Ζηνόδοτος), a Greek grammarian, literary critic, Homeric scholar,
 and the first librarian of the Library of Alexandria.
