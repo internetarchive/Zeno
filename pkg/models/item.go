@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -17,7 +18,7 @@ type Item struct {
 	seedVia    string       // SeedVia is the source of the seed (shoud not be used for non-seeds)
 	status     ItemState    // Status is the state of the item in the pipeline
 	source     ItemSource   // Source is the source of the item in the pipeline
-	base       string       // Base is the base URL of the item, extracted from a <base> tag
+	base       *url.URL     // Base is the base URL of the item, extracted from a <base> tag
 	childrenMu sync.RWMutex // Mutex to protect the children slice
 	children   []*Item      // Children is a slice of Item created from this item
 	parent     *Item        // Parent is the parent of the item (will be nil if the item is a seed)
@@ -174,7 +175,7 @@ func (i *Item) GetStatus() ItemState { return i.status }
 func (i *Item) GetSource() ItemSource { return i.source }
 
 // GetBase returns the base URL of the item
-func (i *Item) GetBase() string { return i.base }
+func (i *Item) GetBase() *url.URL { return i.base }
 
 // GetMaxDepth returns the maxDepth of the item by traversing the tree
 func (i *Item) GetMaxDepth() int64 {
@@ -293,7 +294,7 @@ func (i *Item) SetSource(source ItemSource) error {
 }
 
 // SetBase sets the base URL of the item
-func (i *Item) SetBase(base string) { i.base = base }
+func (i *Item) SetBase(base *url.URL) { i.base = base }
 
 // SetError sets the error of the item
 func (i *Item) SetError(err error) { i.err = err }

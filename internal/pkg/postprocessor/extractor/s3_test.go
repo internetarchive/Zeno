@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CorentinB/warc/pkg/spooledtempfile"
 	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
 // TestIsS3 checks the Server header for known S3 strings.

@@ -13,15 +13,10 @@ import (
 func resolveURL(URL string, item *models.Item) (absolute string, err error) {
 	// Determine the base URL.
 	var baseURL *url.URL
-	if item.GetBase() == "" {
-		// If no base is provided, use the parent URL.
+	if item.GetBase() == nil { // If no base is provided, use the parent URL.
 		baseURL = item.GetURL().GetParsed()
 	} else {
-		// Parse the provided base.
-		baseURL, err = url.Parse(item.GetBase())
-		if err != nil {
-			return "", fmt.Errorf("invalid base URL %s: %w", item.GetBase(), err)
-		}
+		baseURL = item.GetBase()
 	}
 
 	// Parse the URL to resolve.
