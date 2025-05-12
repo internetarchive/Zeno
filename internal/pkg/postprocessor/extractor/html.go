@@ -377,6 +377,16 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
+	// Extract WACZ files from replayweb embeds
+	if !slices.Contains(config.Get().DisableHTMLTag, "replay-web-page") {
+		document.Find("replay-web-page").Each(func(index int, i *goquery.Selection) {
+			source, exists := i.Attr("source")
+			if exists {
+				rawAssets = append(rawAssets, source)
+			}
+		})
+	}
+
 	for _, rawAsset := range rawAssets {
 		resolvedURL, err := resolveURL(rawAsset, item)
 		if err != nil {
