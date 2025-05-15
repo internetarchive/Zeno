@@ -4,18 +4,15 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/url"
-	"strings"
 
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-var validS3Servers = []string{
+var s3CompatibleServers = []string{
 	"AmazonS3",
 	"WasabiS3",
-	"UploadServer", // Google Cloud Storage
-	"Windows-Azure-Blob",
-	"AliyunOSS", // Alibaba Object Storage Service
+	"UploadServer", // Google Cloud Storage, https://cloud.google.com/storage/docs/listing-objects#list-objects-xml
+	"AliyunOSS",    // Alibaba Object Storage Service
 }
 
 // S3ListBucketResult represents the XML structure of an S3 bucket listing
@@ -40,53 +37,8 @@ type CommonPrefix struct {
 	Prefix []string `xml:"Prefix"`
 }
 
-// IsS3 checks if the response is from an S3 server
-func IsS3(URL *models.URL) bool {
-	return utils.StringContainsSliceElements(URL.GetResponse().Header.Get("Server"), validS3Servers) &&
-		strings.Contains(URL.GetResponse().Header.Get("Content-Type"), "xml")
-}
-
-// S3 decides which helper to call based on the query param: old style (no list-type=2) vs. new style (list-type=2)
-func S3(URL *models.URL) ([]*models.URL, error) {
-	defer URL.RewindBody()
-
-	// Decode XML result
-	var result S3ListBucketResult
-	if err := xml.NewDecoder(URL.GetBody()).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error decoding S3 XML: %v", err)
-	}
-
-	// Prepare base data
-	reqURL := URL.GetRequest().URL
-	listType := reqURL.Query().Get("list-type")
-
-	// Build https://<host> as the base for direct file links
-	baseStr := fmt.Sprintf("https://%s", reqURL.Host)
-	parsedBase, err := url.Parse(baseStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid base URL: %v", err)
-	}
-
-	var outlinkStrings []string
-
-	// Delegate to old style or new style
-	if listType != "2" {
-		// Old style S3 listing, uses marker
-		outlinkStrings = s3Legacy(reqURL, parsedBase, result)
-	} else {
-		// New style listing (list-type=2), uses continuation token and/or CommonPrefixes
-		outlinkStrings = s3V2(reqURL, parsedBase, result)
-	}
-
-	// Convert from []string -> []*models.URL
-	var outlinks []*models.URL
-	for _, link := range outlinkStrings {
-		outlinks = append(outlinks, &models.URL{Raw: link})
-	}
-	return outlinks, nil
-}
-
 // s3Legacy handles the old ListObjects style, which uses `marker` for pagination.
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjects.html
 func s3Legacy(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) []string {
 	var outlinks []string
 
@@ -113,6 +65,7 @@ func s3Legacy(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) [
 }
 
 // s3V2 handles the new ListObjectsV2 style, which uses `continuation-token` and can return CommonPrefixes.
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjectsV2.html
 func s3V2(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) []string {
 	var outlinks []string
 
@@ -149,4 +102,39 @@ func s3V2(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) []str
 	}
 
 	return outlinks
+}
+
+// s3Compatible decides which helper to call based on the query param: old style (no list-type=2) vs. new style (list-type=2)
+func s3Compatible(URL *models.URL) ([]*models.URL, error) {
+	defer URL.RewindBody()
+
+	// Decode XML result
+	var result S3ListBucketResult
+	if err := xml.NewDecoder(URL.GetBody()).Decode(&result); err != nil {
+		return nil, fmt.Errorf("error decoding S3ListBucketResult XML: %w", err)
+	}
+
+	// Prepare base data
+	reqURL := URL.GetRequest().URL
+	listType := reqURL.Query().Get("list-type")
+
+	// Build https://<host> as the base for direct file links
+	baseStr := fmt.Sprintf("https://%s", reqURL.Host)
+	parsedBase, err := url.Parse(baseStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %v", err)
+	}
+
+	var outlinks []string
+
+	// Delegate to old style or new style
+	if listType != "2" {
+		// Old style S3 listing, uses marker
+		outlinks = s3Legacy(reqURL, parsedBase, result)
+	} else {
+		// New style listing (list-type=2), uses continuation token and/or CommonPrefixes
+		outlinks = s3V2(reqURL, parsedBase, result)
+	}
+
+	return toURLs(outlinks), nil
 }

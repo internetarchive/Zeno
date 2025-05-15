@@ -40,7 +40,7 @@ func azure(URL *models.URL) ([]*models.URL, error) {
 	// Decode XML result
 	var result AZureBlobEnumerationResults
 	if err := xml.NewDecoder(URL.GetBody()).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error decoding S3 XML: %w", err)
+		return nil, fmt.Errorf("error decoding AZureBlobEnumerationResults XML: %w", err)
 	}
 
 	reqURL := URL.GetRequest().URL

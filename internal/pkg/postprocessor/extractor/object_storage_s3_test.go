@@ -11,40 +11,6 @@ import (
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
-// TestIsS3 checks the Server header for known S3 strings.
-func TestIsS3(t *testing.T) {
-	tests := []struct {
-		name   string
-		server string
-		want   bool
-	}{
-		{"AmazonS3", "AmazonS3", true},
-		{"WasabiS3", "WasabiS3", true},
-		{"AliyunOSS", "AliyunOSS", true},
-		{"No match", "Apache", false},
-		{"Partial match", "Amazon", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create a *models.URL with the response Server header set
-			URLObj := &models.URL{}
-
-			URLObj.SetResponse(&http.Response{
-				Header: http.Header{
-					"Server":       []string{tt.server},
-					"Content-Type": []string{"text/xml"},
-				},
-			})
-
-			got := IsS3(URLObj)
-			if got != tt.want {
-				t.Errorf("IsS3(server=%q) = %v, want %v", tt.server, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestS3(t *testing.T) {
 	// This subtest shows a scenario of a valid XML with a single object,
 	// and list-type != 2 => "marker" logic should be used.
@@ -79,7 +45,7 @@ func TestS3(t *testing.T) {
 
 		URLObj.SetBody(spooledTempFile)
 
-		outlinks, err := S3(URLObj)
+		outlinks, err := s3Compatible(URLObj)
 		if err != nil {
 			t.Fatalf("S3() returned unexpected error: %v", err)
 		}
@@ -124,7 +90,7 @@ func TestS3(t *testing.T) {
 
 		URLObj.SetBody(spooledTempFile)
 
-		outlinks, err := S3(URLObj)
+		outlinks, err := s3Compatible(URLObj)
 		if err != nil {
 			t.Fatalf("S3() returned unexpected error: %v", err)
 		}
@@ -159,7 +125,7 @@ func TestS3(t *testing.T) {
 
 		URLObj.SetBody(spooledTempFile)
 
-		outlinks, err := S3(URLObj)
+		outlinks, err := s3Compatible(URLObj)
 		if err == nil {
 			t.Fatalf("expected error for invalid XML, got none")
 		}
