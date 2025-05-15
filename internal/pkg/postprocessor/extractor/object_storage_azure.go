@@ -19,17 +19,17 @@ var azureServers = []string{
 	"Azurite-Blob",
 }
 
-// AZureBlobEnumerationResults represents the XML structure of an AZure Blob Storage listing
+// AzureBlobEnumerationResults represents the XML structure of an Azure Blob Storage listing
 // <https://learn.microsoft.com/en-us/rest/api/storageservices/enumerating-blob-resources>
-type AZureBlobEnumerationResults struct {
+type AzureBlobEnumerationResults struct {
 	XMLName    xml.Name    `xml:"EnumerationResults"`
 	Prefix     string      `xml:"Prefix"`
 	Marker     string      `xml:"Marker"`
-	Blobs      []AZureBlob `xml:"Blobs>Blob"`
+	Blobs      []AzureBlob `xml:"Blobs>Blob"`
 	NextMarker string      `xml:"NextMarker"`
 }
 
-type AZureBlob struct {
+type AzureBlob struct {
 	Name         string `xml:"Name"` // path/to/file.txt, no leading slash
 	LastModified string `xml:"Properties>Last-Modified"`
 	Size         int64  `xml:"Properties>Content-Length"`
@@ -43,9 +43,9 @@ func azure(URL *models.URL) ([]*models.URL, error) {
 	defer URL.RewindBody()
 
 	// Decode XML result
-	var result AZureBlobEnumerationResults
+	var result AzureBlobEnumerationResults
 	if err := xml.NewDecoder(URL.GetBody()).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error decoding AZureBlobEnumerationResults XML: %w", err)
+		return nil, fmt.Errorf("error decoding AzureBlobEnumerationResults XML: %w", err)
 	}
 
 	reqURL := URL.GetRequest().URL

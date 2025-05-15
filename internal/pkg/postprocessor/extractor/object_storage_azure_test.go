@@ -66,9 +66,9 @@ func TestAzure(t *testing.T) {
 		if err == nil {
 			t.Fatalf("expected error for invalid XML, got none")
 		}
-		// "error decoding AZureBlobEnumerationResults XML"
-		if !strings.Contains(err.Error(), "error decoding AZureBlobEnumerationResults XML") {
-			t.Fatalf("expected error 'error decoding AZureBlobEnumerationResults XML', got %v", err)
+
+		if !strings.Contains(err.Error(), "error decoding AzureBlobEnumerationResults XML") {
+			t.Fatalf("expected error 'error decoding AzureBlobEnumerationResults XML', got %v", err)
 		}
 	})
 }
