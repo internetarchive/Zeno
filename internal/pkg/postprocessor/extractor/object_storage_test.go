@@ -2,10 +2,34 @@ package extractor
 
 import (
 	"net/http"
+	"net/url"
+	"os"
 	"testing"
 
 	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
+
+func buildTestObjectStorageURLObj(selfURL, xmlBody string, respHeader http.Header) *models.URL {
+	urlURL, err := url.Parse(selfURL)
+	if err != nil {
+		panic(err)
+	}
+
+	URL := &models.URL{}
+	URL.SetRequest(&http.Request{URL: urlURL})
+
+	URL.SetResponse(&http.Response{
+		Header: respHeader,
+	})
+
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile.Write([]byte(xmlBody))
+
+	URL.SetBody(spooledTempFile)
+	URL.Parse()
+	return URL
+}
 
 // TestIsObjectStorage checks the Server header for known OSS Server strings.
 func TestIsObjectStorage(t *testing.T) {

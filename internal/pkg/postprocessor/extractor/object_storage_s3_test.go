@@ -2,13 +2,8 @@ package extractor
 
 import (
 	"net/http"
-	"net/url"
-	"os"
 	"strings"
 	"testing"
-
-	"github.com/internetarchive/Zeno/pkg/models"
-	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
 func TestS3(t *testing.T) {
@@ -25,26 +20,7 @@ func TestS3(t *testing.T) {
 	<IsTruncated>false</IsTruncated>
 </ListBucketResult>`
 
-		// Build an http.Request with a query param that is NOT list-type=2
-		reqURL, _ := url.Parse("https://example.com/?someparam=1")
-
-		// Create your models.URL instance.
-		URLObj := &models.URL{}
-		URLObj.SetRequest(&http.Request{URL: reqURL})
-
-		// Likewise, set the HTTP response header using SetResponse.
-		// We want to simulate an S3 server for these tests.
-		URLObj.SetResponse(&http.Response{
-			Header: http.Header{
-				"Server": []string{"AmazonS3"},
-			},
-		})
-
-		spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
-		spooledTempFile.Write([]byte(xmlBody))
-
-		URLObj.SetBody(spooledTempFile)
-
+		URLObj := buildTestObjectStorageURLObj("https://example.com/?someparam=1", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
 		if err != nil {
 			t.Fatalf("S3() returned unexpected error: %v", err)
@@ -75,21 +51,7 @@ func TestS3(t *testing.T) {
     </CommonPrefixes>
 </ListBucketResult>`
 
-		reqURL, _ := url.Parse("https://example.com/?list-type=2")
-
-		URLObj := &models.URL{}
-		URLObj.SetRequest(&http.Request{URL: reqURL})
-		URLObj.SetResponse(&http.Response{
-			Header: http.Header{
-				"Server": []string{"AmazonS3"},
-			},
-		})
-
-		spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
-		spooledTempFile.Write([]byte(xmlBody))
-
-		URLObj.SetBody(spooledTempFile)
-
+		URLObj := buildTestObjectStorageURLObj("https://example.com/?list-type=2", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
 		if err != nil {
 			t.Fatalf("S3() returned unexpected error: %v", err)
@@ -110,21 +72,7 @@ func TestS3(t *testing.T) {
 	t.Run("Invalid XML => error", func(t *testing.T) {
 		xmlBody := `<ListBucketResult><BadTag`
 
-		reqURL, _ := url.Parse("https://example.com/?list-type=2")
-
-		URLObj := &models.URL{}
-		URLObj.SetRequest(&http.Request{URL: reqURL})
-		URLObj.SetResponse(&http.Response{
-			Header: http.Header{
-				"Server": []string{"AmazonS3"},
-			},
-		})
-
-		spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
-		spooledTempFile.Write([]byte(xmlBody))
-
-		URLObj.SetBody(spooledTempFile)
-
+		URLObj := buildTestObjectStorageURLObj("https://example.com/?list-type=2", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
 		if err == nil {
 			t.Fatalf("expected error for invalid XML, got none")
