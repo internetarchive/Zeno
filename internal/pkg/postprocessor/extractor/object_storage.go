@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -30,6 +31,6 @@ func ObjectStorage(URL *models.URL) ([]*models.URL, error) {
 	} else if utils.StringContainsSliceElements(server, azureServers) {
 		return azure(URL)
 	} else {
-		return nil, nil
+		return nil, fmt.Errorf("unknown object storage server: %s", server)
 	}
 }
