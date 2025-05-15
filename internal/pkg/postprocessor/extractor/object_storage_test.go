@@ -65,3 +65,20 @@ func TestIsObjectStorage(t *testing.T) {
 		})
 	}
 }
+
+func TestObjectStorage(t *testing.T) {
+	t.Run("Unknown object storage server", func(t *testing.T) {
+		xmlBody := `<Placeholder>XML</Placeholder>`
+
+		URLObj := buildTestObjectStorageURLObj("https://example.com/", xmlBody, http.Header{"Server": []string{"NotAnOSS"}})
+		_, err := ObjectStorage(URLObj)
+
+		if err == nil {
+			t.Fatalf("expected error for unknown object storage server, got none")
+		}
+
+		if err.Error() != "unknown object storage server: NotAnOSS" {
+			t.Fatalf("expected error 'unknown object storage server: NotAnOSS', got %v", err)
+		}
+	})
+}

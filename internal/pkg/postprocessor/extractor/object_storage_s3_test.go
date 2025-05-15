@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestS3(t *testing.T) {
+func TestS3Compatible(t *testing.T) {
 	// This subtest shows a scenario of a valid XML with a single object,
 	// and list-type != 2 => "marker" logic should be used.
 	t.Run("Valid XML with single object, no list-type=2 => marker next link", func(t *testing.T) {
@@ -22,12 +22,13 @@ func TestS3(t *testing.T) {
 
 		URLObj := buildTestObjectStorageURLObj("https://example.com/?someparam=1", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
-		if err != nil {
-			t.Fatalf("S3() returned unexpected error: %v", err)
+		outlinks2, err2 := ObjectStorage(URLObj) // indirectly call, for coverage testing
+		if err != nil || err2 != nil {
+			t.Fatalf("S3() returned unexpected error: %v, err2: %v", err, err2)
 		}
 
-		if len(outlinks) != 2 {
-			t.Fatalf("expected 2 outlinks, got %d", len(outlinks))
+		if len(outlinks) != 2 || len(outlinks2) != 2 {
+			t.Fatalf("expected 2 outlinks, got %d and %d", len(outlinks), len(outlinks2))
 		}
 		expectedOutlinks := []string{
 			"https://example.com/?marker=file1.txt&someparam=1",
@@ -53,13 +54,15 @@ func TestS3(t *testing.T) {
 
 		URLObj := buildTestObjectStorageURLObj("https://example.com/?list-type=2", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
-		if err != nil {
-			t.Fatalf("S3() returned unexpected error: %v", err)
+		outlinks2, err2 := ObjectStorage(URLObj) // indirectly call, for coverage testing
+		if err != nil || err2 != nil {
+			t.Fatalf("s3Compatible() returned unexpected error: %v, err2: %v", err, err2)
 		}
 
-		if len(outlinks) != 2 {
-			t.Fatalf("expected 2 outlinks, got %d", len(outlinks))
+		if len(outlinks) != 2 || len(outlinks2) != 2 {
+			t.Fatalf("expected 2 outlinks, got %d and %d", len(outlinks), len(outlinks2))
 		}
+
 		if !strings.Contains(outlinks[0].Raw, "prefix=folder1%2F") {
 			t.Errorf("expected prefix=folder1/ in outlink, got %s", outlinks[0].Raw)
 		}
@@ -74,12 +77,13 @@ func TestS3(t *testing.T) {
 
 		URLObj := buildTestObjectStorageURLObj("https://example.com/?list-type=2", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
-		if err == nil {
+		outlinks2, err2 := ObjectStorage(URLObj) // indirectly call, for coverage testing
+		if err == nil || err2 == nil {
 			t.Fatalf("expected error for invalid XML, got none")
 		}
 
-		if len(outlinks) != 0 {
-			t.Errorf("expected no outlinks on error, got %v", outlinks)
+		if len(outlinks) != 0 || len(outlinks2) != 0 {
+			t.Errorf("expected no outlinks on error, got %d and %d", len(outlinks), len(outlinks2))
 		}
 	})
 }
