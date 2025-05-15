@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -33,6 +34,10 @@ type AZureBlob struct {
 	LastModified string `xml:"Properties>Last-Modified"`
 	Size         int64  `xml:"Properties>Content-Length"`
 }
+
+var azureLogger = log.NewFieldedLogger(&log.Fields{
+	"component": "postprocessor.extractor.object_storage_azure",
+})
 
 func azure(URL *models.URL) ([]*models.URL, error) {
 	defer URL.RewindBody()
@@ -70,7 +75,8 @@ func azure(URL *models.URL) ([]*models.URL, error) {
 	for _, blob := range result.Blobs {
 		fileURL := baseURL
 		if strings.HasPrefix(blob.Name, "/") {
-			panic("TODO")
+			azureLogger.Warn("invalid blob name: it starts with a leading slash", "blob_name", blob.Name)
+			continue
 		}
 		fileURL.Path = baseURL.Path + blob.Name
 		outlinks = append(outlinks, fileURL.String())
