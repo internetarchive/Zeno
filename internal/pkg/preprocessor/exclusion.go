@@ -1,12 +1,13 @@
 package preprocessor
 
 import (
-	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"regexp"
+
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func matchRegexExclusion(item *models.Item) bool {
-	for _, exclusion := range config.Get().ExclusionRegexes {
+func matchRegexExclusion(ExclusionRegexes []*regexp.Regexp, item *models.Item) bool {
+	for _, exclusion := range ExclusionRegexes {
 		if exclusion.MatchString(item.GetURL().String()) {
 			return true
 		}
