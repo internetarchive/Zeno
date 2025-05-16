@@ -39,7 +39,7 @@ type CommonPrefix struct {
 
 // s3Legacy handles the old ListObjects style, which uses `marker` for pagination.
 // https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjects.html
-func s3Legacy(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) []string {
+func s3Legacy(reqURL, baseURL *url.URL, result S3ListBucketResult) []string {
 	var outlinks []string
 
 	// If there are objects in <Contents>, create a "next page" URL using `marker`
@@ -55,8 +55,7 @@ func s3Legacy(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) [
 	// Produce direct file links for each object
 	for _, obj := range result.Contents {
 		if obj.Size > 0 {
-			fileURL := *parsedBase
-			fileURL.Path += "/" + obj.Key
+			fileURL := baseURL.JoinPath(obj.Key)
 			outlinks = append(outlinks, fileURL.String())
 		}
 	}
@@ -66,7 +65,7 @@ func s3Legacy(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) [
 
 // s3V2 handles the new ListObjectsV2 style, which uses `continuation-token` and can return CommonPrefixes.
 // https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjectsV2.html
-func s3V2(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) []string {
+func s3V2(reqURL, baseURL *url.URL, result S3ListBucketResult) []string {
 	var outlinks []string
 
 	// If we have common prefixes => "subfolders"
@@ -82,11 +81,11 @@ func s3V2(reqURL *url.URL, parsedBase *url.URL, result S3ListBucketResult) []str
 			}
 		}
 	} else {
+
 		// Otherwise, we have actual objects in <Contents>
 		for _, obj := range result.Contents {
 			if obj.Size > 0 {
-				fileURL := *parsedBase
-				fileURL.Path += "/" + obj.Key
+				fileURL := *baseURL.JoinPath(obj.Key)
 				outlinks = append(outlinks, fileURL.String())
 			}
 		}
@@ -114,26 +113,25 @@ func s3Compatible(URL *models.URL) ([]*models.URL, error) {
 		return nil, fmt.Errorf("error decoding S3ListBucketResult XML: %w", err)
 	}
 
-	// Prepare base data
 	reqURL := URL.GetRequest().URL
 	listType := reqURL.Query().Get("list-type")
 
-	// Build https://<host> as the base for direct file links
-	baseStr := fmt.Sprintf("https://%s", reqURL.Host)
-	parsedBase, err := url.Parse(baseStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid base URL: %v", err)
-	}
+	// Prepare base url
+	baseURL := new(url.URL)
+	*baseURL = *reqURL
+	baseURL.RawQuery = ""
+	baseURL.ForceQuery = false
+	baseURL.Path = "/"
 
 	var outlinks []string
 
 	// Delegate to old style or new style
 	if listType != "2" {
 		// Old style S3 listing, uses marker
-		outlinks = s3Legacy(reqURL, parsedBase, result)
+		outlinks = s3Legacy(reqURL, baseURL, result)
 	} else {
 		// New style listing (list-type=2), uses continuation token and/or CommonPrefixes
-		outlinks = s3V2(reqURL, parsedBase, result)
+		outlinks = s3V2(reqURL, baseURL, result)
 	}
 
 	return toURLs(outlinks), nil

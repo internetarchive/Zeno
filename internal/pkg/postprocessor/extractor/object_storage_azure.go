@@ -61,24 +61,16 @@ func azure(URL *models.URL) ([]*models.URL, error) {
 	}
 
 	// Build base url for files
-	//
-	// reqURL: "https://{endpoint_host}/{account}/{bucket}?..."
-	// ->
-	// baseURL: "https://{endpoint_host}/{account}/{bucket}/
 	baseURL := *reqURL
 	baseURL.RawQuery = ""
 	baseURL.ForceQuery = false
-	if !strings.HasSuffix(baseURL.Path, "/") {
-		baseURL.Path = baseURL.Path + "/"
-	}
 
 	for _, blob := range result.Blobs {
-		fileURL := baseURL
 		if strings.HasPrefix(blob.Name, "/") {
 			azureLogger.Warn("invalid blob name: it starts with a leading slash", "blob_name", blob.Name)
 			continue
 		}
-		fileURL.Path = baseURL.Path + blob.Name
+		fileURL := baseURL.JoinPath(blob.Name)
 		outlinks = append(outlinks, fileURL.String())
 	}
 
