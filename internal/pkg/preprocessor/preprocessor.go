@@ -200,7 +200,7 @@ func preprocess(workerID string, seed *models.Item) {
 		// Apply exclusion filters even if it passed inclusion
 		if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) ||
 			utils.StringContainsSliceElements(items[i].GetURL().String(), config.Get().ExcludeString) ||
-			matchRegexExclusion(items[i]) {
+			matchRegexExclusion(config.Get().ExclusionRegexes, items[i]) {
 
 			logger.Debug("URL excluded (matches exclusion filters)",
 				"item_id", items[i].GetShortID(),
