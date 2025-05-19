@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/xml"
 	"errors"
@@ -95,16 +96,18 @@ func IsSitemapXML(URL *models.URL) bool {
 func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
-	xmlBody, err := io.ReadAll(URL.GetBody())
-	if err != nil {
+	body := bufio.NewReader(URL.GetBody())
+
+	// Peek to check if body has any non-whitespace content
+	peek, err := body.Peek(512) // peek up to 512 bytes
+	if err != nil && err != io.EOF {
 		return nil, nil, err
 	}
-
-	if len(xmlBody) == 0 {
+	if len(bytes.TrimSpace(peek)) == 0 {
 		return nil, nil, errors.New("empty XML body")
 	}
 
-	decoder := xml.NewDecoder(bytes.NewReader(xmlBody))
+	decoder := xml.NewDecoder(body)
 	decoder.Strict = false
 
 	var tok xml.Token
