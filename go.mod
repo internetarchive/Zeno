@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/consul/api v1.32.1
 	github.com/internetarchive/gocrawlhq v1.2.31
 	github.com/internetarchive/gowarc v0.8.77
-	github.com/ncruces/go-sqlite3 v0.25.1
+	github.com/ncruces/go-sqlite3 v0.25.2
 	github.com/pdfcpu/pdfcpu v0.10.2
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.22.0
