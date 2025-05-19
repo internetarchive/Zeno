@@ -45,16 +45,11 @@ func (fl *FieldedLogger) logWithLevel(level slog.Level, msg string, args ...any)
 
 	if fl.fields != nil {
 		for k, v := range *fl.fields {
-			combinedArgs = append(combinedArgs, k)
-			combinedArgs = append(combinedArgs, v)
+			combinedArgs = append(combinedArgs, k, v)
 		}
 	}
 
-	if len(args) > 0 {
-		for _, arg := range args {
-			combinedArgs = append(combinedArgs, arg)
-		}
-	}
+	combinedArgs = append(combinedArgs, args...)
 
 	if multiLogger != nil {
 		multiLogger.Log(context.TODO(), level, msg, combinedArgs...)
