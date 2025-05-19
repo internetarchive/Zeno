@@ -17,6 +17,7 @@ import (
 var (
 	backgroundImageRegex = regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
 	urlRegex             = regexp.MustCompile(`(?m)url\((.*?)\)`)
+	onclickRegex         = regexp.MustCompile(`window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]`)
 )
 
 func IsHTML(URL *models.URL) bool {
@@ -65,8 +66,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 
 				if key == "onclick" {
 					// Attempt to extract URL from JS like window.location = '...';
-					re := regexp.MustCompile(`window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]`)
-					if matches := re.FindStringSubmatch(val); len(matches) > 1 {
+					if matches := onclickRegex.FindStringSubmatch(val); len(matches) > 1 {
 						rawOutlinks = append(rawOutlinks, matches[1])
 					}
 					continue

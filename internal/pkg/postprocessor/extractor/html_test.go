@@ -22,6 +22,7 @@ func TestHTMLOutlinks(t *testing.T) {
 			<a href="http://archive.org">ar</a>
 			<p>test</p>
 			<a href="https://web.archive.org">wa</a>
+			<a onclick="window.location='http://foo.com'">click me</a>
 		</body>
 	</html>
 	`
@@ -41,7 +42,7 @@ func TestHTMLOutlinks(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error extracting HTML outlinks %s", err)
 	}
-	if len(outlinks) != 3 {
+	if len(outlinks) != 4 {
 		t.Errorf("We couldn't extract all HTML outlinks.")
 	}
 }
