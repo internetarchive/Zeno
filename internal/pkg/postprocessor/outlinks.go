@@ -2,6 +2,7 @@ package postprocessor
 
 import (
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -12,6 +13,10 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
+)
+
+var (
+	skipProtocolsRe = regexp.MustCompile(`(?i)^(data|file|javascript|mailto|sms|tel):`)
 )
 
 func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
@@ -93,6 +98,8 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		outlinks = append(outlinks, extractLinksFromPage(item.GetURL())...)
 	}
 
+	outlinks = filterURLsByProtocol(outlinks)
+
 	// Set the hops level to the item's level + 1
 	for _, outlink := range outlinks {
 		outlink.SetHops(item.GetURL().GetHops() + 1)
@@ -121,6 +128,16 @@ func extractLinksFromPage(URL *models.URL) (links []*models.URL) {
 	}
 
 	return links
+}
+
+func filterURLsByProtocol(links []*models.URL) []*models.URL {
+	var filtered []*models.URL
+	for _, link := range links {
+		if !skipProtocolsRe.MatchString(link.Raw) {
+			filtered = append(filtered, link)
+		}
+	}
+	return filtered
 }
 
 func shouldExtractOutlinks(item *models.Item) bool {

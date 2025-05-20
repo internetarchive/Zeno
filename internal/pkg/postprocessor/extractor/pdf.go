@@ -1,8 +1,6 @@
 package extractor
 
 import (
-	"strings"
-
 	"github.com/internetarchive/Zeno/pkg/models"
 
 	pdfapi "github.com/pdfcpu/pdfcpu/pkg/api"
@@ -38,14 +36,6 @@ func PDF(URL *models.URL) (outlinks []*models.URL, err error) {
 			if !ok || link.URI == "" {
 				continue
 			}
-
-			// Skip unwanted URIs
-			if strings.HasPrefix(link.URI, "mailto:") ||
-				strings.HasPrefix(link.URI, "tel:") ||
-				strings.HasPrefix(link.URI, "file:") {
-				continue
-			}
-
 			outlinks = append(outlinks, &models.URL{Raw: link.URI})
 		}
 	}
