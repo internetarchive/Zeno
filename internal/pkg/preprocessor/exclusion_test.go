@@ -70,8 +70,10 @@ func TestMatchRegexExclusion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parsedURL := &models.URL{Raw: tt.itemURL}
-			parsedURL.Parse()
+			parsedURL, err := models.NewURL(tt.itemURL)
+			if err != nil {
+				t.Errorf("URL parsing failed %v", err)
+			}
 			item := models.NewItem(uuid.New().String(), parsedURL, "")
 			got := matchRegexExclusion(regexps, item)
 			if got != tt.expectedMatched {

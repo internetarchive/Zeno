@@ -136,8 +136,7 @@ func startPipeline() {
 	// Pipe in the reactor the input seeds if any
 	if len(config.Get().InputSeeds) > 0 {
 		for _, seed := range config.Get().InputSeeds {
-			parsedURL := &models.URL{Raw: seed}
-			err := parsedURL.Parse()
+			parsedURL, err := models.NewURL(seed)
 			if err != nil {
 				panic(err)
 			}

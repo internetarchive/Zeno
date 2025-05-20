@@ -145,15 +145,12 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *s
 
 			var discard bool
 			// Process the URL and create a new Item
-			parsedURL := models.URL{
-				Raw:  URL.Value,
-				Hops: int(URL.Hops),
-			}
-			err := parsedURL.Parse()
+			parsedURL, err := models.NewURL(URL.Value)
 			if err != nil {
 				discard = true
 			}
-			newItem := models.NewItem(URL.ID, &parsedURL, URL.Via)
+			parsedURL.SetHops(int(URL.Hops))
+			newItem := models.NewItem(URL.ID, parsedURL, URL.Via)
 			newItem.SetStatus(models.ItemFresh)
 			newItem.SetSource(models.ItemSourceQueue)
 
