@@ -70,6 +70,7 @@ type Config struct {
 	MinSpaceRequired       float64  `mapstructure:"min-space-required"`
 	DomainsCrawl           []string `mapstructure:"domains-crawl"`
 	CaptureAlternatePages  bool     `mapstructure:"capture-alternate-pages"`
+	StrictRegex            bool     `mapstructure:"strict-regex"`
 	DisableLocalDedupe     bool     `mapstructure:"disable-local-dedupe"`
 	CertValidation         bool     `mapstructure:"cert-validation"`
 	DisableAssetsCapture   bool     `mapstructure:"disable-assets-capture"`

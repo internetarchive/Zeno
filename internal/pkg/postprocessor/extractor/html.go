@@ -295,7 +295,12 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			if err != nil {
 				logger.Debug("unable to extract outer HTML from script tag", "err", err, "url", item.GetURL().String(), "item", item.GetShortID())
 			} else {
-				scriptLinks := utils.DedupeStrings(LinkRegexStrict.FindAllString(outerHTML, -1))
+				var scriptLinks []string
+				if !config.Get().StrictRegex {
+					scriptLinks = utils.DedupeStrings(LinkRegex.FindAllString(outerHTML, -1))
+				} else {
+					scriptLinks = utils.DedupeStrings(LinkRegexStrict.FindAllString(outerHTML, -1))
+				}
 				for _, scriptLink := range scriptLinks {
 					if strings.HasPrefix(scriptLink, "http") {
 						// Escape URLs when unicode runes are present in the extracted URLs

@@ -116,9 +116,12 @@ func extractLinksFromPage(URL *models.URL) (links []*models.URL) {
 	if err != nil {
 		return links
 	}
-
-	rawLinks := utils.DedupeStrings(extractor.LinkRegexStrict.FindAllString(string(source), -1))
-
+	var rawLinks []string
+	if !config.Get().StrictRegex {
+		rawLinks = utils.DedupeStrings(extractor.LinkRegex.FindAllString(string(source), -1))
+	} else {
+		rawLinks = utils.DedupeStrings(extractor.LinkRegexStrict.FindAllString(string(source), -1))
+	}
 	// Validate links
 	for _, link := range rawLinks {
 		links = append(links, &models.URL{
