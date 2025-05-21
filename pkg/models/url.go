@@ -30,12 +30,12 @@ type URL struct {
 	once        sync.Once
 }
 
-func NewURL(raw string) (*URL, error) {
+func NewURL(raw string) (URL, error) {
 	parsed, err := url.ParseRequestURI(raw)
 	if err != nil {
-		return nil, err
+		return URL{}, err
 	}
-	return &URL{
+	return URL{
 		Raw:    raw,
 		parsed: parsed,
 	}, nil
