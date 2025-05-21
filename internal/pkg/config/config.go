@@ -323,12 +323,7 @@ func readLocalExclusionFile(file string) (regexes []string, err error) {
 	for scanner.Scan() {
 		regexes = append(regexes, scanner.Text())
 	}
-
-	if err := scanner.Err(); err != nil {
-		return regexes, err
-	}
-
-	return regexes, nil
+	return regexes, scanner.Err()
 }
 
 func readRemoteExclusionFile(URL string) (regexes []string, err error) {
@@ -359,12 +354,7 @@ func readRemoteExclusionFile(URL string) (regexes []string, err error) {
 	for scanner.Scan() {
 		regexes = append(regexes, scanner.Text())
 	}
-
-	if err := scanner.Err(); err != nil {
-		return regexes, err
-	}
-
-	return regexes, nil
+	return regexes, scanner.Err()
 }
 
 func handleFlagsEdgeCases() {
