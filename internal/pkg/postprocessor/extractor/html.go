@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	backgroundImageRegex = regexp.MustCompile(`(?:\(['"]?)(.*?)(?:['"]?\))`)
-	urlRegex             = regexp.MustCompile(`(?m)url\((.*?)\)`)
-	onclickRegex         = regexp.MustCompile(`window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]`)
+	cssURLRegex  = regexp.MustCompile(`(?:url\(['"]?)(.*?)(?:['"]?\))`)
+	urlRegex     = regexp.MustCompile(`(?m)url\((.*?)\)`)
+	onclickRegex = regexp.MustCompile(`window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]`)
 )
 
 func IsHTML(URL *models.URL) bool {
@@ -133,7 +133,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 		style, exists := i.Attr("style")
 		if exists {
-			matches := backgroundImageRegex.FindAllStringSubmatch(style, -1)
+			matches := cssURLRegex.FindAllStringSubmatch(style, -1)
 
 			for match := range matches {
 				if len(matches[match]) > 0 {
