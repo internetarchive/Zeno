@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -46,15 +47,26 @@ func TestAzure(t *testing.T) {
 			t.Fatalf("expected 2 outlinks, got %d and %d", len(outlinks), len(outlinks2))
 		}
 
-		expectedOutlinks := []string{
-			"http://example.com/devstoreaccount1/zeno?comp=list&marker=dir%2Fazure_files%2Ftest_100.txt&maxresults=1&restype=container",
-			"http://example.com/devstoreaccount1/zeno/dir/azure_files/test_100.txt",
-		}
+		expectedOutlinks := func() []*url.URL {
+			urls := []string{
+				"http://example.com/devstoreaccount1/zeno?comp=list&marker=dir%2Fazure_files%2Ftest_100.txt&maxresults=1&restype=container",
+				"http://example.com/devstoreaccount1/zeno/dir/azure_files/test_100.txt",
+			}
+			outlinks := make([]*url.URL, len(urls))
+			for i, link := range urls {
+				parsed, err := url.Parse(link)
+				if err != nil {
+					t.Fatalf("failed to parse expected outlink %s: %v", link, err)
+				}
+				outlinks[i] = parsed
+			}
+			return outlinks
+		}()
 
 		for i, outlink := range outlinks {
 			outlink.Parse()
-			if outlink.String() != expectedOutlinks[i] {
-				t.Errorf("expected %s, got %s", expectedOutlinks[i], outlink.String())
+			if outlink.GetParsed().String() != expectedOutlinks[i].String() { // Compare parsed URLs, The order of URL query parameters is insensitive
+				t.Errorf("expected %s, got %s", expectedOutlinks[i].String(), outlink.String())
 			}
 		}
 	})
