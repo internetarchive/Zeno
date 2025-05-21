@@ -46,10 +46,10 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateOutlinksURLsFromLookup", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
 			return outlinks, err
 		}
-	case extractor.IsS3(item.GetURL()):
-		outlinks, err = extractor.S3(item.GetURL())
+	case extractor.IsObjectStorage(item.GetURL()):
+		outlinks, err = extractor.ObjectStorage(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks from S3", "extractor", "S3", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
+			logger.Error("unable to extract outlinks from ObjectStorage", "extractor", "ObjectStorage", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
 			return outlinks, err
 		}
 	case extractor.IsSitemapXML(item.GetURL()):

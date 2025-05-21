@@ -57,3 +57,12 @@ func sortURLs(urls []*models.URL) {
 		return urls[i].Raw < urls[j].Raw
 	})
 }
+
+// Convert from []string -> []*models.URL
+func toURLs(s []string) []*models.URL {
+	outlinks := make([]*models.URL, 0, len(s))
+	for _, link := range s {
+		outlinks = append(outlinks, &models.URL{Raw: link})
+	}
+	return outlinks
+}
