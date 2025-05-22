@@ -9,14 +9,14 @@ import (
 )
 
 func TestMatchRegexExclusion(t *testing.T) {
-	exclusionRegex :=  []string{
+	exclusionRegex := []string{
 		`(?i)^https?://(www\.)?archive-it\.org.*`,
 		`(?i)^https?://(www\.)?x\.com.*`,
 		`^https?://127\.0\.`,
 		`^https?://192\.168\.`,
 		`(?i)https?://[^/]+/wp-admin/`,
 		`(?i)^(mailto|sms|tel|data|javascript):`,
-		}
+	}
 	var regexps []*regexp.Regexp
 	for _, r := range exclusionRegex {
 		re, err := regexp.Compile(r)
@@ -74,7 +74,7 @@ func TestMatchRegexExclusion(t *testing.T) {
 			if err != nil {
 				t.Errorf("URL parsing failed %v", err)
 			}
-			item := models.NewItem(uuid.New().String(), parsedURL, "")
+			item := models.NewItem(uuid.New().String(), &parsedURL, "")
 			got := matchRegexExclusion(regexps, item)
 			if got != tt.expectedMatched {
 				t.Errorf("Expected match: %v, got: %v", tt.expectedMatched, got)

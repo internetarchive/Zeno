@@ -26,7 +26,7 @@ func createTestItemWithURL(id string, parent *Item, url string) *Item {
 	if err != nil {
 		panic(err)
 	}
-	item.url = newURL
+	item.url = &newURL
 	return item
 }
 

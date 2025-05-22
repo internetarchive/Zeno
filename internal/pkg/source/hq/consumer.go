@@ -163,7 +163,7 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *g
 				discard = true
 			}
 			parsedURL.SetHops(pathToHops(URL.Path))
-			newItem := models.NewItem(URL.ID, parsedURL, URL.Via)
+			newItem := models.NewItem(URL.ID, &parsedURL, URL.Via)
 			newItem.SetStatus(models.ItemFresh)
 			newItem.SetSource(models.ItemSourceHQ)
 
