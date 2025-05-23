@@ -39,7 +39,7 @@ func TestHTMLOutlinks(t *testing.T) {
 			<p>test</p>
 			<a href="https://web.archive.org">wa</a>
 			<a onclick="window.location='http://foo.com'">click me</a>
-			<iframe title="Internet Archive" src="https://archive.org"></iframe>
+			<iframe title="Internet Archive" src="https://web.archive.org"></iframe>
 		</body>
 	</html>`
 	item := setupItem(html)
