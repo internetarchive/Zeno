@@ -12,9 +12,26 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func TestHTMLOutlinks(t *testing.T) {
+func TestMain(m *testing.M) {
 	config.InitConfig()
-	body := `
+	os.Exit(m.Run())
+}
+
+func setupItem(html string) *models.Item {
+	resp := &http.Response{
+		Body: io.NopCloser(bytes.NewBufferString(html)),
+	}
+	newURL := &models.URL{Raw: "http://ex.com"}
+	newURL.SetResponse(resp)
+	err := archiver.ProcessBody(newURL, false, false, 0, os.TempDir())
+	if err != nil {
+		panic(err)
+	}
+	return models.NewItem("test", newURL, "")
+}
+
+func TestHTMLOutlinks(t *testing.T) {
+	html := `
 	<html>
 		<head></head>
 		<body>
@@ -26,17 +43,7 @@ func TestHTMLOutlinks(t *testing.T) {
 		</body>
 	</html>
 	`
-
-	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewBufferString(body)),
-	}
-	newURL := &models.URL{Raw: "http://ex.com"}
-	newURL.SetResponse(resp)
-	err := archiver.ProcessBody(newURL, false, false, 0, os.TempDir())
-	if err != nil {
-		t.Errorf("ProcessBody() error = %v", err)
-	}
-	item := models.NewItem("test", newURL, "")
+	item := setupItem(html)
 
 	outlinks, err := HTMLOutlinks(item)
 	if err != nil {
@@ -49,10 +56,8 @@ func TestHTMLOutlinks(t *testing.T) {
 
 // Test <audio> and <video> src extraction
 func TestHTMLAssetsAudioVideo(t *testing.T) {
-	config.InitConfig()
-	audioVideoBody := `
+	html := `
 	<html>
-		<head></head>
 		<body>
 			<video src="http://f1.com"></video>
 			<p>test</p>
@@ -60,17 +65,7 @@ func TestHTMLAssetsAudioVideo(t *testing.T) {
 		</body>
 	</html>
 	`
-
-	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewBufferString(audioVideoBody)),
-	}
-	newURL := &models.URL{Raw: "http://ex.com"}
-	newURL.SetResponse(resp)
-	err := archiver.ProcessBody(newURL, false, false, 0, os.TempDir())
-	if err != nil {
-		t.Errorf("ProcessBody() error = %v", err)
-	}
-	item := models.NewItem("test", newURL, "")
+	item := setupItem(html)
 
 	assets, err := HTMLAssets(item)
 	if err != nil {
@@ -83,10 +78,8 @@ func TestHTMLAssetsAudioVideo(t *testing.T) {
 
 // Test [data-item], [style], [data-preview] attribute extraction
 func TestHTMLAssetsAttributes(t *testing.T) {
-	config.InitConfig()
 	html := `
 	<html>
-		<head></head>
 		<body>
 		 <div style="background: url('http://something.com/data.jpg')"></div>
 	   <div data-preview="http://archive.org">...</div>
@@ -97,17 +90,7 @@ func TestHTMLAssetsAttributes(t *testing.T) {
 		</body>
 	</html>
 	`
-
-	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewBufferString(html)),
-	}
-	newURL := &models.URL{Raw: "http://ex.com"}
-	newURL.SetResponse(resp)
-	err := archiver.ProcessBody(newURL, false, false, 0, os.TempDir())
-	if err != nil {
-		t.Errorf("ProcessBody() error = %v", err)
-	}
-	item := models.NewItem("test", newURL, "")
+	item := setupItem(html)
 
 	assets, err := HTMLAssets(item)
 	if err != nil {
@@ -119,7 +102,6 @@ func TestHTMLAssetsAttributes(t *testing.T) {
 }
 
 func TestHTMLAssetsMeta(t *testing.T) {
-	config.InitConfig()
 	html := `
 	<html>
 		<head>
@@ -135,19 +117,12 @@ func TestHTMLAssetsMeta(t *testing.T) {
 		</body>
 	</html>
 	`
-
-	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewBufferString(html)),
-	}
-	newURL := &models.URL{Raw: "http://ex.com"}
-	newURL.SetResponse(resp)
-	err := archiver.ProcessBody(newURL, false, false, 0, os.TempDir())
-	if err != nil {
-		t.Errorf("ProcessBody() error = %v", err)
-	}
-	item := models.NewItem("test", newURL, "")
+	item := setupItem(html)
 
 	assets, err := HTMLAssets(item)
+	if err != nil {
+		t.Errorf("HTMLAssets error = %v", err)
+	}
 	if len(assets) != 2 {
 		t.Errorf("We couldn't extract all meta & link assets. %d", len(assets))
 	}
