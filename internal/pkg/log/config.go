@@ -4,11 +4,14 @@ package log
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/MatusOllah/slogcolor"
+	"github.com/fatih/color"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log/ringbuffer"
 	slogmulti "github.com/samber/slog-multi"
@@ -24,6 +27,7 @@ type logConfig struct {
 	StdoutLevel   slog.Level
 	StderrEnabled bool
 	StderrLevel   slog.Level
+	NoColor       bool
 	LogTUI        bool
 	TUILogLevel   slog.Level
 }
@@ -78,6 +82,7 @@ func makeConfig() *logConfig {
 		StdoutLevel:   parseLevel(config.Get().StdoutLogLevel),
 		StderrEnabled: !config.Get().NoStderrLogging,
 		StderrLevel:   slog.LevelError,
+		NoColor:       config.Get().NoColorLogging,
 		LogTUI:        config.Get().TUI,
 		TUILogLevel:   parseLevel(config.Get().TUILogLevel),
 	}
@@ -99,23 +104,43 @@ func parseLevel(level string) slog.Level {
 	}
 }
 
+func newColorOptions(Level slog.Level) *slogcolor.Options {
+	return &slogcolor.Options{
+		Level:         Level,
+		TimeFormat:    time.RFC3339,
+		SrcFileMode:   slogcolor.ShortFile,
+		SrcFileLength: 20,
+		MsgPrefix:     color.HiWhiteString("| "),
+		MsgColor:      color.New().Add(color.FgYellow),
+		LevelTags:     slogcolor.DefaultLevelTags,
+	}
+}
+
+func (c *logConfig) newHandler(out io.Writer, Level slog.Level) slog.Handler {
+	if c.NoColor {
+		return slog.NewTextHandler(out, &slog.HandlerOptions{Level: Level})
+	} else {
+		return slogcolor.NewHandler(out, newColorOptions(Level))
+	}
+}
+
 func (c *logConfig) makeMultiLogger() *slog.Logger {
 	baseRouter := slogmulti.Router()
 
 	// Handle stdout/stderr logging configuration
 	// If Stdout and Stderr are both enabled we log every level below stderr level to stdout and the rest (above) to stderr
 	if c.StdoutEnabled && c.StderrEnabled {
-		stderrHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: c.StderrLevel})
+		stderrHandler := c.newHandler(os.Stderr, c.StderrLevel)
 		baseRouter = baseRouter.Add(stderrHandler, func(_ context.Context, r slog.Record) bool {
 			return r.Level >= c.StderrLevel
 		})
 
-		stdoutHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: c.StdoutLevel})
+		stdoutHandler := c.newHandler(os.Stdout, c.StdoutLevel)
 		baseRouter = baseRouter.Add(stdoutHandler, func(_ context.Context, r slog.Record) bool {
 			return r.Level >= c.StdoutLevel && r.Level < c.StderrLevel
 		})
 	} else if c.StdoutEnabled {
-		stdoutHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: c.StdoutLevel})
+		stdoutHandler := c.newHandler(os.Stdout, c.StdoutLevel)
 		baseRouter = baseRouter.Add(stdoutHandler, func(_ context.Context, r slog.Record) bool {
 			return r.Level >= c.StdoutLevel
 		})
