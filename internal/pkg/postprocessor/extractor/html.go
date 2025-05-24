@@ -346,9 +346,10 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			if exists {
 				rawAssets = append(rawAssets, link)
 			}
-			link, exists = i.Attr("content")
+			content, exists := i.Attr("content")
 			if exists {
-				if strings.Contains(link, "http") {
+				link, exists := extractURLFromContent(content)
+				if exists {
 					rawAssets = append(rawAssets, link)
 				}
 			}
@@ -408,4 +409,18 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	return assets, nil
+}
+
+var contentURLRegex = regexp.MustCompile(`(?i)\burl\s*=\s*(\S+)`)
+
+// Must support: "0; url=https://refr1.com", "http://other.com" and be case insensitive
+func extractURLFromContent(content string) (string, bool) {
+	matches := contentURLRegex.FindStringSubmatch(content)
+	if len(matches) > 1 {
+		return strings.Trim(matches[1], `"`), true
+	}
+	if LinkRegexStrict.MatchString(content) {
+		return content, true
+	}
+	return "", false
 }
