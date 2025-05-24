@@ -4,10 +4,12 @@ go 1.24.2
 
 require (
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
+	github.com/MatusOllah/slogcolor v1.6.0
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/ada-url/goada v0.0.0-20250104020233-00cbf4dc9da1
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/dustin/go-humanize v1.0.1
+	github.com/fatih/color v1.16.0
 	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/uuid v1.6.0
@@ -38,7 +40,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/dolthub/maphash v0.1.0 // indirect
-	github.com/fatih/color v1.16.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/gammazero/deque v1.0.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect

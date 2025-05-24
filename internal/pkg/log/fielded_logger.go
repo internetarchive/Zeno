@@ -3,6 +3,8 @@ package log
 import (
 	"context"
 	"log/slog"
+	"runtime"
+	"time"
 )
 
 // Field defines an interface for fields
@@ -52,6 +54,23 @@ func (fl *FieldedLogger) logWithLevel(level slog.Level, msg string, args ...any)
 	combinedArgs = append(combinedArgs, args...)
 
 	if multiLogger != nil {
-		multiLogger.Log(context.TODO(), level, msg, combinedArgs...)
+		// Code copy from [slog.Logger:log()]
+		//
+		// This is needed to feed the correct caller frame PC to the Record
+		// since we warpped the [slog.Logger] with our own [FieldedLogger].
+		// https://github.com/golang/go/issues/73707#issuecomment-2878940561
+		ctx := context.Background()
+		if !multiLogger.Enabled(ctx, level) {
+			return
+		}
+		var pc uintptr
+		var pcs [1]uintptr
+		// skip [runtime.Callers, this function, this function's caller]
+		runtime.Callers(3, pcs[:])
+		pc = pcs[0]
+
+		record := slog.NewRecord(time.Now(), level, msg, pc)
+		record.Add(args...)
+		multiLogger.Handler().Handle(ctx, record)
 	}
 }
