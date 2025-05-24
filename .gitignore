@@ -8,6 +8,6 @@ zeno.log
 *.py
 .DS_Store
 ZENO-*
-output.log
+*.log
 .old/
 *.warc.*
