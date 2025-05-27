@@ -101,6 +101,7 @@ func TestHTMLAssetsAttributes(t *testing.T) {
 	}
 }
 
+// Must get link.href, ignore rel="alternate" href, get meta.href and get 3 URLs from meta refresh.
 func TestHTMLAssetsMeta(t *testing.T) {
 	html := `
 	<html>
@@ -111,6 +112,10 @@ func TestHTMLAssetsMeta(t *testing.T) {
 			<link foo="123" bar="456">
 			<meta href="https://a1.com">
 			<meta content="something">
+			<meta http-equiv="Refresh" content="0; url=https://refr1.com">
+			<meta http-equiv="REFRESH" content="0; url=HTTP://UPPER.COM/PAGE2.HTML">
+			<meta http-equiv="Refresh" content="https://refr2.com">
+			<meta http-equiv="refresh" content="5">
 		</head>
 		<body>
 			experiment
@@ -122,8 +127,8 @@ func TestHTMLAssetsMeta(t *testing.T) {
 	if err != nil {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
-	if len(assets) != 2 {
-		t.Errorf("We couldn't extract all meta & link assets. Received %d, expected 2", len(assets))
+	if len(assets) != 5 {
+		t.Errorf("We couldn't extract all meta & link assets. Received %d, expected 5", len(assets))
 	}
 }
 
