@@ -49,8 +49,8 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		u.GetMIMEType().Is("application/pdf") ||
 		strings.Contains(u.GetMIMEType().String(), "text/") {
 
-		// Create a temp file with a 32MB memory buffer
-		spooledBuff := spooledtempfile.NewSpooledTempFile("zeno", WARCTempDir, 32000000, false, -1)
+		// Create a temp file with a 8MB memory buffer
+		spooledBuff := spooledtempfile.NewSpooledTempFile("zeno", WARCTempDir, 8000000, false, -1)
 		_, err := io.Copy(spooledBuff, buffer)
 		if err != nil {
 			closeErr := spooledBuff.Close()
