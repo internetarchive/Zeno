@@ -138,6 +138,9 @@ func InitConfig() error {
 	once.Do(func() {
 		config = &Config{}
 
+		// Config defaults
+		viper.SetDefault("hq-batch-size", 100)
+
 		// Check if a config file is provided via flag
 		if configFile := viper.GetString("config-file"); configFile != "" {
 			viper.SetConfigFile(configFile)

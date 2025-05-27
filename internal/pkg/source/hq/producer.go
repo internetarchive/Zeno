@@ -71,7 +71,7 @@ func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *pro
 		"component": "hq.producerReceiver",
 	})
 
-	batchSize := getProducerBatchSize()
+	batchSize := config.Get().HQBatchSize
 	maxWaitTime := 5 * time.Second
 
 	batch := &producerBatch{
@@ -198,13 +198,4 @@ func getMaxProducerSenders() int {
 		return 1
 	}
 	return workersCount / 10
-}
-
-// getProducerBatchSize returns the batch size based on configuration.
-func getProducerBatchSize() int {
-	batchSize := config.Get().HQBatchSize
-	if batchSize == 0 {
-		batchSize = 100 // Default batch size.
-	}
-	return batchSize
 }
