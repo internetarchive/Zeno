@@ -94,7 +94,7 @@ func TestHTMLAssetsAttributes(t *testing.T) {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
 	if len(assets) != 3 {
-		t.Errorf("We couldn't extract all [data-item], [style], [data-preview] attribute assets. Recieved %d, expected 3", len(assets))
+		t.Errorf("We couldn't extract all [data-item], [style], [data-preview] attribute assets. Received %d, expected 3", len(assets))
 	}
 }
 
