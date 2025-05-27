@@ -116,19 +116,35 @@ func TestHTMLAssetsMeta(t *testing.T) {
 			<meta http-equiv="REFRESH" content="0; url=HTTP://UPPER.COM/PAGE2.HTML">
 			<meta http-equiv="Refresh" content="https://refr2.com">
 			<meta http-equiv="refresh" content="5">
+			<meta http-equiv="Refresh" content="0; url='https://quote.tld/1'">
+			<meta http-equiv='Refresh' content='0; url=  "https://quote.tld/2" '>
 		</head>
 		<body>
 			experiment
 		</body>
 	</html>`
+	urlsExpected := []string{
+		"http://ex.com/styles/styles.7f7c9ce840c7e527.css",
+		"https://a1.com",
+		"https://refr1.com",
+		"http://UPPER.COM/PAGE2.HTML",
+		"https://refr2.com",
+		"https://quote.tld/1",
+		"https://quote.tld/2",
+	}
 	item := setupItem(html)
 
 	assets, err := HTMLAssets(item)
 	if err != nil {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
-	if len(assets) != 5 {
+	if len(assets) != 7 {
 		t.Errorf("We couldn't extract all meta & link assets. Received %d, expected 5", len(assets))
+	}
+	for i, asset := range assets {
+		if asset.Raw != urlsExpected[i] {
+			t.Errorf("Invalid URL extracted %v, expected %v", asset.Raw, urlsExpected[i])
+		}
 	}
 }
 
