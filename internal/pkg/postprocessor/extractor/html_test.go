@@ -120,7 +120,7 @@ func TestHTMLAssetsMeta(t *testing.T) {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
 	if len(assets) != 2 {
-		t.Errorf("We couldn't extract all meta & link assets. Recieved %d, expected 2", len(assets))
+		t.Errorf("We couldn't extract all meta & link assets. Received %d, expected 2", len(assets))
 	}
 }
 
