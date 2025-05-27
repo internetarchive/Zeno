@@ -21,12 +21,15 @@ func setupItem(html string) *models.Item {
 	resp := &http.Response{
 		Body: io.NopCloser(bytes.NewBufferString(html)),
 	}
-	newURL := &models.URL{Raw: "http://ex.com"}
-	newURL.SetResponse(resp)
-	if err := archiver.ProcessBody(newURL, false, false, 0, os.TempDir()); err != nil {
+	newURL, err := models.NewURL("http://ex.com")
+	if err != nil {
 		panic(err)
 	}
-	return models.NewItem("test", newURL, "")
+	newURL.SetResponse(resp)
+	if err := archiver.ProcessBody(&newURL, false, false, 0, os.TempDir()); err != nil {
+		panic(err)
+	}
+	return models.NewItem("test", &newURL, "")
 }
 
 func TestHTMLOutlinks(t *testing.T) {
@@ -39,6 +42,7 @@ func TestHTMLOutlinks(t *testing.T) {
 			<p>test</p>
 			<a href="https://web.archive.org">wa</a>
 			<a onclick="window.location='http://foo.com'">click me</a>
+			<iframe title="Internet Archive" src="https://web.archive.org"></iframe>
 		</body>
 	</html>`
 	item := setupItem(html)
@@ -47,8 +51,8 @@ func TestHTMLOutlinks(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error extracting HTML outlinks %s", err)
 	}
-	if len(outlinks) != 4 {
-		t.Errorf("We couldn't extract all HTML outlinks.")
+	if len(outlinks) != 5 {
+		t.Errorf("We couldn't extract all HTML outlinks. Received %d, expected 5", len(outlinks))
 	}
 }
 
@@ -69,7 +73,7 @@ func TestHTMLAssetsAudioVideo(t *testing.T) {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
 	if len(assets) != 2 {
-		t.Errorf("We couldn't extract all audio/video assets.")
+		t.Errorf("We couldn't extract all audio/video assets. Received %d, expected 2", len(assets))
 	}
 }
 
@@ -93,7 +97,7 @@ func TestHTMLAssetsAttributes(t *testing.T) {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
 	if len(assets) != 3 {
-		t.Errorf("We couldn't extract all [data-item], [style], [data-preview] attribute assets. %d", len(assets))
+		t.Errorf("We couldn't extract all [data-item], [style], [data-preview] attribute assets. Received %d, expected 3", len(assets))
 	}
 }
 
@@ -124,7 +128,7 @@ func TestHTMLAssetsMeta(t *testing.T) {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
 	if len(assets) != 5 {
-		t.Errorf("We couldn't extract all meta & link assets. %d", len(assets))
+		t.Errorf("We couldn't extract all meta & link assets. Received %d, expected 5", len(assets))
 	}
 }
 

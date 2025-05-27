@@ -30,10 +30,14 @@ type URL struct {
 	once        sync.Once
 }
 
+// NewURL parses a raw URL string and returns a URL object.
+// If the URL is invalid, it returns a URL object with the raw string and an error.
 func NewURL(raw string) (URL, error) {
 	parsed, err := url.ParseRequestURI(raw)
 	if err != nil {
-		return URL{}, err
+		return URL{
+			Raw: raw,
+		}, err
 	}
 	return URL{
 		Raw:    raw,
