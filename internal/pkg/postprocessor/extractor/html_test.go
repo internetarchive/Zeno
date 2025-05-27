@@ -21,12 +21,15 @@ func setupItem(html string) *models.Item {
 	resp := &http.Response{
 		Body: io.NopCloser(bytes.NewBufferString(html)),
 	}
-	newURL := &models.URL{Raw: "http://ex.com"}
-	newURL.SetResponse(resp)
-	if err := archiver.ProcessBody(newURL, false, false, 0, os.TempDir()); err != nil {
+	newURL, err := models.NewURL("http://ex.com")
+	if err != nil {
 		panic(err)
 	}
-	return models.NewItem("test", newURL, "")
+	newURL.SetResponse(resp)
+	if err := archiver.ProcessBody(&newURL, false, false, 0, os.TempDir()); err != nil {
+		panic(err)
+	}
+	return models.NewItem("test", &newURL, "")
 }
 
 func TestHTMLOutlinks(t *testing.T) {

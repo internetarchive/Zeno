@@ -393,7 +393,11 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	for _, rawAsset := range rawAssets {
 		resolvedURL, err := resolveURL(rawAsset, item)
 		if err != nil {
-			logger.Debug("unable to resolve URL", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
+			var baseURL string
+			if item.GetBase() != nil {
+				baseURL = item.GetBase().String()
+			}
+			logger.Debug("unable to resolve URL", "error", err, "item_url", item.GetURL().String(), "base_url", baseURL, "target", rawAsset, "item", item.GetShortID())
 		} else if resolvedURL != "" {
 			assets = append(assets, &models.URL{
 				Raw: resolvedURL,
