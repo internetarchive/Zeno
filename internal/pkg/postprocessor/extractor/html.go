@@ -429,7 +429,7 @@ var contentURLRegex = regexp.MustCompile(`(?i)\burl\s*=\s*(\S+)`)
 func extractURLFromContent(content string) (string, bool) {
 	matches := contentURLRegex.FindStringSubmatch(content)
 	if len(matches) > 1 {
-		return strings.Trim(matches[1], `"`), true
+		return strings.Trim(matches[1], `"'`), true
 	}
 	if LinkRegexStrict.MatchString(content) {
 		return content, true
