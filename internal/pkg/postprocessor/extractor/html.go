@@ -77,6 +77,14 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		})
 	}
 
+	if !slices.Contains(config.Get().DisableHTMLTag, "iframe") {
+		document.Find("iframe[src]").Each(func(index int, i *goquery.Selection) {
+			if src, exists := i.Attr("src"); exists && src != "" {
+				rawOutlinks = append(rawOutlinks, src)
+			}
+		})
+	}
+
 	for _, rawOutlink := range rawOutlinks {
 		resolvedURL, err := resolveURL(rawOutlink, item)
 		if err != nil {
