@@ -17,7 +17,7 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: linux
         goarch: amd64
-        goversion: 1.23.0
+        goversion: 'go.mod'
         compress_assets: OFF
         md5sum: FALSE
         sha256sum: TRUE
