@@ -19,12 +19,6 @@ func URLsCrawledIncr() {
 	}
 }
 
-// URLsCrawledGet returns the current value of the URLsCrawled counter.
-func URLsCrawledGet() uint64 { return globalStats.URLsCrawled.get() }
-
-// URLsCrawledReset resets the URLsCrawled counter to 0.
-func URLsCrawledReset() { globalStats.URLsCrawled.reset() }
-
 /////////////////////////
 //    SeedsFinished    //
 /////////////////////////
@@ -36,12 +30,6 @@ func SeedsFinishedIncr() {
 		globalPromStats.finishedSeeds.WithLabelValues(config.Get().Job, hostname, version).Inc()
 	}
 }
-
-// SeedsFinishedGet returns the current value of the SeedsFinished counter.
-func SeedsFinishedGet() uint64 { return globalStats.SeedsFinished.get() }
-
-// SeedsFinishedReset resets the SeedsFinished counter to 0.
-func SeedsFinishedReset() { globalStats.SeedsFinished.reset() }
 
 //////////////////////////
 // PreprocessorRoutines //
@@ -63,12 +51,6 @@ func PreprocessorRoutinesDecr() {
 	}
 }
 
-// PreprocessorRoutinesGet returns the current value of the PreprocessorRoutines counter.
-func PreprocessorRoutinesGet() uint64 { return globalStats.PreprocessorRoutines.get() }
-
-// PreprocessorRoutinesReset resets the PreprocessorRoutines counter to 0.
-func PreprocessorRoutinesReset() { globalStats.PreprocessorRoutines.reset() }
-
 //////////////////////////
 //  ArchiverRoutines    //
 //////////////////////////
@@ -88,12 +70,6 @@ func ArchiverRoutinesDecr() {
 		globalPromStats.archiverRoutines.WithLabelValues(config.Get().Job, hostname, version).Dec()
 	}
 }
-
-// ArchiverRoutinesGet returns the current value of the ArchiverRoutines counter.
-func ArchiverRoutinesGet() uint64 { return globalStats.ArchiverRoutines.get() }
-
-// ArchiverRoutinesReset resets the ArchiverRoutines counter to 0.
-func ArchiverRoutinesReset() { globalStats.ArchiverRoutines.reset() }
 
 //////////////////////////
 // PostprocessorRoutines //
@@ -115,12 +91,6 @@ func PostprocessorRoutinesDecr() {
 	}
 }
 
-// PostprocessorRoutinesGet returns the current value of the PostprocessorRoutines counter.
-func PostprocessorRoutinesGet() uint64 { return globalStats.PostprocessorRoutines.get() }
-
-// PostprocessorRoutinesReset resets the PostprocessorRoutines counter to 0.
-func PostprocessorRoutinesReset() { globalStats.PostprocessorRoutines.reset() }
-
 //////////////////////////
 // FinisherRoutines //
 //////////////////////////
@@ -140,12 +110,6 @@ func FinisherRoutinesDecr() {
 		globalPromStats.finisherRoutines.WithLabelValues(config.Get().Job, hostname, version).Dec()
 	}
 }
-
-// FinisherRoutinesGet returns the current value of the FinisherRoutines counter.
-func FinisherRoutinesGet() uint64 { return globalStats.FinisherRoutines.get() }
-
-// FinisherRoutinesReset resets the FinisherRoutines counter to 0.
-func FinisherRoutinesReset() { globalStats.FinisherRoutines.reset() }
 
 //////////////////////////
 //         Paused       //
@@ -171,9 +135,6 @@ func PausedUnset() {
 	}
 }
 
-// PausedGet returns the current value of the Paused flag.
-func PausedGet() bool { return globalStats.Paused.Load() }
-
 // PausedReset resets the Paused flag to false.
 func PausedReset() { globalStats.Paused.Store(false) }
 
@@ -198,15 +159,6 @@ func HTTPReturnCodesIncr(key string) {
 	}
 }
 
-// HTTPReturnCodesGet returns the current value of the HTTPReturnCodes counter for the given key.
-func HTTPReturnCodesGet(key string) uint64 { return globalStats.HTTPReturnCodes.get(key) }
-
-// HTTPReturnCodesReset resets the HTTPReturnCodes counter for the given key to 0.
-func HTTPReturnCodesReset(key string) { globalStats.HTTPReturnCodes.reset(key) }
-
-// HTTPReturnCodesResetAll resets all HTTPReturnCodes counters to 0.
-func HTTPReturnCodesResetAll() { globalStats.HTTPReturnCodes.resetAll() }
-
 //////////////////////////
 // WarcWritingQueueSize //
 //////////////////////////
@@ -218,12 +170,6 @@ func WarcWritingQueueSizeSet(value int64) {
 		globalPromStats.warcWritingQueueSize.WithLabelValues(config.Get().Job, hostname, version).Set(float64(value))
 	}
 }
-
-// WarcWritingQueueSizeGet returns the current value of the WarcWritingQueueSize.
-func WarcWritingQueueSizeGet() int64 { return globalStats.WARCWritingQueueSize.Load() }
-
-// WarcWritingQueueSizeReset resets the WarcWritingQueueSize to 0.
-func WarcWritingQueueSizeReset() { globalStats.WARCWritingQueueSize.Store(0) }
 
 //////////////////////////
 //   MeanHTTPRespTime   //
@@ -237,12 +183,6 @@ func MeanHTTPRespTimeAdd(value time.Duration) {
 	}
 }
 
-// MeanHTTPRespTimeGet returns the current value of the MeanHTTPRespTime.
-func MeanHTTPRespTimeGet() float64 { return globalStats.MeanHTTPResponseTime.get() }
-
-// MeanHTTPRespTimeReset resets the MeanHTTPRespTime to 0.
-func MeanHTTPRespTimeReset() { globalStats.MeanHTTPResponseTime.reset() }
-
 //////////////////////////
 // MeanProcessBodyTime  //
 //////////////////////////
@@ -255,12 +195,6 @@ func MeanProcessBodyTimeAdd(value time.Duration) {
 	}
 }
 
-// MeanProcessBodyTimeGet returns the current value of the MeanProcessBodyTime.
-func MeanProcessBodyTimeGet() float64 { return globalStats.MeanProcessBodyTime.get() }
-
-// MeanProcessBodyTimeReset resets the MeanProcessBodyTime to 0.
-func MeanProcessBodyTimeReset() { globalStats.MeanProcessBodyTime.reset() }
-
 ////////////////////////////
 // MeanWaitOnFeedbackTime //
 ////////////////////////////
@@ -272,9 +206,3 @@ func MeanWaitOnFeedbackTimeAdd(value time.Duration) {
 		globalPromStats.meanWaitOnFeedbackTime.WithLabelValues(config.Get().Job, hostname, version).Observe(float64(value))
 	}
 }
-
-// MeanWaitOnFeedbackTimeGet returns the current value of the MeanWaitOnFeedbackTime.
-func MeanWaitOnFeedbackTimeGet() float64 { return globalStats.MeanWaitOnFeedbackTime.get() }
-
-// MeanWaitOnFeedbackTimeReset resets the MeanWaitOnFeedbackTime to 0.
-func MeanWaitOnFeedbackTimeReset() { globalStats.MeanWaitOnFeedbackTime.reset() }
