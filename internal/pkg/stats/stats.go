@@ -111,6 +111,8 @@ func GetMapTUI() map[string]interface{} {
 		"HTTP 4xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("4*")),
 		"HTTP 5xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("5*")),
 		"Mean HTTP response time": globalStats.MeanHTTPResponseTime.get(),
+		"Mean wait on feedback time": globalStats.MeanWaitOnFeedbackTime.get(),
+		"Mean process body time": globalStats.MeanProcessBodyTime.get(),
 		"WARC writing queue size": globalStats.WARCWritingQueueSize.Load(),
 	}
 }
