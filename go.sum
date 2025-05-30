@@ -158,8 +158,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/internetarchive/gocrawlhq v1.2.31 h1:Vbt7+7yaF2ce/xxorxBh2++1bBkR3w7bZpAbmT6ZuiE=
 github.com/internetarchive/gocrawlhq v1.2.31/go.mod h1:MmfqM9yeThJAbkKY1x5ntfGAGMEjc8mt/trnK4crW9M=
-github.com/internetarchive/gowarc v0.8.77 h1:04nsbN3VNBn4G4hmCLX2YGc0SDW5x8y4Zk1vlksEk3k=
-github.com/internetarchive/gowarc v0.8.77/go.mod h1:AWjp73NlQNulp3Hn9zKqYhK9eiQA04yY/YTku3CY3vQ=
+github.com/internetarchive/gowarc v0.8.78 h1:AmIWpIvXz19y6d13wJ72tvrfbe0gH2jagPHDKFJ2gwk=
+github.com/internetarchive/gowarc v0.8.78/go.mod h1:AWjp73NlQNulp3Hn9zKqYhK9eiQA04yY/YTku3CY3vQ=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
 github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
