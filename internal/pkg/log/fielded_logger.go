@@ -43,16 +43,6 @@ func (fl *FieldedLogger) Error(msg string, args ...any) {
 }
 
 func (fl *FieldedLogger) logWithLevel(level slog.Level, msg string, args ...any) {
-	var combinedArgs []any
-
-	if fl.fields != nil {
-		for k, v := range *fl.fields {
-			combinedArgs = append(combinedArgs, k, v)
-		}
-	}
-
-	combinedArgs = append(combinedArgs, args...)
-
 	if multiLogger != nil {
 		// Code copy from [slog.Logger:log()]
 		//
