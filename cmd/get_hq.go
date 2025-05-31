@@ -43,7 +43,7 @@ var getHQCmd = &cobra.Command{
 			Version := utils.GetVersion()
 
 			_, err = pyroscope.Start(pyroscope.Config{
-				ApplicationName: fmt.Sprintf("zeno"),
+				ApplicationName: "zeno",
 				ServerAddress:   cfg.PyroscopeAddress,
 				Logger:          nil,
 				Tags:            map[string]string{"hostname": hostname, "job": cfg.Job, "version": Version.Version, "goVersion": Version.GoVersion, "uuid": uuid.New().String()[:5]},
