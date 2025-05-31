@@ -302,6 +302,4 @@ func preprocess(workerID string, seed *models.Item) {
 		items[i].GetURL().SetRequest(req)
 		items[i].SetStatus(models.ItemPreProcessed)
 	}
-
-	return
 }
