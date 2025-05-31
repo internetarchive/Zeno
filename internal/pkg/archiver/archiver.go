@@ -357,6 +357,4 @@ func archive(workerID string, seed *models.Item) {
 
 	// Wait for all goroutines to finish
 	wg.Wait()
-
-	return
 }
