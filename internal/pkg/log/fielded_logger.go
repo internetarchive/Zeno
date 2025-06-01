@@ -70,7 +70,7 @@ func (fl *FieldedLogger) logWithLevel(level slog.Level, msg string, args ...any)
 		pc = pcs[0]
 
 		record := slog.NewRecord(time.Now(), level, msg, pc)
-		record.Add(args...)
+		record.Add(combinedArgs...)
 		multiLogger.Handler().Handle(ctx, record)
 	}
 }
