@@ -157,7 +157,7 @@ func preprocess(workerID string, seed *models.Item) {
 		// Panic on any child that is not fresh
 		// This means that an incorrect item was inserted and/or that the finisher is not working correctly
 		if items[i].GetStatus() != models.ItemFresh {
-			dumper.PanicWithDump(fmt.Sprintf("non-fresh item %s received in preprocessor worker %s with status: %s", items[i].GetShortID(), workerID, items[i].GetStatus().String()), items[i])
+			dumper.PanicWithDump(fmt.Sprintf("non-fresh item %s received in preprocessor worker %s with status: %s", items[i].GetShortID(), workerID, items[i].GetStatus()), items[i])
 		}
 
 		// Normalize the URL
