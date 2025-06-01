@@ -21,7 +21,7 @@ func newDocumentWithBaseTag(base string) *goquery.Document {
 func TestExtractBaseTag(t *testing.T) {
 	doc := newDocumentWithBaseTag("http://example.com/something/")
 
-	item := models.NewItem("test", &models.URL{
+	item := models.NewItem(&models.URL{
 		Raw: "https://example.com/something/page.html",
 	}, "")
 

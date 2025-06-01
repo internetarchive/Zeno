@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/google/uuid"
 )
 
 // Item represents a URL, it's children (e.g. discovered assets) and it's state in the pipeline
@@ -300,13 +301,27 @@ func (i *Item) SetBase(base *url.URL) { i.base = base }
 func (i *Item) SetError(err error) { i.err = err }
 
 // NewItem creates a new item with the given ID, URL and seedVia
-func NewItem(ID string, URL *URL, seedVia string) *Item {
+func NewItemWithID(ID string, URL *URL, seedVia string) *Item {
 	if ID == "" || URL == nil {
 		return nil
 	}
 
 	return &Item{
 		id:      ID,
+		url:     URL,
+		parent:  nil,
+		seedVia: seedVia,
+		status:  ItemFresh,
+	}
+}
+
+func NewItem(URL *URL, seedVia string) *Item {
+	if URL == nil {
+		return nil
+	}
+
+	return &Item{
+		id:      uuid.New().String(),
 		url:     URL,
 		parent:  nil,
 		seedVia: seedVia,

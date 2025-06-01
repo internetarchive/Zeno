@@ -4,7 +4,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
@@ -46,7 +45,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 			Hops:      item.GetURL().GetHops(),
 		}
 
-		newChild := models.NewItem(uuid.New().String(), newURL, "")
+		newChild := models.NewItem(newURL, "")
 		err := item.AddChild(newChild, models.ItemGotRedirected)
 		if err != nil {
 			panic(err)
@@ -62,7 +61,6 @@ func postprocessItem(item *models.Item) []*models.Item {
 	// case facebook.IsFacebookPostURL(item.GetURL()):
 	// 	err := item.AddChild(
 	// 		models.NewItem(
-	// 			uuid.New().String(),
 	// 			facebook.GenerateEmbedURL(item.GetURL()),
 	// 			item.GetURL().String(),
 	// 		), models.ItemGotChildren)
@@ -123,7 +121,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 						}
 					}
 
-					newChild := models.NewItem(uuid.New().String(), assets[i], "")
+					newChild := models.NewItem(assets[i], "")
 					err = item.AddChild(newChild, models.ItemGotChildren)
 					if err != nil {
 						panic(err)
@@ -160,7 +158,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 						continue
 					}
 
-					newOutlinkItem := models.NewItem(uuid.New().String(), newOutlinks[i], item.GetURL().String())
+					newOutlinkItem := models.NewItem(newOutlinks[i], item.GetURL().String())
 					outlinks = append(outlinks, newOutlinkItem)
 				}
 

@@ -150,7 +150,7 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *s
 				discard = true
 			}
 			parsedURL.SetHops(int(URL.Hops))
-			newItem := models.NewItem(URL.ID, &parsedURL, URL.Via)
+			newItem := models.NewItemWithID(URL.ID, &parsedURL, URL.Via)
 			newItem.SetStatus(models.ItemFresh)
 			newItem.SetSource(models.ItemSourceQueue)
 

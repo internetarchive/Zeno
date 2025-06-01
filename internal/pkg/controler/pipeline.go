@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/api"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -141,7 +140,7 @@ func startPipeline() {
 				panic(err)
 			}
 
-			item := models.NewItem(uuid.New().String(), &parsedURL, "")
+			item := models.NewItem(&parsedURL, "")
 			item.SetSource(models.ItemSourceQueue)
 
 			err = reactor.ReceiveInsert(item)

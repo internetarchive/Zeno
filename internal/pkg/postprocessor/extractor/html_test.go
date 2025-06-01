@@ -29,7 +29,7 @@ func setupItem(html string) *models.Item {
 	if err := archiver.ProcessBody(&newURL, false, false, 0, os.TempDir()); err != nil {
 		panic(err)
 	}
-	return models.NewItem("test", &newURL, "")
+	return models.NewItem(&newURL, "")
 }
 
 func TestHTMLOutlinks(t *testing.T) {
