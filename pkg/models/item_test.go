@@ -1181,7 +1181,7 @@ func TestNewItem(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			item := NewItem(tt.id, tt.url, tt.via)
+			item := NewItemWithID(tt.id, tt.url, tt.via)
 			if tt.expected == nil && item != nil {
 				t.Errorf("expected nil, got: %v", item)
 			} else if item != nil {

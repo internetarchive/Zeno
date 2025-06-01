@@ -4,7 +4,6 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -74,7 +73,7 @@ func TestMatchRegexExclusion(t *testing.T) {
 			if err != nil {
 				t.Errorf("URL parsing failed %v", err)
 			}
-			item := models.NewItem(uuid.New().String(), &parsedURL, "")
+			item := models.NewItem(&parsedURL, "")
 			got := matchRegexExclusion(regexps, item)
 			if got != tt.expectedMatched {
 				t.Errorf("Expected match: %v, got: %v", tt.expectedMatched, got)
