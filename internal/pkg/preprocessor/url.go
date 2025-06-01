@@ -4,7 +4,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/ada-url/goada"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -15,59 +14,54 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	// Clean the URL by removing leading and trailing quotes
 	URL.Raw = strings.Trim(URL.Raw, `"'`)
 
-	var adaParse *goada.Url
-
 	parsedURL, err := url.Parse(URL.Raw)
 	if err != nil {
 		return err
 	}
 
+	// If parentURL is provided and parsedURL is relative, resolve against parent
 	if parentURL != nil && !parsedURL.IsAbs() {
-		// Determine the base with the following logic:
-		// - always with the <base> tag found in the HTML document, if it exists (TBI)
-		// - if the URL starts with a slash, use the parent URL's scheme and host
-		// - if the URL does not start with a slash, use the parent URL's scheme, host, and path
 		baseURL := parentURL.GetParsed()
-		if strings.HasPrefix(parsedURL.Path, "/") {
-			adaParse, err = goada.NewWithBase(URL.Raw, baseURL.Scheme+"://"+baseURL.Host)
-			if err != nil {
-				return err
-			}
-		} else {
-			adaParse, err = goada.NewWithBase(URL.Raw, baseURL.String())
-			if err != nil {
-				return err
-			}
+		baseParsed := &url.URL{
+			Scheme: baseURL.Scheme,
+			Host:   baseURL.Host,
+			Path:   baseURL.Path,
 		}
-	} else {
-		if parsedURL.Scheme == "" {
-			parsedURL.Scheme = "http"
-		}
+		parsedURL = baseParsed.ResolveReference(parsedURL)
+	}
 
-		adaParse, err = goada.New(models.URLToString(parsedURL))
+	// If scheme is missing, default to http and reparse
+	if parsedURL.Scheme == "" {
+		parsedURL, err = url.Parse("http://" + URL.Raw)
 		if err != nil {
 			return err
 		}
 	}
 
-	adaParse.SetHash("")
-	if scheme := adaParse.Protocol(); scheme != "http:" && scheme != "https:" {
+	parsedURL.Fragment = ""
+
+	// Ensure path is "/" if empty
+	if parsedURL.Path == "" {
+		parsedURL.Path = "/"
+	}
+
+	// Only allow http and https
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 		return ErrUnsupportedScheme
 	}
 
 	// Check for localhost and 127.0.0.1
-	host := adaParse.Hostname()
-	if host == "localhost" || host == "127.0.0.1" {
+	host := parsedURL.Hostname()
+	if host == "localhost" || host == "127.0.0.1" || host == "" {
 		return ErrUnsupportedHost
 	}
 
-	// Check for TLD
+	// Check for TLD in host
 	if !strings.Contains(host, ".") {
 		return ErrUnsupportedHost
 	}
 
-	URL.Raw = adaParse.Href()
-	adaParse.Free()
-
+	// Assign normalized URL back
+	URL.Raw = parsedURL.String()
 	return URL.Parse()
 }
