@@ -170,7 +170,7 @@ func (a *archiver) worker(workerID string) {
 				}
 
 				if seed.GetStatus() != models.ItemPreProcessed && seed.GetStatus() != models.ItemGotRedirected && seed.GetStatus() != models.ItemGotChildren {
-					logger.Debug("skipping seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops(), "status", seed.GetStatus().String())
+					logger.Debug("skipping seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops(), "status", seed.GetStatus())
 				} else {
 					archive(workerID, seed)
 				}
@@ -205,7 +205,7 @@ func archive(workerID string, seed *models.Item) {
 
 	for i := range items {
 		if items[i].GetStatus() != models.ItemPreProcessed {
-			logger.Debug("skipping item", "seed_id", seed.GetShortID(), "item_id", items[i].GetShortID(), "status", items[i].GetStatus().String(), "depth", items[i].GetDepth())
+			logger.Debug("skipping item", "seed_id", seed.GetShortID(), "item_id", items[i].GetShortID(), "status", items[i].GetStatus(), "depth", items[i].GetDepth())
 			continue
 		}
 

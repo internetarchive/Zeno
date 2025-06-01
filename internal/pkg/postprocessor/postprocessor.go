@@ -103,7 +103,7 @@ func (p *postprocessor) worker(workerID string) {
 				}
 
 				if seed.GetStatus() != models.ItemArchived && seed.GetStatus() != models.ItemGotRedirected && seed.GetStatus() != models.ItemGotChildren {
-					logger.Debug("skipping seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops(), "status", seed.GetStatus().String())
+					logger.Debug("skipping seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops(), "status", seed.GetStatus())
 				} else {
 					outlinks := postprocess(workerID, seed)
 					for i := range outlinks {
