@@ -262,7 +262,7 @@ func archive(workerID string, seed *models.Item) {
 				resp, err = client.Do(req)
 				if err != nil {
 					if retry < config.Get().MaxRetry {
-						logger.Warn("retrying request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime.String())
+						logger.Warn("retrying request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime)
 						time.Sleep(retrySleepTime)
 						continue
 					}
@@ -297,7 +297,7 @@ func archive(workerID string, seed *models.Item) {
 					}
 
 					if retry < config.Get().MaxRetry {
-						logger.Warn("retrying", "reason", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime.String(), "status_code", resp.StatusCode, "url", req.URL.String())
+						logger.Warn("retrying", "reason", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime, "status_code", resp.StatusCode, "url", req.URL.String())
 
 						// Consume body, needed to avoid leaking RAM & storage
 						io.Copy(io.Discard, resp.Body)
