@@ -44,6 +44,10 @@ func TestHTMLOutlinks(t *testing.T) {
 			<a onclick="window.location='http://foo.com'">click me</a>
 			<a ondblclick="window.location='https://bar.com'">double click me</a>
 			<iframe title="Internet Archive" src="https://web.archive.org"></iframe>
+			<img src="world-map.jpg" usemap="#worldmap" alt="World Map">
+			<map name="worldmap">
+			  <area shape="rect" coords="34,44,270,350" href="https://example.com/usa" alt="USA">
+			</map>
 		</body>
 	</html>`
 	item := setupItem(html)
@@ -52,8 +56,8 @@ func TestHTMLOutlinks(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error extracting HTML outlinks %s", err)
 	}
-	if len(outlinks) != 6 {
-		t.Errorf("We couldn't extract all HTML outlinks. Received %d, expected 6", len(outlinks))
+	if len(outlinks) != 7 {
+		t.Errorf("We couldn't extract all HTML outlinks. Received %d, expected 7", len(outlinks))
 	}
 }
 

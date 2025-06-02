@@ -86,6 +86,14 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		})
 	}
 
+	if !slices.Contains(config.Get().DisableHTMLTag, "area") {
+		document.Find("area[href]").Each(func(index int, i *goquery.Selection) {
+			if href, exists := i.Attr("href"); exists && href != "" {
+				rawOutlinks = append(rawOutlinks, href)
+			}
+		})
+	}
+
 	for _, rawOutlink := range rawOutlinks {
 		resolvedURL, err := resolveURL(rawOutlink, item)
 		if err != nil {
