@@ -65,8 +65,8 @@ func WatchDiskSpace(path string, interval time.Duration) {
 
 	paused := false
 	returnASAP := false
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+	backoffMultiplier := 0
+	maxInterval := 10 * interval
 
 	for {
 		select {
@@ -77,21 +77,33 @@ func WatchDiskSpace(path string, interval time.Duration) {
 				returnASAP = true
 			}
 			return
-		case <-ticker.C:
+		default:
 			err := CheckDiskUsage(path)
 
 			if err != nil && !paused {
 				logger.Warn("Low disk space, pausing the pipeline", "err", err.Error())
 				pause.Pause("Not enough disk space!!!")
 				paused = true
+				backoffMultiplier++
 			} else if err == nil && paused {
 				logger.Info("Disk space is sufficient, resuming the pipeline")
 				pause.Resume()
 				paused = false
+				backoffMultiplier = 0
 				if returnASAP {
 					return
 				}
+			} else if err != nil {
+				backoffMultiplier++
+			} else {
+				backoffMultiplier = 0
 			}
+
+			sleep := interval * (1 << backoffMultiplier) // exponential backoff
+			if sleep > maxInterval {
+				sleep = maxInterval
+			}
+			time.Sleep(sleep)
 		}
 	}
 }
