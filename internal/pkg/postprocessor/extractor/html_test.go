@@ -8,14 +8,8 @@ import (
 	"testing"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
-
-func TestMain(m *testing.M) {
-	config.InitConfig()
-	os.Exit(m.Run())
-}
 
 func setupItem(html string) *models.Item {
 	resp := &http.Response{
