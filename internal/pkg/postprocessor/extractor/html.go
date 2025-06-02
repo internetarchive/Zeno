@@ -261,12 +261,12 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			matches := urlRegex.FindAllStringSubmatch(i.Text(), -1)
 			for match := range matches {
 				matchReplacement := matches[match][1]
-				matchReplacement = strings.Replace(matchReplacement, "'", "", -1)
-				matchReplacement = strings.Replace(matchReplacement, "\"", "", -1)
+				matchReplacement = strings.ReplaceAll(matchReplacement, "'", "")
+				matchReplacement = strings.ReplaceAll(matchReplacement, "\"", "")
 
 				// If the URL already has http (or https), we don't need add anything to it.
 				if !strings.Contains(matchReplacement, "http") {
-					matchReplacement = strings.Replace(matchReplacement, "//", "http://", -1)
+					matchReplacement = strings.ReplaceAll(matchReplacement, "//", "http://")
 				}
 
 				if strings.HasPrefix(matchReplacement, "#wp-") {
