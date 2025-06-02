@@ -53,6 +53,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			"data-redirect-url",
 			"ping",
 			"onclick",
+			"ondblclick",
 			"router-link",
 			"to",
 		}
@@ -64,7 +65,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 					continue
 				}
 
-				if key == "onclick" {
+				if key == "onclick" || key == "ondblclick" {
 					// Attempt to extract URL from JS like window.location = '...';
 					if matches := onclickRegex.FindStringSubmatch(val); len(matches) > 1 {
 						rawOutlinks = append(rawOutlinks, matches[1])

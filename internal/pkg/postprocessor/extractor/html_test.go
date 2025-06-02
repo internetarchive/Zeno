@@ -42,6 +42,7 @@ func TestHTMLOutlinks(t *testing.T) {
 			<p>test</p>
 			<a href="https://web.archive.org">wa</a>
 			<a onclick="window.location='http://foo.com'">click me</a>
+			<a ondblclick="window.location='https://bar.com'">double click me</a>
 			<iframe title="Internet Archive" src="https://web.archive.org"></iframe>
 		</body>
 	</html>`
@@ -51,8 +52,8 @@ func TestHTMLOutlinks(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error extracting HTML outlinks %s", err)
 	}
-	if len(outlinks) != 5 {
-		t.Errorf("We couldn't extract all HTML outlinks. Received %d, expected 5", len(outlinks))
+	if len(outlinks) != 6 {
+		t.Errorf("We couldn't extract all HTML outlinks. Received %d, expected 6", len(outlinks))
 	}
 }
 
