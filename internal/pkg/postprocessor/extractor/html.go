@@ -15,8 +15,6 @@ import (
 )
 
 var (
-	cssURLRegex  = regexp.MustCompile(`(?:url\(['"]?)(.*?)(?:['"]?\))`)
-	urlRegex     = regexp.MustCompile(`(?m)url\((.*?)\)`)
 	onclickRegex = regexp.MustCompile(`window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]`)
 )
 
@@ -150,26 +148,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 		style, exists := i.Attr("style")
 		if exists {
-			matches := cssURLRegex.FindAllStringSubmatch(style, -1)
-
-			for match := range matches {
-				if len(matches[match]) > 0 {
-					matchFound := matches[match][1]
-
-					// Don't extract CSS elements that aren't URLs
-					if strings.Contains(matchFound, "%") ||
-						strings.HasPrefix(matchFound, "0.") ||
-						strings.HasPrefix(matchFound, "--font") ||
-						strings.HasPrefix(matchFound, "--size") ||
-						strings.HasPrefix(matchFound, "--color") ||
-						strings.HasPrefix(matchFound, "--shreddit") ||
-						strings.HasPrefix(matchFound, "100vh") {
-						continue
-					}
-
-					rawAssets = append(rawAssets, matchFound)
-				}
-			}
+			rawAssets = append(rawAssets, CSS(style, true)...)
 		}
 
 		dataPreview, exists := i.Attr("data-preview")
@@ -267,22 +246,18 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 	if !slices.Contains(config.Get().DisableHTMLTag, "style") {
 		document.Find("style").Each(func(index int, i *goquery.Selection) {
-			matches := urlRegex.FindAllStringSubmatch(i.Text(), -1)
-			for match := range matches {
-				matchReplacement := matches[match][1]
-				matchReplacement = strings.ReplaceAll(matchReplacement, "'", "")
-				matchReplacement = strings.ReplaceAll(matchReplacement, "\"", "")
-
+			links := CSS(i.Text(), false)
+			for _, link := range links {
 				// If the URL already has http (or https), we don't need add anything to it.
-				if !strings.Contains(matchReplacement, "http") {
-					matchReplacement = strings.ReplaceAll(matchReplacement, "//", "http://")
+				if !strings.Contains(link, "http") {
+					link = strings.Replace(link, "//", "http://", -1)
 				}
 
-				if strings.HasPrefix(matchReplacement, "#wp-") {
+				if strings.HasPrefix(link, "#wp-") {
 					continue
 				}
 
-				rawAssets = append(rawAssets, matchReplacement)
+				rawAssets = append(rawAssets, link)
 			}
 		})
 	}

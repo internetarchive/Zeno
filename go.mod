@@ -27,6 +27,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	github.com/spf13/viper v1.20.1
+	github.com/tdewolff/parse/v2 v2.8.1
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.40.0
 	mvdan.cc/xurls/v2 v2.6.0
