@@ -8,14 +8,8 @@ import (
 	"testing"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
-
-func TestMain(m *testing.M) {
-	config.InitConfig()
-	os.Exit(m.Run())
-}
 
 func setupItem(html string) *models.Item {
 	resp := &http.Response{
@@ -42,7 +36,12 @@ func TestHTMLOutlinks(t *testing.T) {
 			<p>test</p>
 			<a href="https://web.archive.org">wa</a>
 			<a onclick="window.location='http://foo.com'">click me</a>
+			<a ondblclick="window.location='https://bar.com'">double click me</a>
 			<iframe title="Internet Archive" src="https://web.archive.org"></iframe>
+			<img src="world-map.jpg" usemap="#worldmap" alt="World Map">
+			<map name="worldmap">
+			  <area shape="rect" coords="34,44,270,350" href="https://example.com/usa" alt="USA">
+			</map>
 		</body>
 	</html>`
 	item := setupItem(html)
@@ -51,8 +50,8 @@ func TestHTMLOutlinks(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error extracting HTML outlinks %s", err)
 	}
-	if len(outlinks) != 5 {
-		t.Errorf("We couldn't extract all HTML outlinks. Received %d, expected 5", len(outlinks))
+	if len(outlinks) != 7 {
+		t.Errorf("We couldn't extract all HTML outlinks. Received %d, expected 7", len(outlinks))
 	}
 }
 

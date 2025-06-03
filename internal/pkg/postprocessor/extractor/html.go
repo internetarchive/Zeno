@@ -51,6 +51,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			"data-redirect-url",
 			"ping",
 			"onclick",
+			"ondblclick",
 			"router-link",
 			"to",
 		}
@@ -62,7 +63,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 					continue
 				}
 
-				if key == "onclick" {
+				if key == "onclick" || key == "ondblclick" {
 					// Attempt to extract URL from JS like window.location = '...';
 					if matches := onclickRegex.FindStringSubmatch(val); len(matches) > 1 {
 						rawOutlinks = append(rawOutlinks, matches[1])
@@ -79,6 +80,14 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		document.Find("iframe[src]").Each(func(index int, i *goquery.Selection) {
 			if src, exists := i.Attr("src"); exists && src != "" {
 				rawOutlinks = append(rawOutlinks, src)
+			}
+		})
+	}
+
+	if !slices.Contains(config.Get().DisableHTMLTag, "area") {
+		document.Find("area[href]").Each(func(index int, i *goquery.Selection) {
+			if href, exists := i.Attr("href"); exists && href != "" {
+				rawOutlinks = append(rawOutlinks, href)
 			}
 		})
 	}
