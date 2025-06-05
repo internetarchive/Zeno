@@ -65,7 +65,9 @@ func WatchDiskSpace(path string, interval time.Duration) {
 
 	paused := false
 	returnASAP := false
-	ticker := time.NewTicker(interval)
+	currentInterval := interval
+	maxInterval := 10 * interval
+	ticker := time.NewTicker(currentInterval)
 	defer ticker.Stop()
 
 	for {
@@ -77,19 +79,41 @@ func WatchDiskSpace(path string, interval time.Duration) {
 				returnASAP = true
 			}
 			return
+
 		case <-ticker.C:
 			err := CheckDiskUsage(path)
 
-			if err != nil && !paused {
-				logger.Warn("Low disk space, pausing the pipeline", "err", err.Error())
-				pause.Pause("Not enough disk space!!!")
-				paused = true
-			} else if err == nil && paused {
-				logger.Info("Disk space is sufficient, resuming the pipeline")
-				pause.Resume()
-				paused = false
-				if returnASAP {
-					return
+			if err != nil {
+				if !paused {
+					logger.Warn("Low disk space, pausing the pipeline", "err", err.Error())
+					pause.Pause("Not enough disk space!!!")
+					paused = true
+				}
+
+				// Increase interval with exponential backoff (up to maxInterval)
+				if currentInterval < maxInterval {
+					currentInterval *= 2
+					if currentInterval > maxInterval {
+						currentInterval = maxInterval
+					}
+					ticker.Reset(currentInterval)
+					logger.Debug("Increasing disk check interval due to low space", "interval", currentInterval)
+				}
+			} else {
+				if paused {
+					logger.Info("Disk space is sufficient, resuming the pipeline")
+					pause.Resume()
+					paused = false
+					if returnASAP {
+						return
+					}
+				}
+
+				// Reset interval to default if it was increased
+				if currentInterval != interval {
+					currentInterval = interval
+					ticker.Reset(currentInterval)
+					logger.Debug("Resetting disk check interval to default", "interval", currentInterval)
 				}
 			}
 		}
