@@ -95,7 +95,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	for _, rawOutlink := range rawOutlinks {
 		resolvedURL, err := resolveURL(rawOutlink, item)
 		if err != nil {
-			logger.Debug("unable to resolve URL", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
+			logger.Debug("unable to resolve URL", "error", err, "url", item.GetURL(), "item", item.GetShortID())
 		} else if resolvedURL != "" {
 			outlinks = append(outlinks, &models.URL{
 				Raw: resolvedURL,
@@ -140,7 +140,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		if exists {
 			URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(dataItem)))
 			if err != nil {
-				logger.Debug("unable to extract URLs from JSON in data-item attribute", "err", err, "url", item.GetURL().String(), "item", item.GetShortID())
+				logger.Debug("unable to extract URLs from JSON in data-item attribute", "err", err, "url", item.GetURL(), "item", item.GetShortID())
 			} else {
 				rawAssets = append(rawAssets, URLsFromJSON...)
 			}
@@ -285,7 +285,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			// Apply regex on the script's HTML to extract potential assets
 			outerHTML, err := goquery.OuterHtml(i)
 			if err != nil {
-				logger.Debug("unable to extract outer HTML from script tag", "err", err, "url", item.GetURL().String(), "item", item.GetShortID())
+				logger.Debug("unable to extract outer HTML from script tag", "err", err, "url", item.GetURL(), "item", item.GetShortID())
 			} else {
 				var scriptLinks []string
 				if !config.Get().StrictRegex {
@@ -298,7 +298,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 						// Escape URLs when unicode runes are present in the extracted URLs
 						scriptLink, err := strconv.Unquote(`"` + scriptLink + `"`)
 						if err != nil {
-							logger.Debug("unable to escape URL from JSON in script tag", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
+							logger.Debug("unable to escape URL from JSON in script tag", "error", err, "url", item.GetURL(), "item", item.GetShortID())
 							continue
 						}
 						rawAssets = append(rawAssets, scriptLink)
@@ -310,7 +310,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			if !strings.HasPrefix(i.Text(), "{") {
 				assetsFromScriptContent, err := extractFromScriptContent(i.Text())
 				if err != nil {
-					logger.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", item.GetURL().String(), "item", item.GetShortID())
+					logger.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", item.GetURL(), "item", item.GetShortID())
 				} else {
 					rawAssets = append(rawAssets, assetsFromScriptContent...)
 				}
@@ -390,7 +390,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			if item.GetBase() != nil {
 				baseURL = item.GetBase().String()
 			}
-			logger.Debug("unable to resolve URL", "error", err, "item_url", item.GetURL().String(), "base_url", baseURL, "target", rawAsset, "item", item.GetShortID())
+			logger.Debug("unable to resolve URL", "error", err, "item_url", item.GetURL(), "base_url", baseURL, "target", rawAsset, "item", item.GetShortID())
 		} else if resolvedURL != "" {
 			assets = append(assets, &models.URL{
 				Raw: resolvedURL,

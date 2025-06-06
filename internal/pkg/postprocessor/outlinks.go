@@ -28,7 +28,7 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	)
 
 	if item.GetURL().GetBody() == nil {
-		logger.Error("no body to extract outlinks from", "url", item.GetURL().String(), "item", item.GetShortID())
+		logger.Error("no body to extract outlinks from", "url", item.GetURL(), "item", item.GetShortID())
 		return
 	}
 
@@ -37,19 +37,19 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	case truthsocial.IsAccountURL(item.GetURL()):
 		outlinks, err = truthsocial.GenerateAccountLookupURL(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateAccountLookupURL", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
+			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateAccountLookupURL", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
 			return outlinks, err
 		}
 	case truthsocial.IsAccountLookupURL(item.GetURL()):
 		outlinks, err = truthsocial.GenerateOutlinksURLsFromLookup(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateOutlinksURLsFromLookup", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
+			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateOutlinksURLsFromLookup", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
 			return outlinks, err
 		}
 	case extractor.IsObjectStorage(item.GetURL()):
 		outlinks, err = extractor.ObjectStorage(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks from ObjectStorage", "extractor", "ObjectStorage", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
+			logger.Error("unable to extract outlinks from ObjectStorage", "extractor", "ObjectStorage", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
 			return outlinks, err
 		}
 	case extractor.IsSitemapXML(item.GetURL()):
@@ -57,7 +57,7 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 
 		assets, outlinks, err = extractor.XML(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "XML", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
+			logger.Error("unable to extract outlinks", "extractor", "XML", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
 			return outlinks, err
 		}
 
@@ -67,23 +67,23 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	case extractor.IsHTML(item.GetURL()):
 		outlinks, err = extractor.HTMLOutlinks(item)
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "HTMLOutlinks", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
+			logger.Error("unable to extract outlinks", "extractor", "HTMLOutlinks", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
 			return outlinks, err
 		}
 	case extractor.IsPDF(item.GetURL()):
 		outlinks, err = extractor.PDF(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "PDF", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
+			logger.Error("unable to extract outlinks", "extractor", "PDF", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
 			return outlinks, err
 		}
 	case reddit.IsPostAPI(item.GetURL()):
 		outlinks, err = reddit.ExtractAPIPostPermalinks(item)
 		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "reddit.ExtractAPIPostPermalinks", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL().String())
+			logger.Error("unable to extract outlinks", "extractor", "reddit.ExtractAPIPostPermalinks", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
 			return outlinks, err
 		}
 	default:
-		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID(), "url", item.GetURL().String())
+		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID(), "url", item.GetURL())
 		return outlinks, nil
 	}
 

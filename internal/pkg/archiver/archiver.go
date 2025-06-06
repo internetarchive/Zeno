@@ -297,7 +297,7 @@ func archive(workerID string, seed *models.Item) {
 					}
 
 					if retry < config.Get().MaxRetry {
-						logger.Warn("retrying", "reason", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime, "status_code", resp.StatusCode, "url", req.URL.String())
+						logger.Warn("retrying", "reason", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime, "status_code", resp.StatusCode, "url", req.URL)
 
 						// Consume body, needed to avoid leaking RAM & storage
 						io.Copy(io.Discard, resp.Body)
@@ -306,7 +306,7 @@ func archive(workerID string, seed *models.Item) {
 						time.Sleep(retrySleepTime)
 						continue
 					} else {
-						logger.Error("retries exceeded", "reason", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL.String())
+						logger.Error("retries exceeded", "reason", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL)
 						item.SetStatus(models.ItemFailed)
 
 						// Consume body, needed to avoid leaking RAM & storage
@@ -349,7 +349,7 @@ func archive(workerID string, seed *models.Item) {
 				stats.MeanWaitOnFeedbackTimeAdd(time.Since(feedbackTime))
 			}
 
-			logger.Info("url archived", "url", item.GetURL().String(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
+			logger.Info("url archived", "url", item.GetURL(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
 
 			item.SetStatus(models.ItemArchived)
 		}(items[i])

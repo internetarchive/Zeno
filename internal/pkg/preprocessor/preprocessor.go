@@ -185,7 +185,7 @@ func preprocess(workerID string, seed *models.Item) {
 				logger.Debug("URL excluded (does not match include filters)",
 					"item_id", items[i].GetShortID(),
 					"seed_id", seed.GetShortID(),
-					"url", items[i].GetURL().String())
+					"url", items[i].GetURL())
 
 				if items[i].IsChild() || items[i].IsRedirection() {
 					items[i].GetParent().RemoveChild(items[i])
@@ -205,7 +205,7 @@ func preprocess(workerID string, seed *models.Item) {
 			logger.Debug("URL excluded (matches exclusion filters)",
 				"item_id", items[i].GetShortID(),
 				"seed_id", seed.GetShortID(),
-				"url", items[i].GetURL().String())
+				"url", items[i].GetURL())
 
 			if items[i].IsChild() || items[i].IsRedirection() {
 				items[i].GetParent().RemoveChild(items[i])
@@ -276,7 +276,7 @@ func preprocess(workerID string, seed *models.Item) {
 	for i := range items {
 		req, err := http.NewRequest(http.MethodGet, items[i].GetURL().String(), nil)
 		if err != nil {
-			logger.Error("unable to create request for URL", "item_id", items[i].GetShortID(), "seed_id", seed.GetShortID(), "url", items[i].GetURL().String(), "err", err.Error())
+			logger.Error("unable to create request for URL", "item_id", items[i].GetShortID(), "seed_id", seed.GetShortID(), "url", items[i].GetURL(), "err", err.Error())
 			items[i].SetStatus(models.ItemFailed)
 			continue
 		}
