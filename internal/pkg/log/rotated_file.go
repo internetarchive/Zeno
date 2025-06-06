@@ -3,14 +3,12 @@ package log
 import (
 	"fmt"
 	"log"
-	"log/slog"
 	"os"
 	"sync"
 	"time"
 )
 
 type rotatedFile struct {
-	level     slog.Level
 	config    *logfileConfig
 	file      *os.File
 	mu        sync.Mutex
