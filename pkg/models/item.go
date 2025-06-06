@@ -423,6 +423,16 @@ func (i *Item) CompleteAndCheck() bool {
 	return !i.HasWork()
 }
 
+func (i *Item) Close() {
+    if i.url.GetBody() != nil {
+        err := i.url.GetBody().Close()
+        if err != nil {
+            panic(fmt.Sprintf("unable to close body, err: %s, seed id: %s", err.Error(), i.GetShortID()))
+        }
+        i.url.SetBody(nil)
+    }
+}
+
 // Errors definition
 var (
 	// ErrNotASeed is returned when the item is not a seed
