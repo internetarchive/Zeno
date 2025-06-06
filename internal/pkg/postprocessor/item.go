@@ -12,7 +12,7 @@ import (
 )
 
 func postprocessItem(item *models.Item) []*models.Item {
-	defer closeBody(item)
+	defer item.Close()
 
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.postprocess.postprocessItem",

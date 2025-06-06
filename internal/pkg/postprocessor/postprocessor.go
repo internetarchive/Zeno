@@ -154,17 +154,6 @@ func postprocess(workerID string, seed *models.Item) []*models.Item {
 
 func closeBodies(seed *models.Item) {
 	seed.Traverse(func(seed *models.Item) {
-		closeBody(seed)
+		seed.Close()
 	})
-}
-
-func closeBody(seed *models.Item) {
-	if seed.GetURL().GetBody() != nil {
-		err := seed.GetURL().GetBody().Close()
-		if err != nil {
-			panic(fmt.Sprintf("unable to close body, err: %s, seed id: %s", err.Error(), seed.GetShortID()))
-		}
-
-		seed.GetURL().SetBody(nil)
-	}
 }
