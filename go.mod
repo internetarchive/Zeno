@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/consul/api v1.32.1
 	github.com/internetarchive/gocrawlhq v1.2.31
 	github.com/internetarchive/gowarc v0.8.78
-	github.com/ncruces/go-sqlite3 v0.26.0
+	github.com/ncruces/go-sqlite3 v0.26.1
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.22.0
@@ -29,7 +29,7 @@ require (
 	github.com/spf13/viper v1.20.1
 	github.com/tdewolff/parse/v2 v2.8.1
 	go.uber.org/goleak v1.3.0
-	golang.org/x/net v0.40.0
+	golang.org/x/net v0.41.0
 	mvdan.cc/xurls/v2 v2.6.0
 )
 
@@ -94,15 +94,15 @@ require (
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/image v0.27.0 // indirect
-	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/sync v0.14.0 // indirect
+	golang.org/x/mod v0.25.0 // indirect
+	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
-	golang.org/x/tools v0.32.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/tools v0.33.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
