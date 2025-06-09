@@ -122,7 +122,7 @@ func Match(rawURL string) bool {
 // Check if a string is a naive domain (e.g., "example.com")
 func isNaiveDomain(s string) bool {
 	// A naive domain should not contain a scheme, path, or query
-	if strings.Contains(s, "://") || strings.Contains(s, "/") || strings.Contains(s, "?") || strings.Contains(s, "#") {
+	if strings.Contains(s, "://") || strings.ContainsAny(s, "/?#") {
 		return false
 	}
 	// Check if it has a dot and no spaces
