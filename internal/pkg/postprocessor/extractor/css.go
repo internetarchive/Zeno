@@ -2,13 +2,20 @@ package extractor
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"strconv"
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/tdewolff/parse/v2"
 	"github.com/tdewolff/parse/v2/css"
 )
+
+var cssLogger = log.NewFieldedLogger(&log.Fields{
+	"component": "postprocessor.extractor.css",
+})
 
 // Assuming the input [data] is already trimmed and does not contain any leading
 // or trailing whitespace, quotes, "url(", or ")".
@@ -163,7 +170,7 @@ func sanitizeRune(r rune) rune {
 
 func urlTokenToValue(t css.Token) string {
 	if t.TokenType != css.URLToken {
-		return ""
+		panic("urlTokenToValue called with non-url token")
 	}
 	end := len(t.Data) - 1
 	if t.Data[len(t.Data)-1] != ')' { // closing parenthesis
@@ -190,10 +197,9 @@ func urlTokenToValue(t css.Token) string {
 	}
 }
 
-// TODO: "@import" rule
 func stringTokenToValue(t css.Token) string {
 	if t.TokenType != css.StringToken {
-		return ""
+		panic("stringTokenToValue called with non-string token")
 	}
 	end := len(t.Data) - 1
 	if t.Data[len(t.Data)-1] != t.Data[0] { // closing quote
@@ -202,22 +208,99 @@ func stringTokenToValue(t css.Token) string {
 	return string(parseStringOrURLTokenData(t.Data[1:end], true)) // remove the quotes
 }
 
-func CSS(cssBody string, inline bool) []string {
-	// TODO: "@import" rule
+var atRule = []byte("@import")
+var allowedPrecedeAtRules = [][]byte{
+	[]byte("@charset"),
+	[]byte("@layer"),
+}
+
+// "Any @import rules must precede all other valid at-rules and style rules
+// in a style sheet (ignoring @charset and empty @layer definitions)
+// and must not have any other valid at-rules or style rules between it and
+// previous @import rules, or else the @import rule is invalid."
+//
+// <https://www.w3.org/TR/css-cascade-5/#at-ruledef-import>
+//
+// Returns: importAtRuleAreaOK, isValidImportRule
+func isValidAtImport(gt css.GrammarType, tt css.TokenType, data []byte, pAreaState bool, pImportSate bool) (bool, bool) {
+	if !pAreaState {
+		return false, false
+	}
+
+	if gt == css.CommentGrammar { // ignore comments
+		return pAreaState, pImportSate
+	}
+
+	// empty @layer definitions:
+	// <https://www.w3.org/TR/css-cascade-5/#layer-empty>
+	if gt == css.AtRuleGrammar && tt == css.AtKeywordToken {
+		for _, rule := range allowedPrecedeAtRules {
+			if bytes.Equal(data, rule) {
+				if pImportSate {
+					return false, false // must not have any other valid at-rules or style rules between it and previous @import rules
+				} else {
+					return true, false
+				}
+			}
+		}
+		if bytes.Equal(data, atRule) {
+			return true, true // @import rule
+		}
+		return false, false
+	}
+
+	// NOTE:
+	// Unlike css.AtRuleGrammar, the css.BeginAtRuleGrammar is for the inline @ block rules, like:
+	// @layer default {
+	//   audio[controls] {
+	//     display: block;
+	//   }
+	// }
+	// This is NOT an empty @layer definition
+
+	return false, false
+}
+
+func CSS(cssBody string, inline bool) (links []string, atImportLinks []string) {
 	// TODO: separate CSS file
 
-	var links []string
+	// "The @import rule allows users to import style rules from other style sheets.
+	// If an @import rule refers to a valid stylesheet, user agents must treat the
+	// contents of the stylesheet as if they were written in place of the @import
+	// rule, with two exceptions"
 	p := css.NewParser(parse.NewInput(bytes.NewBufferString(cssBody)), inline)
+	// Whether the area allowed to contain @import rules
+	importAtRuleAreaOK := true
+	// Is the current GrammarType is a valid @import rule
+	var isValidImportRule bool
 	for {
 		gt, tt, data := p.Next()
+		importAtRuleAreaOK, isValidImportRule = isValidAtImport(gt, tt, data, importAtRuleAreaOK, isValidImportRule)
+		if !importAtRuleAreaOK && !isValidImportRule && gt == css.AtRuleGrammar && tt == css.AtKeywordToken && bytes.Equal(data, atRule) {
+			// bad @import rule, ignore it
+			continue
+		}
+
 		if tt == css.URLToken {
 			links = append(links, urlTokenToValue(css.Token{TokenType: tt, Data: data}))
 		}
 
 		if gt == css.ErrorGrammar {
+			if p.Err() != nil && !errors.Is(p.Err(), io.EOF) {
+				cssLogger.Error("error parsing CSS", "error", p.Err(), "inline", inline)
+			}
 			break
 		} else if gt == css.AtRuleGrammar || gt == css.BeginAtRuleGrammar || gt == css.BeginRulesetGrammar || gt == css.DeclarationGrammar {
 			for _, tk := range p.Values() {
+				if isValidImportRule {
+					if tk.TokenType == css.URLToken {
+						atImportLinks = append(atImportLinks, urlTokenToValue(tk))
+					} else if tk.TokenType == css.StringToken {
+						atImportLinks = append(atImportLinks, stringTokenToValue(tk))
+					}
+					continue // skip other tokens in the @import rule
+				}
+
 				if tk.TokenType == css.URLToken {
 					links = append(links, urlTokenToValue(tk))
 				}
@@ -225,5 +308,6 @@ func CSS(cssBody string, inline bool) []string {
 		} else {
 		}
 	}
-	return links
+
+	return links, atImportLinks
 }
