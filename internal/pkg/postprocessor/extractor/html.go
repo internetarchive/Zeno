@@ -148,7 +148,8 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 		style, exists := i.Attr("style")
 		if exists {
-			rawAssets = append(rawAssets, CSS(style, true)...)
+			links, _ := CSS(style, true)
+			rawAssets = append(rawAssets, links...)
 		}
 
 		dataPreview, exists := i.Attr("data-preview")
@@ -246,7 +247,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 	if !slices.Contains(config.Get().DisableHTMLTag, "style") {
 		document.Find("style").Each(func(index int, i *goquery.Selection) {
-			links := CSS(i.Text(), false)
+			links, _ := CSS(i.Text(), false)
 			for _, link := range links {
 				// If the URL already has http (or https), we don't need add anything to it.
 				if !strings.Contains(link, "http") {
