@@ -165,7 +165,7 @@ func TestCSSURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			links, atImportLinks, err := ExtracFromStringCSS(tt.CSS, tt.inline)
+			links, atImportLinks, err := ExtractFromStringCSS(tt.CSS, tt.inline)
 			if (err != nil) != tt.err {
 				t.Errorf("Expected error %v, got %v", tt.err, err)
 			}

@@ -148,7 +148,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 		style, exists := i.Attr("style")
 		if exists {
-			links, _, err := ExtracFromStringCSS(style, true)
+			links, _, err := ExtractFromStringCSS(style, true)
 			if err != nil {
 				cssLogger.Warn("error parsing inline attribute style CSS", "err", err, "url", item.GetURL(), "item", item.GetShortID(), "links", len(links))
 			}
@@ -250,7 +250,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 	if !slices.Contains(config.Get().DisableHTMLTag, "style") {
 		document.Find("style").Each(func(index int, i *goquery.Selection) {
-			links, atImportLinks, err := ExtracFromStringCSS(i.Text(), false)
+			links, atImportLinks, err := ExtractFromStringCSS(i.Text(), false)
 			if err != nil {
 				cssLogger.Warn("error parsing HTML style block CSS", "err", err, "url", item.GetURL(), "item", item.GetShortID(), "links", len(links), "at_import_links", len(atImportLinks))
 			}

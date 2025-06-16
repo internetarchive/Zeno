@@ -330,8 +330,8 @@ func IsCSS(URL *models.URL) bool {
 	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "text/css")
 }
 
-// ExtracFromStringCSS extracts URLs from a CSS content string.
-func ExtracFromStringCSS(cssBody string, inline bool) (links []string, atImportLinks []string, err error) {
+// ExtractFromStringCSS extracts URLs from a CSS content string.
+func ExtractFromStringCSS(cssBody string, inline bool) (links []string, atImportLinks []string, err error) {
 	return parseCSS(bytes.NewBufferString(cssBody), inline)
 }
 
