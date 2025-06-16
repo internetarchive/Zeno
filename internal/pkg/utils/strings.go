@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
 	"net/url"
 	"strings"
 )
@@ -30,13 +28,6 @@ func StringContainsSliceElements(target string, slice []string) bool {
 		}
 	}
 	return false
-}
-
-// GetSHA1 take a string and return the SHA1 hash of the string, as a string
-func GetSHA1(str string) string {
-	hash := sha1.New()
-	hash.Write([]byte(str))
-	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // DedupeStrings take a slice of string and dedupe it
