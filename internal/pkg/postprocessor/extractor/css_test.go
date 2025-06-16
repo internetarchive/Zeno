@@ -9,6 +9,7 @@ func TestCSSURL(t *testing.T) {
 		expectedLinks         []string
 		expectedAtImportLinks []string
 		inline                bool
+		err                   bool
 	}{
 		{
 			name:          "Valid String URL",
@@ -100,12 +101,14 @@ func TestCSSURL(t *testing.T) {
 			CSS:           `url("https://example.com/style.css");`,
 			expectedLinks: []string{},
 			inline:        false,
+			err:           true, // got unexpected token in declaration
 		},
 		{
 			name:          "bare declaration URL inline CSS",
 			CSS:           `url("https://example.com/style.css");`,
 			expectedLinks: []string{"https://example.com/style.css"},
 			inline:        true,
+			err:           true, // got unexpected token in declaration
 		},
 		{
 			name: "At-Import Rules",
@@ -162,7 +165,10 @@ func TestCSSURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			links, atImportLinks := CSS(tt.CSS, tt.inline)
+			links, atImportLinks, err := ExtracFromStringCSS(tt.CSS, tt.inline)
+			if (err != nil) != tt.err {
+				t.Errorf("Expected error %v, got %v", tt.err, err)
+			}
 			if len(links) != len(tt.expectedLinks) {
 				t.Errorf("Expected %d links, got %d", len(tt.expectedLinks), len(links))
 				return

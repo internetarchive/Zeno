@@ -9,10 +9,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/tdewolff/parse/v2"
 	"github.com/tdewolff/parse/v2/css"
 )
 
+// The logger also used in the HTML extractor for CSS related logs.
 var cssLogger = log.NewFieldedLogger(&log.Fields{
 	"component": "postprocessor.extractor.css",
 })
@@ -261,14 +263,23 @@ func isValidAtImport(gt css.GrammarType, tt css.TokenType, data []byte, pAreaSta
 	return false, false
 }
 
-func CSS(cssBody string, inline bool) (links []string, atImportLinks []string) {
+// parseCSS parses the CSS content from the given reader and extracts URLs.
+//
+// Returns:
+//
+//	links: all urls found in the CSS content except for @import rules
+//	atImportLinks: all urls from *valid* @import rules
+//	parseErr: any parsing error encountered.
+//
+// NOTE: if parseErr encountered half-way, you may still get some good links and atImportLinks
+func parseCSS(reader io.Reader, inline bool) (links []string, atImportLinks []string, parseErr error) {
 	// TODO: separate CSS file
 
 	// "The @import rule allows users to import style rules from other style sheets.
 	// If an @import rule refers to a valid stylesheet, user agents must treat the
 	// contents of the stylesheet as if they were written in place of the @import
 	// rule, with two exceptions"
-	p := css.NewParser(parse.NewInput(bytes.NewBufferString(cssBody)), inline)
+	p := css.NewParser(parse.NewInput(reader), inline)
 	// Whether the area allowed to contain @import rules
 	importAtRuleAreaOK := true
 	// Is the current GrammarType is a valid @import rule
@@ -287,7 +298,8 @@ func CSS(cssBody string, inline bool) (links []string, atImportLinks []string) {
 
 		if gt == css.ErrorGrammar {
 			if p.Err() != nil && !errors.Is(p.Err(), io.EOF) {
-				cssLogger.Error("error parsing CSS", "error", p.Err(), "inline", inline)
+				parseErr = p.Err()
+				cssLogger.Error("error parsing CSS", "error", parseErr, "inline", inline)
 			}
 			break
 		} else if gt == css.AtRuleGrammar || gt == css.BeginAtRuleGrammar || gt == css.BeginRulesetGrammar || gt == css.DeclarationGrammar {
@@ -309,5 +321,23 @@ func CSS(cssBody string, inline bool) (links []string, atImportLinks []string) {
 		}
 	}
 
-	return links, atImportLinks
+	return links, atImportLinks, parseErr
+}
+
+// https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet:process-the-linked-resource
+// According to the spec, we should only check the Content-Type header if the resource is came from a HTTP(S) request.
+func IsCSS(URL *models.URL) bool {
+	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "text/css")
+}
+
+// ExtracFromStringCSS extracts URLs from a CSS content string.
+func ExtracFromStringCSS(cssBody string, inline bool) (links []string, atImportLinks []string, err error) {
+	return parseCSS(bytes.NewBufferString(cssBody), inline)
+}
+
+// ExtractFromURLCSS extracts URLs from a CSS URL
+func ExtractFromURLCSS(URL *models.URL) (links []*models.URL, atImportLinks []*models.URL, err error) {
+	defer URL.RewindBody()
+	sLinks, sAtImportLinks, err := parseCSS(URL.GetBody(), false)
+	return toURLs(sLinks), toURLs(sAtImportLinks), err
 }

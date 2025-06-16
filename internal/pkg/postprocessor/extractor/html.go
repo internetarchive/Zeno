@@ -148,7 +148,10 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 		style, exists := i.Attr("style")
 		if exists {
-			links, _ := CSS(style, true)
+			links, _, err := ExtracFromStringCSS(style, true)
+			if err != nil {
+				cssLogger.Warn("error parsing inline attribute style CSS", "err", err, "url", item.GetURL(), "item", item.GetShortID(), "links", len(links))
+			}
 			rawAssets = append(rawAssets, links...)
 		}
 
@@ -247,7 +250,10 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 	if !slices.Contains(config.Get().DisableHTMLTag, "style") {
 		document.Find("style").Each(func(index int, i *goquery.Selection) {
-			links, _ := CSS(i.Text(), false)
+			links, atImportLinks, err := ExtracFromStringCSS(i.Text(), false)
+			if err != nil {
+				cssLogger.Warn("error parsing HTML style block CSS", "err", err, "url", item.GetURL(), "item", item.GetShortID(), "links", len(links), "at_import_links", len(atImportLinks))
+			}
 			for _, link := range links {
 				// If the URL already has http (or https), we don't need add anything to it.
 				if !strings.Contains(link, "http") {
