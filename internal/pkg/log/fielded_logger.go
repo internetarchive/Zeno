@@ -3,22 +3,28 @@ package log
 import (
 	"context"
 	"log/slog"
+	"maps"
 	"runtime"
+	"slices"
 	"time"
 )
 
 // Field defines an interface for fields
-type Fields map[string]interface{}
+type Fields map[string]any
 
 // FieldedLogger allows adding predefined fields to log entries
 type FieldedLogger struct {
-	fields *Fields
+	fields *[]any
 }
 
 // NewFieldedLogger creates a new FieldedLogger with the given fields
 func NewFieldedLogger(args *Fields) *FieldedLogger {
+	sortedArgs := make([]any, 0, len(*args)*2)
+	for _, k := range slices.Sorted(maps.Keys(*args)) {
+		sortedArgs = append(sortedArgs, k, (*args)[k])
+	}
 	return &FieldedLogger{
-		fields: args,
+		fields: &sortedArgs,
 	}
 }
 
@@ -43,14 +49,9 @@ func (fl *FieldedLogger) Error(msg string, args ...any) {
 }
 
 func (fl *FieldedLogger) logWithLevel(level slog.Level, msg string, args ...any) {
-	var combinedArgs []any
+	combinedArgs := make([]any, 0, len(*fl.fields)+len(args))
 
-	if fl.fields != nil {
-		for k, v := range *fl.fields {
-			combinedArgs = append(combinedArgs, k, v)
-		}
-	}
-
+	combinedArgs = append(combinedArgs, *fl.fields...)
 	combinedArgs = append(combinedArgs, args...)
 
 	if multiLogger != nil {
