@@ -62,6 +62,7 @@ type Config struct {
 	MaxConcurrentAssets    int      `mapstructure:"max-concurrent-assets"`
 	MaxHops                int      `mapstructure:"max-hops"`
 	MaxRedirect            int      `mapstructure:"max-redirect"`
+	MaxCSSJump             int      `mapstructure:"max-css-jump"`
 	MaxRetry               int      `mapstructure:"max-retry"`
 	HTTPTimeout            int      `mapstructure:"http-timeout"`
 	HTTPReadDeadline       int      `mapstructure:"http-read-deadline"`

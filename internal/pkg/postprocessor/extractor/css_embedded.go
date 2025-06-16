@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -73,4 +74,29 @@ func isEmbeddedCSSWithJump(item *models.Item, atImportJump int) (bool, int) {
 	}
 
 	return false, 0 // case1: not a CSS item
+}
+
+// Add the @import links to the item as children items if the @import jump is less than the config.MaxCSSJump.
+func AddAtImportLinksToItemChild(item *models.Item, atImportLinks []*models.URL) {
+	// fast check
+	if len(atImportLinks) == 0 {
+		return
+	}
+
+	if GetEmbeddedCSSJump(item) >= config.Get().MaxCSSJump {
+		cssLogger.Warn("item is an embedded CSS with a @import jump more than --max-css-jump, discarding at_import_links", "item_id", item.GetShortID(), "max_jump", config.Get().MaxCSSJump)
+	} else {
+		for _, link := range atImportLinks {
+			newURL := &models.URL{
+				Raw:  link.Raw,
+				Hops: item.GetURL().GetHops(),
+			}
+
+			newChild := models.NewItem(newURL, "")
+			err := item.AddChild(newChild, models.ItemGotChildren)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
 }

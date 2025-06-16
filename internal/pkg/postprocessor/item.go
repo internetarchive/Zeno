@@ -7,6 +7,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -70,9 +71,11 @@ func postprocessItem(item *models.Item) []*models.Item {
 	// }
 
 	// Return if:
-	// 1. the item is a child has a depth (without redirections) bigger than 2 -> we don't want to go too deep but still get the assets of assets (f.ex: m3u8)
+	// 1. the item [is not an embeded css item] and [is a child has a depth (without redirections) bigger than 2].
+	//    -> we don't want to go too deep but still get the assets of assets (f.ex: m3u8)
+	//    -> CSS @import chains can be very long, the depth control logic for embedded CSS item is in the AddAtImportLinksToItemChild() function separately.
 	// 2. assets capture and domains crawl are disabled
-	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 {
+	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 && !extractor.IsEmbeddedCSS(item) {
 		logger.Debug("item is a child and it's depth (without redirections) is more than 2", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
