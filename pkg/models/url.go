@@ -75,7 +75,20 @@ func (u *URL) SetDocument(doc *goquery.Document) {
 	u.document = doc
 }
 
+// if mimetype is not set, try to get it from Content-Type header and cache it.
 func (u *URL) GetMIMEType() *mimetype.MIME {
+	if u.mimetype != nil {
+		return u.mimetype
+	}
+	if u.GetResponse() != nil {
+		ct := u.GetResponse().Header.Get("Content-Type")
+		if ct != "" {
+			mt := strings.Split(ct, ";")[0]
+			mt = strings.TrimSpace(mt)
+			mt = strings.ToLower(mt)
+			u.mimetype = mimetype.Lookup(mt)
+		}
+	}
 	return u.mimetype
 }
 

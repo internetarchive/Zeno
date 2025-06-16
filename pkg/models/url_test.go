@@ -1,6 +1,7 @@
 package models
 
 import (
+	"net/http"
 	"sync"
 	"testing"
 )
@@ -157,4 +158,71 @@ func TestURLConcurrentAccess(t *testing.T) {
 			t.Fatalf("Expected https://example.com, got %s", r)
 		}
 	}
+}
+
+func TestMIMETypeMethods(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected string
+	}{
+		{"text/html", "text/html"},
+		{"    text/html  ; charset=utf-8", "text/html"}, // random spaces
+		{"application/json; charset=utf-8", "application/json"},
+		{"Application/JSON;version=1", "application/json"}, // upper case mix
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			u := URL{
+				response: &http.Response{
+					Header: http.Header{
+						"Content-Type": []string{tc.input},
+					},
+				},
+			}
+
+			mt := u.GetMIMEType()
+			if mt == nil || !mt.Is(tc.expected) {
+				t.Errorf("Returned %s different than expected %s", mt, tc.expected)
+			}
+		})
+	}
+
+	invalidTestCases := []struct {
+		input string
+	}{
+		{"multipart/form-data; boundary=something"},
+		{"invalid/type"},
+		{"foo"},
+	}
+
+	for _, tc := range invalidTestCases {
+		t.Run(tc.input, func(t *testing.T) {
+			u := URL{
+				response: &http.Response{
+					Header: http.Header{
+						"Content-Type": []string{tc.input},
+					},
+				},
+			}
+
+			mt := u.GetMIMEType()
+			if mt != nil {
+				t.Errorf("Returned %s different than expected nil", mt)
+			}
+		})
+	}
+
+	t.Run("GetMIMETypeNoContentType", func(t *testing.T) {
+		u := URL{
+			response: &http.Response{
+				Header: http.Header{},
+			},
+		}
+
+		if u.GetMIMEType() != nil {
+			t.Errorf("Should return nil when no Content-Type header")
+		}
+	})
+
 }
