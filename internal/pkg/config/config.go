@@ -24,8 +24,9 @@ import (
 // Config holds all configuration for our program, parsed from various sources
 // The `mapstructure` tags are used to map the fields to the viper configuration
 type Config struct {
-	Job     string `mapstructure:"job"`
-	JobPath string
+	Job           string `mapstructure:"job"`
+	JobPrometheus string
+	JobPath       string
 
 	// UseSeencheck exists just for convenience of not checking
 	// !DisableSeencheck in the rest of the code, to make the code clearer
@@ -221,6 +222,8 @@ func GenerateCrawlConfig() error {
 		}
 	}
 
+	// Prometheus syntax does not play nice with hyphens
+	config.JobPrometheus = strings.ReplaceAll(config.Job, "-", "")
 	config.JobPath = path.Join("jobs", config.Job)
 	config.UseSeencheck = !config.DisableSeencheck
 
