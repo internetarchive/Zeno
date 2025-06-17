@@ -15,7 +15,7 @@ import (
 func URLsCrawledIncr() {
 	globalStats.URLsCrawled.incr(1)
 	if globalPromStats != nil {
-		globalPromStats.urlCrawled.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Inc()
+		globalPromStats.urlCrawled.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 	}
 }
 
@@ -27,7 +27,7 @@ func URLsCrawledIncr() {
 func SeedsFinishedIncr() {
 	globalStats.SeedsFinished.incr(1)
 	if globalPromStats != nil {
-		globalPromStats.finishedSeeds.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Inc()
+		globalPromStats.finishedSeeds.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 	}
 }
 
@@ -39,7 +39,7 @@ func SeedsFinishedIncr() {
 func PreprocessorRoutinesIncr() {
 	globalStats.PreprocessorRoutines.incr(1)
 	if globalPromStats != nil {
-		globalPromStats.preprocessorRoutines.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Inc()
+		globalPromStats.preprocessorRoutines.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 	}
 }
 
@@ -47,7 +47,7 @@ func PreprocessorRoutinesIncr() {
 func PreprocessorRoutinesDecr() {
 	globalStats.PreprocessorRoutines.decr(1)
 	if globalPromStats != nil {
-		globalPromStats.preprocessorRoutines.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Dec()
+		globalPromStats.preprocessorRoutines.WithLabelValues(config.Get().JobPrometheus, hostname, version).Dec()
 	}
 }
 
@@ -59,7 +59,7 @@ func PreprocessorRoutinesDecr() {
 func ArchiverRoutinesIncr() {
 	globalStats.ArchiverRoutines.incr(1)
 	if globalPromStats != nil {
-		globalPromStats.archiverRoutines.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Inc()
+		globalPromStats.archiverRoutines.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 	}
 }
 
@@ -67,7 +67,7 @@ func ArchiverRoutinesIncr() {
 func ArchiverRoutinesDecr() {
 	globalStats.ArchiverRoutines.decr(1)
 	if globalPromStats != nil {
-		globalPromStats.archiverRoutines.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Dec()
+		globalPromStats.archiverRoutines.WithLabelValues(config.Get().JobPrometheus, hostname, version).Dec()
 	}
 }
 
@@ -79,7 +79,7 @@ func ArchiverRoutinesDecr() {
 func PostprocessorRoutinesIncr() {
 	globalStats.PostprocessorRoutines.incr(1)
 	if globalPromStats != nil {
-		globalPromStats.postprocessorRoutines.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Inc()
+		globalPromStats.postprocessorRoutines.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 	}
 }
 
@@ -87,7 +87,7 @@ func PostprocessorRoutinesIncr() {
 func PostprocessorRoutinesDecr() {
 	globalStats.PostprocessorRoutines.decr(1)
 	if globalPromStats != nil {
-		globalPromStats.postprocessorRoutines.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Dec()
+		globalPromStats.postprocessorRoutines.WithLabelValues(config.Get().JobPrometheus, hostname, version).Dec()
 	}
 }
 
@@ -99,7 +99,7 @@ func PostprocessorRoutinesDecr() {
 func FinisherRoutinesIncr() {
 	globalStats.FinisherRoutines.incr(1)
 	if globalPromStats != nil {
-		globalPromStats.finisherRoutines.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Inc()
+		globalPromStats.finisherRoutines.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 	}
 }
 
@@ -107,7 +107,7 @@ func FinisherRoutinesIncr() {
 func FinisherRoutinesDecr() {
 	globalStats.FinisherRoutines.decr(1)
 	if globalPromStats != nil {
-		globalPromStats.finisherRoutines.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Dec()
+		globalPromStats.finisherRoutines.WithLabelValues(config.Get().JobPrometheus, hostname, version).Dec()
 	}
 }
 
@@ -120,7 +120,7 @@ func PausedSet() {
 	swapped := globalStats.Paused.CompareAndSwap(false, true)
 	if swapped {
 		if globalPromStats != nil {
-			globalPromStats.paused.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Set(1)
+			globalPromStats.paused.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(1)
 		}
 	}
 }
@@ -130,7 +130,7 @@ func PausedUnset() {
 	swapped := globalStats.Paused.CompareAndSwap(true, false)
 	if swapped {
 		if globalPromStats != nil {
-			globalPromStats.paused.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Set(0)
+			globalPromStats.paused.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(0)
 		}
 	}
 }
@@ -148,13 +148,13 @@ func HTTPReturnCodesIncr(key string) {
 	if globalPromStats != nil {
 		switch {
 		case strings.HasPrefix(key, "2"):
-			globalPromStats.http2xx.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Inc()
+			globalPromStats.http2xx.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 		case strings.HasPrefix(key, "3"):
-			globalPromStats.http3xx.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Inc()
+			globalPromStats.http3xx.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 		case strings.HasPrefix(key, "4"):
-			globalPromStats.http4xx.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Inc()
+			globalPromStats.http4xx.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 		case strings.HasPrefix(key, "5"):
-			globalPromStats.http5xx.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Inc()
+			globalPromStats.http5xx.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 		}
 	}
 }
@@ -167,7 +167,7 @@ func HTTPReturnCodesIncr(key string) {
 func WarcWritingQueueSizeSet(value int64) {
 	globalStats.WARCWritingQueueSize.Store(value)
 	if globalPromStats != nil {
-		globalPromStats.warcWritingQueueSize.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Set(float64(value))
+		globalPromStats.warcWritingQueueSize.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(float64(value))
 	}
 }
 
@@ -179,7 +179,7 @@ func WarcWritingQueueSizeSet(value int64) {
 func MeanHTTPRespTimeAdd(value time.Duration) {
 	globalStats.MeanHTTPResponseTime.add(uint64(value.Milliseconds()))
 	if globalPromStats != nil {
-		globalPromStats.meanHTTPRespTime.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Observe(float64(value))
+		globalPromStats.meanHTTPRespTime.WithLabelValues(config.Get().JobPrometheus, hostname, version).Observe(float64(value))
 	}
 }
 
@@ -191,7 +191,7 @@ func MeanHTTPRespTimeAdd(value time.Duration) {
 func MeanProcessBodyTimeAdd(value time.Duration) {
 	globalStats.MeanProcessBodyTime.add(uint64(value.Milliseconds()))
 	if globalPromStats != nil {
-		globalPromStats.meanProcessBodyTime.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Observe(float64(value))
+		globalPromStats.meanProcessBodyTime.WithLabelValues(config.Get().JobPrometheus, hostname, version).Observe(float64(value))
 	}
 }
 
@@ -203,6 +203,6 @@ func MeanProcessBodyTimeAdd(value time.Duration) {
 func MeanWaitOnFeedbackTimeAdd(value time.Duration) {
 	globalStats.MeanWaitOnFeedbackTime.add(uint64(value.Milliseconds()))
 	if globalPromStats != nil {
-		globalPromStats.meanWaitOnFeedbackTime.WithLabelValues(strings.ReplaceAll(config.Get().Job, "-", ""), hostname, version).Observe(float64(value))
+		globalPromStats.meanWaitOnFeedbackTime.WithLabelValues(config.Get().JobPrometheus, hostname, version).Observe(float64(value))
 	}
 }
