@@ -34,15 +34,16 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		}
 	}
 
-	// Create a buffer to hold the body (first 3KB) as suggested by mimetype author
-	// https://github.com/gabriel-vasile/mimetype/blob/66e5c005d80684b64f47eeeb15ad439ee6fad667/mimetype.go#L15
 	buffer := new(bytes.Buffer)
-	if err := copyWithTimeoutN(buffer, u.GetResponse().Body, 3072, conn); err != nil {
-		return err
+	// First check HTTP Content-Type and then fallback to mimetype library.
+	if u.GetMIMEType() == nil {
+		// Create a buffer to hold the body (first 3KB) as suggested by mimetype author
+		// https://github.com/gabriel-vasile/mimetype/blob/66e5c005d80684b64f47eeeb15ad439ee6fad667/mimetype.go#L15
+		if err := copyWithTimeoutN(buffer, u.GetResponse().Body, 3072, conn); err != nil {
+			return err
+		}
+		u.SetMIMEType(mimetype.Detect(buffer.Bytes()))
 	}
-
-	// Detect and set MIME type
-	u.SetMIMEType(mimetype.Detect(buffer.Bytes()))
 
 	// Check if the MIME type requires post-processing
 	if (u.GetMIMEType().Parent() != nil && utils.IsMIMETypeInHierarchy(u.GetMIMEType().Parent(), "text/plain")) ||

@@ -14,7 +14,10 @@ import (
 func setupItem(html string) *models.Item {
 	resp := &http.Response{
 		Body: io.NopCloser(bytes.NewBufferString(html)),
+		Header: make(http.Header),
 	}
+	resp.Header.Set("Content-Type", "text/html; charset=utf8")
+
 	newURL, err := models.NewURL("http://ex.com")
 	if err != nil {
 		panic(err)

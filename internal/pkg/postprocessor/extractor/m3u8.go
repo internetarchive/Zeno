@@ -6,8 +6,8 @@ import (
 )
 
 func IsM3U8(URL *models.URL) bool {
-	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "application/vnd.apple.mpegurl") ||
-		isContentType(URL.GetResponse().Header.Get("Content-Type"), "application/x-mpegURL")
+	return URL.GetMIMEType() != nil &&
+		URL.GetMIMEType().Is("application/vnd.apple.mpegurl") || URL.GetMIMEType().Is("application/x-mpegURL")
 }
 
 func M3U8(URL *models.URL) (assets []*models.URL, err error) {
@@ -49,7 +49,7 @@ func M3U8(URL *models.URL) (assets []*models.URL, err error) {
 
 	for _, rawAsset := range rawAssets {
 		assets = append(assets, &models.URL{
-			Raw:  rawAsset,
+			Raw: rawAsset,
 		})
 	}
 

@@ -19,7 +19,7 @@ var (
 )
 
 func IsHTML(URL *models.URL) bool {
-	return isContentType(URL.GetResponse().Header.Get("Content-Type"), "html") || strings.Contains(URL.GetMIMEType().String(), "html")
+	return URL.GetMIMEType() != nil && strings.Contains(URL.GetMIMEType().String(), "html")
 }
 
 func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {

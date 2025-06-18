@@ -43,14 +43,6 @@ func hasFileExtension(s string) bool {
 	return true
 }
 
-func isContentType(header, targetContentType string) bool {
-	// Lowercase the header and target content type for case-insensitive comparison
-	header = strings.ToLower(header)
-	targetContentType = strings.ToLower(targetContentType)
-
-	return strings.Contains(header, targetContentType)
-}
-
 // sortURLs sorts a slice of *url.URL
 func sortURLs(urls []*models.URL) {
 	sort.Slice(urls, func(i, j int) bool {

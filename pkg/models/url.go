@@ -3,6 +3,7 @@ package models
 import (
 	"io"
 	"log/slog"
+	"mime"
 	"net"
 	"net/http"
 	"net/url"
@@ -75,7 +76,20 @@ func (u *URL) SetDocument(doc *goquery.Document) {
 	u.document = doc
 }
 
+// if mimetype is not set, try to get it from Content-Type header and cache it.
 func (u *URL) GetMIMEType() *mimetype.MIME {
+	if u.mimetype != nil {
+		return u.mimetype
+	}
+	if u.GetResponse() != nil {
+		ct := u.GetResponse().Header.Get("Content-Type")
+		if ct != "" {
+			mt, _, err := mime.ParseMediaType(strings.TrimSpace(ct))
+			if err == nil {
+				u.mimetype = mimetype.Lookup(mt)
+			}
+		}
+	}
 	return u.mimetype
 }
 
