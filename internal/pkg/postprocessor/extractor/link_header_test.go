@@ -98,6 +98,7 @@ func TestExtractURLsFromHeader(t *testing.T) {
 			resp := &http.Response{
 				Body: io.NopCloser(bytes.NewBufferString("")),
 				Header: http.Header{
+					"Content-Type": []string{"text/html"},
 					"Link": []string{tt.link},
 				},
 			}

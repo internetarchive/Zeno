@@ -81,7 +81,9 @@ func TestJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			resp := &http.Response{
 				Body: io.NopCloser(bytes.NewBufferString(tt.body)),
+				Header: make(http.Header),
 			}
+			resp.Header.Set("Content-Type", "application/json")
 
 			var URL = new(models.URL)
 			URL.SetResponse(resp)

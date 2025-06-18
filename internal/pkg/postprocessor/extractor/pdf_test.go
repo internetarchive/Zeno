@@ -22,7 +22,9 @@ var CorruptPDF []byte
 func TestPDF(t *testing.T) {
 	resp := &http.Response{
 		Body: io.NopCloser(bytes.NewBuffer(DeveloperPortalPDF)),
+		Header: make(http.Header),
 	}
+	resp.Header.Set("Content-Type", "application/pdf")
 
 	var URL = new(models.URL)
 	URL.SetResponse(resp)
@@ -50,7 +52,9 @@ func TestPDF(t *testing.T) {
 func TestCorruptPDF(t *testing.T) {
 	resp := &http.Response{
 		Body: io.NopCloser(bytes.NewBuffer(CorruptPDF)),
+		Header: make(http.Header),
 	}
+	resp.Header.Set("Content-Type", "application/pdf")
 
 	var URL = new(models.URL)
 	URL.SetResponse(resp)
