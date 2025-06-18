@@ -3,6 +3,7 @@ package models
 import (
 	"io"
 	"log/slog"
+	"mime"
 	"net"
 	"net/http"
 	"net/url"
@@ -83,10 +84,10 @@ func (u *URL) GetMIMEType() *mimetype.MIME {
 	if u.GetResponse() != nil {
 		ct := u.GetResponse().Header.Get("Content-Type")
 		if ct != "" {
-			mt := strings.Split(ct, ";")[0]
-			mt = strings.TrimSpace(mt)
-			mt = strings.ToLower(mt)
-			u.mimetype = mimetype.Lookup(mt)
+			mt, _, err := mime.ParseMediaType(strings.TrimSpace(ct))
+			if err == nil {
+				u.mimetype = mimetype.Lookup(mt)
+			}
 		}
 	}
 	return u.mimetype
