@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
+	. "github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -42,7 +42,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 
 	// Match <a> tags with href, data-href, data-src, data-srcset, data-lazy-src, data-srcset, src, srcset
 	// Extract potential URLs from <a> tags using common attributes
-	if !slices.Contains(config.Get().DisableHTMLTag, "a") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "a") {
 		attrs := []string{
 			"href",
 			"data-href",
@@ -76,7 +76,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		})
 	}
 
-	if !slices.Contains(config.Get().DisableHTMLTag, "iframe") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "iframe") {
 		document.Find("iframe[src]").Each(func(index int, i *goquery.Selection) {
 			if src, exists := i.Attr("src"); exists && src != "" {
 				rawOutlinks = append(rawOutlinks, src)
@@ -84,7 +84,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		})
 	}
 
-	if !slices.Contains(config.Get().DisableHTMLTag, "area") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "area") {
 		document.Find("area[href]").Each(func(index int, i *goquery.Selection) {
 			if href, exists := i.Attr("href"); exists && href != "" {
 				rawOutlinks = append(rawOutlinks, href)
@@ -164,7 +164,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	})
 
 	// Try to find assets in <a> tags.. this is a bit funky
-	if !slices.Contains(config.Get().DisableHTMLTag, "a") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "a") {
 		var validAssetPath = []string{
 			"static/",
 			"assets/",
@@ -198,7 +198,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	// Extract assets on the page (images, scripts, videos..)
-	if !slices.Contains(config.Get().DisableHTMLTag, "img") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "img") {
 		document.Find("img").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
@@ -234,10 +234,10 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	var targetElements = []string{}
-	if !slices.Contains(config.Get().DisableHTMLTag, "video") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "video") {
 		targetElements = append(targetElements, "video[src]")
 	}
-	if !slices.Contains(config.Get().DisableHTMLTag, "audio") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "audio") {
 		targetElements = append(targetElements, "audio[src]")
 	}
 	if len(targetElements) > 0 {
@@ -248,7 +248,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !slices.Contains(config.Get().DisableHTMLTag, "style") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "style") {
 		document.Find("style").Each(func(index int, i *goquery.Selection) {
 			links, atImportLinks, err := ExtractFromStringCSS(i.Text(), false)
 			if err != nil {
@@ -270,7 +270,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !slices.Contains(config.Get().DisableHTMLTag, "script") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "script") {
 		document.Find("script").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
@@ -295,7 +295,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 				logger.Debug("unable to extract outer HTML from script tag", "err", err, "url", item.GetURL(), "item", item.GetShortID())
 			} else {
 				var scriptLinks []string
-				if !config.Get().StrictRegex {
+				if !AppConfig.StrictRegex {
 					scriptLinks = utils.DedupeStrings(QuotedLinkRegexFindAll(outerHTML))
 				} else {
 					scriptLinks = utils.DedupeStrings(LinkRegexStrict.FindAllString(outerHTML, -1))
@@ -325,9 +325,9 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !slices.Contains(config.Get().DisableHTMLTag, "link") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "link") {
 		document.Find("link[href]").Each(func(index int, i *goquery.Selection) {
-			if !config.Get().CaptureAlternatePages {
+			if !AppConfig.CaptureAlternatePages {
 				if i.AttrOr("rel", "") == "alternate" {
 					return
 				}
@@ -339,7 +339,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !slices.Contains(config.Get().DisableHTMLTag, "meta") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "meta") {
 		document.Find("meta[href], meta[content]").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("href")
 			if exists {
@@ -355,7 +355,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	if !slices.Contains(config.Get().DisableHTMLTag, "source") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "source") {
 		document.Find("source").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("src")
 			if exists {
@@ -381,7 +381,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	// Extract WACZ files from replayweb embeds (docs: https://replayweb.page/docs/embedding/ )
-	if !slices.Contains(config.Get().DisableHTMLTag, "replay-web-page") {
+	if !slices.Contains(AppConfig.DisableHTMLTag, "replay-web-page") {
 		document.Find("replay-web-page[source]").Each(func(index int, i *goquery.Selection) {
 			source, exists := i.Attr("source")
 			if exists {

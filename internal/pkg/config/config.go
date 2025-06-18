@@ -128,7 +128,7 @@ type Config struct {
 }
 
 var (
-	config *Config
+	AppConfig *Config
 	once   sync.Once
 )
 
@@ -138,7 +138,7 @@ var (
 func InitConfig() error {
 	var err error
 	once.Do(func() {
-		config = &Config{}
+		AppConfig = &Config{}
 
 		// Check if a config file is provided via flag
 		if configFile := viper.GetString("config-file"); configFile != "" {
@@ -188,7 +188,7 @@ func InitConfig() error {
 		handleFlagsAliases()
 
 		// Unmarshal the config into the Config struct
-		err = viper.Unmarshal(config)
+		err = viper.Unmarshal(AppConfig)
 	})
 	return err
 }
@@ -204,14 +204,14 @@ func BindFlags(flagSet *pflag.FlagSet) {
 
 // Get returns the config struct
 func Get() *Config {
-	return config
+	return AppConfig
 }
 
 func GenerateCrawlConfig() error {
 	// If the job name isn't specified, we generate a random name
-	if config.Job == "" {
-		if config.HQProject != "" {
-			config.Job = config.HQProject
+	if AppConfig.Job == "" {
+		if AppConfig.HQProject != "" {
+			AppConfig.Job = AppConfig.HQProject
 		} else {
 			UUID, err := uuid.NewUUID()
 			if err != nil {
@@ -219,28 +219,28 @@ func GenerateCrawlConfig() error {
 				return err
 			}
 
-			config.Job = UUID.String()
+			AppConfig.Job = UUID.String()
 		}
 	}
 
 	// Prometheus syntax does not play nice with hyphens
-	config.JobPrometheus = strings.ReplaceAll(config.Job, "-", "")
-	config.JobPath = path.Join("jobs", config.Job)
-	config.UseSeencheck = !config.DisableSeencheck
+	AppConfig.JobPrometheus = strings.ReplaceAll(AppConfig.Job, "-", "")
+	AppConfig.JobPath = path.Join("jobs", AppConfig.Job)
+	AppConfig.UseSeencheck = !AppConfig.DisableSeencheck
 
 	// Defaults --max-crawl-time-limit to 10% more than --crawl-time-limit
-	if config.CrawlMaxTimeLimit == 0 && config.CrawlTimeLimit != 0 {
-		config.CrawlMaxTimeLimit = config.CrawlTimeLimit + (config.CrawlTimeLimit / 10)
+	if AppConfig.CrawlMaxTimeLimit == 0 && AppConfig.CrawlTimeLimit != 0 {
+		AppConfig.CrawlMaxTimeLimit = AppConfig.CrawlTimeLimit + (AppConfig.CrawlTimeLimit / 10)
 	}
 
 	// We exclude some hosts by default
-	config.ExcludeHosts = utils.DedupeStrings(append(config.ExcludeHosts, "archive.org", "archive-it.org"))
+	AppConfig.ExcludeHosts = utils.DedupeStrings(append(AppConfig.ExcludeHosts, "archive.org", "archive-it.org"))
 
-	if config.WARCTempDir == "" {
-		config.WARCTempDir = path.Join(config.JobPath, "temp")
+	if AppConfig.WARCTempDir == "" {
+		AppConfig.WARCTempDir = path.Join(AppConfig.JobPath, "temp")
 	}
 
-	if config.UserAgent == "" {
+	if AppConfig.UserAgent == "" {
 		version := utils.GetVersion()
 
 		// If Version is a commit hash, we only take the first 7 characters
@@ -248,25 +248,25 @@ func GenerateCrawlConfig() error {
 			version.Version = version.Version[:7]
 		}
 
-		config.UserAgent = "Mozilla/5.0 (compatible; archive.org_bot +http://archive.org/details/archive.org_bot) Zeno/" + version.Version + " warc/" + version.WarcVersion
-		slog.Info("User-Agent set to", "user-agent", config.UserAgent)
+		AppConfig.UserAgent = "Mozilla/5.0 (compatible; archive.org_bot +http://archive.org/details/archive.org_bot) Zeno/" + version.Version + " warc/" + version.WarcVersion
+		slog.Info("User-Agent set to", "user-agent", AppConfig.UserAgent)
 	}
 
-	if config.RandomLocalIP {
+	if AppConfig.RandomLocalIP {
 		slog.Warn("Random local IP is enabled")
 	}
 
-	if config.DisableIPv4 && config.DisableIPv6 {
+	if AppConfig.DisableIPv4 && AppConfig.DisableIPv6 {
 		slog.Error("Both IPv4 and IPv6 are disabled, at least one of them must be enabled.")
 		os.Exit(1)
-	} else if config.DisableIPv4 {
+	} else if AppConfig.DisableIPv4 {
 		slog.Info("IPv4 is disabled")
-	} else if config.DisableIPv6 {
+	} else if AppConfig.DisableIPv6 {
 		slog.Info("IPv6 is disabled")
 	}
 
-	if len(config.ExclusionFile) > 0 {
-		for _, file := range config.ExclusionFile {
+	if len(AppConfig.ExclusionFile) > 0 {
+		for _, file := range AppConfig.ExclusionFile {
 			var (
 				regexes []string
 				err     error
@@ -289,13 +289,13 @@ func GenerateCrawlConfig() error {
 			slog.Info("Compiling exclusion regexes", "regexes", len(regexes))
 			compiledRegexes := compileRegexes(regexes)
 
-			config.ExclusionRegexes = append(config.ExclusionRegexes, compiledRegexes...)
+			AppConfig.ExclusionRegexes = append(AppConfig.ExclusionRegexes, compiledRegexes...)
 		}
 	}
 
-	if len(config.DomainsCrawl) > 0 {
-		slog.Info("Domains crawl enabled", "domains/regex", config.DomainsCrawl)
-		err := domainscrawl.AddElements(config.DomainsCrawl)
+	if len(AppConfig.DomainsCrawl) > 0 {
+		slog.Info("Domains crawl enabled", "domains/regex", AppConfig.DomainsCrawl)
+		err := domainscrawl.AddElements(AppConfig.DomainsCrawl)
 		if err != nil {
 			panic(err)
 		}
@@ -341,7 +341,7 @@ func readRemoteExclusionFile(URL string) (regexes []string, err error) {
 		return regexes, err
 	}
 
-	req.Header.Set("User-Agent", config.UserAgent)
+	req.Header.Set("User-Agent", AppConfig.UserAgent)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
