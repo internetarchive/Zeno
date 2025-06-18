@@ -252,7 +252,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		document.Find("style").Each(func(index int, i *goquery.Selection) {
 			links, atImportLinks, err := ExtractFromStringCSS(i.Text(), false)
 			if err != nil {
-				cssLogger.Warn("error parsing HTML style block CSS", "err", err, "url", item.GetURL(), "item", item.GetShortID(), "links", len(links), "at_import_links", len(atImportLinks))
+				cssLogger.Warn("error parsing HTML style block CSS", "url", item.GetURL(), "item", item.GetShortID(), "links", len(links), "at_import_links", len(atImportLinks), "err", err)
 			}
 			AddAtImportLinksToItemChild(item, toURLs(atImportLinks))
 			for _, link := range links {
