@@ -69,8 +69,20 @@ func extractAssets(item *models.Item) (assets, outlinks []*models.URL, err error
 			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
 			return assets, outlinks, err
 		}
+	case extractor.IsEmbeddedCSS(item):
+		var atImportLinks []*models.URL
+		assets, atImportLinks, err = extractor.ExtractFromURLCSS(item.GetURL())
+
+		logArgs := []any{"item", item.GetShortID(), "links", len(assets), "at_import_links", len(atImportLinks)}
+		if err != nil {
+			logArgs = append(logArgs, "err", err)
+			logger.Error("error extracting assets from CSS", logArgs...)
+		} else {
+			logger.Debug("extracted assets from CSS", logArgs...)
+		}
+		extractor.AddAtImportLinksToItemChild(item, atImportLinks)
 	default:
-		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID())
+		logger.Debug("no extractor used for page", "content-type", contentType, "mime", item.GetURL().GetMIMEType().String(), "item", item.GetShortID())
 		return assets, outlinks, nil
 	}
 

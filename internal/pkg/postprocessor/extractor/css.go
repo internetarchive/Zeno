@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"regexp"
 	"strconv"
 	"unicode"
 	"unicode/utf8"
@@ -12,6 +13,18 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/tdewolff/parse/v2"
 	"github.com/tdewolff/parse/v2/css"
+)
+
+var (
+	useRegexFallbackForCSSParsing = true //  Fallback to regex parsing if tdewolff/parse fails
+	cGroup                        = `(.*?)`
+	cssURLRegex                   = regexp.MustCompile(`(?i:url\(\s*['"]?)` + cGroup + `(?:['"]?\s*\))`)
+	cssAtImportRegex              = regexp.MustCompile(`(?i:@import\s+)` + // start with @import
+		`(?i:` +
+		`url\(\s*['"]?` + cGroup + `["']?\s*\)` + // url token
+		`|` + // OR
+		`\s*['"]` + cGroup + `["']` + `)`, // string token
+	)
 )
 
 // The logger also used in the HTML extractor for CSS related logs.
@@ -263,6 +276,49 @@ func isValidAtImport(gt css.GrammarType, tt css.TokenType, data []byte, pAreaSta
 	return false, false
 }
 
+// parseCSSRegex parses the CSS content using regex to extract URLs and @import links.
+// This is a fallback method if the CSS parser fails or if the content is not valid CSS.
+func parseCSSRegex(cssBody string) (links []string, atImportLinks []string) {
+	linksMap := make(map[string]bool)
+	atImportsMap := make(map[string]bool)
+
+	matches := cssURLRegex.FindAllStringSubmatch(cssBody, -1)
+	for _, match := range matches {
+		if len(match) > 1 {
+			linksMap[match[1]] = true
+		}
+	}
+
+	matches = cssAtImportRegex.FindAllStringSubmatch(cssBody, -1)
+	for _, match := range matches {
+		if len(match) > 1 {
+			if match[1] != "" { // url token
+				atImportsMap[match[1]] = true
+			} else if match[2] != "" { // string token
+				atImportsMap[match[2]] = true
+			}
+		}
+	}
+
+	// Remove @import links from the main links map
+	for link := range linksMap {
+		if _, ok := atImportsMap[link]; ok {
+			delete(linksMap, link)
+		}
+	}
+
+	links = make([]string, 0, len(linksMap))
+	atImportLinks = make([]string, 0, len(atImportsMap))
+	for link := range linksMap {
+		links = append(links, link)
+	}
+	for link := range atImportsMap {
+		atImportLinks = append(atImportLinks, link)
+	}
+
+	return links, atImportLinks
+}
+
 // parseCSS parses the CSS content from the given reader and extracts URLs.
 //
 // Returns:
@@ -299,15 +355,16 @@ func parseCSS(reader io.Reader, inline bool) (links []string, atImportLinks []st
 		if gt == css.ErrorGrammar {
 			if p.Err() != nil && !errors.Is(p.Err(), io.EOF) {
 				parseErr = p.Err()
-				cssLogger.Error("error parsing CSS", "error", parseErr, "inline", inline)
+				cssLogger.Error("error parsing CSS", "inline", inline, "error", parseErr)
 			}
 			break
 		} else if gt == css.AtRuleGrammar || gt == css.BeginAtRuleGrammar || gt == css.BeginRulesetGrammar || gt == css.DeclarationGrammar {
 			for _, tk := range p.Values() {
 				if isValidImportRule {
-					if tk.TokenType == css.URLToken {
+					switch tk.TokenType {
+					case css.URLToken:
 						atImportLinks = append(atImportLinks, urlTokenToValue(tk))
-					} else if tk.TokenType == css.StringToken {
+					case css.StringToken:
 						atImportLinks = append(atImportLinks, stringTokenToValue(tk))
 					}
 					continue // skip other tokens in the @import rule
@@ -332,12 +389,29 @@ func IsCSS(URL *models.URL) bool {
 
 // ExtractFromStringCSS extracts URLs from a CSS content string.
 func ExtractFromStringCSS(cssBody string, inline bool) (links []string, atImportLinks []string, err error) {
-	return parseCSS(bytes.NewBufferString(cssBody), inline)
+	links, atImportLinks, err = parseCSS(bytes.NewBufferString(cssBody), inline)
+	if err != nil && useRegexFallbackForCSSParsing {
+		links, atImportLinks = parseCSSRegex(cssBody)
+
+		cssLogger.Warn("fallback to regex parsing for CSS", "links", len(links), "at_import_links", len(atImportLinks), "inline", inline)
+
+		err = errors.Join(err, errors.New("fallback to regex parsing for CSS"))
+	}
+	return links, atImportLinks, err
 }
 
 // ExtractFromURLCSS extracts URLs from a CSS URL
 func ExtractFromURLCSS(URL *models.URL) (links []*models.URL, atImportLinks []*models.URL, err error) {
 	defer URL.RewindBody()
 	sLinks, sAtImportLinks, err := parseCSS(URL.GetBody(), false)
+	if err != nil && useRegexFallbackForCSSParsing {
+		URL.RewindBody()
+		cssBody, _ := io.ReadAll(URL.GetBody())
+
+		sLinks, sAtImportLinks = parseCSSRegex(string(cssBody))
+
+		cssLogger.Warn("fallback to regex parsing for CSS", "url", URL.String(), "links", len(sLinks), "at_import_links", len(sAtImportLinks))
+		err = errors.Join(err, errors.New("fallback to regex parsing for CSS"))
+	}
 	return toURLs(sLinks), toURLs(sAtImportLinks), err
 }
