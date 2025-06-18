@@ -36,7 +36,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 
 	buffer := new(bytes.Buffer)
 	// First check HTTP Content-Type and then fallback to mimetype library.
-	if u.GetMIMEType() != nil {
+	if u.GetMIMEType() == nil {
 		// Create a buffer to hold the body (first 3KB) as suggested by mimetype author
 		// https://github.com/gabriel-vasile/mimetype/blob/66e5c005d80684b64f47eeeb15ad439ee6fad667/mimetype.go#L15
 		if err := copyWithTimeoutN(buffer, u.GetResponse().Body, 3072, conn); err != nil {
