@@ -86,6 +86,7 @@ func (u *URL) GetMIMEType() *mimetype.MIME {
 		if ct != "" {
 			mt, _, err := mime.ParseMediaType(strings.TrimSpace(ct))
 			if err == nil {
+				extendMimetype()
 				u.mimetype = mimetype.Lookup(mt)
 			}
 		}
