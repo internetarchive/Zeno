@@ -169,6 +169,7 @@ func TestMIMETypeMethods(t *testing.T) {
 		{"    text/html  ; charset=utf-8", "text/html"}, // random spaces
 		{"application/json; charset=utf-8", "application/json"},
 		{"Application/JSON;version=1", "application/json"}, // upper case mix
+		{"text/css", "text/css"},                           // extended MIME type
 	}
 
 	for _, tc := range testCases {
