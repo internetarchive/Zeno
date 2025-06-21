@@ -82,8 +82,8 @@ func findURLs(data interface{}, links *[]string) {
 		}
 
 		// find links in text
-		linlsFromText := LinkRegexStrict.FindAllString(v, -1)
-		for _, link := range linlsFromText {
+		linksFromText := LinkRegexStrict.FindAllString(v, -1)
+		for _, link := range linksFromText {
 			if isValidURL(link) {
 				*links = append(*links, link)
 			}
