@@ -98,6 +98,16 @@ func TestHasFileExtension(t *testing.T) {
 			input: "http://example.com/data.zip?path=/etc/passwd",
 			want:  true,
 		},
+		{
+			name:  "Protocol and domain only, no path",
+			input: "https://example.com",
+			want:  false,
+		},
+		{
+			name:  "Protocol and domain with trailing slash",
+			input: "https://example.com/",
+			want:  false,
+		},
 	}
 
 	for _, tt := range tests {

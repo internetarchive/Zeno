@@ -148,9 +148,9 @@ func TestXML(t *testing.T) {
 			body: rss2_0XML,
 			expected: func() []string {
 				v := make([]string, 213)
-				v[1] = "https://blog.archive.org/wp-content/uploads/2023/03/ia-logo-sq-150x150.png"             // image::url
-				v[13] = "https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3.png" // <a> href in description::CDATA
-				v[181] = "https://archive.org/details/vanishing-culture-report"
+				v[0] = "https://blog.archive.org/wp-content/uploads/2023/03/ia-logo-sq-150x150.png"             // image::url
+				v[11] = "https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3.png" // <a> href in description::CDATA
+				v[212] = "https://blog.archive.org/2025/02/06/update-on-the-2024-2025-end-of-term-web-archive/feed/"
 				return v
 
 			}(),
@@ -161,7 +161,7 @@ func TestXML(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp := &http.Response{
-				Body: io.NopCloser(bytes.NewBufferString(tt.body)),
+				Body:   io.NopCloser(bytes.NewBufferString(tt.body)),
 				Header: make(http.Header),
 			}
 			resp.Header.Set("Content-Type", "application/xml")

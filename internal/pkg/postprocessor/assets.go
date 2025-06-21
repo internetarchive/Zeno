@@ -109,6 +109,8 @@ func extractAssets(item *models.Item) (assets, outlinks []*models.URL, err error
 		i++
 	}
 
+	assets, outlinks = filterURLsByProtocol(assets), filterURLsByProtocol(outlinks)
+
 	// For assets, set the hops level to the item's level
 	for _, asset := range assets {
 		asset.SetHops(item.GetURL().GetHops())
