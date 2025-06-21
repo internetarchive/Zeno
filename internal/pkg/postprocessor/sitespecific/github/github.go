@@ -15,22 +15,22 @@ var logger = log.NewFieldedLogger(&log.Fields{
 var githubAvatar = regexp.MustCompile(`(?i)^https://avatars\.githubusercontent\.com/u/`)
 
 // github frontend .css .js resources
-var githubAssets = regexp.MustCompile(`(?i)^https://github\.githubassets\.com/`)
+var githubFrontendAssets = regexp.MustCompile(`(?i)^https://github\.githubassets\.com/`)
 
 // Attachment links shown to the user in the editor
-var githubUserAttachments = regexp.MustCompile(`(?i)^https://github\.com/user-attachments/`)
+var githubComUserAttachments = regexp.MustCompile(`(?i)^https://github\.com/user-attachments/`)
 
 // Permanent links to attachments
-var regexGithubAsset = regexp.MustCompile(`(?i)https://github\.com/[^/]+/[^/]+/assets/`)
+var githubComAssets = regexp.MustCompile(`(?i)https://github\.com/[^/]+/[^/]+/assets/`)
 
 // Temporary links to attachments
 var githubPrivateUserImages = regexp.MustCompile(`(?i)^https://private-user-images\.githubusercontent\.com/`)
 
 var matchers = []*regexp.Regexp{
 	githubAvatar,
-	githubAssets,
-	githubUserAttachments,
-	regexGithubAsset,
+	githubFrontendAssets,
+	githubComUserAttachments,
+	githubComAssets,
 	githubPrivateUserImages,
 }
 
