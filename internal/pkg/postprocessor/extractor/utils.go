@@ -19,7 +19,7 @@ var (
 // It might yield false positives, like https://example.com/super.idea,
 // but it's good enough for our purposes.
 func hasFileExtension(s string) bool {
-	// Remove query and fragment portion (#...)
+	// Remove query and fragment portion (?...) (#...)
 	if i := strings.IndexAny(s, `?#`); i != -1 {
 		s = s[:i]
 	}
