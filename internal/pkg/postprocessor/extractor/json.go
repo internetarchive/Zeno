@@ -69,12 +69,22 @@ func findURLs(data interface{}, links *[]string) {
 	case string:
 		if isValidURL(v) {
 			*links = append(*links, v)
+			return
 		} else if isLikelyJSON(v) {
 			// handle JSON in JSON
 			var jsonstringdata interface{}
 			err := json.Unmarshal([]byte(v), &jsonstringdata)
 			if err == nil {
 				findURLs(jsonstringdata, links)
+				return
+			}
+		}
+
+		// find links in text
+		linlsFromText := LinkRegexStrict.FindAllString(v, -1)
+		for _, link := range linlsFromText {
+			if isValidURL(link) {
+				*links = append(*links, link)
 			}
 		}
 	case []interface{}:

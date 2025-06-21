@@ -75,12 +75,21 @@ func TestJSON(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "URLs in text fields",
+			body: `{"body": "Check this link https://example.com and also http://test.com"}`,
+			wantURLs: []*models.URL{
+				{Raw: "https://example.com"},
+				{Raw: "http://test.com"},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp := &http.Response{
-				Body: io.NopCloser(bytes.NewBufferString(tt.body)),
+				Body:   io.NopCloser(bytes.NewBufferString(tt.body)),
 				Header: make(http.Header),
 			}
 			resp.Header.Set("Content-Type", "application/json")
