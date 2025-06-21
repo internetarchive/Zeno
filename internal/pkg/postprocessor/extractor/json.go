@@ -99,7 +99,26 @@ func findURLs(data interface{}, links *[]string) {
 	}
 }
 
+// This is a simplified version of the URL validation for quick checks.
 func isValidURL(str string) bool {
 	u, err := fasturl.ParseURL(str)
-	return err == nil && u.Host != ""
+	if err != nil {
+		return false
+	}
+
+	if u.Protocol == "" {
+		// If the URL does not have a protocol, we check if it has (a host) and (a path or query)
+		if u.Host != "" && (u.Path != "" || u.Query != "") {
+			// If the URL has a host and a path, it's valid
+			return true
+		}
+	} else {
+		// If the URL has a protocol and (a host), it's valid
+		if u.Host != "" {
+			return true
+		}
+	}
+
+	// Anything else is not a valid URL
+	return false
 }
