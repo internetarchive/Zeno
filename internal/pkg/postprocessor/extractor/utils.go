@@ -19,13 +19,14 @@ var (
 // It might yield false positives, like https://example.com/super.idea,
 // but it's good enough for our purposes.
 func hasFileExtension(s string) bool {
-	// Remove fragment portion (#...)
-	if i := strings.IndexByte(s, '#'); i != -1 {
+	// Remove query and fragment portion (#...)
+	if i := strings.IndexAny(s, `?#`); i != -1 {
 		s = s[:i]
 	}
-	// Remove query portion (?...)
-	if i := strings.IndexByte(s, '?'); i != -1 {
-		s = s[:i]
+
+	// Exclude URLs that only contain a protocol and domain
+	if (strings.HasPrefix(s, "//") || strings.Contains(s, "://")) && strings.Count(s, "/") == 2 {
+		return false // e.g., "//example.com", "http://example.com"
 	}
 
 	// Keep only the substring after the last slash
