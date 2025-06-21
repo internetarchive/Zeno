@@ -282,8 +282,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 				if strings.Contains(scriptType, "json") {
 					URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(i.Text())))
 					if err != nil {
-						// TODO: maybe add back when https://github.com/internetarchive/Zeno/issues/147 is fixed
-						// c.Log.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", URL)
+						logger.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", item.GetURL(), "item", item.GetShortID())
 					} else {
 						rawAssets = append(rawAssets, URLsFromJSON...)
 					}
