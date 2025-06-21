@@ -12,21 +12,21 @@ var logger = log.NewFieldedLogger(&log.Fields{
 })
 
 // user avatars
-var githubAvatar = "avatars.githubusercontent.com/u/"
+var githubAvatar = regexp.MustCompile(`(?i)^https://avatars\.githubusercontent\.com/u/`)
 
 // github frontend .css .js resources
-var githubAssets = "github.githubassets.com/"
+var githubAssets = regexp.MustCompile(`(?i)^https://github\.githubassets\.com/`)
 
 // Attachment links shown to the user in the editor
-var githubUserAttachments = "github.com/user-attachments/"
+var githubUserAttachments = regexp.MustCompile(`(?i)^https://github\.com/user-attachments/`)
 
 // Permanent links to attachments
 var regexGithubAsset = regexp.MustCompile(`(?i)https://github\.com/[^/]+/[^/]+/assets/`)
 
 // Temporary links to attachments
-var githubPrivateUserImages = "private-user-images.githubusercontent.com/"
+var githubPrivateUserImages = regexp.MustCompile(`(?i)^https://private-user-images\.githubusercontent\.com/`)
 
-var matchers []any = []any{
+var matchers = []*regexp.Regexp{
 	githubAvatar,
 	githubAssets,
 	githubUserAttachments,
@@ -41,18 +41,10 @@ func ShouldConsiderAsAsset(u string) bool {
 		return false
 	}
 
-	for _, matcher := range matchers {
-		switch m := matcher.(type) {
-		case string:
-			if strings.Contains(u, m) {
-				logger.Debug("matched GitHub asset pattern", "pattern", m, "url", u)
-				return true
-			}
-		case *regexp.Regexp:
-			if m.MatchString(u) {
-				logger.Debug("matched GitHub asset pattern", "pattern", m.String(), "url", u)
-				return true
-			}
+	for i := range matchers {
+		if matchers[i].MatchString(u) {
+			logger.Debug("matched GitHub asset pattern", "pattern", matchers[i].String(), "url", u)
+			return true
 		}
 	}
 
