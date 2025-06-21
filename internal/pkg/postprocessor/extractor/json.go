@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ImVexed/fasturl"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/github"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -44,7 +45,7 @@ func GetURLsFromJSON(decoder *json.Decoder) (assets, outlinks []string, err erro
 
 	// We only consider as assets the URLs in which we can find a file extension
 	for _, link := range links {
-		if hasFileExtension(link) {
+		if hasFileExtension(link) || github.ShouldConsiderAsAsset(link) {
 			assets = append(assets, link)
 		} else {
 			outlinks = append(outlinks, link)
