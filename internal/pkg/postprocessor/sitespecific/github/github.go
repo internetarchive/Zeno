@@ -11,11 +11,10 @@ var logger = log.NewFieldedLogger(&log.Fields{
 	"component": "postprocessor.sitespecific.github",
 })
 
-// user avatars
-var githubAvatar = regexp.MustCompile(`(?i)^https://avatars\.githubusercontent\.com/u/`)
-
-// github frontend .css .js resources
-var githubFrontendAssets = regexp.MustCompile(`(?i)^https://github\.githubassets\.com/`)
+// User avatars: avatars.githubusercontent.com
+// Temporary link to attachments: private-user-images.githubusercontent.com
+// Github frontend .css .js resources: github.githubassets.com
+var githubAssetsDomains = regexp.MustCompile(`(?i)^https://[a-z-]*\.?(?:githubusercontent|githubassets)\.com/`)
 
 // Attachment links shown to the user in the editor
 var githubComUserAttachments = regexp.MustCompile(`(?i)^https://github\.com/user-attachments/`)
@@ -23,15 +22,10 @@ var githubComUserAttachments = regexp.MustCompile(`(?i)^https://github\.com/user
 // Permanent links to attachments
 var githubComAssets = regexp.MustCompile(`(?i)https://github\.com/[^/]+/[^/]+/assets/`)
 
-// Temporary links to attachments
-var githubPrivateUserImages = regexp.MustCompile(`(?i)^https://private-user-images\.githubusercontent\.com/`)
-
 var matchers = []*regexp.Regexp{
-	githubAvatar,
-	githubFrontendAssets,
+	githubAssetsDomains,
 	githubComUserAttachments,
 	githubComAssets,
-	githubPrivateUserImages,
 }
 
 // Many GitHub asset urls do not have a file extension, so we need to consider
