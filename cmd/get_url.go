@@ -5,6 +5,7 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler"
+	"github.com/internetarchive/Zeno/internal/pkg/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +35,15 @@ var getURLCmd = &cobra.Command{
 		}
 
 		controler.Start()
-		controler.WatchSignals()
+		if config.Get().TUI {
+			tui := ui.New()
+			err := tui.Start()
+			if err != nil {
+				return fmt.Errorf("error starting TUI: %w", err)
+			}
+		} else {
+			controler.WatchSignals()
+		}
 		return nil
 	},
 }
