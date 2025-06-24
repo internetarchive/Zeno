@@ -23,6 +23,15 @@ type stats struct {
 	MeanProcessBodyTime    *mean // in ms
 	MeanWaitOnFeedbackTime *mean // in ms
 	WARCWritingQueueSize   atomic.Int64
+
+	// Add WARC metrics to the stats struct
+	WARCDataTotalBytes               atomic.Int64
+	WARCCDXDedupeTotalBytes          atomic.Int64
+	WARCDoppelgangerDedupeTotalBytes atomic.Int64
+	WARCLocalDedupeTotalBytes        atomic.Int64
+	WARCCDXDedupeTotal               atomic.Int64
+	WARCDoppelgangerDedupeTotal      atomic.Int64
+	WARCLocalDedupeTotal             atomic.Int64
 }
 
 var (
@@ -98,21 +107,28 @@ func Reset() {
 // This is used by the TUI to update the stats table.
 func GetMapTUI() map[string]interface{} {
 	return map[string]interface{}{
-		"URL/s":                   globalStats.URLsCrawled.get(),
-		"Total URL crawled":       globalStats.URLsCrawled.getTotal(),
-		"Finished seeds":          globalStats.SeedsFinished.getTotal(),
-		"Preprocessor routines":   globalStats.PreprocessorRoutines.get(),
-		"Archiver routines":       globalStats.ArchiverRoutines.get(),
-		"Postprocessor routines":  globalStats.PostprocessorRoutines.get(),
-		"Finisher routines":       globalStats.FinisherRoutines.get(),
-		"Is paused?":              globalStats.Paused.Load(),
-		"HTTP 2xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("2*")),
-		"HTTP 3xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("3*")),
-		"HTTP 4xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("4*")),
-		"HTTP 5xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("5*")),
-		"Mean HTTP response time": globalStats.MeanHTTPResponseTime.get(),
-		"Mean wait on feedback time": globalStats.MeanWaitOnFeedbackTime.get(),
-		"Mean process body time": globalStats.MeanProcessBodyTime.get(),
-		"WARC writing queue size": globalStats.WARCWritingQueueSize.Load(),
+		"URL/s":                          globalStats.URLsCrawled.get(),
+		"Total URL crawled":              globalStats.URLsCrawled.getTotal(),
+		"Finished seeds":                 globalStats.SeedsFinished.getTotal(),
+		"Preprocessor routines":          globalStats.PreprocessorRoutines.get(),
+		"Archiver routines":              globalStats.ArchiverRoutines.get(),
+		"Postprocessor routines":         globalStats.PostprocessorRoutines.get(),
+		"Finisher routines":              globalStats.FinisherRoutines.get(),
+		"Is paused?":                     globalStats.Paused.Load(),
+		"HTTP 2xx/s":                     bucketSum(globalStats.HTTPReturnCodes.getFiltered("2*")),
+		"HTTP 3xx/s":                     bucketSum(globalStats.HTTPReturnCodes.getFiltered("3*")),
+		"HTTP 4xx/s":                     bucketSum(globalStats.HTTPReturnCodes.getFiltered("4*")),
+		"HTTP 5xx/s":                     bucketSum(globalStats.HTTPReturnCodes.getFiltered("5*")),
+		"Mean HTTP response time":        globalStats.MeanHTTPResponseTime.get(),
+		"Mean wait on feedback time":     globalStats.MeanWaitOnFeedbackTime.get(),
+		"Mean process body time":         globalStats.MeanProcessBodyTime.get(),
+		"WARC writing queue size":        globalStats.WARCWritingQueueSize.Load(),
+		"WARC data total (GB)":           float64(globalStats.WARCDataTotalBytes.Load()) / 1e9,
+		"Doppelganger dedupe bytes (GB)": float64(globalStats.WARCDoppelgangerDedupeTotalBytes.Load()) / 1e9,
+		"CDX dedupe bytes (GB)":          float64(globalStats.WARCCDXDedupeTotalBytes.Load()) / 1e9,
+		"Local dedupe bytes (GB)":        float64(globalStats.WARCLocalDedupeTotalBytes.Load()) / 1e9,
+		"Doppelganger dedupe count":      globalStats.WARCDoppelgangerDedupeTotal.Load(),
+		"CDX dedupe count":               globalStats.WARCCDXDedupeTotal.Load(),
+		"Local dedupe count":             globalStats.WARCLocalDedupeTotal.Load(),
 	}
 }

@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/internetarchive/gowarc"
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
@@ -21,6 +20,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
+	warc "github.com/internetarchive/gowarc"
 )
 
 func init() {
@@ -113,7 +113,7 @@ func Stop() {
 				case <-stopLocalWatcher:
 					return
 				case <-time.After(1 * time.Second):
-					logger.Debug("waiting for WARC writing to finish", "queue_size", GetWARCWritingQueueSize(), "bytes_written", humanize.Bytes(uint64(warc.DataTotal.Value())))
+					logger.Debug("waiting for WARC writing to finish", "queue_size", GetWARCWritingQueueSize(), "bytes_written", humanize.Bytes(uint64(warc.DataTotal.Load())))
 				}
 			}
 		}()

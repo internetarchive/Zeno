@@ -96,6 +96,15 @@ func StartWatchWARCWritingQueue(pauseCheckInterval time.Duration, pauseTimeout t
 				queueSize := archiver.GetWARCWritingQueueSize()
 
 				stats.WarcWritingQueueSizeSet(int64(queueSize))
+
+				// Update new WARC metrics
+				stats.WARCDataTotalBytesSet(archiver.GetWARCTotalBytesArchived())
+				stats.WARCCDXDedupeTotalBytesSet(archiver.GetWARCCDXDedupeTotalBytes())
+				stats.WARCDoppelgangerDedupeTotalBytesSet(archiver.GetWARCDoppelgangerDedupeTotalBytes())
+				stats.WARCLocalDedupeTotalBytesSet(archiver.GetWARCLocalDedupeTotalBytes())
+				stats.WARCCDXDedupeTotalSet(archiver.GetWARCCDXDedupeTotal())
+				stats.WARCDoppelgangerDedupeTotalSet(archiver.GetWARCDoppelgangerDedupeTotal())
+				stats.WARCLocalDedupeTotalSet(archiver.GetWARCLocalDedupeTotal())
 			}
 		}
 	}()

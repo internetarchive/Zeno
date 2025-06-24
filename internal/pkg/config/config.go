@@ -33,51 +33,52 @@ type Config struct {
 	DisableSeencheck bool `mapstructure:"disable-seencheck"`
 	UseSeencheck     bool
 
-	UserAgent              string   `mapstructure:"user-agent"`
-	Cookies                string   `mapstructure:"cookies"`
-	WARCPrefix             string   `mapstructure:"warc-prefix"`
-	WARCOperator           string   `mapstructure:"warc-operator"`
-	WARCTempDir            string   `mapstructure:"warc-temp-dir"`
-	WARCSize               int      `mapstructure:"warc-size"`
-	WARCOnDisk             bool     `mapstructure:"warc-on-disk"`
-	WARCPoolSize           int      `mapstructure:"warc-pool-size"`
-	WARCQueueSize          int      `mapstructure:"warc-queue-size"`
-	WARCDedupeSize         int      `mapstructure:"warc-dedupe-size"`
-	WARCWriteAsync         bool     `mapstructure:"async-warc-write"`
-	WARCDiscardStatus      []int    `mapstructure:"warc-discard-status"`
-	CDXDedupeServer        string   `mapstructure:"warc-cdx-dedupe-server"`
-	CDXCookie              string   `mapstructure:"warc-cdx-cookie"`
-	HQAddress              string   `mapstructure:"hq-address"`
-	HQKey                  string   `mapstructure:"hq-key"`
-	HQSecret               string   `mapstructure:"hq-secret"`
-	HQProject              string   `mapstructure:"hq-project"`
-	HQBatchSize            int      `mapstructure:"hq-batch-size"`
-	HQBatchConcurrency     int      `mapstructure:"hq-batch-concurrency"`
-	DisableHTMLTag         []string `mapstructure:"disable-html-tag"`
-	ExcludeHosts           []string `mapstructure:"exclude-host"`
-	IncludeHosts           []string `mapstructure:"include-host"`
-	IncludeString          []string `mapstructure:"include-string"`
-	ExcludeString          []string `mapstructure:"exclude-string"`
-	ExclusionFile          []string `mapstructure:"exclusion-file"`
-	WorkersCount           int      `mapstructure:"workers"`
-	MaxConcurrentAssets    int      `mapstructure:"max-concurrent-assets"`
-	MaxHops                int      `mapstructure:"max-hops"`
-	MaxRedirect            int      `mapstructure:"max-redirect"`
-	MaxCSSJump             int      `mapstructure:"max-css-jump"`
-	MaxRetry               int      `mapstructure:"max-retry"`
-	HTTPTimeout            int      `mapstructure:"http-timeout"`
-	HTTPReadDeadline       int      `mapstructure:"http-read-deadline"`
-	CrawlTimeLimit         int      `mapstructure:"crawl-time-limit"`
-	CrawlMaxTimeLimit      int      `mapstructure:"crawl-max-time-limit"`
-	MinSpaceRequired       float64  `mapstructure:"min-space-required"`
-	DomainsCrawl           []string `mapstructure:"domains-crawl"`
-	CaptureAlternatePages  bool     `mapstructure:"capture-alternate-pages"`
-	StrictRegex            bool     `mapstructure:"strict-regex"`
-	DisableLocalDedupe     bool     `mapstructure:"disable-local-dedupe"`
-	CertValidation         bool     `mapstructure:"cert-validation"`
-	DisableAssetsCapture   bool     `mapstructure:"disable-assets-capture"`
-	UseHQ                  bool     // Special field to check if HQ is enabled depending on the command called
-	HQRateLimitingSendBack bool     `mapstructure:"hq-rate-limiting-send-back"`
+	UserAgent                string   `mapstructure:"user-agent"`
+	Cookies                  string   `mapstructure:"cookies"`
+	WARCPrefix               string   `mapstructure:"warc-prefix"`
+	WARCOperator             string   `mapstructure:"warc-operator"`
+	WARCTempDir              string   `mapstructure:"warc-temp-dir"`
+	WARCSize                 int      `mapstructure:"warc-size"`
+	WARCOnDisk               bool     `mapstructure:"warc-on-disk"`
+	WARCPoolSize             int      `mapstructure:"warc-pool-size"`
+	WARCQueueSize            int      `mapstructure:"warc-queue-size"`
+	WARCDedupeSize           int      `mapstructure:"warc-dedupe-size"`
+	WARCWriteAsync           bool     `mapstructure:"async-warc-write"`
+	WARCDiscardStatus        []int    `mapstructure:"warc-discard-status"`
+	CDXDedupeServer          string   `mapstructure:"warc-cdx-dedupe-server"`
+	CDXCookie                string   `mapstructure:"warc-cdx-cookie"`
+	DoppelgangerDedupeServer string   `mapstructure:"warc-doppelganger-dedupe-server"`
+	HQAddress                string   `mapstructure:"hq-address"`
+	HQKey                    string   `mapstructure:"hq-key"`
+	HQSecret                 string   `mapstructure:"hq-secret"`
+	HQProject                string   `mapstructure:"hq-project"`
+	HQBatchSize              int      `mapstructure:"hq-batch-size"`
+	HQBatchConcurrency       int      `mapstructure:"hq-batch-concurrency"`
+	DisableHTMLTag           []string `mapstructure:"disable-html-tag"`
+	ExcludeHosts             []string `mapstructure:"exclude-host"`
+	IncludeHosts             []string `mapstructure:"include-host"`
+	IncludeString            []string `mapstructure:"include-string"`
+	ExcludeString            []string `mapstructure:"exclude-string"`
+	ExclusionFile            []string `mapstructure:"exclusion-file"`
+	WorkersCount             int      `mapstructure:"workers"`
+	MaxConcurrentAssets      int      `mapstructure:"max-concurrent-assets"`
+	MaxHops                  int      `mapstructure:"max-hops"`
+	MaxRedirect              int      `mapstructure:"max-redirect"`
+	MaxCSSJump               int      `mapstructure:"max-css-jump"`
+	MaxRetry                 int      `mapstructure:"max-retry"`
+	HTTPTimeout              int      `mapstructure:"http-timeout"`
+	HTTPReadDeadline         int      `mapstructure:"http-read-deadline"`
+	CrawlTimeLimit           int      `mapstructure:"crawl-time-limit"`
+	CrawlMaxTimeLimit        int      `mapstructure:"crawl-max-time-limit"`
+	MinSpaceRequired         float64  `mapstructure:"min-space-required"`
+	DomainsCrawl             []string `mapstructure:"domains-crawl"`
+	CaptureAlternatePages    bool     `mapstructure:"capture-alternate-pages"`
+	StrictRegex              bool     `mapstructure:"strict-regex"`
+	DisableLocalDedupe       bool     `mapstructure:"disable-local-dedupe"`
+	CertValidation           bool     `mapstructure:"cert-validation"`
+	DisableAssetsCapture     bool     `mapstructure:"disable-assets-capture"`
+	UseHQ                    bool     // Special field to check if HQ is enabled depending on the command called
+	HQRateLimitingSendBack   bool     `mapstructure:"hq-rate-limiting-send-back"`
 
 	// Network
 	Proxy         string `mapstructure:"proxy"`
