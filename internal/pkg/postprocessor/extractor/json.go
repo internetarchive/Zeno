@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ImVexed/fasturl"
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/github"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -82,7 +83,12 @@ func findURLs(data interface{}, links *[]string) {
 		}
 
 		// find links in text
-		linksFromText := LinkRegexStrict.FindAllString(v, -1)
+		var linksFromText []string
+		if !config.Get().StrictRegex {
+			linksFromText = LinkRegex.FindAllString(v, -1)
+		} else {
+			linksFromText = LinkRegexStrict.FindAllString(v, -1)
+		}
 		for _, link := range linksFromText {
 			if isValidURL(link) {
 				*links = append(*links, link)
