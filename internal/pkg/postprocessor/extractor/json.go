@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/ImVexed/fasturl"
+	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/github"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -44,7 +46,7 @@ func GetURLsFromJSON(decoder *json.Decoder) (assets, outlinks []string, err erro
 
 	// We only consider as assets the URLs in which we can find a file extension
 	for _, link := range links {
-		if hasFileExtension(link) {
+		if hasFileExtension(link) || github.ShouldConsiderAsAsset(link) {
 			assets = append(assets, link)
 		} else {
 			outlinks = append(outlinks, link)
@@ -69,12 +71,27 @@ func findURLs(data interface{}, links *[]string) {
 	case string:
 		if isValidURL(v) {
 			*links = append(*links, v)
+			return
 		} else if isLikelyJSON(v) {
 			// handle JSON in JSON
 			var jsonstringdata interface{}
 			err := json.Unmarshal([]byte(v), &jsonstringdata)
 			if err == nil {
 				findURLs(jsonstringdata, links)
+				return
+			}
+		}
+
+		// find links in text
+		var linksFromText []string
+		if !config.Get().StrictRegex {
+			linksFromText = LinkRegex.FindAllString(v, -1)
+		} else {
+			linksFromText = LinkRegexStrict.FindAllString(v, -1)
+		}
+		for _, link := range linksFromText {
+			if isValidURL(link) {
+				*links = append(*links, link)
 			}
 		}
 	case []interface{}:
@@ -88,7 +105,26 @@ func findURLs(data interface{}, links *[]string) {
 	}
 }
 
+// This is a simplified version of the URL validation for quick checks.
 func isValidURL(str string) bool {
 	u, err := fasturl.ParseURL(str)
-	return err == nil && u.Host != ""
+	if err != nil {
+		return false
+	}
+
+	if u.Protocol == "" {
+		// If the URL does not have a protocol, we check if it has (a host) and (a path or query)
+		if u.Host != "" && (u.Path != "" || u.Query != "") {
+			// If the URL has a host and a path, it's valid
+			return true
+		}
+	} else {
+		// If the URL has a protocol and (a host), it's valid
+		if u.Host != "" {
+			return true
+		}
+	}
+
+	// Anything else is not a valid URL
+	return false
 }

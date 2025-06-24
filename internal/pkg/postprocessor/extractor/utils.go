@@ -11,21 +11,35 @@ import (
 
 var (
 	LinkRegexStrict = xurls.Strict()
-	LinkRegex       = regexp.MustCompile(`['"]((http|https)://[^'"]+)['"]`)
+	LinkRegex       = regexp.MustCompile(`(?i)https?://[^<>'",\s/]+\.[^<>'",\s/]+(?:/[^<>'",\s]*)?`) // Adapted from heritrix3's UriUtils (Apache License 2.0)
+	quotedLinkRegex = regexp.MustCompile(`['"](https?://[^'"]+)['"]`)
 	AssetsRegex     = `(?i)\b(?:src|href)=["']([^"']+\.(?:css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot))["']`
 )
+
+// Helper function to call FindAllStringSubmatch on quotedLinkRegex and return only the capturing group (Quoted URL).
+func QuotedLinkRegexFindAll(s string) []string {
+	matches := quotedLinkRegex.FindAllStringSubmatch(s, -1)
+	result := make([]string, 0, len(matches))
+	for i := range matches {
+		if len(matches[i]) > 1 {
+			result = append(result, matches[i][1])
+		}
+	}
+	return result
+}
 
 // hasFileExtension checks if a URL has a file extension in it.
 // It might yield false positives, like https://example.com/super.idea,
 // but it's good enough for our purposes.
 func hasFileExtension(s string) bool {
-	// Remove fragment portion (#...)
-	if i := strings.IndexByte(s, '#'); i != -1 {
+	// Remove query and fragment portion (?...) (#...)
+	if i := strings.IndexAny(s, `?#`); i != -1 {
 		s = s[:i]
 	}
-	// Remove query portion (?...)
-	if i := strings.IndexByte(s, '?'); i != -1 {
-		s = s[:i]
+
+	// Exclude URLs that only contain a protocol and domain
+	if (strings.HasPrefix(s, "//") || strings.Contains(s, "://")) && strings.Count(s, "/") == 2 {
+		return false // e.g., "//example.com", "http://example.com"
 	}
 
 	// Keep only the substring after the last slash
