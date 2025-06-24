@@ -54,6 +54,22 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Float64("min-space-required", 0, "Minimum space required in GB to continue the crawl. Default will be 50GB * (total disk space / 256GB) if total disk space is less than 256GB, else 50GB.")
 	getCmd.PersistentFlags().Bool("strict-regex", false, "If turned on, the xurls `strict` regex setting will be used. Otherwise a looser regex will be used.")
 
+	// Headless flags
+	getCmd.PersistentFlags().Bool("headless", false, "[headless] Run in headless mode")
+	getCmd.PersistentFlags().Bool("headless-trace", false, "[headless] Enable headless trace mode")
+	getCmd.PersistentFlags().Bool("headfull", false, "[headless] Run in headfull mode")
+	getCmd.PersistentFlags().String("chromium-bin", "", "[headless] Bin of the browser binary path to launch, if the path is not empty the auto download will be disabled.")
+	getCmd.PersistentFlags().Bool("dev-tools", false, "[headless] F12")
+	getCmd.PersistentFlags().Bool("stealth-mode", false, "[headless] Run in stealth mode and use the browser's native User-Agent")
+	getCmd.PersistentFlags().String("headless-user-data-dir", "", "[headless] Path to the user-data directory to use for browser when running in headless mode. If not set, a temporary directory will be used.")
+
+	getCmd.PersistentFlags().Duration("page-load-timeout", 90*time.Second, "[headless] How long to wait for page to finish loading, before doing anything else.")
+	getCmd.PersistentFlags().Duration("post-load-delay", 3*time.Second, "[headless] How long to wait before starting any behaviors, but after page has finished loading.")
+	getCmd.PersistentFlags().Duration("behavior-timeout", 90*time.Second, "[headless] maximum time to spend on running site-specific / Autoscroll behaviors (can be less if behavior finishes early).")
+	// getCmd.PersistentFlags().String("
+
+	getCmd.PersistentFlags().String("behaviors", "autoscroll,autoplay,siteSpecific", "[headless] Comma separated list of browser behaviors to run. (ref: https://crawler.docs.browsertrix.com/user-guide/behaviors/#site-specific-behaviors)")
+
 	// Network flags
 	getCmd.PersistentFlags().String("proxy", "", "Proxy to use when requesting pages.")
 	getCmd.PersistentFlags().Bool("random-local-ip", false, "Use random local IP for requests. (will be ignored if a proxy is set)")

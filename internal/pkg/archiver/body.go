@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/body"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -29,7 +30,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 	// If we are not capturing assets, not extracting outlinks, and domains crawl is disabled
 	// we can just consume and discard the body
 	if disableAssetsCapture && !domainsCrawl && maxHops == 0 {
-		if err := copyWithTimeout(io.Discard, u.GetResponse().Body, conn); err != nil {
+		if err := body.CopyWithTimeout(io.Discard, u.GetResponse().Body, conn); err != nil {
 			return err
 		}
 	}
@@ -39,7 +40,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 	if u.GetMIMEType() == nil {
 		// Create a buffer to hold the body (first 3KB) as suggested by mimetype author
 		// https://github.com/gabriel-vasile/mimetype/blob/66e5c005d80684b64f47eeeb15ad439ee6fad667/mimetype.go#L15
-		if err := copyWithTimeoutN(buffer, u.GetResponse().Body, 3072, conn); err != nil {
+		if err := body.CopyWithTimeoutN(buffer, u.GetResponse().Body, 3072, conn); err != nil {
 			return err
 		}
 		u.SetMIMEType(mimetype.Detect(buffer.Bytes()))
@@ -62,7 +63,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		}
 
 		// Read the rest of the body into the spooled buffer
-		if err := copyWithTimeout(spooledBuff, u.GetResponse().Body, conn); err != nil {
+		if err := body.CopyWithTimeout(spooledBuff, u.GetResponse().Body, conn); err != nil {
 			closeErr := spooledBuff.Close()
 			if closeErr != nil {
 				panic(closeErr)
@@ -76,54 +77,10 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		return nil
 	} else {
 		// Read the rest of the body but discard it
-		if err := copyWithTimeout(io.Discard, u.GetResponse().Body, conn); err != nil {
+		if err := body.CopyWithTimeout(io.Discard, u.GetResponse().Body, conn); err != nil {
 			return err
 		}
 	}
 
-	return nil
-}
-
-// copyWithTimeout copies data and resets the read deadline after each successful read
-func copyWithTimeout(dst io.Writer, src io.Reader, conn interface{ SetReadDeadline(time.Time) error }) error {
-	buf := make([]byte, 4096)
-	for {
-		n, err := src.Read(buf)
-		if n > 0 {
-			// Reset the deadline after each successful read
-			if conn != nil {
-				err = conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
-				if err != nil {
-					return err
-				}
-			}
-			if _, writeErr := dst.Write(buf[:n]); writeErr != nil {
-				return writeErr
-			}
-		}
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-	}
-	return nil
-}
-
-// copyWithTimeoutN copies a limited number of bytes and applies the timeout
-func copyWithTimeoutN(dst io.Writer, src io.Reader, n int64, conn interface{ SetReadDeadline(time.Time) error }) error {
-	_, err := io.CopyN(dst, src, n)
-	if err != nil && err != io.EOF {
-		return err
-	}
-
-	// Reset deadline after partial read
-	if conn != nil {
-		err = conn.SetReadDeadline(time.Now().Add(time.Duration(config.Get().HTTPReadDeadline)))
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
