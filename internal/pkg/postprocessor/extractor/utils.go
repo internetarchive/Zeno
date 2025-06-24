@@ -11,9 +11,22 @@ import (
 
 var (
 	LinkRegexStrict = xurls.Strict()
-	LinkRegex       = regexp.MustCompile(`['"]((http|https)://[^'"]+)['"]`)
+	LinkRegex       = regexp.MustCompile(`(?i)https?://[^<>'",\s/]+\.[^<>'",\s/]+(?:/[^<>'",\s]*)?`) // Adapted from heritrix3's UriUtils (Apache License 2.0)
+	quotedLinkRegex = regexp.MustCompile(`['"](https?://[^'"]+)['"]`)
 	AssetsRegex     = `(?i)\b(?:src|href)=["']([^"']+\.(?:css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot))["']`
 )
+
+// Helper function to call FindAllStringSubmatch on quotedLinkRegex and return only the capturing group (Quoted URL).
+func QuotedLinkRegexFindAll(s string) []string {
+	matches := quotedLinkRegex.FindAllStringSubmatch(s, -1)
+	result := make([]string, 0, len(matches))
+	for i := range matches {
+		if len(matches[i]) > 1 {
+			result = append(result, matches[i][1])
+		}
+	}
+	return result
+}
 
 // hasFileExtension checks if a URL has a file extension in it.
 // It might yield false positives, like https://example.com/super.idea,

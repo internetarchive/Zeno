@@ -296,7 +296,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			} else {
 				var scriptLinks []string
 				if !config.Get().StrictRegex {
-					scriptLinks = utils.DedupeStrings(LinkRegex.FindAllString(outerHTML, -1))
+					scriptLinks = utils.DedupeStrings(QuotedLinkRegexFindAll(outerHTML))
 				} else {
 					scriptLinks = utils.DedupeStrings(LinkRegexStrict.FindAllString(outerHTML, -1))
 				}

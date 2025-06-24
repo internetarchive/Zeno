@@ -1,6 +1,9 @@
 package extractor
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestHasFileExtension(t *testing.T) {
 	tests := []struct {
@@ -115,6 +118,117 @@ func TestHasFileExtension(t *testing.T) {
 			got := hasFileExtension(tt.input)
 			if got != tt.want {
 				t.Errorf("hasFileExtension(%q) = %v; want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLinkRegex(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "Valid URL",
+			input:    "Check this link: https://example.com",
+			expected: []string{"https://example.com"},
+		},
+		{
+			name:     "Multiple URLs",
+			input:    "Links: http://example.com, https://test.org/path",
+			expected: []string{"http://example.com", "https://test.org/path"},
+		},
+		{
+			name:     "No URLs",
+			input:    "Just some text without links.",
+			expected: []string{},
+		},
+		{
+			name:     "Bare domain without protocol",
+			input:    "This is not a valid link: example.com",
+			expected: []string{},
+		},
+		{
+			name:     "URL",
+			input:    "This is a link: https://example.com/path/to/resource?query=param#fragment and some text.",
+			expected: []string{"https://example.com/path/to/resource?query=param#fragment"},
+		},
+		{
+			name:  "Markdown-style link",
+			input: "Check this [link](https://example.com/1.html) for more info. details: <https://example.com/2.html>",
+			expected: []string{
+				"https://example.com/1.html)", // <-- This is a trade-off, if I let the regex to ignore the closing parenthesis,
+				// it will not match the below "Wikipedia URL" case correctly.
+				// But [LinkRegexStrict] would match both URLs correctly, IDK how it works unfortunately :(
+				"https://example.com/2.html",
+			},
+		},
+		{
+			name:     "Wikipedia URL",
+			input:    "page: https://en.wikipedia.org/wiki/Pipeline_(Unix) and some text.",
+			expected: []string{"https://en.wikipedia.org/wiki/Pipeline_(Unix)"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := LinkRegex.FindAllString(tt.input, -1)
+			if len(result) != len(tt.expected) {
+				t.Errorf("Expected %d URLs, got %d", len(tt.expected), len(result))
+				return
+			}
+			slices.Sort(result)
+			slices.Sort(tt.expected)
+			for i, url := range result {
+				if url != tt.expected[i] {
+					t.Errorf("Expected URL %s, got %s", tt.expected[i], url)
+				}
+			}
+		})
+	}
+}
+
+func TestQuotedLinkRegex(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "Quoted URL",
+			input:    `Check this link: 'https://example.com'`,
+			expected: []string{"https://example.com"},
+		},
+		{
+			name:     "Multiple quoted URLs",
+			input:    `Links: "http://example.com", "https://test.org/path"`,
+			expected: []string{"http://example.com", "https://test.org/path"},
+		},
+		{
+			name:  "No quoted URLs",
+			input: `Just some text without links.`,
+		},
+		{
+			name:  "Unquoted URL",
+			input: `This is not a valid link: https://example.com`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := QuotedLinkRegexFindAll(tt.input)
+			if len(result) != len(tt.expected) {
+				t.Errorf("Expected %d quoted URLs, got %d", len(tt.expected), len(result))
+				return
+			}
+
+			slices.Sort(result)
+			slices.Sort(tt.expected)
+			for i, url := range result {
+				if url != tt.expected[i] {
+					t.Errorf("Expected quoted URL %s, got %s", tt.expected[i], url)
+				}
 			}
 		})
 	}
