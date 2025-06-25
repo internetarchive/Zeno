@@ -25,6 +25,15 @@ type prometheusStats struct {
 	meanProcessBodyTime    *prometheus.HistogramVec // in ns
 	meanWaitOnFeedbackTime *prometheus.HistogramVec // in ns
 	warcWritingQueueSize   *prometheus.GaugeVec
+
+	// Dedup WARC metrics
+	dataTotalBytes               *prometheus.GaugeVec
+	cdxDedupeTotalBytes          *prometheus.GaugeVec
+	doppelgangerDedupeTotalBytes *prometheus.GaugeVec
+	localDedupeTotalBytes        *prometheus.GaugeVec
+	cdxDedupeTotal               *prometheus.GaugeVec
+	doppelgangerDedupeTotal      *prometheus.GaugeVec
+	localDedupeTotal             *prometheus.GaugeVec
 }
 
 func newPrometheusStats() *prometheusStats {
@@ -89,6 +98,36 @@ func newPrometheusStats() *prometheusStats {
 			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "warc_writing_queue_size", Help: "Size of the WARC writing queue"},
 			[]string{"project", "hostname", "version"},
 		),
+
+		// Dedup WARC metrics
+		dataTotalBytes: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "total_bytes_downloaded", Help: "Total number of bytes downloaded through gowarc"},
+			[]string{"project", "hostname", "version"},
+		),
+		cdxDedupeTotalBytes: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "total_bytes_cdx_dedupe", Help: "Total number of bytes deduplicated by CDX"},
+			[]string{"project", "hostname", "version"},
+		),
+		doppelgangerDedupeTotalBytes: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "total_bytes_doppelganger_dedupe", Help: "Total number of bytes deduplicated by Doppelganger"},
+			[]string{"project", "hostname", "version"},
+		),
+		localDedupeTotalBytes: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "total_bytes_local_dedupe", Help: "Total number of bytes deduplicated by local hash table"},
+			[]string{"project", "hostname", "version"},
+		),
+		cdxDedupeTotal: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "total_cdx_dedupe", Help: "Total number of successful CDX hits"},
+			[]string{"project", "hostname", "version"},
+		),
+		doppelgangerDedupeTotal: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "total_doppelganger_dedupe", Help: "Total number of succcessful Doppelganger hits"},
+			[]string{"project", "hostname", "version"},
+		),
+		localDedupeTotal: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "total_local_dedupe", Help: "Total number of local hash table hits"},
+			[]string{"project", "hostname", "version"},
+		),
 	}
 }
 
@@ -108,6 +147,15 @@ func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.meanProcessBodyTime)
 	prometheus.MustRegister(globalPromStats.warcWritingQueueSize)
 	prometheus.MustRegister(globalPromStats.meanWaitOnFeedbackTime)
+
+	// Register dedup WARC metrics
+	prometheus.MustRegister(globalPromStats.dataTotalBytes)
+	prometheus.MustRegister(globalPromStats.cdxDedupeTotalBytes)
+	prometheus.MustRegister(globalPromStats.doppelgangerDedupeTotalBytes)
+	prometheus.MustRegister(globalPromStats.localDedupeTotalBytes)
+	prometheus.MustRegister(globalPromStats.cdxDedupeTotal)
+	prometheus.MustRegister(globalPromStats.doppelgangerDedupeTotal)
+	prometheus.MustRegister(globalPromStats.localDedupeTotal)
 }
 
 func PrometheusHandler() http.Handler {

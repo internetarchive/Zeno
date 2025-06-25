@@ -206,3 +206,63 @@ func MeanWaitOnFeedbackTimeAdd(value time.Duration) {
 		globalPromStats.meanWaitOnFeedbackTime.WithLabelValues(config.Get().JobPrometheus, hostname, version).Observe(float64(value))
 	}
 }
+
+////////////////////////////
+//   WARC Data Metrics    //
+////////////////////////////
+
+// WARCDataTotalBytesSet sets the WARC data total bytes metric.
+func WARCDataTotalBytesSet(value int64) {
+	globalStats.WARCDataTotalBytes.Store(value)
+	if globalPromStats != nil {
+		globalPromStats.dataTotalBytes.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(float64(value))
+	}
+}
+
+// WARCCDXDedupeTotalBytesSet sets the WARC CDX dedupe total bytes metric.
+func WARCCDXDedupeTotalBytesSet(value int64) {
+	globalStats.WARCCDXDedupeTotalBytes.Store(value)
+	if globalPromStats != nil {
+		globalPromStats.cdxDedupeTotalBytes.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(float64(value))
+	}
+}
+
+// WARCDoppelgangerDedupeTotalBytesSet sets the WARC Doppelganger dedupe total bytes metric.
+func WARCDoppelgangerDedupeTotalBytesSet(value int64) {
+	globalStats.WARCDoppelgangerDedupeTotalBytes.Store(value)
+	if globalPromStats != nil {
+		globalPromStats.doppelgangerDedupeTotalBytes.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(float64(value))
+	}
+}
+
+// WARCLocalDedupeTotalBytesSet sets the WARC local dedupe total bytes metric.
+func WARCLocalDedupeTotalBytesSet(value int64) {
+	globalStats.WARCLocalDedupeTotalBytes.Store(value)
+	if globalPromStats != nil {
+		globalPromStats.localDedupeTotalBytes.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(float64(value))
+	}
+}
+
+// WARCCDXDedupeTotalSet sets the WARC CDX dedupe total count metric.
+func WARCCDXDedupeTotalSet(value int64) {
+	globalStats.WARCCDXDedupeTotal.Store(value)
+	if globalPromStats != nil {
+		globalPromStats.cdxDedupeTotal.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(float64(value))
+	}
+}
+
+// WARCDoppelgangerDedupeTotalSet sets the WARC Doppelganger dedupe total count metric.
+func WARCDoppelgangerDedupeTotalSet(value int64) {
+	globalStats.WARCDoppelgangerDedupeTotal.Store(value)
+	if globalPromStats != nil {
+		globalPromStats.doppelgangerDedupeTotal.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(float64(value))
+	}
+}
+
+// WARCLocalDedupeTotalSet sets the WARC local dedupe total count metric.
+func WARCLocalDedupeTotalSet(value int64) {
+	globalStats.WARCLocalDedupeTotal.Store(value)
+	if globalPromStats != nil {
+		globalPromStats.localDedupeTotal.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(float64(value))
+	}
+}

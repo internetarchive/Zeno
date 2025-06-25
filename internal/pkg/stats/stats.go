@@ -23,6 +23,14 @@ type stats struct {
 	MeanProcessBodyTime    *mean // in ms
 	MeanWaitOnFeedbackTime *mean // in ms
 	WARCWritingQueueSize   atomic.Int64
+
+	WARCDataTotalBytes               atomic.Int64
+	WARCCDXDedupeTotalBytes          atomic.Int64
+	WARCDoppelgangerDedupeTotalBytes atomic.Int64
+	WARCLocalDedupeTotalBytes        atomic.Int64
+	WARCCDXDedupeTotal               atomic.Int64
+	WARCDoppelgangerDedupeTotal      atomic.Int64
+	WARCLocalDedupeTotal             atomic.Int64
 }
 
 var (
@@ -97,22 +105,55 @@ func Reset() {
 // GetMapTUI returns a map of the current stats.
 // This is used by the TUI to update the stats table.
 func GetMapTUI() map[string]interface{} {
-	return map[string]interface{}{
-		"URL/s":                   globalStats.URLsCrawled.get(),
-		"Total URL crawled":       globalStats.URLsCrawled.getTotal(),
-		"Finished seeds":          globalStats.SeedsFinished.getTotal(),
-		"Preprocessor routines":   globalStats.PreprocessorRoutines.get(),
-		"Archiver routines":       globalStats.ArchiverRoutines.get(),
-		"Postprocessor routines":  globalStats.PostprocessorRoutines.get(),
-		"Finisher routines":       globalStats.FinisherRoutines.get(),
-		"Is paused?":              globalStats.Paused.Load(),
-		"HTTP 2xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("2*")),
-		"HTTP 3xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("3*")),
-		"HTTP 4xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("4*")),
-		"HTTP 5xx/s":              bucketSum(globalStats.HTTPReturnCodes.getFiltered("5*")),
-		"Mean HTTP response time": globalStats.MeanHTTPResponseTime.get(),
+	result := map[string]interface{}{
+		"URL/s":                      globalStats.URLsCrawled.get(),
+		"Total URL crawled":          globalStats.URLsCrawled.getTotal(),
+		"Finished seeds":             globalStats.SeedsFinished.getTotal(),
+		"Preprocessor routines":      globalStats.PreprocessorRoutines.get(),
+		"Archiver routines":          globalStats.ArchiverRoutines.get(),
+		"Postprocessor routines":     globalStats.PostprocessorRoutines.get(),
+		"Finisher routines":          globalStats.FinisherRoutines.get(),
+		"Is paused?":                 globalStats.Paused.Load(),
+		"HTTP 2xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("2*")),
+		"HTTP 3xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("3*")),
+		"HTTP 4xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("4*")),
+		"HTTP 5xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("5*")),
+		"Mean HTTP response time":    globalStats.MeanHTTPResponseTime.get(),
 		"Mean wait on feedback time": globalStats.MeanWaitOnFeedbackTime.get(),
-		"Mean process body time": globalStats.MeanProcessBodyTime.get(),
-		"WARC writing queue size": globalStats.WARCWritingQueueSize.Load(),
+		"Mean process body time":     globalStats.MeanProcessBodyTime.get(),
+		"WARC writing queue size":    globalStats.WARCWritingQueueSize.Load(),
+		"WARC data total (GB)":       float64(globalStats.WARCDataTotalBytes.Load()) / 1e9,
 	}
+
+	// Only show CDX dedupe stats if activated and has data
+	if config.Get().CDXDedupeServer != "" {
+		if dedupeBytes := globalStats.WARCCDXDedupeTotalBytes.Load(); dedupeBytes > 0 {
+			result["CDX dedupe bytes (GB)"] = float64(dedupeBytes) / 1e9
+		}
+		if dedupeCount := globalStats.WARCCDXDedupeTotal.Load(); dedupeCount > 0 {
+			result["CDX dedupe count"] = dedupeCount
+		}
+	}
+
+	// Only show Doppelganger dedupe stats if activated and has data
+	if config.Get().DoppelgangerDedupeServer != "" {
+		if dedupeBytes := globalStats.WARCDoppelgangerDedupeTotalBytes.Load(); dedupeBytes > 0 {
+			result["Doppelganger dedupe bytes (GB)"] = float64(dedupeBytes) / 1e9
+		}
+		if dedupeCount := globalStats.WARCDoppelgangerDedupeTotal.Load(); dedupeCount > 0 {
+			result["Doppelganger dedupe count"] = dedupeCount
+		}
+	}
+
+	// Only show local dedupe stats if activated and has data
+	if !config.Get().DisableLocalDedupe {
+		if dedupeBytes := globalStats.WARCLocalDedupeTotalBytes.Load(); dedupeBytes > 0 {
+			result["Local dedupe bytes (GB)"] = float64(dedupeBytes) / 1e9
+		}
+		if dedupeCount := globalStats.WARCLocalDedupeTotal.Load(); dedupeCount > 0 {
+			result["Local dedupe count"] = dedupeCount
+		}
+	}
+
+	return result
 }

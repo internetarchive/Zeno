@@ -70,7 +70,8 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	// WARC flags
 	getCmd.PersistentFlags().String("warc-prefix", "ZENO", "Prefix to use when naming the WARC files.")
 	getCmd.PersistentFlags().String("warc-operator", "", "Contact informations of the crawl operator to write in the Warc-Info record in each WARC file.")
-	getCmd.PersistentFlags().String("warc-cdx-dedupe-server", "", "Identify the server to use CDX deduplication. This also activates CDX deduplication on.")
+	getCmd.PersistentFlags().String("warc-cdx-dedupe-server", "", "Identify the server to use CDX deduplication. This activates CDX deduplication.")
+	getCmd.PersistentFlags().String("warc-doppelganger-dedupe-server", "", "Identify the server to use doppelganger deduplication. This activates doppelganger deduplication.")
 	getCmd.PersistentFlags().Bool("warc-on-disk", false, "Do not use RAM to store payloads when recording traffic to WARCs, everything will happen on disk (usually used to reduce memory usage).")
 	getCmd.PersistentFlags().Int("warc-pool-size", 1, "Number of concurrent WARC files to write.")
 	getCmd.PersistentFlags().Int("warc-queue-size", -1, "Number of WARC records to queue before blocking the workers. Default is the --warc-pool-size.")

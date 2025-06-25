@@ -5,9 +5,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/internetarchive/gowarc"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	warc "github.com/internetarchive/gowarc"
 )
 
 func startWARCWriter() {
@@ -24,13 +24,14 @@ func startWARCWriter() {
 	// Configure WARC dedupe settings
 	dedupeOptions := warc.DedupeOptions{LocalDedupe: !config.Get().DisableLocalDedupe, SizeThreshold: config.Get().WARCDedupeSize}
 	if config.Get().CDXDedupeServer != "" {
-		dedupeOptions = warc.DedupeOptions{
-			LocalDedupe:   !config.Get().DisableLocalDedupe,
-			CDXDedupe:     true,
-			CDXURL:        config.Get().CDXDedupeServer,
-			CDXCookie:     config.Get().CDXCookie,
-			SizeThreshold: config.Get().WARCDedupeSize,
-		}
+		dedupeOptions.CDXDedupe = true
+		dedupeOptions.CDXURL = config.Get().CDXDedupeServer
+		dedupeOptions.CDXCookie = config.Get().CDXCookie
+	}
+
+	if config.Get().DoppelgangerDedupeServer != "" {
+		dedupeOptions.DoppelgangerDedupe = true
+		dedupeOptions.DoppelgangerHost = config.Get().DoppelgangerDedupeServer
 	}
 
 	// Configure WARC discard hook
@@ -112,6 +113,76 @@ func GetWARCWritingQueueSize() (total int) {
 	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
 		if c != nil {
 			total += c.WaitGroup.Size()
+		}
+	}
+
+	return total
+}
+
+func GetWARCTotalBytesArchived() (total int64) {
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			total += c.DataTotal.Load()
+		}
+	}
+
+	return total
+}
+
+func GetWARCCDXDedupeTotalBytes() (total int64) {
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			total += c.CDXDedupeTotalBytes.Load()
+		}
+	}
+
+	return total
+}
+
+func GetWARCDoppelgangerDedupeTotalBytes() (total int64) {
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			total += c.DoppelgangerDedupeTotalBytes.Load()
+		}
+	}
+
+	return total
+}
+
+func GetWARCLocalDedupeTotalBytes() (total int64) {
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			total += c.LocalDedupeTotalBytes.Load()
+		}
+	}
+
+	return total
+}
+
+func GetWARCCDXDedupeTotal() (total int64) {
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			total += c.CDXDedupeTotal.Load()
+		}
+	}
+
+	return total
+}
+
+func GetWARCDoppelgangerDedupeTotal() (total int64) {
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			total += c.DoppelgangerDedupeTotal.Load()
+		}
+	}
+
+	return total
+}
+
+func GetWARCLocalDedupeTotal() (total int64) {
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			total += c.LocalDedupeTotal.Load()
 		}
 	}
 
