@@ -31,11 +31,14 @@ Zeno is highly configurable with many parameters that can be customized. To see 
 
 Contributions are welcome! Please feel free to submit a Pull Request & open issues!
 
-Zeno is being developed and maintained by [Corentin Barreau](https://github.com/CorentinB) at the [Internet Archive](https://archive.org). The project has evolved into what it is today thanks to the invaluable contributions from the community. While we can't list everyone, special thanks to:
+Zeno is being developed and maintained by the [Internet Archive](https://archive.org) and awesome contributors. The project has evolved into what it is today thanks to the invaluable contributions from the community. While we can't list everyone, special thanks to:
 
+- [Corentin Barreau](https://github.com/CorentinB) former Wayback Machine Software Engineer at the [Internet Archive](https://archive.org) for his initial work on the project.
 - [Jake LaFountain](https://github.com/NGTmeaty), Wayback Machine Software Engineer at the [Internet Archive](https://archive.org).
-- [Thomas Foubert](https://github.com/equals215), Wayback Machine Platform Engineer at the [Internet Archive](https://archive.org).
+- [Thomas Foubert](https://github.com/equals215), former Wayback Machine Platform Engineer at the [Internet Archive](https://archive.org).
 - [yzqzss](https://github.com/yzqzss), Lead Developer of the [Save The Web Project](https://github.com/saveweb).
+- [Will Howes](https://github.com/willmhowes), Wayback Machine Software Engineer at the [Internet Archive](https://archive.org).
+- [Vangelis Banos](https://github.com/vbanos), Wayback Machine Software Engineer at the [Internet Archive](https://archive.org).
 
 ## License
 
