@@ -26,7 +26,7 @@ type prometheusStats struct {
 	meanWaitOnFeedbackTime *prometheus.HistogramVec // in ns
 	warcWritingQueueSize   *prometheus.GaugeVec
 
-	// New WARC metrics
+	// Dedup WARC metrics
 	dataTotalBytes               *prometheus.GaugeVec
 	cdxDedupeTotalBytes          *prometheus.GaugeVec
 	doppelgangerDedupeTotalBytes *prometheus.GaugeVec
@@ -99,7 +99,7 @@ func newPrometheusStats() *prometheusStats {
 			[]string{"project", "hostname", "version"},
 		),
 
-		// New WARC metrics
+		// Dedup WARC metrics
 		dataTotalBytes: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "total_bytes_downloaded", Help: "Total number of bytes downloaded through gowarc"},
 			[]string{"project", "hostname", "version"},
@@ -148,7 +148,7 @@ func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.warcWritingQueueSize)
 	prometheus.MustRegister(globalPromStats.meanWaitOnFeedbackTime)
 
-	// Register new WARC metrics
+	// Register dedup WARC metrics
 	prometheus.MustRegister(globalPromStats.dataTotalBytes)
 	prometheus.MustRegister(globalPromStats.cdxDedupeTotalBytes)
 	prometheus.MustRegister(globalPromStats.doppelgangerDedupeTotalBytes)

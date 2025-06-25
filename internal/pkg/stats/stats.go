@@ -24,7 +24,6 @@ type stats struct {
 	MeanWaitOnFeedbackTime *mean // in ms
 	WARCWritingQueueSize   atomic.Int64
 
-	// Add WARC metrics to the stats struct
 	WARCDataTotalBytes               atomic.Int64
 	WARCCDXDedupeTotalBytes          atomic.Int64
 	WARCDoppelgangerDedupeTotalBytes atomic.Int64
