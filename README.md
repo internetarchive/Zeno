@@ -37,6 +37,8 @@ Zeno is being developed and maintained by the [Internet Archive](https://archive
 - [Jake LaFountain](https://github.com/NGTmeaty), Wayback Machine Software Engineer at the [Internet Archive](https://archive.org).
 - [Thomas Foubert](https://github.com/equals215), former Wayback Machine Platform Engineer at the [Internet Archive](https://archive.org).
 - [yzqzss](https://github.com/yzqzss), Lead Developer of the [Save The Web Project](https://github.com/saveweb).
+- [Will Howes](https://github.com/willmhowes), Wayback Machine Software Engineer at the [Internet Archive](https://archive.org).
+- [Vangelis Banos](https://github.com/vbanos), Wayback Machine Software Engineer at the [Internet Archive](https://archive.org).
 
 ## License
 
