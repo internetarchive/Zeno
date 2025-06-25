@@ -22,6 +22,15 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
+/**
+ * Channel description:
+ * reactorOutputChan: reactor → preprocessor
+ * preprocessorOutputChan: preprocessor → archiver
+ * archiverOutputChan: archiver → postprocessor
+ * postprocessorOutputChan: postprocessor → finisher
+ * finisherFinishChan: finisher → HQ or LQ. Notify when a seed is finished.
+ * finisherProduceChan: HQ or LQ → finisher. Send fresh seeds.
+ */
 func startPipeline() {
 	if err := os.MkdirAll(config.Get().JobPath, 0755); err != nil {
 		fmt.Printf("can't create job directory: %s\n", err)
