@@ -47,8 +47,6 @@ var (
 
 // Start initializes the internal preprocessor structure and start routines, should only be called once and returns an error if called more than once
 func Start(inputChan, outputChan chan *models.Item) error {
-	var done bool
-
 	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor",
@@ -70,10 +68,9 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			go globalPreprocessor.worker(strconv.Itoa(i))
 		}
 		logger.Info("started")
-		done = true
 	})
 
-	if !done {
+	if globalPreprocessor == nil {
 		return ErrPreprocessorAlreadyInitialized
 	}
 

@@ -32,8 +32,6 @@ var (
 // Start initializes the global finisher with the given input channel.
 // This method can only be called once.
 func Start(inputChan, sourceFinishedChan, sourceProducedChan chan *models.Item) error {
-	var done bool
-
 	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "finisher",
@@ -55,10 +53,9 @@ func Start(inputChan, sourceFinishedChan, sourceProducedChan chan *models.Item) 
 			go globalFinisher.worker(strconv.Itoa(i))
 		}
 		logger.Info("started")
-		done = true
 	})
 
-	if !done {
+	if globalFinisher == nil {
 		return ErrFinisherAlreadyInitialized
 	}
 
