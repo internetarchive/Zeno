@@ -112,19 +112,6 @@ func isValidURL(str string) bool {
 		return false
 	}
 
-	if u.Protocol == "" {
-		// If the URL does not have a protocol, we check if it has (a host) and (a path or query)
-		if u.Host != "" && (u.Path != "" || u.Query != "") {
-			// If the URL has a host and a path, it's valid
-			return true
-		}
-	} else {
-		// If the URL has a protocol and (a host), it's valid
-		if u.Host != "" {
-			return true
-		}
-	}
-
-	// Anything else is not a valid URL
-	return false
+	// A URL is considered valid if it has a scheme and a host, or if it has a host and a path/query.
+	return (u.Protocol != "" && u.Host != "") || (u.Host != "" && (u.Path != "" || u.Query != ""))
 }
