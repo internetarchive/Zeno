@@ -52,9 +52,7 @@ func AddElements(elements []string) error {
 	globalMatcher.Lock()
 	defer globalMatcher.Unlock()
 
-	if !globalMatcher.enabled {
-		globalMatcher.enabled = true
-	}
+	globalMatcher.enabled = true
 
 	for _, element := range elements {
 		// Try to parse as a URL first
