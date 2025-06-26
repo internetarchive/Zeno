@@ -30,8 +30,6 @@ var (
 // This functions starts the preprocessor responsible for preparing
 // the seeds sent by the reactor for captures
 func Start(inputChan, outputChan chan *models.Item) error {
-	var done bool
-
 	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor",
@@ -53,10 +51,9 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			go globalPostprocessor.worker(strconv.Itoa(i))
 		}
 		logger.Info("started")
-		done = true
 	})
 
-	if !done {
+	if globalPostprocessor == nil {
 		return ErrPostprocessorAlreadyInitialized
 	}
 
