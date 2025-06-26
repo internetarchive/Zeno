@@ -23,8 +23,6 @@ var (
 
 // Start begins serving HTTP requests in a separate goroutine.
 func Start() error {
-	var done bool
-
 	once.Do(func() {
 		mux := http.NewServeMux()
 
@@ -44,11 +42,9 @@ func Start() error {
 				log.Fatalf("ListenAndServe error: %v", err)
 			}
 		}()
-
-		done = true
 	})
 
-	if !done {
+	if server == nil {
 		return ErrAPIAlreadyInitialized
 	}
 

@@ -20,15 +20,12 @@ var (
 // Start initializes the logging package with the given configuration.
 // If no configuration is provided, it uses the default configuration.
 func Start() error {
-	var done = false
-
 	once.Do(func() {
 		config := makeConfig()
 		multiLogger = config.makeMultiLogger()
-		done = true
 	})
 
-	if !done {
+	if multiLogger == nil {
 		return ErrLoggerAlreadyInitialized
 	}
 
