@@ -78,7 +78,6 @@ type Config struct {
 	CertValidation           bool     `mapstructure:"cert-validation"`
 	DisableAssetsCapture     bool     `mapstructure:"disable-assets-capture"`
 	UseHQ                    bool     // Special field to check if HQ is enabled depending on the command called
-	HQRateLimitingSendBack   bool     `mapstructure:"hq-rate-limiting-send-back"`
 
 	// Network
 	Proxy         string `mapstructure:"proxy"`
