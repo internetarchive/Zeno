@@ -50,8 +50,6 @@ var (
 
 // Start initializes the internal archiver structure, start the WARC writer and start routines, should only be called once and returns an error if called more than once
 func Start(inputChan, outputChan chan *models.Item) error {
-	var done bool
-
 	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "archiver",
@@ -89,10 +87,9 @@ func Start(inputChan, outputChan chan *models.Item) error {
 		}
 
 		logger.Info("started")
-		done = true
 	})
 
-	if !done {
+	if globalArchiver == nil {
 		return ErrArchiverAlreadyInitialized
 	}
 
