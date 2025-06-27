@@ -2,11 +2,13 @@ package archiver
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"strings"
 	"time"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/contentlength"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -87,6 +89,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 // copyWithTimeout copies data and resets the read deadline after each successful read
 func copyWithTimeout(dst io.Writer, src io.Reader, conn interface{ SetReadDeadline(time.Time) error }) error {
 	buf := make([]byte, 4096)
+	copied, maxContentLengthMiB := int64(0), config.Get().MaxContentLengthMiB
 	for {
 		n, err := src.Read(buf)
 		if n > 0 {
@@ -99,6 +102,10 @@ func copyWithTimeout(dst io.Writer, src io.Reader, conn interface{ SetReadDeadli
 			}
 			if _, writeErr := dst.Write(buf[:n]); writeErr != nil {
 				return writeErr
+			}
+			copied += int64(n)
+			if maxContentLengthMiB > 0 && copied > int64(maxContentLengthMiB)*1024*1024 {
+				return errors.New(contentlength.ContentLengthExceeded)
 			}
 		}
 		if err != nil {

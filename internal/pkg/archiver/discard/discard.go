@@ -4,8 +4,10 @@ import (
 	"net/http"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/cloudflare"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/contentlength"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/warcdiscardstatus"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	warc "github.com/internetarchive/gowarc"
 )
 
@@ -26,6 +28,9 @@ func (b *Builder) AddHook(hook warc.DiscardHook) *Builder {
 func (b *Builder) AddDefaultHooks() *Builder {
 	b.AddHook(cloudflare.ChallengePageHook)
 	b.AddHook(warcdiscardstatus.WARCDiscardStatusHook)
+	if config.Get().MaxContentLengthMiB > 0 {
+		b.AddHook(contentlength.ContentLengthHook)
+	}
 	return b
 }
 

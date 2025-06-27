@@ -66,6 +66,7 @@ type Config struct {
 	MaxRedirect              int      `mapstructure:"max-redirect"`
 	MaxCSSJump               int      `mapstructure:"max-css-jump"`
 	MaxRetry                 int      `mapstructure:"max-retry"`
+	MaxContentLengthMiB      int      `mapstructure:"max-content-length"`
 	HTTPTimeout              int      `mapstructure:"http-timeout"`
 	HTTPReadDeadline         int      `mapstructure:"http-read-deadline"`
 	CrawlTimeLimit           int      `mapstructure:"crawl-time-limit"`
