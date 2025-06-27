@@ -27,7 +27,9 @@ func (b *Builder) AddHook(hook warc.DiscardHook) *Builder {
 
 func (b *Builder) AddDefaultHooks() *Builder {
 	b.AddHook(cloudflare.ChallengePageHook)
-	b.AddHook(warcdiscardstatus.WARCDiscardStatusHook)
+	if len(config.Get().WARCDiscardStatus) > 0 {
+		b.AddHook(warcdiscardstatus.WARCDiscardStatusHook)
+	}
 	if config.Get().MaxContentLengthMiB > 0 {
 		b.AddHook(contentlength.ContentLengthHook)
 	}
