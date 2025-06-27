@@ -6,12 +6,13 @@ import (
 
 	"github.com/ada-url/goada"
 	"github.com/internetarchive/Zeno/pkg/models"
+	"golang.org/x/text/encoding"
 )
 
 // Normalize the URL by removing fragments, attempting to add URL scheme if missing,
 // and converting relative URLs into absolute URLs. An error is returned if the URL
 // cannot be normalized.
-func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
+func NormalizeURL(URL *models.URL, parentURL *models.URL, docEnc encoding.Encoding) (err error) {
 	// Clean the URL by removing leading and trailing quotes
 	URL.Raw = strings.Trim(URL.Raw, `"'`)
 

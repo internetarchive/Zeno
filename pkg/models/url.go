@@ -14,6 +14,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 	"golang.org/x/net/idna"
+	"golang.org/x/text/encoding"
 )
 
 type URL struct {
@@ -22,13 +23,17 @@ type URL struct {
 	request   *http.Request
 	response  *http.Response
 	body      spooledtempfile.ReadSeekCloser
-	document  *goquery.Document
 	mimetype  *mimetype.MIME
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
 	Redirects int
 
 	stringCache string
 	once        sync.Once
+
+	documentCache        *goquery.Document // Transformed utf8 document in-memory cache
+	documentEncoding     encoding.Encoding // Encoding of the document
+	DocumentTransfromMux sync.Mutex        // Protect document transform
+
 }
 
 // NewURL parses a raw URL string and returns a URL object.
@@ -59,21 +64,20 @@ func (u *URL) SetBody(body spooledtempfile.ReadSeekCloser) {
 	u.body = body
 }
 
-func (u *URL) GetDocument() (doc *goquery.Document, err error) {
-	if u.document == nil {
-		u.document, err = goquery.NewDocumentFromReader(u.GetBody())
-		if err != nil {
-			return nil, err
-		}
-
-		u.RewindBody()
-	}
-
-	return u.document, nil
+func (u *URL) GetDocumentCache() *goquery.Document {
+	return u.documentCache
 }
 
-func (u *URL) SetDocument(doc *goquery.Document) {
-	u.document = doc
+func (u *URL) SetDocumentCache(doc *goquery.Document) {
+	u.documentCache = doc
+}
+
+func (u *URL) GetDocumentEncoding() encoding.Encoding {
+	return u.documentEncoding
+}
+
+func (u *URL) SetDocumentEncoding(enc encoding.Encoding) {
+	u.documentEncoding = enc
 }
 
 // if mimetype is not set, try to get it from Content-Type header and cache it.
