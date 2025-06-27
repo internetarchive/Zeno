@@ -14,10 +14,16 @@ var Launcher *launcher.Launcher
 var logger = log.NewFieldedLogger(&log.Fields{"component": "archiver.headless.client"})
 
 func Start() {
-	l := launcher.New().
-		Bin(config.Get().ChroumiumBin).
+	var l *launcher.Launcher
+	if config.Get().HeadlessUserMode {
+		// In user mode, we use the default launcher
+		l = launcher.NewUserMode()
+	} else {
+		l = launcher.New()
+	}
+	l.Bin(config.Get().HeadlessChroumiumBin).
 		Headless(!config.Get().Headfull).
-		Devtools(config.Get().DevTools)
+		Devtools(config.Get().HeadlessDevTools)
 	if config.Get().HeadlessUserDataDir != "" {
 		l.UserDataDir(config.Get().HeadlessUserDataDir)
 	}
@@ -33,6 +39,11 @@ func Start() {
 func Close() {
 	HeadlessBrowser.Close()
 	logger.Info("Headless browser closed")
+	if config.Get().HeadlessUserMode {
+		// In user mode, we DONT clean up the launcher to preserve user-data
+		logger.Info("Headless browser in user mode, not cleaning up launcher")
+		return
+	}
 	Launcher.Cleanup()
 	logger.Info("Headless launcher cleaned up")
 }

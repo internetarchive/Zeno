@@ -23,8 +23,8 @@ func newBxLogger(item *models.Item) *ZenoBxLogger {
 func (l *ZenoBxLogger) LogFunc(v gson.JSON) (any, error) {
 	vMap := v.Map()
 	loggerFunc := logger.Info
-	args := make([]any, 0, 4+len(vMap)*2)
-	args = append(args, "url", l.item.GetURL().String())
+	args := make([]any, 0, 6+len(vMap)*2) // 6 for the "item_id", "url", "suppressed" and their values
+	args = append(args, "item_id", l.item.GetShortID(), "url", l.item.GetURL().String())
 	if logLevel, ok := vMap["type"]; ok {
 		switch logLevel.String() {
 		case "debug":

@@ -80,19 +80,21 @@ type Config struct {
 	UseHQ                    bool     // Special field to check if HQ is enabled depending on the command called
 
 	// Headless
-	Headless            bool   `mapstructure:"headless"`
-	HeadlessTrace       bool   `mapstructure:"headless-trace"`
-	ChroumiumBin        string `mapstructure:"chromium-bin"`
-	Headfull            bool   `mapstructure:"headfull"`
-	DevTools            bool   `mapstructure:"dev-tools"`
-	StealthMode         bool   `mapstructure:"stealth-mode"`
-	HeadlessUserDataDir string `mapstructure:"headless-user-data-dir"`
+	Headless               bool     `mapstructure:"headless"`
+	Headfull               bool     `mapstructure:"headfull"`
+	HeadlessTrace          bool     `mapstructure:"headless-trace"`
+	HeadlessChroumiumBin   string   `mapstructure:"headless-chromium-bin"`
+	HeadlessDevTools       bool     `mapstructure:"headless-dev-tools"`
+	HeadlessStealthMode    bool     `mapstructure:"headless-stealth-mode"`
+	HeadlessUserMode       bool     `mapstructure:"headless-user-mode"`
+	HeadlessUserDataDir    string   `mapstructure:"headless-user-data-dir"`
+	HeadlessAllowedMethods []string `mapstructure:"headless-allowed-methods"`
 
-	PageLoadTimeout time.Duration `mapstructure:"page-load-timeout"`
-	PostLoadDelay   time.Duration `mapstructure:"post-load-delay"`
+	HeadlessPageLoadTimeout time.Duration `mapstructure:"headless-page-load-timeout"`
+	HeadlessPostLoadDelay   time.Duration `mapstructure:"headless-post-load-delay"`
 
-	Behaviors       string        `mapstructure:"behaviors"`
-	BehaviorTimeout time.Duration `mapstructure:"behavior-timeout"`
+	HeadlessBehaviors       []string      `mapstructure:"headless-behaviors"`
+	HeadlessBehaviorTimeout time.Duration `mapstructure:"headless-behavior-timeout"`
 
 	// Network
 	Proxy         string `mapstructure:"proxy"`

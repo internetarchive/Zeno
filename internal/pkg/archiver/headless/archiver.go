@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -28,13 +29,12 @@ func behaviorInitJS() string {
 		"autoclick":    false, // disabled by default, the popup babble will not be closed automatically
 		"siteSpecific": false,
 
-		"timeout": config.Get().BehaviorTimeout.Milliseconds(),
+		"timeout": config.Get().HeadlessBehaviorTimeout.Milliseconds(),
 		"log":     "__zeno_log",
 	}
 
 	// Enable behaviors based on the configuration
-	behaviors := strings.SplitSeq(config.Get().Behaviors, ",")
-	for b := range behaviors {
+	for _, b := range config.Get().HeadlessBehaviors {
 		options[b] = true
 	}
 
@@ -76,19 +76,32 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 	var err error
 
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "archiver.archiveHeadless",
-		"item_id":   item.GetShortID(),
+		"component": "archiver.archiveHeadless.page",
 		"seed_id":   seed.GetShortID(),
+		"item_id":   item.GetShortID(),
+		"url":       item.GetURL().String(),
 	})
 
 	// Set the hijack router
 	router := HeadlessBrowser.HijackRequests()
 	defer router.MustStop()
 
+	flyingRequests := NewWaitGroup()
+
 	router.MustAdd("*", func(hijack *rod.Hijack) {
-		// drop all non-GET requests
-		if hijack.Request.Method() != "GET" {
-			logger.Debug("dropping non-GET request", "method", hijack.Request.Method(), "url", hijack.Request.URL().String())
+		flyingRequests.Add(1, hijack.Request.URL().String())
+		defer flyingRequests.Done(hijack.Request.URL().String())
+
+		logger := log.NewFieldedLogger(&log.Fields{
+			"component": "archiver.archiveHeadless.router",
+			"seed_id":   seed.GetShortID(),
+			"item_id":   item.GetShortID(),
+			"url":       hijack.Request.URL().String(),
+		})
+
+		// drop requests that are not in the allowed methods
+		if !slices.Contains(config.Get().HeadlessAllowedMethods, hijack.Request.Method()) {
+			logger.Debug("droppinp request not in allowed methods", "method", hijack.Request.Method())
 			hijack.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
 			return
 		}
@@ -97,7 +110,7 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 		req := hijack.Request.Req()
 
 		// Set UA if not in stealth mode
-		if !config.Get().StealthMode {
+		if !config.Get().HeadlessStealthMode {
 			req.Header.Set("User-Agent", config.Get().UserAgent)
 		}
 
@@ -108,11 +121,11 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 			req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
 		}
 
-		defer logger.Debug("asset done", "url", hijack.Request.URL().String())
+		defer logger.Debug("asset done")
 		// If the response is for the main page, save the body
 
 		if hijack.Request.URL().String() == item.GetURL().String() {
-			logger.Debug("capturing main page", "url", hijack.Request.URL().String())
+			logger.Debug("capturing main page")
 			resp, err = clientDo(hijack, &warcClient.Client)
 			if err != nil {
 				logger.Error("unable to load response", "error", err)
@@ -120,7 +133,7 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 				return
 			}
 		} else {
-			logger.Debug("capturing asset", "url", hijack.Request.URL().String())
+			logger.Debug("capturing asset")
 			resp, err = clientDo(hijack, &warcClient.Client)
 			if err != nil {
 				logger.Error("unable to load response", "error", err)
@@ -133,7 +146,7 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 
 		fullBody, err := ProcessBodyHeadless(hijack, resp)
 		if err != nil {
-			logger.Error("unable to process body", "error", err, "url", hijack.Request.URL().String())
+			logger.Error("unable to process body", "error", err)
 			hijack.Response.Fail(proto.NetworkErrorReasonConnectionFailed)
 			return
 		} else {
@@ -146,7 +159,7 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 			hijack.Response.Payload().Body = fullBody
 		}
 
-		logger.Debug("processed body", "url", hijack.Request.URL().String(), "size", len(hijack.Response.Payload().Body))
+		logger.Debug("processed body", "size", len(hijack.Response.Payload().Body))
 	})
 
 	go router.Run()
@@ -154,7 +167,7 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 	// Create a new page
 	logger.Debug("creating new page for headless browser")
 	var page *rod.Page
-	if config.Get().StealthMode {
+	if config.Get().HeadlessStealthMode {
 		logger.Debug("using stealth mode for headless browser")
 		page = stealth.MustPage(HeadlessBrowser)
 	} else {
@@ -162,7 +175,7 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 	}
 	defer page.MustClose()
 
-	logger.Debug("Injecting behaviors.js...", "url", item.GetURL().String())
+	logger.Debug("Injecting behaviors.js...")
 	page.MustEvalOnNewDocument(behaviorsJS)
 
 	page.Expose("__zeno_log", bxLogger.LogFunc)
@@ -173,43 +186,54 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 	// TODO: Set cookies if needed (if no other cookies for this URL are set)
 
 	// Navigate to the URL
-	logger.Debug("navigating to URL", "url", item.GetURL().String())
+	logger.Debug("navigating to URL")
 	err = page.Navigate(item.GetURL().String())
 	if err != nil {
-		logger.Error("unable to navigate to URL", "error", err, "url", item.GetURL().String())
+		logger.Error("unable to navigate to URL", "error", err)
 		return err
 	}
 
 	// Wait for the page to load
-	logger.Info("waiting for page to load", "url", item.GetURL().String(), "timeout", config.Get().PageLoadTimeout)
-	err = page.Timeout(config.Get().PageLoadTimeout).WaitLoad()
+	logger.Info("waiting for page to load", "timeout", config.Get().HeadlessPageLoadTimeout)
+	err = page.Timeout(config.Get().HeadlessPageLoadTimeout).WaitLoad()
 	if err != nil {
-		logger.Warn("unable to wait for page to load", "error", err, "url", item.GetURL().String())
+		logger.Warn("unable to wait for page to load", "error", err)
+	}
+
+	info, err := page.Info()
+	if err != nil {
+		logger.Debug("unable to get page info", "error", err)
+	} else {
+		logger.Debug("page info", "title", info.Title)
 	}
 
 	// if --post-load-delay is set, wait for the specified delay
-	if config.Get().PostLoadDelay > 0 {
-		logger.Debug("waiting for post-load delay", "delay", config.Get().PostLoadDelay, "url", item.GetURL().String())
-		time.Sleep(config.Get().PostLoadDelay)
+	if config.Get().HeadlessPostLoadDelay > 0 {
+		logger.Debug("waiting for post-load delay", "delay", config.Get().HeadlessPostLoadDelay)
+		time.Sleep(config.Get().HeadlessPostLoadDelay)
 	}
 
 	// Run the behaviors script
-	logger.Debug("running behaviors script", "url", item.GetURL().String(), "timeout", config.Get().BehaviorTimeout)
+	logger.Debug("running behaviors script", "timeout", config.Get().HeadlessBehaviorTimeout)
 	start := time.Now()
-	_, err = page.Evaluate(rod.Eval(behaviorRunJS).ByPromise()) // The [BehaviorTimeout] is set in the __bx_behaviors.init() call
+	_, err = page.Evaluate(rod.Eval(behaviorRunJS).ByPromise()) // Theg [BehaviorTimeout] is set in the __bx_behaviors.init() call
 	if err != nil {
-		logger.Error("unable to run behaviors script", "error", err, "url", item.GetURL().String())
+		logger.Error("unable to run behaviors script", "error", err)
 	}
-	logger.Info("behaviors script done", "elapsed", time.Since(start), "url", item.GetURL().String())
+	logger.Info("behaviors script done", "elapsed", time.Since(start))
 
 	// Wait for all the ongoing requests to finish
 	start = time.Now()
-	logger.Debug("waiting for all ongoing requests to finish", "url", item.GetURL().String())
-	lifefimeWait := page.Timeout(15 * time.Second).MustWaitRequestIdle()
-	lifefimeWait()
-	logger.Debug("all ongoing requests finished", "elapsed", time.Since(start), "url", item.GetURL().String())
+	logger.Debug("waiting for all ongoing requests to finish")
+	flyingRequests.Wait(log.NewFieldedLogger(&log.Fields{
+		"component": "archiver.archiveHeadless.wait",
+		"seed_id":   seed.GetShortID(),
+		"item_id":   item.GetShortID(),
+	}), 5*time.Second /* This is progress reporting interval, not the timeout */)
+	logger.Debug("all ongoing requests finished", "elapsed", time.Since(start))
 
-	warcClient.CloseIdleConnections()
+	warcClient.CloseIdleConnections() // just in case, IDK if this is needed
+
 	page.Activate()
 
 	item.SetStatus(models.ItemArchived)
