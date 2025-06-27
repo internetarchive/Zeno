@@ -13,7 +13,7 @@ import (
 
 func setupItem(html string) *models.Item {
 	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewBufferString(html)),
+		Body:   io.NopCloser(bytes.NewBufferString(html)),
 		Header: make(http.Header),
 	}
 	resp.Header.Set("Content-Type", "text/html; charset=utf8")
