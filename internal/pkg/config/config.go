@@ -253,6 +253,10 @@ func GenerateCrawlConfig() error {
 		slog.Info("User-Agent set to", "user-agent", config.UserAgent)
 	}
 
+	if config.MaxContentLengthMiB > 0 {
+		slog.Info("Max content length is set, payload over X MiB would be discarded", "X", config.MaxContentLengthMiB)
+	}
+
 	if config.RandomLocalIP {
 		slog.Warn("Random local IP is enabled")
 	}
