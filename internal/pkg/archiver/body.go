@@ -3,19 +3,26 @@ package archiver
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
-	"time"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/contentlength"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
+	warc "github.com/internetarchive/gowarc"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
-// ProcessBody processes the body of a URL response, loading it into memory or a temporary file
+// BodyWithConn is a wrapper around resp.Body that also holds a reference to the warc.CustomConnection
+// This is necessary to reset the read deadline after each read operation
+type BodyWithConn struct {
+	io.ReadCloser
+	Conn *warc.CustomConnection
+}
+
 func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops int, WARCTempDir string) error {
 	defer u.GetResponse().Body.Close() // Ensure the response body is closed
 

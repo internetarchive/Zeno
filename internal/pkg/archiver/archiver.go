@@ -215,9 +215,10 @@ func archive(workerID string, seed *models.Item) {
 			defer stats.URLsCrawledIncr()
 
 			var (
-				err          error
-				resp         *http.Response
-				feedbackChan chan struct{}
+				err             error
+				resp            *http.Response
+				feedbackChan    chan struct{}
+				wrappedConnChan chan *warc.CustomConnection
 			)
 
 			// Execute the request
@@ -248,6 +249,8 @@ func archive(workerID string, seed *models.Item) {
 					// Add the feedback channel to the request context
 					req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
 				}
+				wrappedConnChan = make(chan *warc.CustomConnection, 1)
+				req = req.WithContext(context.WithValue(req.Context(), "wrappedConn", wrappedConnChan))
 
 				var client *warc.CustomHTTPClient
 				if config.Get().Proxy != "" {
@@ -324,6 +327,12 @@ func archive(workerID string, seed *models.Item) {
 
 				stats.MeanHTTPRespTimeAdd(time.Since(getStartTime))
 				break
+			}
+
+			conn := <-wrappedConnChan
+			resp.Body = &BodyWithConn{ // Wrap the response body to hold the connection
+				ReadCloser: resp.Body,
+				Conn:       conn,
 			}
 
 			// Set the response in the URL
