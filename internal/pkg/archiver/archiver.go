@@ -215,9 +215,10 @@ func archive(workerID string, seed *models.Item) {
 			defer stats.URLsCrawledIncr()
 
 			var (
-				err          error
-				resp         *http.Response
-				feedbackChan chan struct{}
+				err             error
+				resp            *http.Response
+				feedbackChan    chan struct{}
+				wrappedConnChan chan *warc.CustomConnection
 			)
 
 			// Execute the request
@@ -248,6 +249,8 @@ func archive(workerID string, seed *models.Item) {
 					// Add the feedback channel to the request context
 					req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
 				}
+				wrappedConnChan = make(chan *warc.CustomConnection, 1)
+				req = req.WithContext(context.WithValue(req.Context(), "wrappedConn", wrappedConnChan))
 
 				var client *warc.CustomHTTPClient
 				if config.Get().Proxy != "" {
@@ -278,6 +281,12 @@ func archive(workerID string, seed *models.Item) {
 					discarded, discardReason = client.DiscardHook(resp)
 				}
 
+				if discarded {
+					// Consume body, needed to avoid leaking RAM & storage
+					io.Copy(io.Discard, resp.Body)
+					resp.Body.Close()
+				}
+
 				// Retries on:
 				// 	- 5XX, 408, 425 and 429
 				// 	- Discarded challenge pages (Cloudflare, Akamai, etc.)
@@ -295,32 +304,35 @@ func archive(workerID string, seed *models.Item) {
 
 					if retry < config.Get().MaxRetry {
 						logger.Warn("retrying", "reason", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime, "status_code", resp.StatusCode, "url", req.URL)
-
-						// Consume body, needed to avoid leaking RAM & storage
-						io.Copy(io.Discard, resp.Body)
-						resp.Body.Close()
-
 						time.Sleep(retrySleepTime)
 						continue
 					} else {
 						logger.Error("retries exceeded", "reason", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL)
 						item.SetStatus(models.ItemFailed)
-
-						// Consume body, needed to avoid leaking RAM & storage
-						io.Copy(io.Discard, resp.Body)
-						resp.Body.Close()
-
 						return
-					}
-				} else {
-					if globalBucketManager != nil {
-						globalBucketManager.OnSuccess(req.URL.Host)
 					}
 				}
 
+				// Discarded
+				if discarded {
+					logger.Warn("response was blocked by DiscardHook", "reason", discardReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL)
+					item.SetStatus(models.ItemFailed)
+					return
+				}
+
 				// OK
+				if globalBucketManager != nil {
+					globalBucketManager.OnSuccess(req.URL.Host)
+				}
+
 				stats.MeanHTTPRespTimeAdd(time.Since(getStartTime))
 				break
+			}
+
+			conn := <-wrappedConnChan
+			resp.Body = &BodyWithConn{ // Wrap the response body to hold the connection
+				ReadCloser: resp.Body,
+				Conn:       conn,
 			}
 
 			// Set the response in the URL

@@ -39,8 +39,8 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("max-redirect", 20, "Specifies the maximum number of redirections to follow for a resource.")
 	getCmd.PersistentFlags().Int("max-css-jump", 10, "Specifies the maximum number of CSS @import jumps to follow for a resource.")
 	getCmd.PersistentFlags().Int("max-retry", 5, "Number of retry if error happen when executing HTTP request.")
-	getCmd.PersistentFlags().Int("http-timeout", -1, "Number of seconds to wait before timing out a request. Note: this will CANCEL large files download.")
-	getCmd.PersistentFlags().Int("http-read-deadline", 60, "Number of seconds to wait before timing out a (blocking) read.")
+	getCmd.PersistentFlags().Duration("http-timeout", 0, "Time to wait before timing out a request. Note: this will CANCEL large files download.")
+	getCmd.PersistentFlags().Duration("conn-read-deadline", 60*time.Second, "Time to wait before timing out a (blocking) TCP connection read.")
 	getCmd.PersistentFlags().StringSlice("domains-crawl", []string{}, "Naive domains, full URLs or regexp to match against any URL to determine hop behaviour for outlinks. If an outlink URL is matched it will be queued to crawl with a hop of 0. This flag helps crawling entire domains while doing non-focused crawls.")
 	getCmd.PersistentFlags().StringSlice("disable-html-tag", []string{}, "Specify HTML tag to not extract assets from")
 	getCmd.PersistentFlags().Bool("capture-alternate-pages", false, "If turned on, <link> HTML tags with \"alternate\" values for their \"rel\" attribute will be archived.")
@@ -51,6 +51,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("crawl-max-time-limit", 0, "Number of seconds until the crawl will automatically panic itself. Default to crawl-time-limit + (crawl-time-limit / 10)")
 	getCmd.PersistentFlags().StringSlice("exclude-string", []string{}, "Discard any (discovered) URLs containing this string.")
 	getCmd.PersistentFlags().StringSlice("exclusion-file", []string{}, "File containing regex to apply on URLs for exclusion. If the path start with http or https, it will be treated as a URL of a file to download.")
+	getCmd.PersistentFlags().Int("max-content-length", 0, "Max content length in MB to download for a single resource.")
 	getCmd.PersistentFlags().Float64("min-space-required", 0, "Minimum space required in GB to continue the crawl. Default will be 50GB * (total disk space / 256GB) if total disk space is less than 256GB, else 50GB.")
 	getCmd.PersistentFlags().Bool("strict-regex", false, "If turned on, the xurls `strict` regex setting will be used. Otherwise a looser regex will be used.")
 

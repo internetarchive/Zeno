@@ -3,7 +3,6 @@ package archiver
 import (
 	"os"
 	"path"
-	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -41,17 +40,18 @@ func startWARCWriter() {
 
 	// Configure WARC settings
 	WARCSettings := warc.HTTPClientSettings{
-		RotatorSettings: rotatorSettings,
-		DedupeOptions:   dedupeOptions,
-		DecompressBody:  true,
-		DiscardHook:     discardHooksChain,
-		VerifyCerts:     config.Get().CertValidation,
-		TempDir:         config.Get().WARCTempDir,
-		FullOnDisk:      config.Get().WARCOnDisk,
-		RandomLocalIP:   config.Get().RandomLocalIP,
-		DisableIPv4:     config.Get().DisableIPv4,
-		DisableIPv6:     config.Get().DisableIPv6,
-		IPv6AnyIP:       config.Get().IPv6AnyIP,
+		RotatorSettings:  rotatorSettings,
+		DedupeOptions:    dedupeOptions,
+		DecompressBody:   true,
+		DiscardHook:      discardHooksChain,
+		VerifyCerts:      config.Get().CertValidation,
+		TempDir:          config.Get().WARCTempDir,
+		FullOnDisk:       config.Get().WARCOnDisk,
+		RandomLocalIP:    config.Get().RandomLocalIP,
+		DisableIPv4:      config.Get().DisableIPv4,
+		DisableIPv6:      config.Get().DisableIPv6,
+		IPv6AnyIP:        config.Get().IPv6AnyIP,
+		ConnReadDeadline: config.Get().ConnReadDeadline,
 	}
 
 	// Instantiate WARC client
@@ -90,11 +90,11 @@ func startWARCWriter() {
 	// Set the timeouts
 	if config.Get().HTTPTimeout > 0 {
 		if globalArchiver.Client != nil {
-			globalArchiver.Client.Timeout = time.Duration(config.Get().HTTPTimeout) * time.Second
+			globalArchiver.Client.Timeout = config.Get().HTTPTimeout
 		}
 
 		if globalArchiver.ClientWithProxy != nil {
-			globalArchiver.ClientWithProxy.Timeout = time.Duration(config.Get().HTTPTimeout) * time.Second
+			globalArchiver.ClientWithProxy.Timeout = config.Get().HTTPTimeout
 		}
 	}
 }
