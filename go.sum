@@ -162,6 +162,8 @@ github.com/internetarchive/gowarc v0.8.78 h1:AmIWpIvXz19y6d13wJ72tvrfbe0gH2jagPH
 github.com/internetarchive/gowarc v0.8.78/go.mod h1:AWjp73NlQNulp3Hn9zKqYhK9eiQA04yY/YTku3CY3vQ=
 github.com/internetarchive/gowarc v0.8.80 h1:M3YcHyNv0+VaISccf96P4I7EahDz+aNOr3PdTEqQPgA=
 github.com/internetarchive/gowarc v0.8.80/go.mod h1:IFCs0kZ7W/0kpDR4xPFrq9iykQDUIued9duq00oOcgg=
+github.com/internetarchive/gowarc v0.8.82 h1:Fjh4ByBLKaGx2VcJAQ6HL1KoONf/huHU/tgEz9GXJd8=
+github.com/internetarchive/gowarc v0.8.82/go.mod h1:3aD6726+wZF2w4/u5ZqW1gp1IUtTaDdFbpNnnRxRTsw=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
 github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
