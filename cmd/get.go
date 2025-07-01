@@ -55,6 +55,24 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Float64("min-space-required", 0, "Minimum space required in GB to continue the crawl. Default will be 50GB * (total disk space / 256GB) if total disk space is less than 256GB, else 50GB.")
 	getCmd.PersistentFlags().Bool("strict-regex", false, "If turned on, the xurls `strict` regex setting will be used. Otherwise a looser regex will be used.")
 
+	// Headless flags
+	getCmd.PersistentFlags().Bool("headless", false, "[headless] Run in headless mode (experimental).")
+	getCmd.PersistentFlags().Bool("headless-headfull", false, "[headless] Switch to headfull mode (requires --headless).")
+	getCmd.PersistentFlags().Bool("headless-trace", false, "[headless] Trace enables the visual tracing of the input actions on the page.")
+	getCmd.PersistentFlags().Bool("headless-dev-tools", false, "[headless] F12")
+	getCmd.PersistentFlags().Bool("headless-stealth", false, "[headless] Use stealth to prevent bot detection and use the browser's native User-Agent")
+	getCmd.PersistentFlags().Bool("headless-user-mode", false, "[headless] Launch your regular user browser session")
+
+	getCmd.PersistentFlags().String("headless-chromium-bin", "", "[headless] Bin of the browser binary path to launch, if the path is not empty the auto download will be disabled.")
+	getCmd.PersistentFlags().String("headless-user-data-dir", "", "[headless] Path to the user-data directory to use for browser when running in headless mode. If not set, --warc-temp-dir directory will be used.")
+
+	getCmd.PersistentFlags().StringArray("headless-allowed-methods", []string{"GET"}, "[headless] Allowed HTTP methods to use when requesting pages.")
+	getCmd.PersistentFlags().StringArray("headless-behaviors", []string{"autoscroll", "autoplay", "siteSpecific"}, "[headless] Comma separated list of browser behaviors to run. (ref: https://crawler.docs.browsertrix.com/user-guide/behaviors/#site-specific-behaviors)")
+
+	getCmd.PersistentFlags().Duration("headless-page-load-timeout", 90*time.Second, "[headless] How long to wait for page to finish loading, before doing anything else.")
+	getCmd.PersistentFlags().Duration("headless-post-load-delay", 3*time.Second, "[headless] How long to wait before starting any behaviors, but after page has finished loading.")
+	getCmd.PersistentFlags().Duration("headless-behavior-timeout", 90*time.Second, "[headless] maximum time to spend on running site-specific / Autoscroll behaviors (can be less if behavior finishes early).")
+
 	// Network flags
 	getCmd.PersistentFlags().String("proxy", "", "Proxy to use when requesting pages.")
 	getCmd.PersistentFlags().Bool("random-local-ip", false, "Use random local IP for requests. (will be ignored if a proxy is set)")
