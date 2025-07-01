@@ -82,7 +82,7 @@ type Config struct {
 
 	// Headless
 	Headless               bool     `mapstructure:"headless"`
-	HeadlessHeadfull       bool     `mapstructure:"headless-headfull"`
+	HeadlessHeadful        bool     `mapstructure:"headless-headful"`
 	HeadlessTrace          bool     `mapstructure:"headless-trace"`
 	HeadlessChroumiumBin   string   `mapstructure:"headless-chromium-bin"`
 	HeadlessDevTools       bool     `mapstructure:"headless-dev-tools"`
