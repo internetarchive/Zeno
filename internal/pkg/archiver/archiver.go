@@ -12,7 +12,9 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/body"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/headless"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
@@ -74,6 +76,11 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			)
 			logger.Info("bucket manager started")
 		}
+		if config.Get().Headless {
+			headless.Start()
+			logger.Info("headless browser started")
+		}
+
 		logger.Debug("initialized")
 
 		// Setup WARC writing HTTP clients
@@ -124,6 +131,11 @@ func Stop() {
 		}
 
 		logger.Info("stopped")
+	}
+	if headless.HeadlessBrowser != nil {
+		logger.Debug("closing headless browser")
+		headless.Close()
+		logger.Info("closed headless browser")
 	}
 	if globalBucketManager != nil {
 		logger.Debug("closing bucket manager")
@@ -209,6 +221,34 @@ func archive(workerID string, seed *models.Item) {
 		guard <- struct{}{}
 
 		wg.Add(1)
+
+		if config.Get().Headless {
+			go func(item *models.Item) {
+				defer wg.Done()
+				defer func() { <-guard }()
+
+				var client *warc.CustomHTTPClient
+				if config.Get().Proxy != "" {
+					client = globalArchiver.ClientWithProxy
+				} else {
+					client = globalArchiver.Client
+				}
+
+				// TODO: add time measurement for headless archiving
+				err := headless.ArchiveHeadless(client, item, seed)
+				if err != nil {
+					item.SetStatus(models.ItemFailed)
+					logger.Error("unable to archive url in headless mode", "err", err.Error(), "url", item.GetURL(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+					return
+				}
+
+				// If headless mode is enabled, we don't need to process the body
+				item.SetStatus(models.ItemArchived)
+				logger.Info("url archived in headless mode", "url", item.GetURL(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+			}(items[i])
+			continue
+		}
+
 		go func(item *models.Item) {
 			defer wg.Done()
 			defer func() { <-guard }()
@@ -337,9 +377,9 @@ func archive(workerID string, seed *models.Item) {
 				break
 			}
 
-			resp.Body = &BodyWithConn{ // Wrap the response body to hold the connection
+			resp.Body = &body.BodyWithConn{ // Wrap the response body to hold the connection
 				ReadCloser: resp.Body,
-				Conn:       conn,
+				Conn:       <-wrappedConnChan,
 			}
 
 			// Set the response in the URL
