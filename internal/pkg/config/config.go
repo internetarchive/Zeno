@@ -2,6 +2,7 @@ package config
 
 import (
 	"bufio"
+	"crypto/ed25519"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/webbotauth"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -123,6 +125,11 @@ type Config struct {
 	ConsulACLToken     string   `mapstructure:"consul-acl-token"`
 	ConsulRegister     bool     `mapstructure:"consul-register"`
 	ConsulRegisterTags []string `mapstructure:"consul-register-tags"`
+
+	// RFC 9421 / Web Bot Auth
+	WellKnownBotHost  string             `mapstructure:"well-known-bot-host"`
+	WebBotAuthKeyFile string             `mapstructure:"web-bot-auth-key-file"`
+	WebBotAuthKey     ed25519.PrivateKey // Special field to store the key to avoid constant reads
 
 	InputSeeds       []string         // Special field to store the input URLs
 	ExclusionRegexes []*regexp.Regexp // Special field to store the compiled exclusion regex (from --exclusion-file)
@@ -304,6 +311,24 @@ func GenerateCrawlConfig() error {
 		if err != nil {
 			panic(err)
 		}
+	}
+
+	if config.WebBotAuthKeyFile != "" {
+		keyBytes, err := os.ReadFile(config.WebBotAuthKeyFile)
+		if err != nil {
+			slog.Error("Failed to read web bot auth key file", "file", config.WebBotAuthKeyFile, "error", err)
+			return err
+		}
+
+		privateKey, err := webbotauth.ParseEd25519PrivateKey(string(keyBytes))
+		if err != nil {
+			slog.Error("Failed to parse web bot auth key file", "file", config.WebBotAuthKeyFile, "error", err)
+			return err
+		}
+
+		config.WebBotAuthKey = privateKey
+
+		slog.Info("Web Bot Auth key loaded from", "file", config.WebBotAuthKeyFile)
 	}
 
 	return nil

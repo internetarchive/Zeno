@@ -109,6 +109,10 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("consul-register", false, "Register Zeno in Consul via the API. (useful when Zeno is running on host and not containerized)")
 	getCmd.PersistentFlags().StringSlice("consul-register-tags", []string{}, "Tags to use when registering Zeno in Consul with `--consul-register`.")
 
+	// RFC 9421 / Web Bot Auth
+	getCmd.PersistentFlags().String("well-known-bot-host", "", "Host address where well-known HTTP message signature directory is stored")
+	getCmd.PersistentFlags().String("web-bot-auth-key-file", "", "Path to access the Ed25519 key file")
+
 	// Alias support
 	// As cobra doesn't support aliases natively (couldn't find a way to do it), we have to do it manually
 	// This is a workaround to allow users to use `--hops` instead of `--max-hops` for example

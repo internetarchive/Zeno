@@ -25,6 +25,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/npr"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/webbotauth"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -280,6 +281,9 @@ func preprocess(workerID string, seed *models.Item) {
 
 		// Apply configured User-Agent
 		req.Header.Set("User-Agent", config.Get().UserAgent)
+
+		// If Web Bot Auth is being used, calculate headers to be added here. 
+		webbotauth.AddHeaders(req, config.Get().WebBotAuthKey, config.Get().WellKnownBotHost)
 
 		switch {
 		case tiktok.IsTikTokURL(items[i].GetURL()):
