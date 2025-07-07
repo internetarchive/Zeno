@@ -22,3 +22,18 @@ jobs:
         md5sum: FALSE
         sha256sum: TRUE
         asset_name: 'Zeno-linux-amd64'
+  release-linux-arm64:
+    name: release linux/arm64
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: wangyoucao577/go-release-action@481a2c1a0f1be199722e3e9b74d7199acafc30a8 #release/rel-v1.53
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: linux
+        goarch: arm64
+        goversion: 'go.mod'
+        compress_assets: OFF
+        md5sum: FALSE
+        sha256sum: TRUE
+        asset_name: 'Zeno-linux-arm64'
