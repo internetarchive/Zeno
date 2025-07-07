@@ -18,12 +18,12 @@ require (
 	github.com/hashicorp/consul/api v1.32.1
 	github.com/internetarchive/gocrawlhq v1.2.31
 	github.com/internetarchive/gowarc v0.8.82
-	github.com/ncruces/go-sqlite3 v0.26.1
+	github.com/ncruces/go-sqlite3 v0.26.3
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
-	github.com/samber/slog-multi v1.4.0
+	github.com/samber/slog-multi v1.4.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	github.com/spf13/viper v1.20.1
@@ -84,7 +84,8 @@ require (
 	github.com/refraction-networking/utls v1.7.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
-	github.com/samber/lo v1.49.1 // indirect
+	github.com/samber/lo v1.51.0 // indirect
+	github.com/samber/slog-common v0.19.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
