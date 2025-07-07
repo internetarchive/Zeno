@@ -1,11 +1,18 @@
 package preprocessor
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
-	"github.com/ada-url/goada"
 	"github.com/internetarchive/Zeno/pkg/models"
+	wu "github.com/nlnwa/whatwg-url/url"
+)
+
+const (
+	httpPrefix  = "http://"
+	httpsPrefix = "https://"
+	ftpPrefix   = "ftp://"
 )
 
 // Normalize the URL by removing fragments, attempting to add URL scheme if missing,
@@ -15,48 +22,57 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	// Clean the URL by removing leading and trailing quotes
 	URL.Raw = strings.Trim(URL.Raw, `"'`)
 
-	var adaParse *goada.Url
+	var wuParse *wu.Url
 
-	parsedURL, err := url.Parse(URL.Raw)
-	if err != nil {
-		return err
-	}
-
-	if parentURL != nil && !parsedURL.IsAbs() {
-		// Determine the base with the following logic:
-		// - always with the <base> tag found in the HTML document, if it exists (TBI)
-		// - if the URL starts with a slash, use the parent URL's scheme and host
-		// - if the URL does not start with a slash, use the parent URL's scheme, host, and path
-		baseURL := parentURL.GetParsed()
-		if strings.HasPrefix(parsedURL.Path, "/") {
-			adaParse, err = goada.NewWithBase(URL.Raw, baseURL.Scheme+"://"+baseURL.Host)
-			if err != nil {
-				return err
+	if parentURL == nil {
+		wuParse, err = wu.Parse(URL.Raw)
+		if err != nil {
+			lowerURL := strings.ToLower(URL.Raw)
+			if !strings.HasPrefix(lowerURL, httpPrefix) &&
+				!strings.HasPrefix(lowerURL, httpsPrefix) &&
+				!strings.HasPrefix(lowerURL, ftpPrefix) &&
+				!strings.Contains(lowerURL, "://") {
+				URL.Raw = httpPrefix + URL.Raw
 			}
-		} else {
-			adaParse, err = goada.NewWithBase(URL.Raw, baseURL.String())
+			wuParse, err = wu.Parse(URL.Raw)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		if parsedURL.Scheme == "" {
-			parsedURL.Scheme = "http"
-		}
-
-		adaParse, err = goada.New(models.URLToString(parsedURL))
+		parsedURL, err := url.Parse(URL.Raw)
 		if err != nil {
 			return err
 		}
+
+		if parsedURL.IsAbs() {
+			wuParse, err = wu.Parse(URL.Raw)
+			if err != nil {
+				return err
+			}
+		} else {
+			baseURL := parentURL.GetParsed()
+			if baseURL == nil {
+				return fmt.Errorf("invalid baseURL in parentURL: %s", parentURL.Raw)
+			}
+
+			resolved := baseURL.ResolveReference(parsedURL)
+			wuParse, err = wu.Parse(resolved.String())
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	adaParse.SetHash("")
-	if scheme := adaParse.Protocol(); scheme != "http:" && scheme != "https:" {
+	wuParse.SetHash("")
+
+	scheme := strings.ToLower(wuParse.Protocol())
+	if scheme != "http:" && scheme != "https:" {
 		return ErrUnsupportedScheme
 	}
 
 	// Check for localhost and 127.0.0.1
-	host := adaParse.Hostname()
+	host := wuParse.Hostname()
 	if host == "localhost" || host == "127.0.0.1" {
 		return ErrUnsupportedHost
 	}
@@ -66,8 +82,8 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 		return ErrUnsupportedHost
 	}
 
-	URL.Raw = adaParse.Href()
-	adaParse.Free()
+	// Update the URL with the normalized version
+	URL.Raw = wuParse.Href(false)
 
 	return URL.Parse()
 }

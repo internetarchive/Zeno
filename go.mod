@@ -6,7 +6,6 @@ require (
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
 	github.com/MatusOllah/slogcolor v1.6.0
 	github.com/PuerkitoBio/goquery v1.10.3
-	github.com/ada-url/goada v0.0.0-20250104020233-00cbf4dc9da1
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
@@ -19,6 +18,7 @@ require (
 	github.com/internetarchive/gocrawlhq v1.2.31
 	github.com/internetarchive/gowarc v0.8.82
 	github.com/ncruces/go-sqlite3 v0.26.1
+	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.22.0
@@ -38,6 +38,7 @@ require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/dolthub/maphash v0.1.0 // indirect
