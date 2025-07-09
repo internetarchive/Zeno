@@ -21,11 +21,9 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/log/dumper"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/npr"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
-	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -37,6 +35,9 @@ type preprocessor struct {
 	cancel   context.CancelFunc
 	inputCh  chan *models.Item
 	outputCh chan *models.Item
+
+	seenchecker    func(item *models.Item) error
+	seencheckerSet bool
 }
 
 var (
@@ -84,6 +85,22 @@ func Stop() {
 		globalPreprocessor.wg.Wait()
 		logger.Info("stopped")
 	}
+}
+
+// SetSeenchecker sets the seenchecker function to be used by the preprocessor.
+// It should be called only once, and it will panic if called more than once or if the preprocessor is not initialized.
+func SetSeenchecker(seenchecker func(item *models.Item) error) {
+	if globalPreprocessor == nil {
+		panic("preprocessor is not initialized")
+	}
+
+	if globalPreprocessor.seencheckerSet {
+		panic("seenchecker is already set")
+	}
+
+	globalPreprocessor.seenchecker = seenchecker
+	globalPreprocessor.seencheckerSet = true
+	logger.Debug("seenchecker set")
 }
 
 func (p *preprocessor) worker(workerID string) {
@@ -238,13 +255,8 @@ func preprocess(workerID string, seed *models.Item) {
 	}
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
-	if config.Get().UseHQ {
-		err = hq.SeencheckItem(seed)
-		if err != nil {
-			logger.Warn("unable to seencheck seed", "seed_id", seed.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
-		}
-	} else {
-		err = seencheck.SeencheckItem(seed)
+	if (config.Get().UseHQ || config.Get().UseSeencheck) && globalPreprocessor.seencheckerSet {
+		err = globalPreprocessor.seenchecker(seed)
 		if err != nil {
 			logger.Warn("unable to seencheck seed", "seed_id", seed.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
 		}

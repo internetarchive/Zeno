@@ -18,13 +18,13 @@ type producerBatch struct {
 // allows one sender operation to be in progress while another is being prepared/blocking
 const maxSenders = 2
 
-func producer() {
+func (s *LQ) producer() {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "lq.producer",
 	})
 
 	// Create a context to manage goroutines
-	ctx, cancel := context.WithCancel(globalLQ.ctx)
+	ctx, cancel := context.WithCancel(s.ctx)
 	defer cancel()
 
 	batchCh := make(chan *producerBatch, maxSenders)
@@ -32,15 +32,15 @@ func producer() {
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	go producerReceiver(ctx, &wg, batchCh)
+	go s.producerReceiver(ctx, &wg, batchCh)
 
 	wg.Add(1)
-	go producerDispatcher(ctx, &wg, batchCh)
+	go s.producerDispatcher(ctx, &wg, batchCh)
 
 	// Wait for the context to be canceled.
 	for {
 		select {
-		case <-globalLQ.ctx.Done():
+		case <-s.ctx.Done():
 			logger.Debug("received done signal")
 
 			// Cancel the context to stop all goroutines.
@@ -54,7 +54,7 @@ func producer() {
 			// Close the batch channel to signal the dispatcher to finish.
 			close(batchCh)
 
-			globalLQ.wg.Done()
+			s.wg.Done()
 
 			logger.Debug("closed")
 			return
@@ -63,7 +63,7 @@ func producer() {
 }
 
 // producerReceiver reads URLs from produceCh, accumulates them into batches, and sends the batches to batchCh.
-func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *producerBatch) {
+func (s *LQ) producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *producerBatch) {
 	defer wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -84,7 +84,7 @@ func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *pro
 		case <-ctx.Done():
 			logger.Debug("closing")
 			return
-		case item := <-globalLQ.produceCh:
+		case item := <-s.produceCh:
 			URL := sqlc_model.Url{
 				Value: item.GetURL().Raw,
 				Via:   item.GetSeedVia(),
@@ -125,7 +125,7 @@ func producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh chan *pro
 }
 
 // producerDispatcher receives batches from batchCh and dispatches them to sender routines.
-func producerDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *producerBatch) {
+func (s *LQ) producerDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *producerBatch) {
 	defer wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -138,7 +138,7 @@ func producerDispatcher(ctx context.Context, wg *sync.WaitGroup, batchCh chan *p
 			return
 		case batch := <-batchCh:
 			logger.Debug("dispatching batch to sender", "size", len(batch.URLs))
-			if err := globalLQ.client.Add(ctx, batch.URLs, false); err != nil {
+			if err := s.client.add(ctx, batch.URLs, false); err != nil {
 				logger.Error("failed to send batch to LQ", "error", err)
 			}
 		}
