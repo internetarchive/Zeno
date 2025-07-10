@@ -79,7 +79,6 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		}
 	default:
 		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID(), "url", item.GetURL())
-		return outlinks, nil
 	}
 
 	// Try to extract links from link headers
