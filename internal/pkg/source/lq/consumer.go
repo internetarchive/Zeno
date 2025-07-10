@@ -14,12 +14,12 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func consumer() {
+func (s *LQ) consumer() {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "lq.consumer",
 	})
 
-	ctx, cancel := context.WithCancel(globalLQ.ctx)
+	ctx, cancel := context.WithCancel(s.ctx)
 	defer cancel()
 
 	// Set the batch size for fetching URLs
@@ -33,15 +33,16 @@ func consumer() {
 
 	// Start the consumerFetcher goroutine(s)
 	wg.Add(1)
-	go consumerFetcher(ctx, &wg, urlBuffer, batchSize)
+	go s.consumerFetcher(ctx, &wg, urlBuffer, batchSize)
 
 	// Start the consumerSender goroutine(s)
 	wg.Add(1)
-	go consumerSender(ctx, &wg, urlBuffer)
+	go s.consumerSender(ctx, &wg, urlBuffer)
+
 	// Wait for shutdown signal
 	for {
 		select {
-		case <-globalLQ.ctx.Done():
+		case <-s.ctx.Done():
 			logger.Debug("received done signal")
 
 			// Cancel the context to stop all goroutines.
@@ -55,7 +56,7 @@ func consumer() {
 			// Close the urlBuffer to signal consumerSenders to finish
 			close(urlBuffer)
 
-			globalLQ.wg.Done()
+			s.wg.Done()
 
 			logger.Debug("closed")
 			return
@@ -63,7 +64,7 @@ func consumer() {
 	}
 }
 
-func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *sqlc_model.Url, batchSize int) {
+func (s *LQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *sqlc_model.Url, batchSize int) {
 	defer wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -80,7 +81,7 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		}
 
 		// Fetch URLs from LQ
-		URLs, err := getURLs(batchSize)
+		URLs, err := s.getURLs(batchSize)
 		if err != nil || len(URLs) == 0 {
 			if err != nil {
 				logger.Error("error fetching URLs from LQ", "err", err.Error(), "func", "lq.consumerFetcher")
@@ -119,7 +120,7 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 	}
 }
 
-func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *sqlc_model.Url) {
+func (s *LQ) consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *sqlc_model.Url) {
 	defer wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -156,7 +157,7 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *s
 
 			if discard {
 				logger.Debug("parsing failed, sending the item to finisher", "url", URL.Value)
-				globalLQ.finishCh <- newItem
+				s.finishCh <- newItem
 				break
 			}
 
@@ -178,8 +179,8 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *s
 	}
 }
 
-func getURLs(batchSize int) ([]sqlc_model.Url, error) {
-	return globalLQ.client.Get(context.TODO(), batchSize)
+func (s *LQ) getURLs(batchSize int) ([]sqlc_model.Url, error) {
+	return s.client.get(context.TODO(), batchSize)
 }
 
 func ensureAllIDsNotInReactor(URLs []sqlc_model.Url) error {

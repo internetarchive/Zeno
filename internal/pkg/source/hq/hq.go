@@ -13,7 +13,7 @@ import (
 	"github.com/internetarchive/gocrawlhq"
 )
 
-type hq struct {
+type HQ struct {
 	wg        sync.WaitGroup
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -23,13 +23,16 @@ type hq struct {
 }
 
 var (
-	globalHQ *hq
-	once     sync.Once
-	logger   *log.FieldedLogger
+	once   sync.Once
+	logger *log.FieldedLogger
 )
 
+func New() *HQ {
+	return &HQ{}
+}
+
 // Start initializes HQ async routines with the given input and output channels.
-func Start(finishChan, produceChan chan *models.Item) error {
+func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 	var done bool
 	var startErr error
 
@@ -51,20 +54,18 @@ func Start(finishChan, produceChan chan *models.Item) error {
 			return
 		}
 
-		globalHQ = &hq{
-			wg:        sync.WaitGroup{},
-			ctx:       ctx,
-			cancel:    cancel,
-			finishCh:  finishChan,
-			produceCh: produceChan,
-			client:    HQclient,
-		}
+		s.wg = sync.WaitGroup{}
+		s.ctx = ctx
+		s.cancel = cancel
+		s.finishCh = finishChan
+		s.produceCh = produceChan
+		s.client = HQclient
 
-		globalHQ.wg.Add(4)
-		go consumer()
-		go producer()
-		go finisher()
-		go websocket()
+		s.wg.Add(4)
+		go s.consumer()
+		go s.producer()
+		go s.finisher()
+		go s.websocket()
 
 		logger.Info("started")
 
@@ -79,13 +80,13 @@ func Start(finishChan, produceChan chan *models.Item) error {
 }
 
 // Stop stops the global HQ and waits for all goroutines to finish. Finisher must be stopped first and Reactor must be frozen before stopping HQ.
-func Stop() {
-	if globalHQ != nil {
-		globalHQ.cancel()
-		globalHQ.wg.Wait()
+func (s *HQ) Stop() {
+	if s != nil {
+		s.cancel()
+		s.wg.Wait()
 		seedsToReset := reactor.GetStateTable()
 		for _, seed := range seedsToReset {
-			if err := globalHQ.client.ResetURL(context.TODO(), seed); err != nil {
+			if err := s.client.ResetURL(context.TODO(), seed); err != nil {
 				logger.Error("error while reseting", "id", seed, "err", err)
 			}
 			logger.Debug("reset seed", "id", seed)
@@ -93,4 +94,9 @@ func Stop() {
 		once = sync.Once{}
 		logger.Info("stopped")
 	}
+}
+
+// Name returns the name of the source, used for logging and identification.
+func (s *HQ) Name() string {
+	return "hq"
 }

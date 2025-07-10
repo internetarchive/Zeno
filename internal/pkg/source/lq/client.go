@@ -14,7 +14,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/source/lq/sqlc_model"
 )
 
-type LQClient struct {
+type lqClient struct {
 	dbWrite     *sql.DB
 	dbWriteSqlc *sqlc_model.Queries
 }
@@ -22,7 +22,7 @@ type LQClient struct {
 //go:embed schema.sql
 var ddl string
 
-func Init(job string) (*LQClient, error) {
+func initClient(job string) (*lqClient, error) {
 	dbWrite, err := sql.Open("sqlite3", "file:"+path.Join(config.Get().JobPath, "lq.db"))
 	if err != nil {
 		return nil, err
@@ -36,24 +36,24 @@ func Init(job string) (*LQClient, error) {
 
 	dbWriteSqlc := sqlc_model.New(dbWrite)
 
-	return &LQClient{
+	return &lqClient{
 		dbWrite:     dbWrite,
 		dbWriteSqlc: dbWriteSqlc,
 	}, nil
 }
 
-func (c *LQClient) ResetURL(ctx context.Context, seed string) error {
-	return c.dbWriteSqlc.ResetURL(ctx, seed)
+func (client *lqClient) resetURL(ctx context.Context, seed string) error {
+	return client.dbWriteSqlc.ResetURL(ctx, seed)
 }
 
-func (c *LQClient) Get(ctx context.Context, limit int) ([]sqlc_model.Url, error) {
-	tx, err := globalLQ.client.dbWrite.Begin()
+func (client *lqClient) get(ctx context.Context, limit int) ([]sqlc_model.Url, error) {
+	tx, err := client.dbWrite.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
-	qtx := globalLQ.client.dbWriteSqlc.WithTx(tx)
+	qtx := client.dbWriteSqlc.WithTx(tx)
 
 	freshUrls, err := qtx.GetFreshURLs(ctx, int64(limit))
 	if err != nil {
@@ -74,14 +74,14 @@ func (c *LQClient) Get(ctx context.Context, limit int) ([]sqlc_model.Url, error)
 	return freshUrls, nil
 }
 
-func (c *LQClient) Add(ctx context.Context, urls []sqlc_model.Url, bypassSeencheck bool) error {
-	tx, err := globalLQ.client.dbWrite.Begin()
+func (client *lqClient) add(ctx context.Context, urls []sqlc_model.Url, bypassSeencheck bool) error {
+	tx, err := client.dbWrite.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	qtx := globalLQ.client.dbWriteSqlc.WithTx(tx)
+	qtx := client.dbWriteSqlc.WithTx(tx)
 
 	for _, url := range urls {
 		if url.ID == "" {
@@ -110,14 +110,14 @@ func (c *LQClient) Add(ctx context.Context, urls []sqlc_model.Url, bypassSeenche
 	return nil
 }
 
-func (c *LQClient) Delete(ctx context.Context, urls []sqlc_model.Url, bypassSeencheck bool) error {
-	tx, err := globalLQ.client.dbWrite.Begin()
+func (client *lqClient) delete(ctx context.Context, urls []sqlc_model.Url, bypassSeencheck bool) error {
+	tx, err := client.dbWrite.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	qtx := globalLQ.client.dbWriteSqlc.WithTx(tx)
+	qtx := client.dbWriteSqlc.WithTx(tx)
 
 	for _, url := range urls {
 		err = qtx.DeleteURL(ctx, url.ID)
