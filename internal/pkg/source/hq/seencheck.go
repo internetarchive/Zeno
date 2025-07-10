@@ -9,7 +9,7 @@ import (
 
 // SeencheckItem gets the MaxDepth children of the given item and sends a seencheck request to the crawl HQ for the URLs found.
 // The items that were seen before will be marked as seen.
-func SeencheckItem(item *models.Item) error {
+func (s *HQ) SeencheckItem(item *models.Item) error {
 	var URLsToSeencheck []gocrawlhq.URL
 
 	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
@@ -56,7 +56,7 @@ func SeencheckItem(item *models.Item) error {
 
 	// Get seencheck URLs from CrawlHQ
 	// If an URL is not returned it means that it was seen before
-	outputURLs, err := globalHQ.client.Seencheck(context.TODO(), URLsToSeencheck)
+	outputURLs, err := s.client.Seencheck(context.TODO(), URLsToSeencheck)
 	if err != nil {
 		return err
 	}

@@ -15,13 +15,13 @@ import (
 	"github.com/internetarchive/gocrawlhq"
 )
 
-func consumer() {
+func (s *HQ) consumer() {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "hq.consumer",
 	})
 
 	// Create a context to manage goroutines
-	ctx, cancel := context.WithCancel(globalHQ.ctx)
+	ctx, cancel := context.WithCancel(s.ctx)
 	defer cancel()
 
 	// Set the batch size for fetching URLs
@@ -35,16 +35,16 @@ func consumer() {
 
 	// Start the consumerFetcher goroutine(s)
 	wg.Add(1)
-	go consumerFetcher(ctx, &wg, urlBuffer, batchSize)
+	go s.consumerFetcher(ctx, &wg, urlBuffer, batchSize)
 
 	// Start the consumerSender goroutine(s)
 	wg.Add(1)
-	go consumerSender(ctx, &wg, urlBuffer)
+	go s.consumerSender(ctx, &wg, urlBuffer)
 
 	// Wait for shutdown signal
 	for {
 		select {
-		case <-globalHQ.ctx.Done():
+		case <-s.ctx.Done():
 			logger.Debug("received done signal")
 
 			// Cancel the context to stop all goroutines.
@@ -58,7 +58,7 @@ func consumer() {
 			// Close the urlBuffer to signal consumerSenders to finish
 			close(urlBuffer)
 
-			globalHQ.wg.Done()
+			s.wg.Done()
 
 			logger.Debug("closed")
 			return
@@ -66,7 +66,7 @@ func consumer() {
 	}
 }
 
-func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlhq.URL, batchSize int) {
+func (s *HQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlhq.URL, batchSize int) {
 	defer wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -83,7 +83,7 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 		}
 
 		// Fetch URLs from HQ
-		URLs, err := getURLs(batchSize)
+		URLs, err := s.getURLs(batchSize)
 		if err != nil {
 			if err.Error() == "gocrawlhq: feed is empty" {
 				logger.Debug("feed is empty, waiting for new URLs")
@@ -132,7 +132,7 @@ func consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *
 	}
 }
 
-func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *gocrawlhq.URL) {
+func (s *HQ) consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *gocrawlhq.URL) {
 	defer wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -169,7 +169,7 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *g
 
 			if discard {
 				logger.Debug("parsing failed, sending the item to finisher", "url", URL.Value)
-				globalHQ.finishCh <- newItem
+				s.finishCh <- newItem
 				break
 			}
 
@@ -191,10 +191,10 @@ func consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *g
 	}
 }
 
-func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
+func (s *HQ) getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 	// Fetch URLs from CrawlHQ with optional concurrency
 	if config.Get().HQBatchConcurrency == 1 {
-		return globalHQ.client.Get(context.TODO(), batchSize)
+		return s.client.Get(context.TODO(), batchSize)
 	}
 
 	var wg sync.WaitGroup
@@ -208,7 +208,7 @@ func getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			URLs, err := globalHQ.client.Get(context.TODO(), subBatchSize)
+			URLs, err := s.client.Get(context.TODO(), subBatchSize)
 			if err != nil {
 				if err.Error() == "gocrawlhq: feed is empty" {
 					logger.Info("feed is empty, waiting for new URLs")
