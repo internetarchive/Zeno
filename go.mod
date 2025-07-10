@@ -17,7 +17,7 @@ require (
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.32.1
 	github.com/internetarchive/gocrawlhq v1.2.31
-	github.com/internetarchive/gowarc v0.8.83
+	github.com/internetarchive/gowarc v0.8.84
 	github.com/ncruces/go-sqlite3 v0.26.3
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/philippgille/gokv/leveldb v0.7.0
