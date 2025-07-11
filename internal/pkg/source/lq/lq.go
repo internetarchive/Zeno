@@ -11,22 +11,25 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-type lq struct {
+type LQ struct {
 	wg        sync.WaitGroup
 	ctx       context.Context
 	cancel    context.CancelFunc
 	finishCh  chan *models.Item
 	produceCh chan *models.Item
-	client    *LQClient
+	client    *lqClient
 }
 
 var (
-	globalLQ *lq
-	once     sync.Once
-	logger   *log.FieldedLogger
+	once   sync.Once
+	logger *log.FieldedLogger
 )
 
-func Start(finishChan, produceChan chan *models.Item) error {
+func New() *LQ {
+	return &LQ{}
+}
+
+func (s *LQ) Start(finishChan, produceChan chan *models.Item) error {
 	var done bool
 	var startErr error
 
@@ -39,7 +42,7 @@ func Start(finishChan, produceChan chan *models.Item) error {
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
-		LQclient, err := Init(config.Get().Job)
+		LQclient, err := initClient(config.Get().Job)
 		if err != nil {
 			logger.Error("error initializing crawl LQ client", "err", err.Error(), "func", "lq.Start")
 			cancel()
@@ -48,19 +51,17 @@ func Start(finishChan, produceChan chan *models.Item) error {
 			return
 		}
 
-		globalLQ = &lq{
-			wg:        sync.WaitGroup{},
-			ctx:       ctx,
-			cancel:    cancel,
-			finishCh:  finishChan,
-			produceCh: produceChan,
-			client:    LQclient,
-		}
+		s.wg = sync.WaitGroup{}
+		s.ctx = ctx
+		s.cancel = cancel
+		s.finishCh = finishChan
+		s.produceCh = produceChan
+		s.client = LQclient
 
-		globalLQ.wg.Add(3)
-		go consumer()
-		go producer()
-		go finisher()
+		s.wg.Add(3)
+		go s.consumer()
+		go s.producer()
+		go s.finisher()
 
 		logger.Info("started")
 
@@ -74,13 +75,13 @@ func Start(finishChan, produceChan chan *models.Item) error {
 	return startErr
 }
 
-func Stop() {
-	if globalLQ != nil {
-		globalLQ.cancel()
-		globalLQ.wg.Wait()
+func (s *LQ) Stop() {
+	if s != nil {
+		s.cancel()
+		s.wg.Wait()
 		seedsToReset := reactor.GetStateTable()
 		for _, seed := range seedsToReset {
-			if err := globalLQ.client.ResetURL(context.TODO(), seed); err != nil {
+			if err := s.client.resetURL(context.TODO(), seed); err != nil {
 				logger.Error("error while reseting", "id", seed, "err", err)
 			}
 			logger.Debug("reset seed", "id", seed)
@@ -88,4 +89,8 @@ func Stop() {
 		once = sync.Once{}
 		logger.Info("stopped")
 	}
+}
+
+func (s *LQ) Name() string {
+	return "Local Queue"
 }

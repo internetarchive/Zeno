@@ -380,6 +380,21 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
+	if !slices.Contains(config.Get().DisableHTMLTag, "div") {
+		// Extract URLs from data-src, data-srcset attributes
+		document.Find("div[data-src], div[data-srcset]").Each(func(_ int, i *goquery.Selection) {
+			if dataSrc, exists := i.Attr("data-src"); exists && dataSrc != "" {
+				rawAssets = append(rawAssets, dataSrc)
+			}
+			if dataSrcSet, exists := i.Attr("data-srcset"); exists && dataSrcSet != "" {
+				links := strings.SplitSeq(dataSrcSet, ",")
+				for link := range links {
+					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
+				}
+			}
+		})
+	}
+
 	// Extract WACZ files from replayweb embeds (docs: https://replayweb.page/docs/embedding/ )
 	if !slices.Contains(config.Get().DisableHTMLTag, "replay-web-page") {
 		document.Find("replay-web-page[source]").Each(func(index int, i *goquery.Selection) {

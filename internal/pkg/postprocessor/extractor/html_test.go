@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver"
@@ -13,7 +14,7 @@ import (
 
 func setupItem(html string) *models.Item {
 	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewBufferString(html)),
+		Body:   io.NopCloser(bytes.NewBufferString(html)),
 		Header: make(http.Header),
 	}
 	resp.Header.Set("Content-Type", "text/html; charset=utf8")
@@ -222,5 +223,28 @@ func TestCSS(t *testing.T) {
 	}
 	if len(assets) != 3 {
 		t.Errorf("We couldn't extract all HTML assets. Extracted %d instead of 3", len(assets))
+	}
+}
+
+func TestHTMLDataSrc(t *testing.T) {
+	html := `
+<!doctype html>
+<html lang="en">
+
+<body>
+	<div data-src="https://example.com/audio.mp3">
+	</div>
+</body>
+
+</html>
+	`
+	item := setupItem(html)
+	assets, err := HTMLAssets(item)
+	if err != nil {
+		t.Errorf("Error extracting HTML assets %s", err)
+	}
+
+	if len(assets) != 1 || !strings.Contains(strings.ToLower(assets[0].Raw), ".mp3") {
+		t.Errorf("Expected to find an mp3 audio asset, but none found")
 	}
 }

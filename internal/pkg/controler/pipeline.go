@@ -16,11 +16,14 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
+	"github.com/internetarchive/Zeno/internal/pkg/source"
 	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/internal/pkg/source/lq"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
+
+var sourceInterface source.Source
 
 /**
  * Channel description:
@@ -120,19 +123,22 @@ func startPipeline() {
 	finisherProduceChan := makeStageChannel(config.Get().WorkersCount)
 
 	if config.Get().UseHQ {
-		logger.Info("starting hq")
-		err = hq.Start(finisherFinishChan, finisherProduceChan)
-		if err != nil {
-			logger.Error("error starting hq source, retrying", "err", err.Error())
-			panic(err)
-		}
+		hqSource := hq.New()
+		preprocessor.SetSeenchecker(hqSource.SeencheckItem)
+		sourceInterface = hqSource
 	} else {
-		logger.Info("starting local queue")
-		err = lq.Start(finisherFinishChan, finisherProduceChan)
-		if err != nil {
-			logger.Error("error starting local queue source", "err", err.Error())
-			panic(err)
+		lqSource := lq.New()
+		if config.Get().UseSeencheck {
+			preprocessor.SetSeenchecker(seencheck.SeencheckItem)
 		}
+		sourceInterface = lqSource
+	}
+
+	logger.Info("starting source", "source", sourceInterface.Name())
+	err = sourceInterface.Start(finisherFinishChan, finisherProduceChan)
+	if err != nil {
+		logger.Error("error starting source", "source", sourceInterface.Name(), "err", err.Error())
+		panic(err)
 	}
 
 	err = finisher.Start(postprocessorOutputChan, finisherFinishChan, finisherProduceChan)
@@ -180,11 +186,7 @@ func stopPipeline() {
 		seencheck.Close()
 	}
 
-	if config.Get().UseHQ {
-		hq.Stop()
-	} else {
-		lq.Stop()
-	}
+	sourceInterface.Stop()
 
 	reactor.Stop()
 
