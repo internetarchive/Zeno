@@ -68,6 +68,42 @@ func TestNormalizeURL(t *testing.T) {
 			wantErr:     true,
 			expectedURL: "",
 		},
+		{
+			name:        "URL with fragment",
+			rawURL:      "https://example.com/path#fragment",
+			wantErr:     false,
+			expectedURL: "https://example.com/path",
+		},
+		{
+			name:        "Unicode URL",
+			rawURL:      "https://通知.收到了/Zeno/崛起.html?query=了",
+			wantErr:     false,
+			expectedURL: `https://xn--k7y792c.xn--ykq12govw/Zeno/%E5%B4%9B%E8%B5%B7.html?query=%E4%BA%86`,
+		},
+		{
+			name:        "Uppercase Scheme and Domain URL",
+			rawURL:      "HTTPS://EXAMPLE.COM/PATH",
+			wantErr:     false,
+			expectedURL: "https://example.com/PATH",
+		},
+		{
+			name:        "URL with dots directory in path",
+			rawURL:      "https://example.com/../../1/2/../3/./4/5",
+			wantErr:     false,
+			expectedURL: "https://example.com/1/3/4/5",
+		},
+		{
+			name:        "Localhost URL",
+			rawURL:      "http://localhost/path",
+			wantErr:     true,
+			expectedURL: "",
+		},
+		{
+			name:        "URL with semicolon separator in query",
+			rawURL:      "https://example.com/path?q1=a;q2=b",
+			wantErr:     false,
+			expectedURL: "https://example.com/path?q1=a;q2=b",
+		},
 	}
 
 	for _, tt := range tests {
