@@ -25,19 +25,16 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	var wuParse *wu.Url
 
 	if parentURL == nil {
+		lowerURL := strings.ToLower(URL.Raw)
+		if !strings.HasPrefix(lowerURL, httpPrefix) &&
+			!strings.HasPrefix(lowerURL, httpsPrefix) &&
+			!strings.HasPrefix(lowerURL, ftpPrefix) &&
+			!strings.Contains(lowerURL, "://") {
+			URL.Raw = httpPrefix + URL.Raw
+		}
 		wuParse, err = wu.Parse(URL.Raw)
 		if err != nil {
-			lowerURL := strings.ToLower(URL.Raw)
-			if !strings.HasPrefix(lowerURL, httpPrefix) &&
-				!strings.HasPrefix(lowerURL, httpsPrefix) &&
-				!strings.HasPrefix(lowerURL, ftpPrefix) &&
-				!strings.Contains(lowerURL, "://") {
-				URL.Raw = httpPrefix + URL.Raw
-			}
-			wuParse, err = wu.Parse(URL.Raw)
-			if err != nil {
-				return err
-			}
+			return err
 		}
 	} else {
 		parsedURL, err := url.Parse(URL.Raw)
@@ -63,9 +60,8 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 		}
 	}
 
-
-	scheme := strings.ToLower(wuParse.Protocol())
-	if scheme != "http:" && scheme != "https:" {
+	scheme := wuParse.Scheme()
+	if scheme != "http" && scheme != "https" {
 		return ErrUnsupportedScheme
 	}
 
