@@ -64,7 +64,6 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 		}
 	}
 
-	wuParse.SetHash("")
 
 	scheme := strings.ToLower(wuParse.Protocol())
 	if scheme != "http:" && scheme != "https:" {
