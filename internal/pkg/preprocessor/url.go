@@ -82,7 +82,7 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	}
 
 	// Update the URL with the normalized version
-	URL.Raw = wuParse.Href(false)
+	URL.Raw = wuParse.Href(true /* exclude fragment */)
 
 	return URL.Parse()
 }
