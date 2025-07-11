@@ -99,6 +99,7 @@ func StartWatchWARCWritingQueue(pauseCheckInterval time.Duration, pauseTimeout t
 
 				// Update dedup WARC metrics
 				stats.WARCDataTotalBytesSet(archiver.GetWARCTotalBytesArchived())
+				stats.WARCDataTotalBytesContentLengthSet(archiver.GetWARCTotalBytesContentLengthArchived())
 				stats.WARCCDXDedupeTotalBytesSet(archiver.GetWARCCDXDedupeTotalBytes())
 				stats.WARCDoppelgangerDedupeTotalBytesSet(archiver.GetWARCDoppelgangerDedupeTotalBytes())
 				stats.WARCLocalDedupeTotalBytesSet(archiver.GetWARCLocalDedupeTotalBytes())

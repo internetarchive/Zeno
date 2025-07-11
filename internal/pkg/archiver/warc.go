@@ -129,6 +129,16 @@ func GetWARCTotalBytesArchived() (total int64) {
 	return total
 }
 
+func GetWARCTotalBytesContentLengthArchived() (total int64) {
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			total += c.DataTotalContentLength.Load()
+		}
+	}
+
+	return total
+}
+
 func GetWARCCDXDedupeTotalBytes() (total int64) {
 	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
 		if c != nil {
