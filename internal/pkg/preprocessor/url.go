@@ -51,13 +51,12 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 				return err
 			}
 		} else {
-			baseURL := parentURL.GetParsed()
-			if baseURL == nil {
-				return fmt.Errorf("invalid baseURL in parentURL: %s", parentURL.Raw)
+			// Assert that parentURL is parsed
+			if parentURL.GetParsed() == nil {
+				return fmt.Errorf("parent URL is not parsed: %s", parentURL.Raw)
 			}
 
-			resolved := baseURL.ResolveReference(parsedURL)
-			wuParse, err = wu.Parse(resolved.String())
+			wuParse, err = wu.ParseRef(parentURL.String() /* base */, URL.Raw /* ref */)
 			if err != nil {
 				return err
 			}
