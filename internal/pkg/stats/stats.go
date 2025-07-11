@@ -25,6 +25,7 @@ type stats struct {
 	WARCWritingQueueSize   atomic.Int64
 
 	WARCDataTotalBytes               atomic.Int64
+	WARCDataTotalBytesContentLength  atomic.Int64
 	WARCCDXDedupeTotalBytes          atomic.Int64
 	WARCDoppelgangerDedupeTotalBytes atomic.Int64
 	WARCLocalDedupeTotalBytes        atomic.Int64

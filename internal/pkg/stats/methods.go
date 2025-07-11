@@ -219,6 +219,13 @@ func WARCDataTotalBytesSet(value int64) {
 	}
 }
 
+func WARCDataTotalBytesContentLengthSet(value int64) {
+	globalStats.WARCDataTotalBytesContentLength.Store(value)
+	if globalPromStats != nil {
+		globalPromStats.dataTotalBytesContentLength.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(float64(value))
+	}
+}
+
 // WARCCDXDedupeTotalBytesSet sets the WARC CDX dedupe total bytes metric.
 func WARCCDXDedupeTotalBytesSet(value int64) {
 	globalStats.WARCCDXDedupeTotalBytes.Store(value)
