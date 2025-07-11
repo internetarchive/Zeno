@@ -5,6 +5,8 @@ github.com/MatusOllah/slogcolor v1.6.0 h1:JAKer0xj5l1jYTXyQvs5ggqmJqYDuLnxgR9jfM
 github.com/MatusOllah/slogcolor v1.6.0/go.mod h1:5y1H50XuQIBvuYTJlmokWi+4FuPiJN5L7Z0jM4K4bYA=
 github.com/PuerkitoBio/goquery v1.10.3 h1:pFYcNSqHxBD06Fpj/KsbStFRsgRATgnf3LeXiUkhzPo=
 github.com/PuerkitoBio/goquery v1.10.3/go.mod h1:tMUX0zDMHXYlAQk6p35XxQMqMweEKB7iK7iLNd4RH4Y=
+github.com/ada-url/goada v0.0.0-20250104020233-00cbf4dc9da1 h1:K54lYH7ZY/NHweMd9/R82dHaFelQQmwjEhUfwUqCqEk=
+github.com/ada-url/goada v0.0.0-20250104020233-00cbf4dc9da1/go.mod h1:+D/veNwI2mA1hDYLVrYSobYcLFWm6e3DJ/H/d/dxlu8=
 github.com/ada-url/goada v1.0.0 h1:Y2coJ/lJ4Ln3NO/Jx4aQmsrA4Lg57ptWr4MJX+oNFfc=
 github.com/ada-url/goada v1.0.0/go.mod h1:+D/veNwI2mA1hDYLVrYSobYcLFWm6e3DJ/H/d/dxlu8=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
