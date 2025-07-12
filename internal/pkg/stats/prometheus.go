@@ -156,6 +156,7 @@ func registerPrometheusMetrics() {
 
 	// Register dedup WARC metrics
 	prometheus.MustRegister(globalPromStats.dataTotalBytes)
+	prometheus.MustRegister(globalPromStats.dataTotalBytesContentLength)
 	prometheus.MustRegister(globalPromStats.cdxDedupeTotalBytes)
 	prometheus.MustRegister(globalPromStats.doppelgangerDedupeTotalBytes)
 	prometheus.MustRegister(globalPromStats.localDedupeTotalBytes)
