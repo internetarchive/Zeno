@@ -282,9 +282,8 @@ func archive(workerID string, seed *models.Item) {
 				}
 
 				if discarded {
-					// Consume body, needed to avoid leaking RAM & storage
-					io.Copy(io.Discard, resp.Body)
-					resp.Body.Close()
+					resp.Body.Close()              // First, close the body, to stop downloading data anymore.
+					io.Copy(io.Discard, resp.Body) // Then, consume the buffer.
 				}
 
 				// Retries on:
