@@ -67,6 +67,7 @@ func TestHTMLAssetsAudioVideo(t *testing.T) {
 			<video src="http://f1.com"></video>
 			<p>test</p>
 			<audio src="http://f2.com"></audio>
+			<embed type="video/mp4" src="/videos/flower.mp4" width="250" height="200" />
 		</body>
 	</html>`
 	item := setupItem(html)
@@ -75,8 +76,8 @@ func TestHTMLAssetsAudioVideo(t *testing.T) {
 	if err != nil {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
-	if len(assets) != 2 {
-		t.Errorf("We couldn't extract all audio/video assets. Received %d, expected 2", len(assets))
+	if len(assets) != 3 {
+		t.Errorf("We couldn't extract all audio/video assets. Received %d, expected 3", len(assets))
 	}
 }
 
