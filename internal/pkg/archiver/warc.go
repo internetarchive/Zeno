@@ -109,80 +109,40 @@ func GetClients() (clients []*warc.CustomHTTPClient) {
 	return clients
 }
 
+type WARCStats struct {
+	WARCWritingQueueSize         int64
+	WARCTotalBytesArchived       int64
+	CDXDedupeTotalBytes          int64
+	DoppelgangerDedupeTotalBytes int64
+	LocalDedupeTotalBytes        int64
+	CDXDedupeTotal               int64
+	DoppelgangerDedupeTotal      int64
+	LocalDedupeTotal             int64
+}
+
+func GetStats() WARCStats {
+	var stats WARCStats
+
+	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
+		if c != nil {
+			stats.WARCWritingQueueSize += int64(c.WaitGroup.Size())
+			stats.WARCTotalBytesArchived += c.DataTotal.Load()
+			stats.CDXDedupeTotalBytes += c.CDXDedupeTotalBytes.Load()
+			stats.DoppelgangerDedupeTotalBytes += c.DoppelgangerDedupeTotalBytes.Load()
+			stats.LocalDedupeTotalBytes += c.LocalDedupeTotalBytes.Load()
+			stats.CDXDedupeTotal += c.CDXDedupeTotal.Load()
+			stats.DoppelgangerDedupeTotal += c.DoppelgangerDedupeTotal.Load()
+			stats.LocalDedupeTotal += c.LocalDedupeTotal.Load()
+		}
+	}
+	return stats
+}
+
+// This function is used in multiple places so it can't be replaced by GetStats()
 func GetWARCWritingQueueSize() (total int) {
 	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
 		if c != nil {
 			total += c.WaitGroup.Size()
-		}
-	}
-
-	return total
-}
-
-func GetWARCTotalBytesArchived() (total int64) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			total += c.DataTotal.Load()
-		}
-	}
-
-	return total
-}
-
-func GetWARCCDXDedupeTotalBytes() (total int64) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			total += c.CDXDedupeTotalBytes.Load()
-		}
-	}
-
-	return total
-}
-
-func GetWARCDoppelgangerDedupeTotalBytes() (total int64) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			total += c.DoppelgangerDedupeTotalBytes.Load()
-		}
-	}
-
-	return total
-}
-
-func GetWARCLocalDedupeTotalBytes() (total int64) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			total += c.LocalDedupeTotalBytes.Load()
-		}
-	}
-
-	return total
-}
-
-func GetWARCCDXDedupeTotal() (total int64) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			total += c.CDXDedupeTotal.Load()
-		}
-	}
-
-	return total
-}
-
-func GetWARCDoppelgangerDedupeTotal() (total int64) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			total += c.DoppelgangerDedupeTotal.Load()
-		}
-	}
-
-	return total
-}
-
-func GetWARCLocalDedupeTotal() (total int64) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			total += c.LocalDedupeTotal.Load()
 		}
 	}
 
