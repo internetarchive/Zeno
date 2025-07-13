@@ -24,6 +24,7 @@ func Start() {
 		l = launcher.New()
 	}
 	l.Bin(config.Get().HeadlessChroumiumBin).
+		Revision(config.Get().HeadlessChromiumRevision).
 		Headless(!config.Get().HeadlessHeadful).
 		Devtools(config.Get().HeadlessDevTools)
 	if config.Get().HeadlessUserDataDir != "" {

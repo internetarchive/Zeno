@@ -81,15 +81,16 @@ type Config struct {
 	UseHQ                    bool          // Special field to check if HQ is enabled depending on the command called
 
 	// Headless
-	Headless               bool     `mapstructure:"headless"`
-	HeadlessHeadful        bool     `mapstructure:"headless-headful"`
-	HeadlessTrace          bool     `mapstructure:"headless-trace"`
-	HeadlessChroumiumBin   string   `mapstructure:"headless-chromium-bin"`
-	HeadlessDevTools       bool     `mapstructure:"headless-dev-tools"`
-	HeadlessStealth        bool     `mapstructure:"headless-stealth"`
-	HeadlessUserMode       bool     `mapstructure:"headless-user-mode"`
-	HeadlessUserDataDir    string   `mapstructure:"headless-user-data-dir"`
-	HeadlessAllowedMethods []string `mapstructure:"headless-allowed-methods"`
+	Headless                 bool     `mapstructure:"headless"`
+	HeadlessHeadful          bool     `mapstructure:"headless-headful"`
+	HeadlessTrace            bool     `mapstructure:"headless-trace"`
+	HeadlessChromiumRevision int      `mapstructure:"headless-chromium-revision"`
+	HeadlessChroumiumBin     string   `mapstructure:"headless-chromium-bin"`
+	HeadlessDevTools         bool     `mapstructure:"headless-dev-tools"`
+	HeadlessStealth          bool     `mapstructure:"headless-stealth"`
+	HeadlessUserMode         bool     `mapstructure:"headless-user-mode"`
+	HeadlessUserDataDir      string   `mapstructure:"headless-user-data-dir"`
+	HeadlessAllowedMethods   []string `mapstructure:"headless-allowed-methods"`
 
 	HeadlessPageLoadTimeout time.Duration `mapstructure:"headless-page-load-timeout"`
 	HeadlessPostLoadDelay   time.Duration `mapstructure:"headless-post-load-delay"`
