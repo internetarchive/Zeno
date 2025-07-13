@@ -240,6 +240,9 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	if !slices.Contains(config.Get().DisableHTMLTag, "audio") {
 		targetElements = append(targetElements, "audio[src]")
 	}
+	if !slices.Contains(config.Get().DisableHTMLTag, "embed") {
+		targetElements = append(targetElements, "embed[src]")
+	}
 	if len(targetElements) > 0 {
 		document.Find(strings.Join(targetElements, ", ")).Each(func(index int, i *goquery.Selection) {
 			if link, exists := i.Attr("src"); exists {
