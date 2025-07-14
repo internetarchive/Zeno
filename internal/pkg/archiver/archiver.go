@@ -329,7 +329,7 @@ func archive(workerID string, seed *models.Item) {
 					io.Copy(io.Discard, resp.Body) // Then, consume the buffer.
 				} else if isBadStatusCode {
 					// Consume and close the body before retrying
-					copyErr := closeConnWithError(conn, copyWithTimeout(io.Discard, resp.Body))
+					copyErr := body.CloseConnWithError(logger, conn, body.CopyWithTimeout(io.Discard, resp.Body))
 					if copyErr != nil {
 						logger.Warn("copyWithTimeout failed for bad status code response", "err", copyErr.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 					}
