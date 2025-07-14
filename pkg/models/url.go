@@ -121,6 +121,10 @@ func (u *URL) SetResponse(r *http.Response) {
 	u.response = r
 }
 
+// NOTE:
+//
+//	In normal mode, GetResponse() always returns a valid *http.Response
+//	In headless mode, GetResponse() always returns nil
 func (u *URL) GetResponse() *http.Response {
 	return u.response
 }

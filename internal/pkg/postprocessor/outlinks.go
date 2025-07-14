@@ -16,11 +16,17 @@ import (
 
 func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	var (
-		contentType = item.GetURL().GetResponse().Header.Get("Content-Type")
+		contentType string
 		logger      = log.NewFieldedLogger(&log.Fields{
 			"component": "postprocessor.extractOutlinks",
 		})
 	)
+
+	if item.GetURL().GetResponse() != nil {
+		contentType = item.GetURL().GetResponse().Header.Get("Content-Type")
+	} else {
+		contentType = "text/html" // Headless, hardcoded to HTML
+	}
 
 	if item.GetURL().GetBody() == nil {
 		logger.Error("no body to extract outlinks from", "url", item.GetURL(), "item", item.GetShortID())
