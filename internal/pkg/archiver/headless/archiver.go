@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
@@ -19,6 +20,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
 	warc "github.com/internetarchive/gowarc"
+	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
 //go:embed behaviors.js
@@ -81,7 +83,6 @@ func clientDo(client *http.Client, req *http.Request, h *rod.Hijack) (*http.Resp
 func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed *models.Item) error {
 	bxLogger := newBxLogger(item)
 
-	// var resp *http.Response
 	var err error
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -191,8 +192,6 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 			Conn:       <-wrappedConnChan,
 		}
 
-		item.GetURL().SetResponse(resp)
-
 		fullBody, err := ProcessBodyHeadless(hijack, resp)
 		if err != nil {
 			logger.Error("unable to process body", "error", err)
@@ -288,5 +287,44 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 	page.Activate()
 
 	item.SetStatus(models.ItemArchived)
+	extractAndStoreHTML(item, page)
+	return nil
+}
+
+// Get the Document from the page and store it in the item
+func extractAndStoreHTML(item *models.Item, page *rod.Page) error {
+	docEl, err := page.Element("*") // get entire document
+	if err != nil {
+		logger.Error("unable to get document element", "error", err)
+		return err
+	}
+
+	htmlText, err := docEl.HTML()
+	if err != nil {
+		logger.Error("unable to convert document element to HTML", "error", err)
+		return err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlText))
+	if err != nil {
+		logger.Error("unable to create goquery document from HTML", "error", err)
+		return err
+	}
+
+	item.GetURL().SetDocument(doc)
+
+	// Create a temp file with a 8MB memory buffer
+	spooledBuff := spooledtempfile.NewSpooledTempFile("zeno", config.Get().WARCTempDir, 8000000, false, -1)
+	_, err = io.Copy(spooledBuff, strings.NewReader(htmlText))
+	if err != nil {
+		closeErr := spooledBuff.Close()
+		if closeErr != nil {
+			panic(closeErr)
+		}
+		logger.Error("unable to copy HTML to spooled buffer", "error", err)
+	}
+	item.GetURL().SetBody(spooledBuff)
+	item.GetURL().RewindBody()
+
 	return nil
 }
