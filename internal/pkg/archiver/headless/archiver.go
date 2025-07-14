@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"io"
 	"net/http"
 	"slices"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/body"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -148,6 +150,23 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 		if err != nil {
 			logger.Error("unable to load response", "error", err)
 			hijack.Response.Fail(proto.NetworkErrorReasonConnectionFailed)
+			return
+		}
+
+		discarded := false
+		discardReason := ""
+		if warcClient.DiscardHook == nil {
+			discardReason = reasoncode.HookNotSet
+		} else {
+			discarded, discardReason = warcClient.DiscardHook(resp)
+		}
+
+		if discarded {
+			resp.Body.Close()              // First, close the body, to stop downloading data anymore.
+			io.Copy(io.Discard, resp.Body) // Then, consume the buffer.
+
+			logger.Warn("response was blocked by DiscardHook", "reason", discardReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL)
+			hijack.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
 			return
 		}
 
