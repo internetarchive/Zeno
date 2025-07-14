@@ -36,12 +36,12 @@ type preprocessor struct {
 	inputCh  chan *models.Item
 	outputCh chan *models.Item
 
-	seenchecker    func(item *models.Item) error
+	Seenchecker    func(item *models.Item) error
 	seencheckerSet bool
 }
 
 var (
-	globalPreprocessor *preprocessor
+	GlobalPreprocessor *preprocessor
 	once               sync.Once
 	logger             *log.FieldedLogger
 )
@@ -57,7 +57,7 @@ func Start(inputChan, outputChan chan *models.Item) error {
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
-		globalPreprocessor = &preprocessor{
+		GlobalPreprocessor = &preprocessor{
 			ctx:      ctx,
 			cancel:   cancel,
 			inputCh:  inputChan,
@@ -65,13 +65,13 @@ func Start(inputChan, outputChan chan *models.Item) error {
 		}
 		logger.Debug("initialized")
 		for i := 0; i < config.Get().WorkersCount; i++ {
-			globalPreprocessor.wg.Add(1)
-			go globalPreprocessor.worker(strconv.Itoa(i))
+			GlobalPreprocessor.wg.Add(1)
+			go GlobalPreprocessor.worker(strconv.Itoa(i))
 		}
 		logger.Info("started")
 	})
 
-	if globalPreprocessor == nil {
+	if GlobalPreprocessor == nil {
 		return ErrPreprocessorAlreadyInitialized
 	}
 
@@ -80,9 +80,9 @@ func Start(inputChan, outputChan chan *models.Item) error {
 
 // Stop stops the preprocessor routines
 func Stop() {
-	if globalPreprocessor != nil {
-		globalPreprocessor.cancel()
-		globalPreprocessor.wg.Wait()
+	if GlobalPreprocessor != nil {
+		GlobalPreprocessor.cancel()
+		GlobalPreprocessor.wg.Wait()
 		logger.Info("stopped")
 	}
 }
@@ -90,16 +90,16 @@ func Stop() {
 // SetSeenchecker sets the seenchecker function to be used by the preprocessor.
 // It should be called only once, and it will panic if called more than once or if the preprocessor is not initialized.
 func SetSeenchecker(seenchecker func(item *models.Item) error) {
-	if globalPreprocessor == nil {
+	if GlobalPreprocessor == nil {
 		panic("preprocessor is not initialized")
 	}
 
-	if globalPreprocessor.seencheckerSet {
+	if GlobalPreprocessor.seencheckerSet {
 		panic("seenchecker is already set")
 	}
 
-	globalPreprocessor.seenchecker = seenchecker
-	globalPreprocessor.seencheckerSet = true
+	GlobalPreprocessor.Seenchecker = seenchecker
+	GlobalPreprocessor.seencheckerSet = true
 	logger.Debug("seenchecker set")
 }
 
@@ -255,8 +255,8 @@ func preprocess(workerID string, seed *models.Item) {
 	}
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
-	if (config.Get().UseHQ || config.Get().UseSeencheck) && globalPreprocessor.seencheckerSet {
-		err = globalPreprocessor.seenchecker(seed)
+	if (config.Get().UseHQ || config.Get().UseSeencheck) && GlobalPreprocessor.seencheckerSet {
+		err = GlobalPreprocessor.Seenchecker(seed)
 		if err != nil {
 			logger.Warn("unable to seencheck seed", "seed_id", seed.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
 		}
