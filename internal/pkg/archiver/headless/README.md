@@ -4,6 +4,7 @@
 
 - [x] Discard Hooks
 - [ ] Max Hops
-- [ ] Retry on clientDo() errors (config.Get().MaxRetry)
+- [x] Retry on clientDo() errors (config.Get().MaxRetry)
 - [ ] Retry on bad status codes
 - [ ] globalBucketManager
+- [ ] stats.MeanHTTPRespTimeAdd(time.Since(getStartTime))

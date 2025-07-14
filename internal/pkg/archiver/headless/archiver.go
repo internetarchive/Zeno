@@ -122,35 +122,51 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 			wrappedConnChan chan *warc.CustomConnection
 		)
 
-		req = hijack.Request.Req()
-		// Set UA if not in stealth mode
-		if !config.Get().HeadlessStealth {
-			req.Header.Set("User-Agent", config.Get().UserAgent)
-		}
-
-		// If WARC writing is asynchronous, we don't need a feedback channel
-		if !config.Get().WARCWriteAsync {
-			feedbackChan = make(chan struct{}, 1)
-			// Add the feedback channel to the request context
-			req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
-		}
-		// Prepare warppedConn channel
-		wrappedConnChan = make(chan *warc.CustomConnection, 1)
-		req = req.WithContext(context.WithValue(req.Context(), "wrappedConn", wrappedConnChan))
-
-		// If the response is for the main page, save the body
-
 		if hijack.Request.URL().String() == item.GetURL().String() {
 			logger.Debug("capturing main page")
 		} else {
 			logger.Debug("capturing asset")
 		}
 
-		resp, err = clientDo(&warcClient.Client, req, hijack)
-		if err != nil {
-			logger.Error("unable to load response", "error", err)
-			hijack.Response.Fail(proto.NetworkErrorReasonConnectionFailed)
-			return
+		req = hijack.Request.Req()
+
+		for retry := 0; retry <= config.Get().MaxRetry; retry++ {
+			// This is unused unless there is an error
+			retrySleepTime := time.Second * time.Duration(retry*2)
+
+			// // Get and measure request time
+			// getStartTime := time.Now()
+
+			// If WARC writing is asynchronous, we don't need a feedback channel
+			if !config.Get().WARCWriteAsync {
+				feedbackChan = make(chan struct{}, 1)
+				// Add the feedback channel to the request context
+				req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
+			}
+			// Prepare warppedConn channel
+			wrappedConnChan = make(chan *warc.CustomConnection, 1)
+			req = req.WithContext(context.WithValue(req.Context(), "wrappedConn", wrappedConnChan))
+
+			// Set UA if not in stealth mode
+			if !config.Get().HeadlessStealth {
+				req.Header.Set("User-Agent", config.Get().UserAgent)
+			}
+
+			// If the response is for the main page, save the body
+			resp, err = clientDo(&warcClient.Client, req, hijack)
+			if err != nil {
+				if retry < config.Get().MaxRetry {
+					logger.Warn("retrying request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime)
+					time.Sleep(retrySleepTime)
+					continue
+				}
+
+				// retries exhausted
+				logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+				hijack.Response.Fail(proto.NetworkErrorReasonConnectionFailed)
+				return
+			}
+			break
 		}
 
 		discarded := false
