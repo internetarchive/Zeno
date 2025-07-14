@@ -125,5 +125,5 @@ func extractAssets(item *models.Item) (assets, outlinks []*models.URL, err error
 }
 
 func shouldExtractAssets(item *models.Item) bool {
-	return !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil
+	return !config.Get().Headless && !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil
 }
