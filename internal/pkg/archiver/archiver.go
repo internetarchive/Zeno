@@ -219,6 +219,7 @@ func archive(workerID string, seed *models.Item) {
 				resp            *http.Response
 				feedbackChan    chan struct{}
 				wrappedConnChan chan *warc.CustomConnection
+				conn            *warc.CustomConnection
 			)
 
 			// Execute the request
@@ -272,6 +273,7 @@ func archive(workerID string, seed *models.Item) {
 					item.SetStatus(models.ItemFailed)
 					return
 				}
+				conn = <-wrappedConnChan
 
 				discarded := false
 				discardReason := ""
@@ -280,16 +282,23 @@ func archive(workerID string, seed *models.Item) {
 				} else {
 					discarded, discardReason = client.DiscardHook(resp)
 				}
+				isBadStatusCode := resp.StatusCode >= 500 || slices.Contains([]int{408, 425, 429}, resp.StatusCode)
 
 				if discarded {
 					resp.Body.Close()              // First, close the body, to stop downloading data anymore.
 					io.Copy(io.Discard, resp.Body) // Then, consume the buffer.
+				} else if isBadStatusCode {
+					// Consume and close the body before retrying
+					copyErr := closeConnWithError(conn, copyWithTimeout(io.Discard, resp.Body))
+					if copyErr != nil {
+						logger.Warn("copyWithTimeout failed for bad status code response", "err", copyErr.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+					}
+					resp.Body.Close()
 				}
 
 				// Retries on:
 				// 	- 5XX, 408, 425 and 429
 				// 	- Discarded challenge pages (Cloudflare, Akamai, etc.)
-				isBadStatusCode := resp.StatusCode >= 500 || slices.Contains([]int{408, 425, 429}, resp.StatusCode)
 				isDiscardedChallengePage := discarded && reasoncode.IsChallengePage(discardReason)
 				if isBadStatusCode || isDiscardedChallengePage {
 					if globalBucketManager != nil {
@@ -328,7 +337,6 @@ func archive(workerID string, seed *models.Item) {
 				break
 			}
 
-			conn := <-wrappedConnChan
 			resp.Body = &BodyWithConn{ // Wrap the response body to hold the connection
 				ReadCloser: resp.Body,
 				Conn:       conn,
