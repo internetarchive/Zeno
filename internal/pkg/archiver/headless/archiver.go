@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -18,6 +19,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
 	"github.com/internetarchive/Zeno/pkg/models"
 	warc "github.com/internetarchive/gowarc"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
@@ -81,6 +83,8 @@ func clientDo(client *http.Client, req *http.Request, h *rod.Hijack) (*http.Resp
 }
 
 func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed *models.Item) error {
+	seenRequests := make([]string, 0)
+	defer seencheck(item, seed, &seenRequests)
 	bxLogger := newBxLogger(item)
 
 	var err error
@@ -98,7 +102,12 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 
 	flyingRequests := NewWaitGroup()
 
+	requestsMutex := &sync.Mutex{}
 	router.MustAdd("*", func(hijack *rod.Hijack) {
+		requestsMutex.Lock()
+		seenRequests = append(seenRequests, hijack.Request.URL().String())
+		requestsMutex.Unlock()
+
 		flyingRequests.Add(1, hijack.Request.URL().String())
 		defer flyingRequests.Done(hijack.Request.URL().String())
 
@@ -327,4 +336,17 @@ func extractAndStoreHTML(item *models.Item, page *rod.Page) error {
 	item.GetURL().RewindBody()
 
 	return nil
+}
+
+func seencheck(item *models.Item, seed *models.Item, seenRequests *[]string) {
+	tmpItem := models.NewItem(&models.URL{Raw: item.GetURL().Raw}, "")
+	tmpItem.GetURL().Parse()
+	for _, reqURL := range *seenRequests {
+		tmpChildItem := models.NewItem(&models.URL{Raw: reqURL}, "")
+		tmpChildItem.GetURL().Parse()
+		tmpItem.AddChild(tmpChildItem, models.ItemGotChildren)
+	}
+	if err := preprocessor.GlobalPreprocessor.Seenchecker(tmpItem); err != nil {
+		logger.Error("unable to seencheck headless sub-requests", "error", err, "seed_id", seed.GetShortID(), "item_id", item.GetShortID())
+	}
 }
