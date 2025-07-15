@@ -182,6 +182,10 @@ type Post struct {
 	} `json:"data"`
 }
 
+func IsRedditURL(URL *models.URL) bool {
+    return strings.Contains(URL.String(), "reddit.com")
+}
+
 func IsPostAPI(URL *models.URL) bool {
 	return strings.Contains(URL.String(), "reddit.com/api/info.json?id=t3_")
 }
