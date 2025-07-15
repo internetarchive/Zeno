@@ -93,18 +93,16 @@ func StartWatchWARCWritingQueue(pauseCheckInterval time.Duration, pauseTimeout t
 			case <-wwqCtx.Done():
 				return
 			case <-statsTicker.C:
-				queueSize := archiver.GetWARCWritingQueueSize()
-
-				stats.WarcWritingQueueSizeSet(int64(queueSize))
-
+				s := archiver.GetStats()
+				stats.WarcWritingQueueSizeSet(s.WARCWritingQueueSize)
 				// Update dedup WARC metrics
-				stats.WARCDataTotalBytesSet(archiver.GetWARCTotalBytesArchived())
-				stats.WARCCDXDedupeTotalBytesSet(archiver.GetWARCCDXDedupeTotalBytes())
-				stats.WARCDoppelgangerDedupeTotalBytesSet(archiver.GetWARCDoppelgangerDedupeTotalBytes())
-				stats.WARCLocalDedupeTotalBytesSet(archiver.GetWARCLocalDedupeTotalBytes())
-				stats.WARCCDXDedupeTotalSet(archiver.GetWARCCDXDedupeTotal())
-				stats.WARCDoppelgangerDedupeTotalSet(archiver.GetWARCDoppelgangerDedupeTotal())
-				stats.WARCLocalDedupeTotalSet(archiver.GetWARCLocalDedupeTotal())
+				stats.WARCDataTotalBytesSet(s.WARCTotalBytesArchived)
+				stats.WARCCDXDedupeTotalBytesSet(s.CDXDedupeTotalBytes)
+				stats.WARCDoppelgangerDedupeTotalBytesSet(s.DoppelgangerDedupeTotalBytes)
+				stats.WARCLocalDedupeTotalBytesSet(s.LocalDedupeTotalBytes)
+				stats.WARCCDXDedupeTotalSet(s.CDXDedupeTotal)
+				stats.WARCDoppelgangerDedupeTotalSet(s.DoppelgangerDedupeTotal)
+				stats.WARCLocalDedupeTotalSet(s.LocalDedupeTotal)
 			}
 		}
 	}()
