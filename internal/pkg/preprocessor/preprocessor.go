@@ -20,7 +20,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/log/dumper"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/npr"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
