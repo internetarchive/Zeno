@@ -11,13 +11,13 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-// extractAssets extracts assets from the item's body and returns them.
+// ExtractAssets extracts assets from the item's body and returns them.
 // It also potentially returns outlinks if the body contains URLs that are not assets.
-func extractAssets(item *models.Item) (assets, outlinks []*models.URL, err error) {
+func ExtractAssets(item *models.Item) (assets, outlinks []*models.URL, err error) {
 	var (
 		contentType = item.GetURL().GetResponse().Header.Get("Content-Type")
 		logger      = log.NewFieldedLogger(&log.Fields{
-			"component": "postprocessor.extractAssets",
+			"component": "postprocessor.ExtractAssets",
 		})
 	)
 
