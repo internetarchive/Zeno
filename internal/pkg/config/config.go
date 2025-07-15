@@ -208,6 +208,11 @@ func Get() *Config {
 	return config
 }
 
+// Useful for testing
+func Set(cfg *Config) {
+    config = cfg
+}
+
 func GenerateCrawlConfig() error {
 	// If the job name isn't specified, we generate a random name
 	if config.Job == "" {
