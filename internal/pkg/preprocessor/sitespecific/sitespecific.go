@@ -20,7 +20,7 @@ var preprocessors = []Preprocessor{
 	reddit.RedditPreprocessor{},
 	tiktok.TikTokPreprocessor{},
 	truthsocial.TruthsocialStatusPreprocessor{},
-	truthsocial.TruthsocialStatusPreprocessor{},
+	truthsocial.TruthsocialAccountsPreprocessor{},
 }
 
 // Apply the first matching preprocessor.
