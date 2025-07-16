@@ -22,8 +22,9 @@ jobs:
         md5sum: FALSE
         sha256sum: TRUE
         asset_name: 'Zeno-linux-amd64'
+        pre_command: 'export CXX=g++-14'
   release-windows-amd64:
-    name: release linux/amd64
+    name: release windows/amd64
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -40,4 +41,4 @@ jobs:
         md5sum: FALSE
         sha256sum: TRUE
         asset_name: 'Zeno-windows-amd64.exe'
-        pre_command: 'export CGO_ENABLED=1 && export CC="/opt/hostedtoolcache/zig/0.14.1/x64/zig cc -lc -target x86_64-windows" && export CXX="/opt/hostedtoolcache/zig/0.14.1/x64/zig c++ -lc -target x86_64-windows"' # Get around some PATH issues? Weird...
+        pre_command: 'export CGO_ENABLED=1 && export CC="zig cc -lc -target x86_64-windows" && export CXX="zig c++ -lc -target x86_64-windows"' # Get around some PATH issues? Weird...
