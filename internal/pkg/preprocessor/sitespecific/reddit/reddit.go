@@ -7,11 +7,13 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func IsRedditURL(URL *models.URL) bool {
+type RedditPreprocessor struct{}
+
+func (RedditPreprocessor) Match(URL *models.URL) bool {
 	return strings.Contains(URL.String(), "reddit.com")
 }
 
-func AddCookies(req *http.Request) {
+func (RedditPreprocessor) Apply(req *http.Request) {
 	newCookies := []http.Cookie{
 		{
 			Name:   "eu_cookie_v2",
