@@ -29,3 +29,7 @@ jobs:
 
     - name: Goroutine leak detector
       run: go test -c -o tests && for test in $(go test -list . | grep -E "^(Test|Example)"); do ./tests -test.run "^$test\$" &>/dev/null && echo -e "$test passed\n" || echo -e "$test failed\n"; done
+
+    - name: Build for Windows
+      continue-on-error: true
+      run: GOOS=windows GOARCH=amd64 go build -v ./...
