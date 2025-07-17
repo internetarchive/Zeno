@@ -40,5 +40,5 @@ jobs:
         compress_assets: OFF
         md5sum: FALSE
         sha256sum: TRUE
-        asset_name: 'Zeno-windows-amd64.exe'
+        asset_name: 'Zeno-windows-amd64'
         pre_command: 'export CGO_ENABLED=1 && export CC="zig cc -lc -target x86_64-windows" && export CXX="zig c++ -lc -target x86_64-windows"'
