@@ -430,6 +430,8 @@ func (i *Item) Close() {
             panic(fmt.Sprintf("unable to close body, err: %s, seed id: %s", err.Error(), i.GetShortID()))
         }
         i.url.SetBody(nil)
+        // Make sure the goquery document's memory can be freed
+        i.url.SetDocument(nil)
     }
 }
 
