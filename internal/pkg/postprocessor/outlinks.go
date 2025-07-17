@@ -72,7 +72,7 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 			return outlinks, err
 		}
 	case reddit.IsPostAPI(item.GetURL()):
-		outlinks, err = reddit.ExtractAPIPostPermalinks(item)
+		outlinks, err = reddit.ExtractAPIPostPermalinks(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract outlinks", "extractor", "reddit.ExtractAPIPostPermalinks", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
 			return outlinks, err
