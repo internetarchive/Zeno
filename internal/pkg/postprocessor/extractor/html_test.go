@@ -12,7 +12,7 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func setupItem(html string) *models.Item {
+func setupURL(html string) *models.URL {
 	resp := &http.Response{
 		Body:   io.NopCloser(bytes.NewBufferString(html)),
 		Header: make(http.Header),
@@ -27,7 +27,12 @@ func setupItem(html string) *models.Item {
 	if err := archiver.ProcessBody(&newURL, false, false, 0, os.TempDir()); err != nil {
 		panic(err)
 	}
-	return models.NewItem(&newURL, "")
+	return &newURL
+}
+
+func setupItem(html string) *models.Item {
+	newURL := setupURL(html)
+	return models.NewItem(newURL, "")
 }
 
 func TestHTMLOutlinks(t *testing.T) {
@@ -48,9 +53,9 @@ func TestHTMLOutlinks(t *testing.T) {
 			</map>
 		</body>
 	</html>`
-	item := setupItem(html)
+	URL := setupURL(html)
 
-	outlinks, err := HTMLOutlinks(item)
+	outlinks, err := HTMLOutlinks(URL)
 	if err != nil {
 		t.Errorf("Error extracting HTML outlinks %s", err)
 	}
@@ -190,8 +195,8 @@ func TestUpperCase(t *testing.T) {
 	   <A HREF="https://a.com/a.html">text</A>
 	   </BODY>
     </HTML>`
-	item := setupItem(html)
-	outlinks, err := HTMLOutlinks(item)
+	URL := setupURL(html)
+	outlinks, err := HTMLOutlinks(URL)
 	if err != nil {
 		t.Errorf("Error extracting HTML outlinks %s", err)
 	}
