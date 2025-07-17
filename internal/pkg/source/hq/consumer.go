@@ -13,6 +13,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
+	"golang.org/x/sync/errgroup"
 )
 
 func (s *HQ) consumer() {
@@ -85,13 +86,11 @@ func (s *HQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 		// Fetch URLs from HQ
 		URLs, err := s.getURLs(batchSize)
 		if err != nil {
-			if err.Error() == "gocrawlhq: feed is empty" {
-				logger.Debug("feed is empty, waiting for new URLs")
-			} else {
-				logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.consumerFetcher")
-			}
+			logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.consumerFetcher")
+		}
+
+		if len(URLs) == 0 {
 			time.Sleep(500 * time.Millisecond)
-			continue
 		}
 
 		err = ensureAllURLsUnique(URLs)
@@ -191,40 +190,41 @@ func (s *HQ) consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <
 	}
 }
 
+// getURLs fetch URLs from CrawlHQ with optional concurrency.
+//
+// If HQBatchConcurrency > 1, all URLs fetched will be returned (EVEN IF some requests fail) but
+// only the first error will be returned.
 func (s *HQ) getURLs(batchSize int) ([]gocrawlhq.URL, error) {
-	// Fetch URLs from CrawlHQ with optional concurrency
-	if config.Get().HQBatchConcurrency == 1 {
+	if config.Get().HQBatchConcurrency <= 1 {
 		return s.client.Get(context.TODO(), batchSize)
 	}
 
-	var wg sync.WaitGroup
 	concurrency := config.Get().HQBatchConcurrency
 	subBatchSize := batchSize / concurrency
-	urlsChan := make(chan []gocrawlhq.URL, concurrency)
+	urlsChan := make(chan []gocrawlhq.URL)
 	var allURLs []gocrawlhq.URL
 
+	g, _ := errgroup.WithContext(context.TODO())
+
 	// Start concurrent fetches
-	for i := 0; i < concurrency; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range concurrency {
+		g.Go(func() error {
+			// Here we use a new context instead of errorgroup context:
+			// We don't want to cancel other fetches if one fails, that may
+			// lead to dropping URLs fetched midway through HTTP.
 			URLs, err := s.client.Get(context.TODO(), subBatchSize)
 			if err != nil {
-				if err.Error() == "gocrawlhq: feed is empty" {
-					logger.Info("feed is empty, waiting for new URLs")
-				} else {
-					logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.getURLs")
-				}
-				time.Sleep(500 * time.Millisecond)
-				return
+				return err
 			}
 			urlsChan <- URLs
-		}()
+			return nil
+		})
 	}
 
-	// Wait for all fetches to complete
-	wg.Wait()
-	close(urlsChan)
+	go func() {
+		g.Wait()
+		close(urlsChan)
+	}()
 
 	// Collect URLs from all fetches
 	for URLs := range urlsChan {
@@ -233,7 +233,7 @@ func (s *HQ) getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 		}
 	}
 
-	return allURLs, nil
+	return allURLs, g.Wait()
 }
 
 func ensureAllURLsUnique(URLs []gocrawlhq.URL) error {

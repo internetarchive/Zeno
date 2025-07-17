@@ -82,14 +82,12 @@ func (s *LQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 
 		// Fetch URLs from LQ
 		URLs, err := s.getURLs(batchSize)
-		if err != nil || len(URLs) == 0 {
-			if err != nil {
-				logger.Error("error fetching URLs from LQ", "err", err.Error(), "func", "lq.consumerFetcher")
-			} else {
-				logger.Debug("feed is empty, waiting for new URLs")
-			}
+		if err != nil {
+			logger.Error("error fetching URLs from LQ", "err", err.Error(), "func", "lq.consumerFetcher")
+		}
+
+		if len(URLs) == 0 {
 			time.Sleep(250 * time.Millisecond)
-			continue
 		}
 
 		err = ensureAllIDsNotInReactor(URLs)
