@@ -22,7 +22,7 @@ jobs:
         md5sum: FALSE
         sha256sum: TRUE
         asset_name: 'Zeno-linux-amd64'
-        pre_command: 'apt update && apt install -y g++-12 && export CXX=g++-12'
+        pre_command: 'sudo apt update && sudo apt install -y g++-12 && export CXX=g++-12'
   release-windows-amd64:
     name: release windows/amd64
     runs-on: ubuntu-latest
