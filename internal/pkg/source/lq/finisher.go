@@ -76,7 +76,7 @@ func (s *LQ) finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh c
 	})
 
 	batchSize := config.Get().WorkersCount
-	maxWaitTime := 5 * time.Second
+	maxWaitTime := 1 * time.Second
 
 	batch := &finishBatch{
 		URLs: make([]sqlc_model.Url, 0, batchSize),
