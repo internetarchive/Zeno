@@ -32,7 +32,7 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	var rawOutlinks []string
 
 	// Retrieve (potentially creates it) the document from the body
-	document, err := item.GetURL().GetDocument()
+	document, err, _ := TransformDocument(item.GetURL())
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	var rawAssets []string
 
 	// Retrieve (potentially creates it) the document from the body
-	document, err := item.GetURL().GetDocument()
+	document, err, _ := TransformDocument(item.GetURL())
 	if err != nil {
 		return nil, err
 	}
@@ -197,42 +197,29 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
-	// Extract assets on the page (images, scripts, videos..)
+	// Handle <img> tags
 	if !slices.Contains(config.Get().DisableHTMLTag, "img") {
 		document.Find("img").Each(func(index int, i *goquery.Selection) {
-			link, exists := i.Attr("src")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-
-			link, exists = i.Attr("data-src")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-
-			link, exists = i.Attr("data-lazy-src")
-			if exists {
-				rawAssets = append(rawAssets, link)
-			}
-
-			link, exists = i.Attr("data-srcset")
-			if exists {
-				links := strings.Split(link, ",")
-				for _, link := range links {
-					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
+			// Handle various image attributes
+			for _, attr := range []string{"src", "data-src", "data-lazy-src"} {
+				if link, exists := i.Attr(attr); exists {
+					rawAssets = append(rawAssets, link)
 				}
 			}
 
-			link, exists = i.Attr("srcset")
-			if exists {
-				links := strings.Split(link, ",")
-				for _, link := range links {
-					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
+			// Handle srcset and data-srcset attributes
+			for _, srcsetAttr := range []string{"srcset", "data-srcset"} {
+				if link, exists := i.Attr(srcsetAttr); exists {
+					links := strings.Split(link, ",")
+					for _, link := range links {
+						rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
+					}
 				}
 			}
 		})
 	}
 
+	// Handle video and audio tags
 	var targetElements = []string{}
 	if !slices.Contains(config.Get().DisableHTMLTag, "video") {
 		targetElements = append(targetElements, "video[src]")
@@ -251,6 +238,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
+	// Handle style tags
 	if !slices.Contains(config.Get().DisableHTMLTag, "style") {
 		document.Find("style").Each(func(index int, i *goquery.Selection) {
 			links, atImportLinks, err := ExtractFromStringCSS(i.Text(), false)
@@ -275,8 +263,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 	if !slices.Contains(config.Get().DisableHTMLTag, "script") {
 		document.Find("script").Each(func(index int, i *goquery.Selection) {
-			link, exists := i.Attr("src")
-			if exists {
+			if link, exists := i.Attr("src"); exists {
 				rawAssets = append(rawAssets, link)
 			}
 
@@ -328,6 +315,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
+	// Handle link tags
 	if !slices.Contains(config.Get().DisableHTMLTag, "link") {
 		document.Find("link[href]").Each(func(index int, i *goquery.Selection) {
 			if !config.Get().CaptureAlternatePages {
@@ -342,6 +330,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
+	// Handle meta tags
 	if !slices.Contains(config.Get().DisableHTMLTag, "meta") {
 		document.Find("meta[href], meta[content]").Each(func(index int, i *goquery.Selection) {
 			link, exists := i.Attr("href")
@@ -358,26 +347,20 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		})
 	}
 
+	// Handle source tags
 	if !slices.Contains(config.Get().DisableHTMLTag, "source") {
 		document.Find("source").Each(func(index int, i *goquery.Selection) {
-			link, exists := i.Attr("src")
-			if exists {
+			if link, exists := i.Attr("src"); exists {
 				rawAssets = append(rawAssets, link)
 			}
 
-			link, exists = i.Attr("srcset")
-			if exists {
-				links := strings.Split(link, ",")
-				for _, link := range links {
-					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
-				}
-			}
-
-			link, exists = i.Attr("data-srcset")
-			if exists {
-				links := strings.Split(link, ",")
-				for _, link := range links {
-					rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
+			// Handle srcset and data-srcset attributes
+			for _, srcsetAttr := range []string{"srcset", "data-srcset"} {
+				if link, exists := i.Attr(srcsetAttr); exists {
+					links := strings.Split(link, ",")
+					for _, link := range links {
+						rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
+					}
 				}
 			}
 		})
