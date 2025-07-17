@@ -11,6 +11,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
+	"github.com/internetarchive/Zeno/internal/pkg/source"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 	"golang.org/x/sync/errgroup"
@@ -74,6 +75,8 @@ func (s *HQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 		"component": "hq.consumerFetcher",
 	})
 
+	r := source.NewFeedEmptyReporter(logger)
+
 	for {
 		// Check for context cancellation
 		select {
@@ -92,6 +95,8 @@ func (s *HQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 		if len(URLs) == 0 {
 			time.Sleep(500 * time.Millisecond)
 		}
+
+		r.Report(len(URLs))
 
 		err = ensureAllURLsUnique(URLs)
 		if err != nil {

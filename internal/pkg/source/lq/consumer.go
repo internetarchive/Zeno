@@ -10,6 +10,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
+	"github.com/internetarchive/Zeno/internal/pkg/source"
 	"github.com/internetarchive/Zeno/internal/pkg/source/lq/sqlc_model"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -71,6 +72,8 @@ func (s *LQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 		"component": "lq.consumerFetcher",
 	})
 
+	r := source.NewFeedEmptyReporter(logger)
+
 	for {
 		// Check for context cancellation
 		select {
@@ -89,6 +92,8 @@ func (s *LQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 		if len(URLs) == 0 {
 			time.Sleep(250 * time.Millisecond)
 		}
+
+		r.Report(len(URLs))
 
 		err = ensureAllIDsNotInReactor(URLs)
 		if err != nil {
