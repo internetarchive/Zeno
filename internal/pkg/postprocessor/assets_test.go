@@ -38,8 +38,7 @@ func TestExtractAssets_HTML(t *testing.T) {
 	newURL.Parse()
 	item := models.NewItem(&newURL, "")
 
-	// Run the extractAssets function
-	assets, outlinks, err := ExtractAssets(item)
+	assets, outlinks, err := ExtractAssetsOutlinks(item)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
