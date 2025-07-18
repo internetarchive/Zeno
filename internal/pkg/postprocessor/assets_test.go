@@ -38,8 +38,7 @@ func TestExtractAssets_HTML(t *testing.T) {
 	newURL.Parse()
 	item := models.NewItem(&newURL, "")
 
-	// Run the extractAssets function
-	assets, outlinks, err := ExtractAssets(item)
+	assets, outlinks, err := ExtractAssetsOutlinks(item)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -56,5 +55,32 @@ func TestExtractAssets_HTML(t *testing.T) {
 	}
 	if len(outlinks) != 0 {
 		t.Errorf("expected no outlinks, got %d", len(outlinks))
+	}
+}
+
+func TestSanitizeAssetsOutlinks(t *testing.T) {
+	var err error
+	newURL, _ := models.NewURL("http://example.com")
+	newItem := models.NewItem(&newURL, "")
+
+	a1, _ := models.NewURL("http://a1.com")
+	a2, _ := models.NewURL("mailto:info@archive.org") // must filter out
+	a3, _ := models.NewURL("http://example.com")      // equal to item URL, must filter out
+
+	assets := []*models.URL{&a1, &a2, &a3}
+
+	o1, _ := models.NewURL("http://ol1.com")
+	o2, _ := models.NewURL("javascript:function(){alert('hi')}") // must filter out
+	outlinks := []*models.URL{&o1, &o2}
+	assets, outlinks, err = SanitizeAssetsOutlinks(newItem, assets, outlinks, err)
+
+	if err != nil {
+		t.Errorf("unexpected error  %v", err)
+	}
+	if len(assets) != 1 {
+		t.Errorf("expected 1 filtered asset, got %d", len(assets))
+	}
+	if len(outlinks) != 1 {
+		t.Errorf("expected 1 filtered outlink, got %d", len(outlinks))
 	}
 }
