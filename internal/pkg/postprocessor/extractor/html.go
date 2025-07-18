@@ -22,7 +22,13 @@ func IsHTML(URL *models.URL) bool {
 	return URL.GetMIMEType() != nil && strings.Contains(URL.GetMIMEType().String(), "html")
 }
 
-func HTMLOutlinks(URL *models.URL) (outlinks []*models.URL, err error) {
+type HTMLOutlinkExtractor struct{}
+
+func (HTMLOutlinkExtractor) Match(URL *models.URL) bool {
+	return IsHTML(URL)
+}
+
+func (HTMLOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
 	logger := log.NewFieldedLogger(&log.Fields{
