@@ -183,14 +183,16 @@ type Post struct {
 }
 
 func IsRedditURL(URL *models.URL) bool {
-    return strings.Contains(URL.String(), "reddit.com")
+	return strings.Contains(URL.String(), "reddit.com")
 }
 
-func IsPostAPI(URL *models.URL) bool {
+type RedditPostAPIOutlinkExtractor struct{}
+
+func (RedditPostAPIOutlinkExtractor) Match(URL *models.URL) bool {
 	return strings.Contains(URL.String(), "reddit.com/api/info.json?id=t3_")
 }
 
-func ExtractAPIPostPermalinks(URL *models.URL) (outlinks []*models.URL, err error) {
+func (RedditPostAPIOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
 	var permalinks []string
 
 	defer URL.RewindBody()
