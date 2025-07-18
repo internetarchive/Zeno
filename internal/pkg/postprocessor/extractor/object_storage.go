@@ -17,6 +17,9 @@ var ObjectStorageServers = func() (s []string) {
 
 // IsObjectStorage checks if the response is from an object storage server
 func IsObjectStorage(URL *models.URL) bool {
+	if URL.GetResponse() == nil {
+		return false
+	}
 	return utils.StringContainsSliceElements(URL.GetResponse().Header.Get("Server"), ObjectStorageServers) &&
 		URL.GetMIMEType() != nil &&
 		strings.Contains(URL.GetMIMEType().String(), "/xml") // tricky match both application/xml and text/xml

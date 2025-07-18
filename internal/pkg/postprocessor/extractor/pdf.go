@@ -14,7 +14,7 @@ func init() {
 }
 
 func IsPDF(URL *models.URL) bool {
-	return URL.GetMIMEType().Is("application/pdf")
+	return URL.GetMIMEType() != nil && URL.GetMIMEType().Is("application/pdf")
 }
 
 func PDF(URL *models.URL) (outlinks []*models.URL, err error) {
