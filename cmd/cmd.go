@@ -36,12 +36,14 @@ Authors:
 }
 
 // Run the root command
-func Run() error {
+func Prepare() *cobra.Command {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	// Define flags and configuration settings
 	rootCmd.PersistentFlags().String("log-level", "info", "stdout log level (debug, info, warn, error)")
 	rootCmd.PersistentFlags().String("config-file", "", "config file (default is $HOME/zeno-config.yaml)")
+	rootCmd.PersistentFlags().String("log-socket", "", "socket log address (e.g. /tmp/zenolog.sock)")
+	rootCmd.PersistentFlags().String("log-socket-level", "info", "socket log level")
 	rootCmd.PersistentFlags().Bool("no-stdout-log", false, "disable stdout logging.")
 	rootCmd.PersistentFlags().Bool("no-stderr-log", false, "disable stderr logging.")
 	rootCmd.PersistentFlags().Bool("no-color-logs", false, "switch the terminal (stdout and stderr) logging handler from [slogcolor] handler to the standard [slog] handler (help ensure compatibility with logging collectors)")
@@ -53,5 +55,9 @@ func Run() error {
 	getCmd := getCMDs()
 	rootCmd.AddCommand(getCmd)
 
-	return rootCmd.Execute()
+	return rootCmd
+}
+func Run() error {
+	cmd := Prepare()
+	return cmd.Execute()
 }
