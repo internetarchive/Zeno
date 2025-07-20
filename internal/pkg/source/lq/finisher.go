@@ -25,7 +25,7 @@ const maxFinishSenders = 2
 // finisher initializes and starts the finisher and dispatcher processes.
 func (s *LQ) finisher() {
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": ".q.finisher",
+		"component": "lq.finisher",
 	})
 
 	// Create a context to manage goroutines
