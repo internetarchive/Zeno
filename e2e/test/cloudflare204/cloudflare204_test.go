@@ -17,6 +17,7 @@ import (
 type recordMatcher struct {
 	stoppedOK   bool
 	urlArchived bool
+	errored     bool
 }
 
 func (rm *recordMatcher) Match(record map[string]string) {
@@ -26,6 +27,9 @@ func (rm *recordMatcher) Match(record map[string]string) {
 	if record["msg"] == "url archived" && record["url"] == "http://cp.cloudflare.com/" && record["status"] == "204" {
 		rm.urlArchived = true
 	}
+	if record["level"] == "ERROR" {
+		rm.errored = true
+	}
 }
 
 func (rm *recordMatcher) Assert(t *testing.T) {
@@ -34,6 +38,9 @@ func (rm *recordMatcher) Assert(t *testing.T) {
 	}
 	if !rm.urlArchived {
 		t.Error("URL was not archived")
+	}
+	if rm.errored {
+		t.Error("An error was logged during the test")
 	}
 }
 
@@ -54,7 +61,7 @@ func TestCloudFlare204(t *testing.T) {
 	go e2e.ExecuteCmdZenoGetURL(t, wg, tempSocketPath, []string{"http://cp.cloudflare.com/"})
 	go e2e.ConnectSocketThenCopy(t, wg, W, tempSocketPath)
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	// send self a termination signal to stop
 	syscall.Kill(os.Getpid(), syscall.SIGTERM)
