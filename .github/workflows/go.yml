@@ -25,7 +25,10 @@ jobs:
       run: go build -v ./...
 
     - name: Test
-      run: go test -race -v ./...
+      run: go test -race -v $(go list ./... | grep -v /e2e/test/)
+
+    - name: E2E Test
+      run: go test -v $(go list ./e2e/test/...)
 
     - name: Goroutine leak detector
       run: go test -c -o tests && for test in $(go test -list . | grep -E "^(Test|Example)"); do ./tests -test.run "^$test\$" &>/dev/null && echo -e "$test passed\n" || echo -e "$test failed\n"; done
