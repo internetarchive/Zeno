@@ -16,7 +16,7 @@ require (
 	github.com/grafana/pyroscope-go v1.2.3
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.32.1
-	github.com/internetarchive/gocrawlhq v1.2.31
+	github.com/internetarchive/gocrawlhq v1.2.32
 	github.com/internetarchive/gowarc v0.8.84
 	github.com/ncruces/go-sqlite3 v0.26.3
 	github.com/pdfcpu/pdfcpu v0.11.0
@@ -30,6 +30,7 @@ require (
 	github.com/tdewolff/parse/v2 v2.8.1
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.42.0
+	golang.org/x/sync v0.16.0
 	mvdan.cc/xurls/v2 v2.6.0
 )
 
@@ -98,7 +99,6 @@ require (
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/image v0.27.0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/term v0.33.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
