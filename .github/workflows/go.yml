@@ -24,11 +24,23 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Make Coverage Dirs
+      run: mkdir -p /tmp/unit_coverage /tmp/e2e_coverage
+
     - name: Test
-      run: go test -race -v $(go list ./... | grep -v /e2e/test/)
+      run: go test -v -race -cover -coverpkg=./... $(go list ./... | grep -v /e2e/test/) -args -test.gocoverdir=/tmp/unit_coverage
 
     - name: E2E Test
-      run: go test -v $(go list ./e2e/test/...)
+      run: go test -v -cover -covermode=atomic -coverpkg=./... $(go list ./e2e/test/...) -args -test.gocoverdir=/tmp/e2e_coverage
+
+    - name: Merge Coverage
+      run: go tool covdata textfmt -i /tmp/unit_coverage/,/tmp/e2e_coverage/ -o coverage.txt
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      continue-on-error: true
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Goroutine leak detector
       run: go test -c -o tests && for test in $(go test -list . | grep -E "^(Test|Example)"); do ./tests -test.run "^$test\$" &>/dev/null && echo -e "$test passed\n" || echo -e "$test failed\n"; done
