@@ -104,12 +104,12 @@ func WaitForGoroutines(t *testing.T, wg *sync.WaitGroup, shouldStopCh chan struc
 		t.Log("All goroutines finished")
 	case <-time.After(time.Until(deadline)):
 		t.Error("Test timed out before all goroutines finished")
-		// send self a termination signal to stop
-		syscall.Kill(os.Getpid(), syscall.SIGTERM)
+		p, _ := os.FindProcess(os.Getpid())
+		p.Signal(syscall.SIGTERM)
 	case <-shouldStopCh:
 		t.Log("Should stop channel received a signal, stopping test")
-		// send self a termination signal to stop
-		syscall.Kill(os.Getpid(), syscall.SIGTERM)
+		p, _ := os.FindProcess(os.Getpid())
+		p.Signal(syscall.SIGTERM)
 	}
 
 	wg.Wait()
