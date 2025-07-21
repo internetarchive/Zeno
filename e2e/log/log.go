@@ -11,6 +11,7 @@ import (
 type RecordMatcher interface {
 	Match(record map[string]string)
 	Assert(t *testing.T)
+	ShouldStop() bool
 }
 
 func ParseLog(r io.Reader) chan map[string]string {
@@ -40,10 +41,15 @@ func ParseLog(r io.Reader) chan map[string]string {
 	return out
 }
 
-func LogRecordProcessor(pipeR *io.PipeReader, matcher func(map[string]string)) error {
+func LogRecordProcessor(pipeR *io.PipeReader, rm RecordMatcher, stopCh chan struct{}) error {
+	chClosed := false
 	logCh := ParseLog(pipeR)
 	for record := range logCh {
-		matcher(record)
+		rm.Match(record)
+		if !chClosed && rm.ShouldStop() {
+			close(stopCh)
+			chClosed = true
+		}
 		fmt.Printf("log record: %v\n", record)
 	}
 	return nil

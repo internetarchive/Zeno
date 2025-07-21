@@ -3,13 +3,10 @@ package boot
 import (
 	_ "embed"
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"sync"
-	"syscall"
 	"testing"
-	"time"
 
 	"github.com/internetarchive/Zeno/e2e"
 )
@@ -44,28 +41,25 @@ func (rm *recordMatcher) Assert(t *testing.T) {
 	}
 }
 
+func (rm *recordMatcher) ShouldStop() bool {
+	return rm.urlArchived || rm.errored
+}
+
 func TestCloudFlare204(t *testing.T) {
 	os.RemoveAll("jobs")
 
-	tmpDir := os.TempDir()
-	tempSocketPath := path.Join(tmpDir, fmt.Sprintf("zeno-%d.sock", os.Getpid()))
+	tempSocketPath := path.Join(os.TempDir(), fmt.Sprintf("zeno-%d.sock", os.Getpid()))
 	defer os.Remove(tempSocketPath)
 
-	R, W := io.Pipe()
-
+	shouldStopCh := make(chan struct{})
 	rm := &recordMatcher{}
 	wg := &sync.WaitGroup{}
-	wg.Add(3)
 
-	go e2e.LogRecordProcessorWrapper(t, R, rm, wg)
+	wg.Add(2)
+
+	go e2e.StartHandleLogRecord(t, wg, rm, tempSocketPath, shouldStopCh)
 	go e2e.ExecuteCmdZenoGetURL(t, wg, tempSocketPath, []string{"http://cp.cloudflare.com/"})
-	go e2e.ConnectSocketThenCopy(t, wg, W, tempSocketPath)
 
-	time.Sleep(10 * time.Second)
-
-	// send self a termination signal to stop
-	syscall.Kill(os.Getpid(), syscall.SIGTERM)
-
-	wg.Wait()
+	e2e.WaitForGoroutines(t, wg, shouldStopCh)
 	rm.Assert(t)
 }
