@@ -24,7 +24,7 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Make Coverage Dirs
+    - name: Make coverage dirs
       run: mkdir -p /tmp/unit_coverage /tmp/e2e_coverage
 
     - name: Test
@@ -33,13 +33,26 @@ jobs:
     - name: E2E Test
       run: go test -v -cover -covermode=atomic -coverpkg=./... $(go list ./e2e/test/...) -args -test.gocoverdir=/tmp/e2e_coverage
 
-    - name: Merge Coverage
-      run: go tool covdata textfmt -i /tmp/unit_coverage/,/tmp/e2e_coverage/ -o coverage.txt
+    - name: Convert coverage reports
+      run: |
+        go tool covdata textfmt -i /tmp/unit_coverage/ -o unit_coverage.txt
+        go tool covdata textfmt -i /tmp/e2e_coverage/ -o e2e_coverage.txt
 
-    - name: Upload coverage reports to Codecov
+
+    - name: Upload coverage reports to Codecov (unittests)
       uses: codecov/codecov-action@v5
       continue-on-error: true
       with:
+        flags: unittests
+        files: unit_coverage.txt
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload coverage reports to Codecov (e2e tests)
+      uses: codecov/codecov-action@v5
+      continue-on-error: true
+      with:
+        flags: e2etests
+        files: e2e_coverage.txt
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Goroutine leak detector
