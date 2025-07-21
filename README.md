@@ -18,6 +18,8 @@ and the first librarian of the Library of Alexandria.
 go install github.com/internetarchive/Zeno@latest
 ```
 
+or utilize our pre-built [release binaries here](https://github.com/internetarchive/Zeno/releases), but do note that we are mainly focused on linux/amd64 support at this time.
+
 ## Quick Start
 
 To archive a single web page:
