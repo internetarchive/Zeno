@@ -15,11 +15,11 @@ var basetagLogger = log.NewFieldedLogger(&log.Fields{
 
 // extract document <base> tag and set the base URL for item if it's valid
 // It resets item.base to nil if the base href does not exist or is invalid.
-func extractBaseTag(item *models.Item, doc *goquery.Document) {
+func extractBaseTag(URL *models.URL, doc *goquery.Document) {
 	// spec ref: https://html.spec.whatwg.org/multipage/semantics.html#the-base-element
 	base, exists := doc.Find("base").First().Attr("href")
 	if !exists {
-		item.SetBase(nil)
+		URL.SetBase(nil)
 		return
 	}
 
@@ -34,7 +34,7 @@ func extractBaseTag(item *models.Item, doc *goquery.Document) {
 	baseURL, err := url.Parse(base)
 	if err != nil {
 		basetagLogger.Error("unable to parse base url", "error", err, "base", base)
-		item.SetBase(nil) // Reset the base URL to nil on failure
+		URL.SetBase(nil) // Reset the base URL to nil on failure
 		return
 	}
 
@@ -42,12 +42,12 @@ func extractBaseTag(item *models.Item, doc *goquery.Document) {
 	// We also reject "vbscript" just for the CodeQL scan happy. :)
 	if baseURL.Scheme == "data" || baseURL.Scheme == "javascript" || baseURL.Scheme == "vbscript" {
 		basetagLogger.Error("the base url has the bad scheme", "base", base, "scheme", baseURL.Scheme)
-		item.SetBase(nil)
+		URL.SetBase(nil)
 		return
 	}
 
-	fallbackBaseURL := item.GetURL().GetParsed()
+	fallbackBaseURL := URL.GetParsed()
 	newResolvedBaseURL := fallbackBaseURL.ResolveReference(baseURL)
 
-	item.SetBase(newResolvedBaseURL)
+	URL.SetBase(newResolvedBaseURL)
 }

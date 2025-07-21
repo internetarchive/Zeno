@@ -159,3 +159,21 @@ func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 
 	return assets, outlinks, nil
 }
+
+type SitemapXMLOutlinkExtractor struct{}
+
+func (SitemapXMLOutlinkExtractor) Match(URL *models.URL) bool {
+	return IsSitemapXML(URL)
+}
+
+func (SitemapXMLOutlinkExtractor) Extract(URL *models.URL) ([]*models.URL, error) {
+	assets, outlinks, err := XML(URL)
+	if err != nil {
+		return outlinks, err
+	}
+
+	// Here we don't care about the difference between assets and outlinks,
+	// we just want to extract all the URLs from the sitemap
+	outlinks = append(outlinks, assets...)
+	return outlinks, nil
+}

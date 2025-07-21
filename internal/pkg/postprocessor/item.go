@@ -99,7 +99,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 			var assets []*models.URL
 			var err error
 
-			assets, outlinksFromAssets, err = ExtractAssets(item)
+			assets, outlinksFromAssets, err = ExtractAssetsOutlinks(item)
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error(), "item_id", item.GetShortID())
 			} else {
