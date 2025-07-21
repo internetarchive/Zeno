@@ -13,23 +13,24 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/uuid v1.6.0
-	github.com/grafana/pyroscope-go v1.2.3
+	github.com/grafana/pyroscope-go v1.2.4
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.32.1
 	github.com/internetarchive/gocrawlhq v1.2.31
-	github.com/internetarchive/gowarc v0.8.84
-	github.com/ncruces/go-sqlite3 v0.26.3
+	github.com/internetarchive/gowarc v0.8.85
+	github.com/ncruces/go-sqlite3 v0.27.1
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
 	github.com/samber/slog-multi v1.4.1
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
 	github.com/tdewolff/parse/v2 v2.8.1
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.42.0
+	golang.org/x/sys v0.34.0
 	mvdan.cc/xurls/v2 v2.6.0
 )
 
@@ -99,7 +100,6 @@ require (
 	golang.org/x/image v0.27.0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/term v0.33.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
 	golang.org/x/tools v0.34.0 // indirect
