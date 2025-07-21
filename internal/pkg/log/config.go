@@ -97,6 +97,8 @@ func makeConfig() *logConfig {
 		}
 		stdliblog.Printf("Listening on Unix socket: %s", socketPath)
 
+		// We must wait for a client to connect before we can write logs to the socket.
+		// The --log-socket is only used for tests, so we can block here and only use the first connection.
 		conn, err := listener.Accept()
 		if err != nil {
 			stdliblog.Fatalf("Error accepting connection: %v", err)
