@@ -40,7 +40,7 @@ func (rm *recordMatcher) ShouldStop() bool {
 	return rm.failedToResolve || rm.unexpectedError
 }
 
-func TestCloudFlare204(t *testing.T) {
+func TestNXDomain(t *testing.T) {
 	os.RemoveAll("jobs")
 
 	tempSocketPath := path.Join(os.TempDir(), fmt.Sprintf("zeno-%d.sock", os.Getpid()))
