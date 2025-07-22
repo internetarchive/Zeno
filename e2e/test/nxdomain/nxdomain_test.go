@@ -14,7 +14,7 @@ import (
 
 type recordMatcher struct {
 	failedToResolve bool
-	errored         bool
+	unexpectedError bool
 }
 
 func (rm *recordMatcher) Match(record map[string]string) {
@@ -22,7 +22,7 @@ func (rm *recordMatcher) Match(record map[string]string) {
 		if strings.Contains(record["err"], "failed to resolve DNS") {
 			rm.failedToResolve = true
 		} else {
-			rm.errored = true
+			rm.unexpectedError = true
 		}
 	}
 }
@@ -31,13 +31,13 @@ func (rm *recordMatcher) Assert(t *testing.T) {
 	if !rm.failedToResolve {
 		t.Error("Zeno did not fail to resolve the NXDOMAIN URL")
 	}
-	if rm.errored {
-		t.Error("An error was logged during the test")
+	if rm.unexpectedError {
+		t.Error("An unexpected error was logged during the test")
 	}
 }
 
 func (rm *recordMatcher) ShouldStop() bool {
-	return rm.failedToResolve || rm.errored
+	return rm.failedToResolve || rm.unexpectedError
 }
 
 func TestCloudFlare204(t *testing.T) {
