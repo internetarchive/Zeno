@@ -195,7 +195,7 @@ func (c *logConfig) makeMultiLogger() *slog.Logger {
 
 	// Handle socket logging configuration
 	if c.SocketEnabled && c.SocketConfig != nil {
-		socketHandler := slog.NewTextHandler(c.SocketConfig.Conn, &slog.HandlerOptions{Level: c.SocketConfig.Level}) // TODO: socket level
+		socketHandler := slog.NewTextHandler(c.SocketConfig.Conn, &slog.HandlerOptions{Level: c.SocketConfig.Level})
 		baseRouter = baseRouter.Add(socketHandler, func(_ context.Context, r slog.Record) bool {
 			return r.Level >= c.SocketConfig.Level
 		})
