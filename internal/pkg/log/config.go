@@ -95,7 +95,7 @@ func makeConfig() *logConfig {
 		} // Clean up any old socket
 		listener, err := net.Listen("unix", socketPath)
 		if err != nil {
-			stdliblog.Fatalf("Error listening: %v", err)
+			stdliblog.Fatalf("Failed to listen on Unix socket at %s: %v", socketPath, err)
 		}
 		stdliblog.Printf("Listening on Unix socket: %s", socketPath)
 
