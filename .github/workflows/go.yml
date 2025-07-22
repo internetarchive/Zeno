@@ -11,7 +11,7 @@ permissions:
 
 jobs:
 
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -38,7 +38,6 @@ jobs:
         go tool covdata textfmt -i /tmp/unit_coverage/ -o unit_coverage.txt
         go tool covdata textfmt -i /tmp/e2e_coverage/ -o e2e_coverage.txt
 
-
     - name: Upload coverage reports to Codecov (unittests)
       uses: codecov/codecov-action@v5
       continue-on-error: true
@@ -60,6 +59,16 @@ jobs:
     - name: Goroutine leak detector
       run: go test -c -o tests && for test in $(go test -list . | grep -E "^(Test|Example)"); do ./tests -test.run "^$test\$" &>/dev/null && echo -e "$test passed\n" || echo -e "$test failed\n"; done
 
+
+  cross-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
     - uses: mlugg/setup-zig@475c97be87a204e6c57fe851f970bd02005a70f0 # v2.0.4
 
     - name: Build for Windows
