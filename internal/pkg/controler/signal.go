@@ -33,6 +33,5 @@ func WatchSignals() {
 		}()
 
 		Stop()
-		os.Exit(0)
 	}
 }

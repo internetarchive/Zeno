@@ -98,6 +98,8 @@ type Config struct {
 	NoStderrLogging  bool   `mapstructure:"no-stderr-log"`
 	NoColorLogging   bool   `mapstructure:"no-color-logs"`
 	NoFileLogging    bool   `mapstructure:"no-log-file"`
+	SocketLogging    string `mapstructure:"log-socket"`
+	SocketLevel      string `mapstructure:"log-socket-level"`
 	StdoutLogLevel   string `mapstructure:"log-level"`
 	TUI              bool   `mapstructure:"tui"`
 	TUILogLevel      string `mapstructure:"tui-log-level"`
@@ -210,7 +212,7 @@ func Get() *Config {
 
 // Useful for testing
 func Set(cfg *Config) {
-    config = cfg
+	config = cfg
 }
 
 func GenerateCrawlConfig() error {

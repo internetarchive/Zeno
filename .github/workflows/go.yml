@@ -11,7 +11,7 @@ permissions:
 
 jobs:
 
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -24,12 +24,51 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Make coverage dirs
+      run: mkdir -p /tmp/unit_coverage /tmp/e2e_coverage
+
     - name: Test
-      run: go test -race -v ./...
+      run: go test -v -p=12 -race -cover -covermode=atomic -coverpkg=./... $(go list ./... | grep -v /e2e/test/) -args -test.gocoverdir=/tmp/unit_coverage
+
+    - name: E2E Test
+      run: go test -v -p=12 -race -cover -covermode=atomic -coverpkg=./... $(go list ./e2e/test/...) -args -test.gocoverdir=/tmp/e2e_coverage
+
+    - name: Convert coverage reports
+      run: |
+        go tool covdata textfmt -i /tmp/unit_coverage/ -o unit_coverage.txt
+        go tool covdata textfmt -i /tmp/e2e_coverage/ -o e2e_coverage.txt
+
+    - name: Upload coverage reports to Codecov (unittests)
+      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 #v5.4.3
+      continue-on-error: true
+      with:
+        flags: unittests
+        files: ./unit_coverage.txt
+        disable_search: true
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload coverage reports to Codecov (e2e tests)
+      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 #v5.4.3
+      continue-on-error: true
+      with:
+        flags: e2etests
+        files: ./e2e_coverage.txt
+        disable_search: true
+        token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Goroutine leak detector
       run: go test -c -o tests && for test in $(go test -list . | grep -E "^(Test|Example)"); do ./tests -test.run "^$test\$" &>/dev/null && echo -e "$test passed\n" || echo -e "$test failed\n"; done
 
+
+  cross-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
     - uses: mlugg/setup-zig@475c97be87a204e6c57fe851f970bd02005a70f0 # v2.0.4
 
     - name: Build for Windows

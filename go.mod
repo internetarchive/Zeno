@@ -12,6 +12,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/gdamore/tcell/v2 v2.8.1
+	github.com/go-logfmt/logfmt v0.4.0
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.4
 	github.com/grafov/m3u8 v0.12.1
@@ -65,6 +66,7 @@ require (
 	github.com/hhrutter/tiff v1.0.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

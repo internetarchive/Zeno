@@ -1,0 +1,589 @@
+time=2025-07-19T21:45:23.822+08:00 level=DEBUG msg=initialized component=reactor
+time=2025-07-19T21:45:23.822+08:00 level=INFO msg=started component=reactor
+time=2025-07-19T21:45:23.830+08:00 level=DEBUG msg=initialized component=preprocessor
+time=2025-07-19T21:45:23.830+08:00 level=INFO msg=started component=preprocessor
+time=2025-07-19T21:45:23.830+08:00 level=INFO msg="bucket manager started" component=archiver
+time=2025-07-19T21:45:23.830+08:00 level=DEBUG msg=initialized component=archiver
+time=2025-07-19T21:45:23.830+08:00 level=DEBUG msg="WARC writer started" component=archiver
+time=2025-07-19T21:45:23.830+08:00 level=INFO msg=started component=archiver
+time=2025-07-19T21:45:23.830+08:00 level=DEBUG msg=initialized component=postprocessor
+time=2025-07-19T21:45:23.830+08:00 level=INFO msg=started component=postprocessor
+time=2025-07-19T21:45:23.830+08:00 level=DEBUG msg="seenchecker set" component=preprocessor
+time=2025-07-19T21:45:23.830+08:00 level=INFO msg="starting source" component=controler.StartPipeline source="Local Queue"
+time=2025-07-19T21:45:24.573+08:00 level=INFO msg=started component=lq
+time=2025-07-19T21:45:24.573+08:00 level=DEBUG msg=initialized component=finisher
+time=2025-07-19T21:45:24.573+08:00 level=INFO msg=started component=finisher
+time=2025-07-19T21:45:24.573+08:00 level=DEBUG msg="received item" component=reactor item=b30f2
+time=2025-07-19T21:45:24.573+08:00 level=DEBUG msg="received seed" component=preprocessor.worker worker_id=2 seed=b30f2
+time=2025-07-19T21:45:24.574+08:00 level=DEBUG msg="received seed" component=archiver.worker worker_id=2 seed=b30f2 depth=0 hops=0
+time=2025-07-19T21:45:24.574+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=2 seed_id=b30f2 item_id=b30f2 depth=0 hops=0 elapsed=2.432µs
+time=2025-07-19T21:45:24.574+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:24.825+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:25.074+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=2 url=https://blog.save-web.org/blog/2025/05/18/archive-if-summer-is-calling-us/ seed_id=b30f2 item_id=b30f2 depth=0 hops=0 status=200
+time=2025-07-19T21:45:25.074+08:00 level=DEBUG msg="received seed" component=postprocessor.worker worker_id=3 seed=b30f2
+time=2025-07-19T21:45:25.074+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=b30f2
+time=2025-07-19T21:45:25.074+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=b30f2
+time=2025-07-19T21:45:25.075+08:00 level=DEBUG msg="unable to extract URLs from JSON in script tag" component=postprocessor.extractor.HTMLAssets error="invalid character '\\\\' looking for beginning of value" url=https://blog.save-web.org/blog/2025/05/18/archive-if-summer-is-calling-us/ item=b30f2
+time=2025-07-19T21:45:25.075+08:00 level=DEBUG msg="unable to extract URLs from JSON in script tag" component=postprocessor.extractor.HTMLAssets error="invalid character 'w' looking for beginning of value" url=https://blog.save-web.org/blog/2025/05/18/archive-if-summer-is-calling-us/ item=b30f2
+time=2025-07-19T21:45:25.076+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:25.078+08:00 level=DEBUG msg="removing asset that is a duplicate of the item URL" component=postprocessor.ExtractAssets item=b30f2 asset=https://blog.save-web.org/blog/2025/05/18/archive-if-summer-is-calling-us/
+time=2025-07-19T21:45:25.078+08:00 level=DEBUG msg="removing asset that is a duplicate of the item URL" component=postprocessor.ExtractAssets item=b30f2 asset=https://blog.save-web.org/blog/2025/05/18/archive-if-summer-is-calling-us/
+time=2025-07-19T21:45:25.078+08:00 level=DEBUG msg="removing asset that is a duplicate of the item URL" component=postprocessor.ExtractAssets item=b30f2 asset=https://blog.save-web.org/blog/2025/05/18/archive-if-summer-is-calling-us/
+time=2025-07-19T21:45:25.078+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=b30f2 count=32
+time=2025-07-19T21:45:25.078+08:00 level=DEBUG msg="received seed" component=finisher.worker worker_id=2 seed=b30f2
+time=2025-07-19T21:45:25.078+08:00 level=DEBUG msg="seed has fresh children" component=finisher.worker worker_id=2 seed=b30f2
+time=2025-07-19T21:45:25.078+08:00 level=DEBUG msg="received seed" component=preprocessor.worker worker_id=0 seed=b30f2
+time=2025-07-19T21:45:25.079+08:00 level=DEBUG msg="removing child with empty path" component=preprocessor.preprocess worker_id=0 item_id=ebe64 url=https://stats.wp.com/
+time=2025-07-19T21:45:25.079+08:00 level=DEBUG msg="removing child with empty path" component=preprocessor.preprocess worker_id=0 item_id=3be83 url=https://fonts.googleapis.com/
+time=2025-07-19T21:45:25.079+08:00 level=DEBUG msg="removing child with empty path" component=preprocessor.preprocess worker_id=0 item_id=4945c url="https://blog.save-web.org/?p=482"
+time=2025-07-19T21:45:25.079+08:00 level=DEBUG msg="received seed" component=archiver.worker worker_id=0 seed=b30f2 depth=0 hops=0
+time=2025-07-19T21:45:25.079+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=ed202 depth=1 hops=0 elapsed=2.516µs
+time=2025-07-19T21:45:25.079+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=e295c depth=1 hops=0 elapsed=2.017µs
+time=2025-07-19T21:45:25.079+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=c6fc0 depth=1 hops=0 elapsed=3.633µs
+time=2025-07-19T21:45:25.079+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=c9517 depth=1 hops=0 elapsed=2.597µs
+time=2025-07-19T21:45:25.327+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:25.457+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://secure.gravatar.com/avatar/82fb1836567b7ebb1587337701c38b34c9b0ba0b860d0750f682ce665930df42?d=retro&r=g&s=48" seed_id=b30f2 item_id=c9517 depth=1 hops=0 status=200
+time=2025-07-19T21:45:25.457+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=de436 depth=1 hops=0 elapsed=1.215µs
+time=2025-07-19T21:45:25.459+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://secure.gravatar.com/avatar/82fb1836567b7ebb1587337701c38b34c9b0ba0b860d0750f682ce665930df42?s=96&d=retro&r=g" seed_id=b30f2 item_id=c6fc0 depth=1 hops=0 status=200
+time=2025-07-19T21:45:25.459+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=106a1 depth=1 hops=0 elapsed=3.876µs
+time=2025-07-19T21:45:25.552+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-content/plugins/jetpack/_inc/build/related-posts/related-posts.min.js?ver=20240116" seed_id=b30f2 item_id=e295c depth=1 hops=0 status=200
+time=2025-07-19T21:45:25.552+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=d46a2 depth=1 hops=0 elapsed=2.57µs
+time=2025-07-19T21:45:25.578+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:25.830+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:26.045+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-includes/js/comment-reply.min.js?ver=6.8.2" seed_id=b30f2 item_id=d46a2 depth=1 hops=0 status=200
+time=2025-07-19T21:45:26.045+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=a97b4 depth=1 hops=0 elapsed=5.918µs
+time=2025-07-19T21:45:26.068+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-includes/js/jquery/jquery-migrate.min.js?ver=3.4.1" seed_id=b30f2 item_id=de436 depth=1 hops=0 status=200
+time=2025-07-19T21:45:26.068+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=f4b98 depth=1 hops=0 elapsed=2.452µs
+time=2025-07-19T21:45:26.081+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:26.301+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url=https://stats.wp.com/e-202529.js seed_id=b30f2 item_id=a97b4 depth=1 hops=0 status=200
+time=2025-07-19T21:45:26.301+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=e79e0 depth=1 hops=0 elapsed=1.138µs
+time=2025-07-19T21:45:26.332+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:26.520+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-content/themes/period/js/build/production.min.js?ver=6.8.2" seed_id=b30f2 item_id=106a1 depth=1 hops=0 status=200
+time=2025-07-19T21:45:26.520+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=b63aa depth=1 hops=0 elapsed=3.938µs
+time=2025-07-19T21:45:26.582+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:26.692+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-content/plugins/akismet/_inc/akismet-frontend.js?ver=1749649724" seed_id=b30f2 item_id=f4b98 depth=1 hops=0 status=200
+time=2025-07-19T21:45:26.692+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=31945 depth=1 hops=0 elapsed=2.947µs
+time=2025-07-19T21:45:26.814+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-content/plugins/jetpack/modules/related-posts/related-posts.css?ver=20240116" seed_id=b30f2 item_id=e79e0 depth=1 hops=0 status=200
+time=2025-07-19T21:45:26.814+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=698d9 depth=1 hops=0 elapsed=5.414µs
+time=2025-07-19T21:45:26.834+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:27.085+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-includes/css/dist/block-library/style.min.css?ver=6.8.2" seed_id=b30f2 item_id=b63aa depth=1 hops=0 status=200
+time=2025-07-19T21:45:27.085+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=ee9f0 depth=1 hops=0 elapsed=3.939µs
+time=2025-07-19T21:45:27.085+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:27.197+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-includes/js/mediaelement/mediaelementplayer-legacy.min.css?ver=4.2.17" seed_id=b30f2 item_id=31945 depth=1 hops=0 status=200
+time=2025-07-19T21:45:27.197+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=7c7fd depth=1 hops=0 elapsed=1.907µs
+time=2025-07-19T21:45:27.304+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-includes/js/mediaelement/wp-mediaelement.min.css?ver=6.8.2" seed_id=b30f2 item_id=698d9 depth=1 hops=0 status=200
+time=2025-07-19T21:45:27.304+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=51574 depth=1 hops=0 elapsed=965ns
+time=2025-07-19T21:45:27.336+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:27.337+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://fonts.googleapis.com/css?display=swap&ver=6.8.2&family=Roboto%3A300%2C300italic%2C400%2C700&subset=latin%2Clatin-ext" seed_id=b30f2 item_id=ee9f0 depth=1 hops=0 status=200
+time=2025-07-19T21:45:27.337+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=65df5 depth=1 hops=0 elapsed=976ns
+time=2025-07-19T21:45:27.410+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-includes/js/jquery/jquery.min.js?ver=3.7.1" seed_id=b30f2 item_id=ed202 depth=1 hops=0 status=200
+time=2025-07-19T21:45:27.410+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=2695b depth=1 hops=0 elapsed=1.301µs
+time=2025-07-19T21:45:27.588+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:27.796+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-content/themes/period/assets/font-awesome/css/all.min.css?ver=6.8.2" seed_id=b30f2 item_id=7c7fd depth=1 hops=0 status=200
+time=2025-07-19T21:45:27.796+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=87103 depth=1 hops=0 elapsed=2.517µs
+time=2025-07-19T21:45:27.839+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:28.008+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/xmlrpc.php?rsd=" seed_id=b30f2 item_id=2695b depth=1 hops=0 status=200
+time=2025-07-19T21:45:28.008+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=54d9e depth=1 hops=0 elapsed=3.095µs
+time=2025-07-19T21:45:28.025+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url="https://blog.save-web.org/wp-content/themes/period/style.css?ver=6.8.2" seed_id=b30f2 item_id=51574 depth=1 hops=0 status=200
+time=2025-07-19T21:45:28.025+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=69dc4 depth=1 hops=0 elapsed=1.949µs
+time=2025-07-19T21:45:28.090+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:28.097+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url=https://blog.save-web.org/wp-json/ seed_id=b30f2 item_id=65df5 depth=1 hops=0 status=200
+time=2025-07-19T21:45:28.097+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=0 seed_id=b30f2 item_id=d2dc8 depth=1 hops=0 elapsed=2.661µs
+time=2025-07-19T21:45:28.286+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url=https://blog.save-web.org/wp-content/uploads/2021/07/cropped-save-the-web_nice-32x32.png seed_id=b30f2 item_id=87103 depth=1 hops=0 status=200
+time=2025-07-19T21:45:28.341+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:28.528+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url=https://blog.save-web.org/wp-content/uploads/2021/07/cropped-save-the-web_nice-180x180.png seed_id=b30f2 item_id=69dc4 depth=1 hops=0 status=200
+time=2025-07-19T21:45:28.583+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url=https://blog.save-web.org/wp-content/uploads/2021/07/cropped-save-the-web_nice-270x270.png seed_id=b30f2 item_id=d2dc8 depth=1 hops=0 status=200
+time=2025-07-19T21:45:28.584+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=0 url=https://blog.save-web.org/wp-content/uploads/2021/07/cropped-save-the-web_nice-192x192.png seed_id=b30f2 item_id=54d9e depth=1 hops=0 status=200
+time=2025-07-19T21:45:28.584+08:00 level=DEBUG msg="received seed" component=postprocessor.worker worker_id=5 seed=b30f2
+time=2025-07-19T21:45:28.584+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=c9517
+time=2025-07-19T21:45:28.584+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=c9517
+time=2025-07-19T21:45:28.584+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=c9517
+time=2025-07-19T21:45:28.584+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=c6fc0
+time=2025-07-19T21:45:28.584+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=c6fc0
+time=2025-07-19T21:45:28.584+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=c6fc0
+time=2025-07-19T21:45:28.584+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=e295c
+time=2025-07-19T21:45:28.584+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=e295c
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="no extractor used for page" component=postprocessor.ExtractAssets content-type=text/javascript mime=text/javascript item=e295c
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=e295c count=0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=e295c
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=ed202
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=ed202
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="no extractor used for page" component=postprocessor.ExtractAssets content-type=text/javascript mime=text/javascript item=ed202
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=ed202 count=0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=ed202
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=de436
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=de436
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="no extractor used for page" component=postprocessor.ExtractAssets content-type=text/javascript mime=text/javascript item=de436
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=de436 count=0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=de436
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=106a1
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=106a1
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="no extractor used for page" component=postprocessor.ExtractAssets content-type=text/javascript mime=text/javascript item=106a1
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=106a1 count=0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=106a1
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=d46a2
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=d46a2
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="no extractor used for page" component=postprocessor.ExtractAssets content-type=text/javascript mime=text/javascript item=d46a2
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=d46a2 count=0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=d46a2
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=a97b4
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=a97b4
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="no extractor used for page" component=postprocessor.ExtractAssets content-type=application/javascript mime=text/javascript item=a97b4
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=a97b4 count=0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=a97b4
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=f4b98
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=f4b98
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="no extractor used for page" component=postprocessor.ExtractAssets content-type=text/javascript mime=text/javascript item=f4b98
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=f4b98 count=0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=f4b98
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=e79e0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=e79e0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=e79e0 links=0 at_import_links=0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=e79e0 count=0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=e79e0
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=b63aa
+time=2025-07-19T21:45:28.585+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=b63aa
+time=2025-07-19T21:45:28.587+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=b63aa links=2 at_import_links=0
+time=2025-07-19T21:45:28.587+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=b63aa count=0
+time=2025-07-19T21:45:28.587+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=b63aa
+time=2025-07-19T21:45:28.587+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=31945
+time=2025-07-19T21:45:28.587+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=31945
+time=2025-07-19T21:45:28.587+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=31945 links=3 at_import_links=0
+time=2025-07-19T21:45:28.587+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=31945 count=3
+time=2025-07-19T21:45:28.587+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=698d9
+time=2025-07-19T21:45:28.587+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=698d9
+time=2025-07-19T21:45:28.588+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=698d9 links=0 at_import_links=0
+time=2025-07-19T21:45:28.588+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=698d9 count=0
+time=2025-07-19T21:45:28.588+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=698d9
+time=2025-07-19T21:45:28.588+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=ee9f0
+time=2025-07-19T21:45:28.588+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=ee9f0
+time=2025-07-19T21:45:28.588+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=ee9f0 links=4 at_import_links=0
+time=2025-07-19T21:45:28.588+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=ee9f0 count=4
+time=2025-07-19T21:45:28.588+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=7c7fd
+time=2025-07-19T21:45:28.588+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=7c7fd
+time=2025-07-19T21:45:28.589+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=7c7fd links=20 at_import_links=0
+time=2025-07-19T21:45:28.589+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=7c7fd count=20
+time=2025-07-19T21:45:28.589+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=51574
+time=2025-07-19T21:45:28.589+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=51574
+time=2025-07-19T21:45:28.590+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=51574 links=0 at_import_links=0
+time=2025-07-19T21:45:28.590+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=51574 count=0
+time=2025-07-19T21:45:28.590+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=51574
+time=2025-07-19T21:45:28.590+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=65df5
+time=2025-07-19T21:45:28.590+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=65df5
+time=2025-07-19T21:45:28.592+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=65df5 count=10
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=2695b
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=2695b
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=2695b count=4
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=87103
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=87103
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=87103
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=54d9e
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=54d9e
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=54d9e
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=69dc4
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=69dc4
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=69dc4
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=d2dc8
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=d2dc8
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=d2dc8
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="received seed" component=finisher.worker worker_id=5 seed=b30f2
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="seed has fresh children" component=finisher.worker worker_id=5 seed=b30f2
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="received seed" component=preprocessor.worker worker_id=1 seed=b30f2
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="received seed" component=archiver.worker worker_id=1 seed=b30f2 depth=0 hops=0
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=08cf8 depth=2 hops=0 elapsed=2.16µs
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=d1901 depth=2 hops=0 elapsed=1.43µs
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=ebeca depth=2 hops=0 elapsed=517ns
+time=2025-07-19T21:45:28.603+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=21767 depth=2 hops=0 elapsed=835ns
+time=2025-07-19T21:45:28.843+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:28.932+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://fonts.gstatic.com/s/roboto/v48/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWuaabVmaiA8.ttf seed_id=b30f2 item_id=21767 depth=2 hops=0 status=200
+time=2025-07-19T21:45:28.932+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=4a4cb depth=2 hops=0 elapsed=3.49µs
+time=2025-07-19T21:45:28.999+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://fonts.gstatic.com/s/roboto/v48/KFOKCnqEu92Fr1Mu53ZEC9_Vu3r1gIhOszmOClHrs6ljXfMMLt_QuAb-lg.ttf seed_id=b30f2 item_id=d1901 depth=2 hops=0 status=200
+time=2025-07-19T21:45:28.999+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=c8295 depth=2 hops=0 elapsed=2.548µs
+time=2025-07-19T21:45:29.023+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://fonts.gstatic.com/s/roboto/v48/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbVmaiA8.ttf seed_id=b30f2 item_id=08cf8 depth=2 hops=0 status=200
+time=2025-07-19T21:45:29.023+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=a51ff depth=2 hops=0 elapsed=3.355µs
+time=2025-07-19T21:45:29.089+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-includes/js/mediaelement/mejs-controls.svg seed_id=b30f2 item_id=ebeca depth=2 hops=0 status=200
+time=2025-07-19T21:45:29.090+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=f819b depth=2 hops=0 elapsed=4.057µs
+time=2025-07-19T21:45:29.094+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:29.345+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:29.597+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:29.641+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://fonts.gstatic.com/s/roboto/v48/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWuYjalmaiA8.ttf seed_id=b30f2 item_id=4a4cb depth=2 hops=0 status=200
+time=2025-07-19T21:45:29.642+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=4a0b6 depth=2 hops=0 elapsed=3.373µs
+time=2025-07-19T21:45:29.842+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-content/themes/period/assets/font-awesome/webfonts/fa-brands-400.woff2 seed_id=b30f2 item_id=c8295 depth=2 hops=0 status=200
+time=2025-07-19T21:45:29.842+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=4758a depth=2 hops=0 elapsed=4.061µs
+time=2025-07-19T21:45:29.848+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:30.013+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-content/themes/period/assets/font-awesome/webfonts/fa-regular-400.woff2 seed_id=b30f2 item_id=f819b depth=2 hops=0 status=200
+time=2025-07-19T21:45:30.013+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=73c0b depth=2 hops=0 elapsed=3.09µs
+time=2025-07-19T21:45:30.098+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:30.244+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-content/themes/period/assets/font-awesome/webfonts/fa-regular-400.ttf seed_id=b30f2 item_id=4a0b6 depth=2 hops=0 status=200
+time=2025-07-19T21:45:30.244+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=eda83 depth=2 hops=0 elapsed=4.805µs
+time=2025-07-19T21:45:30.349+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:30.411+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-content/themes/period/assets/font-awesome/webfonts/fa-brands-400.ttf seed_id=b30f2 item_id=a51ff depth=2 hops=0 status=200
+time=2025-07-19T21:45:30.411+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=483b9 depth=2 hops=0 elapsed=1.704µs
+time=2025-07-19T21:45:30.600+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:30.689+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-content/themes/period/assets/font-awesome/webfonts/fa-solid-900.woff2 seed_id=b30f2 item_id=4758a depth=2 hops=0 status=200
+time=2025-07-19T21:45:30.690+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=d426c depth=2 hops=0 elapsed=1.941µs
+time=2025-07-19T21:45:30.752+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-content/themes/period/assets/font-awesome/webfonts/fa-v4compatibility.woff2 seed_id=b30f2 item_id=eda83 depth=2 hops=0 status=200
+time=2025-07-19T21:45:30.752+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=65ab5 depth=2 hops=0 elapsed=1.206µs
+time=2025-07-19T21:45:30.851+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:31.015+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-content/themes/period/assets/font-awesome/webfonts/fa-solid-900.ttf seed_id=b30f2 item_id=73c0b depth=2 hops=0 status=200
+time=2025-07-19T21:45:31.015+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=f24ef depth=2 hops=0 elapsed=2.867µs
+time=2025-07-19T21:45:31.103+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:31.245+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-json/oembed/1.0 seed_id=b30f2 item_id=d426c depth=2 hops=0 status=200
+time=2025-07-19T21:45:31.245+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=a0db7 depth=2 hops=0 elapsed=5.462µs
+time=2025-07-19T21:45:31.341+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-json/.*/S.* seed_id=b30f2 item_id=65ab5 depth=2 hops=0 status=404
+time=2025-07-19T21:45:31.341+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=1 seed_id=b30f2 item_id=ac157 depth=2 hops=0 elapsed=4.154µs
+time=2025-07-19T21:45:31.353+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:31.605+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:31.634+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-content/uploads/2021/07/cropped-save-the-web_nice.png seed_id=b30f2 item_id=f24ef depth=2 hops=0 status=200
+time=2025-07-19T21:45:31.856+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:31.966+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/xmlrpc.php seed_id=b30f2 item_id=ac157 depth=2 hops=0 status=405
+time=2025-07-19T21:45:31.983+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-content/themes/period/assets/font-awesome/webfonts/fa-v4compatibility.ttf seed_id=b30f2 item_id=483b9 depth=2 hops=0 status=200
+time=2025-07-19T21:45:32.107+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:32.358+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:32.609+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:32.860+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:32.976+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=1 url=https://blog.save-web.org/wp-admin/authorize-application.php seed_id=b30f2 item_id=a0db7 depth=2 hops=0 status=302
+time=2025-07-19T21:45:32.976+08:00 level=DEBUG msg="received seed" component=postprocessor.worker worker_id=0 seed=b30f2
+time=2025-07-19T21:45:32.976+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=ebeca
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=ebeca
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="no extractor used for page" component=postprocessor.ExtractAssets content-type=image/svg+xml mime=image/svg+xml item=ebeca
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=ebeca count=0
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=ebeca
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=d1901
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=d1901
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=d1901
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=21767
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=21767
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=21767
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=08cf8
+time=2025-07-19T21:45:32.977+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=08cf8
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=08cf8
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=4a4cb
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=4a4cb
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=4a4cb
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=c8295
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=c8295
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=c8295
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=a51ff
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=a51ff
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=a51ff
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=f819b
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=f819b
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=f819b
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=4a0b6
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=4a0b6
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=4a0b6
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=4758a
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=4758a
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=4758a
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=73c0b
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=73c0b
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=73c0b
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=eda83
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=eda83
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=eda83
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=483b9
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=483b9
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=483b9
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=d426c
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=d426c
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="removing asset that is a duplicate of the item URL" component=postprocessor.ExtractAssets item=d426c asset=https://blog.save-web.org/wp-json/oembed/1.0
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=d426c count=5
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=65ab5
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=65ab5
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=f24ef
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=f24ef
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=f24ef
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=a0db7
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item is a redirection" component=postprocessor.postprocess.postprocessItem item_id=a0db7
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=ac157
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=ac157
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="received seed" component=finisher.worker worker_id=4 seed=b30f2
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="seed has fresh children" component=finisher.worker worker_id=4 seed=b30f2
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="received seed" component=preprocessor.worker worker_id=6 seed=b30f2
+time=2025-07-19T21:45:32.978+08:00 level=DEBUG msg="received seed" component=archiver.worker worker_id=4 seed=b30f2 depth=0 hops=0
+time=2025-07-19T21:45:32.979+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=4 seed_id=b30f2 item_id=2313e depth=3 hops=0 elapsed=3.146µs
+time=2025-07-19T21:45:32.979+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=4 seed_id=b30f2 item_id=58d5a depth=3 hops=0 elapsed=4.321µs
+time=2025-07-19T21:45:33.111+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:33.362+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:33.614+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:33.747+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=4 url=https://blog.save-web.org/wp-json/oembed/oembed/1.0 seed_id=b30f2 item_id=58d5a depth=3 hops=0 status=404
+time=2025-07-19T21:45:33.865+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:34.116+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:34.367+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:34.619+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:34.871+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:35.122+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:35.373+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:35.444+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=4 url="https://blog.save-web.org/wp-login.php?redirect_to=https%3A%2F%2Fblog.save-web.org%2Fwp-admin%2Fauthorize-application.php&reauth=1" seed_id=b30f2 item_id=2313e depth=3 hops=0 status=200
+time=2025-07-19T21:45:35.444+08:00 level=DEBUG msg="received seed" component=postprocessor.worker worker_id=4 seed=b30f2
+time=2025-07-19T21:45:35.444+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=58d5a
+time=2025-07-19T21:45:35.444+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=58d5a
+time=2025-07-19T21:45:35.444+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=2313e
+time=2025-07-19T21:45:35.444+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=2313e
+time=2025-07-19T21:45:35.444+08:00 level=DEBUG msg="unable to extract URLs from JSON in script tag" component=postprocessor.extractor.HTMLAssets error=EOF url="https://blog.save-web.org/wp-login.php?redirect_to=https%3A%2F%2Fblog.save-web.org%2Fwp-admin%2Fauthorize-application.php&reauth=1" item=2313e
+time=2025-07-19T21:45:35.445+08:00 level=DEBUG msg="unable to extract URLs from JSON in script tag" component=postprocessor.extractor.HTMLAssets error="invalid character 'd' looking for beginning of value" url="https://blog.save-web.org/wp-login.php?redirect_to=https%3A%2F%2Fblog.save-web.org%2Fwp-admin%2Fauthorize-application.php&reauth=1" item=2313e
+time=2025-07-19T21:45:35.445+08:00 level=DEBUG msg="unable to extract URLs from JSON in script tag" component=postprocessor.extractor.HTMLAssets error="invalid character 'a' in literal true (expecting 'u')" url="https://blog.save-web.org/wp-login.php?redirect_to=https%3A%2F%2Fblog.save-web.org%2Fwp-admin%2Fauthorize-application.php&reauth=1" item=2313e
+time=2025-07-19T21:45:35.445+08:00 level=DEBUG msg="unable to extract URLs from JSON in script tag" component=postprocessor.extractor.HTMLAssets error="invalid character 'a' in literal true (expecting 'u')" url="https://blog.save-web.org/wp-login.php?redirect_to=https%3A%2F%2Fblog.save-web.org%2Fwp-admin%2Fauthorize-application.php&reauth=1" item=2313e
+time=2025-07-19T21:45:35.445+08:00 level=DEBUG msg="unable to extract URLs from JSON in script tag" component=postprocessor.extractor.HTMLAssets error="invalid character 'a' in literal true (expecting 'u')" url="https://blog.save-web.org/wp-login.php?redirect_to=https%3A%2F%2Fblog.save-web.org%2Fwp-admin%2Fauthorize-application.php&reauth=1" item=2313e
+time=2025-07-19T21:45:35.445+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=2313e count=37
+time=2025-07-19T21:45:35.445+08:00 level=DEBUG msg="received seed" component=finisher.worker worker_id=7 seed=b30f2
+time=2025-07-19T21:45:35.445+08:00 level=DEBUG msg="seed has fresh children" component=finisher.worker worker_id=7 seed=b30f2
+time=2025-07-19T21:45:35.445+08:00 level=DEBUG msg="received seed" component=preprocessor.worker worker_id=4 seed=b30f2
+time=2025-07-19T21:45:35.446+08:00 level=DEBUG msg="received seed" component=archiver.worker worker_id=3 seed=b30f2 depth=0 hops=0
+time=2025-07-19T21:45:35.446+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=01783 depth=4 hops=0 elapsed=3.766µs
+time=2025-07-19T21:45:35.446+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=f0d31 depth=4 hops=0 elapsed=3.75µs
+time=2025-07-19T21:45:35.446+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=7292d depth=4 hops=0 elapsed=2.834µs
+time=2025-07-19T21:45:35.446+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=9a456 depth=4 hops=0 elapsed=3.583µs
+time=2025-07-19T21:45:35.624+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:35.876+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:35.922+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-includes/js/clipboard.min.js?ver=2.0.11" seed_id=b30f2 item_id=7292d depth=4 hops=0 status=200
+time=2025-07-19T21:45:35.922+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=75b31 depth=4 hops=0 elapsed=3.56µs
+time=2025-07-19T21:45:35.930+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-content/plugins/jetpack/jetpack_vendor/automattic/jetpack-connection/dist/jetpack-sso-login.js?minify=false" seed_id=b30f2 item_id=f0d31 depth=4 hops=0 status=200
+time=2025-07-19T21:45:35.930+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=cabae depth=4 hops=0 elapsed=3.88µs
+time=2025-07-19T21:45:35.931+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-content/plugins/jetpack/jetpack_vendor/automattic/jetpack-connection/dist/jetpack-sso-login.js?minify=false&ver=6.11.8" seed_id=b30f2 item_id=9a456 depth=4 hops=0 status=200
+time=2025-07-19T21:45:35.931+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=415bf depth=4 hops=0 elapsed=2.043µs
+time=2025-07-19T21:45:36.127+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:36.378+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:36.410+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-includes/js/zxcvbn-async.min.js?ver=1.0" seed_id=b30f2 item_id=75b31 depth=4 hops=0 status=200
+time=2025-07-19T21:45:36.410+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=0c96b depth=4 hops=0 elapsed=3.17µs
+time=2025-07-19T21:45:36.421+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-includes/js/dist/hooks.min.js?ver=4d63a3d491d11ffd8ac6" seed_id=b30f2 item_id=cabae depth=4 hops=0 status=200
+time=2025-07-19T21:45:36.422+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=ded86 depth=4 hops=0 elapsed=2.473µs
+time=2025-07-19T21:45:36.630+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:36.795+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-includes/js/dist/i18n.min.js?ver=5e580eb46a90c2b997e6" seed_id=b30f2 item_id=415bf depth=4 hops=0 status=200
+time=2025-07-19T21:45:36.795+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=6f5a5 depth=4 hops=0 elapsed=1.913µs
+time=2025-07-19T21:45:36.881+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:36.901+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-admin/js/password-strength-meter.min.js?ver=6.8.2" seed_id=b30f2 item_id=0c96b depth=4 hops=0 status=200
+time=2025-07-19T21:45:36.902+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=a2ce4 depth=4 hops=0 elapsed=1.871µs
+time=2025-07-19T21:45:37.132+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:37.292+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-includes/js/underscore.min.js?ver=1.13.7" seed_id=b30f2 item_id=ded86 depth=4 hops=0 status=200
+time=2025-07-19T21:45:37.292+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=6b6fb depth=4 hops=0 elapsed=3.298µs
+time=2025-07-19T21:45:37.384+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:37.393+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-includes/js/dist/dom-ready.min.js?ver=f77871ff7694fffea381" seed_id=b30f2 item_id=a2ce4 depth=4 hops=0 status=200
+time=2025-07-19T21:45:37.394+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=bf092 depth=4 hops=0 elapsed=7.233µs
+time=2025-07-19T21:45:37.635+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:37.659+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-includes/js/wp-util.min.js?ver=6.8.2" seed_id=b30f2 item_id=6f5a5 depth=4 hops=0 status=200
+time=2025-07-19T21:45:37.659+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=1f682 depth=4 hops=0 elapsed=3.372µs
+time=2025-07-19T21:45:37.789+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-includes/js/dist/a11y.min.js?ver=3156534cc54473497e14" seed_id=b30f2 item_id=6b6fb depth=4 hops=0 status=200
+time=2025-07-19T21:45:37.789+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=4b756 depth=4 hops=0 elapsed=2.595µs
+time=2025-07-19T21:45:37.887+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:37.994+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-admin/js/user-profile.min.js?ver=6.8.2" seed_id=b30f2 item_id=bf092 depth=4 hops=0 status=200
+time=2025-07-19T21:45:37.994+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=243a7 depth=4 hops=0 elapsed=3.299µs
+time=2025-07-19T21:45:38.138+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:38.330+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-includes/css/dashicons.min.css?ver=6.8.2" seed_id=b30f2 item_id=1f682 depth=4 hops=0 status=200
+time=2025-07-19T21:45:38.330+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=e5a7a depth=4 hops=0 elapsed=2.535µs
+time=2025-07-19T21:45:38.389+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:38.393+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-includes/css/buttons.min.css?ver=6.8.2" seed_id=b30f2 item_id=4b756 depth=4 hops=0 status=200
+time=2025-07-19T21:45:38.393+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=3451f depth=4 hops=0 elapsed=6.587µs
+time=2025-07-19T21:45:38.641+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:38.871+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-admin/css/login.min.css?ver=6.8.2" seed_id=b30f2 item_id=3451f depth=4 hops=0 status=200
+time=2025-07-19T21:45:38.871+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=3 seed_id=b30f2 item_id=cc556 depth=4 hops=0 elapsed=2.854µs
+time=2025-07-19T21:45:38.893+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:38.927+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-admin/css/forms.min.css?ver=6.8.2" seed_id=b30f2 item_id=243a7 depth=4 hops=0 status=200
+time=2025-07-19T21:45:39.144+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:39.221+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-admin/css/l10n.min.css?ver=6.8.2" seed_id=b30f2 item_id=e5a7a depth=4 hops=0 status=200
+time=2025-07-19T21:45:39.394+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:39.438+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url="https://blog.save-web.org/wp-content/plugins/jetpack/jetpack_vendor/automattic/jetpack-connection/dist/jetpack-sso-login.css?minify=false&ver=6.11.8" seed_id=b30f2 item_id=cc556 depth=4 hops=0 status=200
+time=2025-07-19T21:45:39.646+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:39.678+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=3 url=https://blog.save-web.org/wp-includes/js/zxcvbn.min.js seed_id=b30f2 item_id=01783 depth=4 hops=0 status=200
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="received seed" component=postprocessor.worker worker_id=1 seed=b30f2
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=9a456
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=9a456
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=f0d31
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=f0d31
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=7292d
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=7292d
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=01783
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=01783
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=75b31
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=75b31
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=cabae
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=cabae
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=415bf
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=415bf
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=0c96b
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=0c96b
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=ded86
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=ded86
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=6f5a5
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=6f5a5
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=a2ce4
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=a2ce4
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=6b6fb
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=6b6fb
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=bf092
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=bf092
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=1f682
+time=2025-07-19T21:45:39.678+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=1f682
+time=2025-07-19T21:45:39.679+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=1f682 links=4 at_import_links=0
+time=2025-07-19T21:45:39.679+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=1f682 count=3
+time=2025-07-19T21:45:39.679+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=4b756
+time=2025-07-19T21:45:39.679+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=4b756
+time=2025-07-19T21:45:39.680+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=4b756 links=0 at_import_links=0
+time=2025-07-19T21:45:39.680+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=4b756 count=0
+time=2025-07-19T21:45:39.680+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=4b756
+time=2025-07-19T21:45:39.680+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=243a7
+time=2025-07-19T21:45:39.680+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=243a7
+time=2025-07-19T21:45:39.680+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=243a7 links=4 at_import_links=0
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=243a7 count=1
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=e5a7a
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=e5a7a
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=e5a7a links=0 at_import_links=0
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=e5a7a count=0
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=e5a7a
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=3451f
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=3451f
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=3451f links=2 at_import_links=0
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=3451f count=2
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=cc556
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="item is a success" component=postprocessor.postprocess.postprocessItem item_id=cc556
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="extracted assets from CSS" component=postprocessor.ExtractAssets item=cc556 links=0 at_import_links=0
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="extracted assets" component=postprocessor.postprocess.postprocessItem item_id=cc556 count=0
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="item has no children, setting as completed" component=postprocessor.postprocess.postprocessItem item_id=cc556
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="received seed" component=finisher.worker worker_id=6 seed=b30f2
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="seed has fresh children" component=finisher.worker worker_id=6 seed=b30f2
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="received seed" component=preprocessor.worker worker_id=3 seed=b30f2
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="received seed" component=archiver.worker worker_id=6 seed=b30f2 depth=0 hops=0
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=6 seed_id=b30f2 item_id=9340e depth=5 hops=0 elapsed=2.106µs
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=6 seed_id=b30f2 item_id=35c59 depth=5 hops=0 elapsed=2.318µs
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=6 seed_id=b30f2 item_id=cccf5 depth=5 hops=0 elapsed=1.602µs
+time=2025-07-19T21:45:39.681+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=6 seed_id=b30f2 item_id=32534 depth=5 hops=0 elapsed=2.54µs
+time=2025-07-19T21:45:39.897+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:40.148+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:40.152+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=6 url=https://blog.save-web.org/wp-admin/images/loading.gif seed_id=b30f2 item_id=32534 depth=5 hops=0 status=200
+time=2025-07-19T21:45:40.152+08:00 level=DEBUG msg="got token from bucket" component=archiver.archive worker_id=6 seed_id=b30f2 item_id=48c24 depth=5 hops=0 elapsed=2.024µs
+time=2025-07-19T21:45:40.161+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=6 url="https://blog.save-web.org/wp-admin/images/w-logo-blue.png?ver=20131202" seed_id=b30f2 item_id=9340e depth=5 hops=0 status=200
+time=2025-07-19T21:45:40.374+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=6 url="https://blog.save-web.org/wp-includes/fonts/dashicons.ttf?99ac726223c749443b642ce33df8b800=" seed_id=b30f2 item_id=35c59 depth=5 hops=0 status=200
+time=2025-07-19T21:45:40.384+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=6 url="https://blog.save-web.org/wp-includes/fonts/dashicons.eot?99ac726223c749443b642ce33df8b800=" seed_id=b30f2 item_id=cccf5 depth=5 hops=0 status=200
+time=2025-07-19T21:45:40.399+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:40.630+08:00 level=INFO msg="url archived" component=archiver.archive worker_id=6 url="https://blog.save-web.org/wp-admin/images/wordpress-logo.svg?ver=20131107" seed_id=b30f2 item_id=48c24 depth=5 hops=0 status=200
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="received seed" component=postprocessor.worker worker_id=6 seed=b30f2
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=cccf5
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=cccf5
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=35c59
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=35c59
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=32534
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=32534
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=9340e
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=9340e
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="postprocessing item" component=postprocessor.postprocess.postprocessItem item_id=48c24
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="item is a child and it's depth (without redirections) is more than 2" component=postprocessor.postprocess.postprocessItem item_id=48c24
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="received seed" component=finisher.worker worker_id=0 seed=b30f2
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="seed has no fresh redirection or children" component=finisher.worker worker_id=0 seed=b30f2
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="seed finished" component=finisher.worker worker_id=0 seed=b30f2
+time=2025-07-19T21:45:40.631+08:00 level=DEBUG msg="received item" component=lq.finisherReceiver item=b30f2
+time=2025-07-19T21:45:40.651+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:40.902+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:41.153+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:41.404+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:41.575+08:00 level=DEBUG msg="sending non-full batch to dispatcher" component=lq.finisherReceiver size=1
+time=2025-07-19T21:45:41.575+08:00 level=DEBUG msg="dispatching batch to sender" component=lq.finisherDispatcher size=1
+time=2025-07-19T21:45:41.575+08:00 level=DEBUG msg="sending batch to LQ" component=lq.finisherSender.969af8 size=1
+time=2025-07-19T21:45:41.575+08:00 level=DEBUG msg=done component=lq.finisherSender.969af8
+time=2025-07-19T21:45:41.655+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:41.906+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:42.157+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:42.408+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:42.660+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:42.911+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:43.163+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:43.414+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:43.665+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:43.916+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:44.167+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:44.418+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:44.670+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:44.920+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:45.171+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:45.421+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:45.673+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:45.924+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:46.174+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:46.426+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:46.503+08:00 level=INFO msg="received shutdown signal, stopping services..." component=controler.signalWatcher
+time=2025-07-19T21:45:46.503+08:00 level=DEBUG msg=closed component=controler.diskWatcher
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg=closed component=controler.warcWritingQueueWatcher.stats
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="received freeze signal" component=reactor
+time=2025-07-19T21:45:46.504+08:00 level=INFO msg=frozen component=reactor
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=preprocessor.worker worker_id=7
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=preprocessor.worker worker_id=7
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=preprocessor.worker worker_id=3
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=preprocessor.worker worker_id=3
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=preprocessor.worker worker_id=4
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=preprocessor.worker worker_id=4
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=preprocessor.worker worker_id=2
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=preprocessor.worker worker_id=2
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=preprocessor.worker worker_id=0
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=preprocessor.worker worker_id=0
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=preprocessor.worker worker_id=6
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=preprocessor.worker worker_id=6
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=preprocessor.worker worker_id=5
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=preprocessor.worker worker_id=5
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=preprocessor.worker worker_id=1
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=preprocessor.worker worker_id=1
+time=2025-07-19T21:45:46.504+08:00 level=INFO msg=stopped component=preprocessor
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=archiver.worker worker_id=6
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=archiver.worker worker_id=0
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=archiver.worker worker_id=5
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=archiver.worker worker_id=5
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=archiver.worker worker_id=0
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=archiver.worker worker_id=7
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=archiver.worker worker_id=1
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=archiver.worker worker_id=4
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=archiver.worker worker_id=4
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=archiver.worker worker_id=6
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=archiver.worker worker_id=1
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=archiver.worker worker_id=7
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=archiver.worker worker_id=2
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=archiver.worker worker_id=2
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="shutting down" component=archiver.worker worker_id=3
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="worker stopped" component=archiver.worker worker_id=3
+time=2025-07-19T21:45:46.504+08:00 level=DEBUG msg="WARC writing finished" component=archiver
+time=2025-07-19T21:45:46.677+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:46.929+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:47.180+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:47.431+08:00 level=DEBUG msg="feed is empty, waiting for new URLs" component=lq.consumerFetcher
+time=2025-07-19T21:45:47.504+08:00 level=INFO msg=stopped component=archiver
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="closing bucket manager" component=archiver
+time=2025-07-19T21:45:47.505+08:00 level=INFO msg="closed bucket manager" component=archiver
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=postprocessor.worker worker_id=2
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=postprocessor.worker worker_id=6
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=postprocessor.worker worker_id=1
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=postprocessor.worker worker_id=4
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=postprocessor.worker worker_id=3
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=postprocessor.worker worker_id=7
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=postprocessor.worker worker_id=5
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=postprocessor.worker worker_id=0
+time=2025-07-19T21:45:47.505+08:00 level=INFO msg=stopped component=postprocessor
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="received stop signal" component=finisher
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=finisher.worker worker_id=3
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=finisher.worker worker_id=4
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=finisher.worker worker_id=7
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=finisher.worker worker_id=2
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=finisher.worker worker_id=1
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=finisher.worker worker_id=6
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=finisher.worker worker_id=0
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="shutting down" component=finisher.worker worker_id=5
+time=2025-07-19T21:45:47.505+08:00 level=INFO msg=stopped component=finisher
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="waiting for sender routines to finish" component=lq.finisherDispatcher
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="received done signal" component=lq.consumer
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg=closed component=lq.consumerSender
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg=closed component=lq.finisherReceiver
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg=closing component=lq.producerReceiver
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg=closed component=lq.finisherDispatcher
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="received done signal" component=lq.producer
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="waiting for goroutines to finish" component=lq.producer
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg=closed component=lq.producer
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="received done signal" component=.q.finisher
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="waiting for goroutines to finish" component=.q.finisher
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg=closed component=.q.finisher
+time=2025-07-19T21:45:47.505+08:00 level=DEBUG msg="waiting for goroutines to finish" component=lq.consumer
+time=2025-07-19T21:45:47.681+08:00 level=DEBUG msg=closed component=lq.consumerFetcher
+time=2025-07-19T21:45:47.681+08:00 level=DEBUG msg=closed component=lq.consumer
+time=2025-07-19T21:45:47.681+08:00 level=INFO msg=stopped component=lq
+time=2025-07-19T21:45:47.682+08:00 level=DEBUG msg="received stop signal" component=reactor
+time=2025-07-19T21:45:47.682+08:00 level=DEBUG msg="shutting down" component=reactor
+time=2025-07-19T21:45:47.682+08:00 level=INFO msg=stopped component=reactor
+time=2025-07-19T21:45:47.682+08:00 level=INFO msg="done, logs are flushing and will be closed" component=controler.stopPipeline
+Log file closed
