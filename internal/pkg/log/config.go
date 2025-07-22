@@ -103,7 +103,7 @@ func makeConfig() *logConfig {
 		// The --log-socket is only used for tests, so we can block here and only use the first connection.
 		conn, err := listener.Accept()
 		if err != nil {
-			stdliblog.Fatalf("Error accepting connection: %v", err)
+			stdliblog.Fatalf("Failed to accept connection on Unix socket: %v", err)
 		}
 		stdliblog.Println("Client connected!")
 		socketCfg = &socketConfig{
