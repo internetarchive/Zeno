@@ -3,6 +3,7 @@ package log
 import (
 	"fmt"
 	"io"
+	"log"
 	"testing"
 
 	"github.com/go-logfmt/logfmt"
@@ -29,7 +30,7 @@ func ParseLog(r io.Reader) chan map[string]string {
 				record[string(d.Key())] = string(d.Value())
 			}
 			if !hasKey(record, "level") || !hasKey(record, "time") {
-				fmt.Printf("ignore record without level or time: %v\n", record)
+				log.Printf("ignore record without level or time: %v", record)
 				continue
 			}
 			out <- record
@@ -50,7 +51,7 @@ func LogRecordProcessor(pipeR *io.PipeReader, rm RecordMatcher, stopCh chan stru
 			close(stopCh)
 			chClosed = true
 		}
-		fmt.Printf("log record: %v\n", record)
+		log.Printf("log record: %v", record)
 	}
 	return nil
 }
