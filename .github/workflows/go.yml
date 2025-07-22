@@ -28,10 +28,10 @@ jobs:
       run: mkdir -p /tmp/unit_coverage /tmp/e2e_coverage
 
     - name: Test
-      run: go test -v -race -cover -covermode=atomic -coverpkg=./... $(go list ./... | grep -v /e2e/test/) -args -test.gocoverdir=/tmp/unit_coverage
+      run: go test -v -p=12 -race -cover -covermode=atomic -coverpkg=./... $(go list ./... | grep -v /e2e/test/) -args -test.gocoverdir=/tmp/unit_coverage
 
     - name: E2E Test
-      run: go test -v -race -cover -covermode=atomic -coverpkg=./... $(go list ./e2e/test/...) -args -test.gocoverdir=/tmp/e2e_coverage
+      run: go test -v -p=12 -race -cover -covermode=atomic -coverpkg=./... $(go list ./e2e/test/...) -args -test.gocoverdir=/tmp/e2e_coverage
 
     - name: Convert coverage reports
       run: |
