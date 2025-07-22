@@ -1,3 +1,0 @@
-# custom configuration for Zeno e2e tests
-no-stderr-log = true
-no-stdout-log = true

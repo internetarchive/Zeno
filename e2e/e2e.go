@@ -20,7 +20,7 @@ var DefaultTimeout = 60 * time.Second
 
 func cmdZenoGetURL(socketPath string, urls []string) *cobra.Command {
 	cmd := cmd.Prepare()
-	args := append([]string{"get", "url", "--config-file", "config.toml", "--log-socket-level", "debug", "--log-socket", socketPath}, urls...)
+	args := append([]string{"get", "url", "--config-file", "config.toml", "--log-socket-level", "debug", "--no-stdout-log", "--no-stderr-log", "--log-socket", socketPath}, urls...)
 	fmt.Println("Command arguments:", args)
 	cmd.SetArgs(args)
 	return cmd
