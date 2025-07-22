@@ -17,6 +17,7 @@ import (
 )
 
 var DefaultTimeout = 60 * time.Second
+var DialTimeout = 10 * time.Second
 
 func cmdZenoGetURL(socketPath string, urls []string) *cobra.Command {
 	cmd := cmd.Prepare()
@@ -50,7 +51,7 @@ func lazyDial(socketPath string, timeout time.Duration) (net.Conn, error) {
 // connects to [socketPath] and copies logs from it to [W] until the connection is closed
 func connectSocketThenCopy(t *testing.T, wg *sync.WaitGroup, W *io.PipeWriter, socketPath string) {
 	defer wg.Done()
-	conn, err := lazyDial(socketPath, 5*time.Second)
+	conn, err := lazyDial(socketPath, DialTimeout)
 	if err != nil {
 		t.Errorf("failed to connect to log socket: %v", err)
 	}
