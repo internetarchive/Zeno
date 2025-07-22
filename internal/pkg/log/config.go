@@ -90,7 +90,9 @@ func makeConfig() *logConfig {
 
 	if config.Get().SocketLogging != "" {
 		socketPath := config.Get().SocketLogging
-		os.Remove(socketPath) // Clean up any old socket
+		if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
+			stdliblog.Printf("Warning: Failed to remove old socket at %s: %v", socketPath, err)
+		} // Clean up any old socket
 		listener, err := net.Listen("unix", socketPath)
 		if err != nil {
 			stdliblog.Fatalf("Error listening: %v", err)
