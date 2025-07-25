@@ -3,6 +3,7 @@ package headless
 import (
 	"bytes"
 	"net/http"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -11,6 +12,10 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	warc "github.com/internetarchive/gowarc"
 )
+
+var bodyLogger = log.NewFieldedLogger(&log.Fields{
+	"component": "archiver.headless.body.process",
+})
 
 // ProcessBody processes the body of a URL response, loading it into memory or a temporary file
 func ProcessBodyHeadless(hijack *rod.Hijack, u *http.Response) ([]byte, error) {
@@ -22,31 +27,28 @@ func ProcessBodyHeadless(hijack *rod.Hijack, u *http.Response) ([]byte, error) {
 	if ok {
 		conn = bodyWithConn.Conn
 	} else {
-		logger.Warn("Response body is not a *BodyWithConn, connection may not be closed properly on error")
+		bodyLogger.Warn("Response body is not a *BodyWithConn, connection may not be closed properly on error")
 	}
 
-	fullBody, err := processBodyHeadless(hijack, u)
-	return fullBody, body.CloseConnWithError(logger, conn, err)
+	fullBody, err := processBodyHeadless(u)
+	return fullBody, body.CloseConnWithError(bodyLogger, conn, err)
 }
 
-func processBodyHeadless(hijack *rod.Hijack, u *http.Response) ([]byte, error) {
+func processBodyHeadless(u *http.Response) ([]byte, error) {
 	onExit := atomic.Bool{}
-	logger := log.NewFieldedLogger(&log.Fields{
-		"url": hijack.Request.Req().URL.String(),
-	})
-	logger.Debug("processing body for hijack request")
 
-	go func() {
-		ticker := time.NewTicker(time.Duration(time.Second))
-		defer ticker.Stop()
-		for range ticker.C {
-			if onExit.Load() {
-				return
+	if os.Getenv("ZENO_DEBUG_HEADLESS_TRACE") != "" {
+		go func() {
+			ticker := time.NewTicker(time.Duration(time.Second))
+			defer ticker.Stop()
+			for range ticker.C {
+				if onExit.Load() {
+					return
+				}
+				bodyLogger.Debug("resource in progress")
 			}
-			logger.Info("resource in progress")
-		}
-	}()
-
+		}()
+	}
 	defer func() {
 		onExit.Store(true)
 	}()
@@ -54,7 +56,7 @@ func processBodyHeadless(hijack *rod.Hijack, u *http.Response) ([]byte, error) {
 	// Copy with timeout to the hijack response
 	buffer := new(bytes.Buffer)
 	if err := body.CopyWithTimeout(buffer, u.Body); err != nil {
-		logger.Error("failed to copy response body", "error", err)
+		bodyLogger.Error("failed to copy response body", "error", err)
 		return nil, err
 	}
 

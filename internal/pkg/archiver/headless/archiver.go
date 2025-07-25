@@ -17,6 +17,7 @@ import (
 	"github.com/go-rod/stealth"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/body"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
@@ -24,6 +25,8 @@ import (
 	warc "github.com/internetarchive/gowarc"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
+
+var archiverLogger = log.NewFieldedLogger(&log.Fields{"component": "archiver.headless.archiver"})
 
 //go:embed behaviors.js
 var behaviorsJS string
@@ -82,19 +85,40 @@ func clientDo(client *http.Client, req *http.Request, h *rod.Hijack) (*http.Resp
 	return resp, nil
 }
 
-func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed *models.Item) error {
+func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, globalBucketManager *ratelimiter.BucketManager, client *warc.CustomHTTPClient) {
+	defer wg.Done()
+	defer func() { <-guard }()
+
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "archiver.headless.archive.item",
+		"item_id":   item.GetShortID(),
+		"item_url":  item.GetURL().String(),
+	})
+
+	err := archivePage(client, item, item.GetSeed())
+	if err != nil {
+		item.SetStatus(models.ItemFailed)
+		logger.Error("unable to archive page in headless mode", "err", err.Error())
+		return
+	}
+
+	// If headless mode is enabled, we don't need to process the body
+	item.SetStatus(models.ItemArchived)
+	logger.Info("page archived successfully")
+}
+
+func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *models.Item) error {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "archiver.headless.archive.page",
+		"item_id":   item.GetShortID(),
+		"seed_id":   seed.GetShortID(),
+		"item_url":  item.GetURL().String(),
+	})
 	seenRequests := make([]string, 0)
 	defer seencheck(item, seed, &seenRequests)
 	bxLogger := newBxLogger(item)
 
 	var err error
-
-	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "archiver.archiveHeadless.page",
-		"seed_id":   seed.GetShortID(),
-		"item_id":   item.GetShortID(),
-		"url":       item.GetURL().String(),
-	})
 
 	// Set the hijack router
 	router := HeadlessBrowser.HijackRequests()
@@ -104,19 +128,20 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 
 	requestsMutex := &sync.Mutex{}
 	router.MustAdd("*", func(hijack *rod.Hijack) {
+		logger := log.NewFieldedLogger(&log.Fields{
+			"component": "archiver.headless.router",
+			"item_id":   item.GetShortID(),
+			"seed_id":   seed.GetShortID(),
+			"item_url":  item.GetURL().String(),
+			"url":       hijack.Request.URL().String(),
+		})
+
 		requestsMutex.Lock()
 		seenRequests = append(seenRequests, hijack.Request.URL().String())
 		requestsMutex.Unlock()
 
 		flyingRequests.Add(1, hijack.Request.URL().String())
 		defer flyingRequests.Done(hijack.Request.URL().String())
-
-		logger := log.NewFieldedLogger(&log.Fields{
-			"component": "archiver.archiveHeadless.router",
-			"seed_id":   seed.GetShortID(),
-			"item_id":   item.GetShortID(),
-			"url":       hijack.Request.URL().String(),
-		})
 
 		// drop requests that are not in the allowed methods
 		if !slices.Contains(config.Get().HeadlessAllowedMethods, hijack.Request.Method()) {
@@ -166,13 +191,13 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 			resp, err = clientDo(&warcClient.Client, req, hijack)
 			if err != nil {
 				if retry < config.Get().MaxRetry {
-					logger.Warn("retrying request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime)
+					logger.Warn("retrying request", "err", err.Error(), "retry", retry, "sleep_time", retrySleepTime)
 					time.Sleep(retrySleepTime)
 					continue
 				}
 
 				// retries exhausted
-				logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+				logger.Error("unable to execute request", "err", err.Error())
 				hijack.Response.Fail(proto.NetworkErrorReasonConnectionFailed)
 				return
 			}
@@ -191,7 +216,7 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 			resp.Body.Close()              // First, close the body, to stop downloading data anymore.
 			io.Copy(io.Discard, resp.Body) // Then, consume the buffer.
 
-			logger.Warn("response was blocked by DiscardHook", "reason", discardReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL)
+			logger.Warn("response was blocked by DiscardHook", "reason", discardReason, "status_code", resp.StatusCode)
 			hijack.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
 			return
 		}
@@ -217,6 +242,7 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 			fullBody = []byte{} // ([]uint8) {}
 		}
 		hijack.Response.Payload().Body = fullBody
+		fullBody = nil
 
 		logger.Debug("processed body", "size", len(hijack.Response.Payload().Body))
 	})
@@ -302,6 +328,11 @@ func ArchiveHeadless(warcClient *warc.CustomHTTPClient, item *models.Item, seed 
 
 // Get the Document from the page and store it in the item
 func extractAndStoreHTML(item *models.Item, page *rod.Page) error {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "archiver.headless.archive.extractHTML",
+		"item_id":   item.GetShortID(),
+		"item_url":  item.GetURL().String(),
+	})
 	docEl, err := page.Element("*") // get entire document
 	if err != nil {
 		logger.Error("unable to get document element", "error", err)

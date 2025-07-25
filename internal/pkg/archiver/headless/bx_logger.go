@@ -1,6 +1,7 @@
 package headless
 
 import (
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/ysmood/gson"
 )
@@ -21,6 +22,10 @@ func newBxLogger(item *models.Item) *ZenoBxLogger {
 
 // LogFunc expose itself to browser, so we
 func (l *ZenoBxLogger) LogFunc(v gson.JSON) (any, error) {
+	var logger = log.NewFieldedLogger(&log.Fields{
+		"component": "archiver.headless.bx_logger",
+	})
+
 	vMap := v.Map()
 	loggerFunc := logger.Info
 	args := make([]any, 0, 6+len(vMap)*2) // 6 for the "item_id", "url", "suppressed" and their values

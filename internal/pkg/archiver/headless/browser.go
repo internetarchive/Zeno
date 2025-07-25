@@ -13,7 +13,7 @@ import (
 var HeadlessBrowser *rod.Browser
 var Launcher *launcher.Launcher
 
-var logger = log.NewFieldedLogger(&log.Fields{"component": "archiver.headless.client"})
+var browserLogger = log.NewFieldedLogger(&log.Fields{"component": "archiver.headless.client"})
 
 func Start() {
 	var l *launcher.Launcher
@@ -43,12 +43,12 @@ func Start() {
 
 func Close() {
 	HeadlessBrowser.Close()
-	logger.Info("Headless browser closed")
+	browserLogger.Info("Headless browser closed")
 	if config.Get().HeadlessUserMode {
 		// In user mode, we DONT clean up the launcher to preserve user-data
-		logger.Info("Headless browser in user mode, not cleaning up launcher")
+		browserLogger.Info("Headless browser in user mode, not cleaning up launcher")
 		return
 	}
 	Launcher.Cleanup()
-	logger.Info("Headless launcher cleaned up")
+	browserLogger.Info("Headless launcher cleaned up")
 }

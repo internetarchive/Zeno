@@ -1,4 +1,4 @@
-package archiver
+package general
 
 import (
 	"bytes"
@@ -7,13 +7,14 @@ import (
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/body"
+	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 	warc "github.com/internetarchive/gowarc"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
-func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops int, WARCTempDir string) error {
+func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops int, WARCTempDir string, logger *log.FieldedLogger) error {
 	defer u.GetResponse().Body.Close() // Ensure the response body is closed
 	// Retrieve the underlying *warc.CustomConnection if available (In unit tests, this may not be set)
 	var conn *warc.CustomConnection
