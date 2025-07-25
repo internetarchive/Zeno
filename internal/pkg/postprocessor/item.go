@@ -29,7 +29,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 	logger.Debug("postprocessing item", "item_id", item.GetShortID())
 
 	// Verify if there is any redirection
-	if isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
+	if item.GetURL().GetResponse() != nil && isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
 		logger.Debug("item is a redirection", "item_id", item.GetShortID())
 
 		// Check if the current redirections count doesn't exceed the max allowed
@@ -89,7 +89,8 @@ func postprocessItem(item *models.Item) []*models.Item {
 		return outlinks
 	}
 
-	if item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200 {
+	if (item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200) || // normal item
+		(item.GetURL().GetResponse() == nil && item.GetURL().GetBody() != nil) { // headless item
 		logger.Debug("item is a success", "item_id", item.GetShortID())
 
 		var outlinksFromAssets []*models.URL

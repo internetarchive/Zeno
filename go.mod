@@ -12,6 +12,8 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/gdamore/tcell/v2 v2.8.1
+	github.com/go-rod/rod v0.116.2
+	github.com/go-rod/stealth v0.4.9
 	github.com/go-logfmt/logfmt v0.4.0
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.4
@@ -29,6 +31,7 @@ require (
 	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
 	github.com/tdewolff/parse/v2 v2.8.1
+	github.com/ysmood/gson v0.7.3
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.42.0
 	golang.org/x/sync v0.16.0
@@ -97,6 +100,10 @@ require (
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
+	github.com/ysmood/fetchup v0.2.3 // indirect
+	github.com/ysmood/goob v0.4.0 // indirect
+	github.com/ysmood/got v0.40.0 // indirect
+	github.com/ysmood/leakless v0.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
