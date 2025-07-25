@@ -20,10 +20,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/log/dumper"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/npr"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -293,20 +290,7 @@ func preprocess(workerID string, seed *models.Item) {
 		// Apply configured User-Agent
 		req.Header.Set("User-Agent", config.Get().UserAgent)
 
-		switch {
-		case tiktok.IsTikTokURL(items[i].GetURL()):
-			tiktok.AddHeaders(req)
-		case npr.IsNPRURL(items[i].GetURL()):
-			npr.AddHeaders(req)
-		case reddit.IsRedditURL(items[i].GetURL()):
-			reddit.AddCookies(req)
-		case truthsocial.IsStatusAPIURL(items[i].GetURL()) ||
-			truthsocial.IsVideoAPIURL(items[i].GetURL()) ||
-			truthsocial.IsLookupURL(items[i].GetURL()):
-			truthsocial.AddStatusAPIHeaders(req)
-		case truthsocial.IsAccountsAPIURL(items[i].GetURL()):
-			truthsocial.AddAccountsAPIHeaders(req)
-		}
+		sitespecific.RunPreprocessors(items[i].GetURL(), req)
 
 		items[i].GetURL().SetRequest(req)
 		items[i].SetStatus(models.ItemPreProcessed)

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: wangyoucao577/go-release-action@481a2c1a0f1be199722e3e9b74d7199acafc30a8 #release/rel-v1.53
+    - uses: NGTmeaty/go-release-action@467859a11c0b30701421f85f0cb2506aa8a8403f #v1
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: linux
@@ -22,3 +22,38 @@ jobs:
         md5sum: FALSE
         sha256sum: TRUE
         asset_name: 'Zeno-linux-amd64'
+        pre_command: 'sudo apt update && sudo apt install -y g++-12 && export CXX=g++-12'
+  release-linux-arm64:
+    name: release linux/arm64
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: mlugg/setup-zig@475c97be87a204e6c57fe851f970bd02005a70f0 # v2.0.4
+    - uses: NGTmeaty/go-release-action@467859a11c0b30701421f85f0cb2506aa8a8403f #v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: linux
+        goarch: arm64
+        goversion: 'go.mod'
+        compress_assets: OFF
+        md5sum: FALSE
+        sha256sum: TRUE
+        asset_name: 'Zeno-linux-arm64'
+        pre_command: 'export CGO_ENABLED=1 && export CC="zig cc -lc -target aarch64-linux-musl" && export CXX="zig c++ -lc -target aarch64-linux-musl"'
+  release-windows-amd64:
+    name: release windows/amd64
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: mlugg/setup-zig@475c97be87a204e6c57fe851f970bd02005a70f0 # v2.0.4
+    - uses: NGTmeaty/go-release-action@467859a11c0b30701421f85f0cb2506aa8a8403f #v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: windows
+        goarch: amd64
+        goversion: 'go.mod'
+        compress_assets: OFF
+        md5sum: FALSE
+        sha256sum: TRUE
+        asset_name: 'Zeno-windows-amd64'
+        pre_command: 'export CGO_ENABLED=1 && export CC="zig cc -lc -target x86_64-windows" && export CXX="zig c++ -lc -target x86_64-windows"'

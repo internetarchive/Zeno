@@ -14,6 +14,21 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
+type OutlinkExtractor interface {
+	Match(*models.URL) bool
+	Extract(*models.URL) ([]*models.URL, error)
+}
+
+var outlinkExtractors = []OutlinkExtractor{
+	truthsocial.TruthsocialAccountOutlinkExtractor{},
+	truthsocial.TruthsocialAccountLookupOutlinkExtractor{},
+	extractor.ObjectStorageOutlinkExtractor{},
+	extractor.SitemapXMLOutlinkExtractor{},
+	extractor.HTMLOutlinkExtractor{},
+	extractor.PDFOutlinkExtractor{},
+	reddit.RedditPostAPIOutlinkExtractor{},
+}
+
 func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	var (
 		contentType string
@@ -34,56 +49,14 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	}
 
 	// Run specific extractors
-	switch {
-	case truthsocial.IsAccountURL(item.GetURL()):
-		outlinks, err = truthsocial.GenerateAccountLookupURL(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateAccountLookupURL", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
-			return outlinks, err
+	for _, p := range outlinkExtractors {
+		if p.Match(item.GetURL()) {
+			outlinks, err = p.Extract(item.GetURL())
+			break
 		}
-	case truthsocial.IsAccountLookupURL(item.GetURL()):
-		outlinks, err = truthsocial.GenerateOutlinksURLsFromLookup(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "truthsocial.GenerateOutlinksURLsFromLookup", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
-			return outlinks, err
-		}
-	case extractor.IsObjectStorage(item.GetURL()):
-		outlinks, err = extractor.ObjectStorage(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract outlinks from ObjectStorage", "extractor", "ObjectStorage", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
-			return outlinks, err
-		}
-	case extractor.IsSitemapXML(item.GetURL()):
-		var assets []*models.URL
+	}
 
-		assets, outlinks, err = extractor.XML(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "XML", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
-			return outlinks, err
-		}
-
-		// Here we don't care about the difference between assets and outlinks,
-		// we just want to extract all the URLs from the sitemap
-		outlinks = append(outlinks, assets...)
-	case extractor.IsHTML(item.GetURL()):
-		outlinks, err = extractor.HTMLOutlinks(item)
-		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "HTMLOutlinks", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
-			return outlinks, err
-		}
-	case extractor.IsPDF(item.GetURL()):
-		outlinks, err = extractor.PDF(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "PDF", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
-			return outlinks, err
-		}
-	case reddit.IsPostAPI(item.GetURL()):
-		outlinks, err = reddit.ExtractAPIPostPermalinks(item)
-		if err != nil {
-			logger.Error("unable to extract outlinks", "extractor", "reddit.ExtractAPIPostPermalinks", "err", err.Error(), "item", item.GetShortID(), "url", item.GetURL())
-			return outlinks, err
-		}
-	default:
+	if outlinks == nil && err == nil {
 		logger.Debug("no extractor used for page", "content-type", contentType, "item", item.GetShortID(), "url", item.GetURL())
 	}
 

@@ -21,13 +21,13 @@ func newDocumentWithBaseTag(base string) *goquery.Document {
 func TestExtractBaseTag(t *testing.T) {
 	doc := newDocumentWithBaseTag("http://example.com/something/")
 
-	item := models.NewItem(&models.URL{
+	URL := &models.URL{
 		Raw: "https://example.com/something/page.html",
-	}, "")
+	}
 
-	extractBaseTag(item, doc)
+	extractBaseTag(URL, doc)
 
-	if item.GetBase().String() != "http://example.com/something/" {
+	if URL.GetBase().String() != "http://example.com/something/" {
 		t.Errorf("Cannot find html doc base.href")
 	}
 }

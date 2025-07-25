@@ -13,11 +13,13 @@ func init() {
 	pdfapi.DisableConfigDir()
 }
 
-func IsPDF(URL *models.URL) bool {
-	return URL.GetMIMEType() != nil && URL.GetMIMEType().Is("application/pdf")
+type PDFOutlinkExtractor struct{}
+
+func (PDFOutlinkExtractor) Match(URL *models.URL) bool {
+	return URL.GetMIMEType().Is("application/pdf")
 }
 
-func PDF(URL *models.URL) (outlinks []*models.URL, err error) {
+func (PDFOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
 	annots, err := pdfapi.Annotations(URL.GetBody(), nil, nil)

@@ -7,11 +7,13 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func IsNPRURL(URL *models.URL) bool {
+type NPRPreprocessor struct{}
+
+func (NPRPreprocessor) Match(URL *models.URL) bool {
 	return strings.Contains(URL.String(), "npr.org/")
 }
 
-func AddHeaders(req *http.Request) {
+func (NPRPreprocessor) Apply(req *http.Request) {
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	req.Header.Set("Accept-Language", "fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3")
 	req.Header.Set("Referer", "https://www.npr.org/")

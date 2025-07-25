@@ -116,6 +116,8 @@ type Config struct {
 	NoStderrLogging  bool   `mapstructure:"no-stderr-log"`
 	NoColorLogging   bool   `mapstructure:"no-color-logs"`
 	NoFileLogging    bool   `mapstructure:"no-log-file"`
+	SocketLogging    string `mapstructure:"log-socket"`
+	SocketLevel      string `mapstructure:"log-socket-level"`
 	StdoutLogLevel   string `mapstructure:"log-level"`
 	TUI              bool   `mapstructure:"tui"`
 	TUILogLevel      string `mapstructure:"tui-log-level"`
@@ -224,6 +226,11 @@ func BindFlags(flagSet *pflag.FlagSet) {
 // Get returns the config struct
 func Get() *Config {
 	return config
+}
+
+// Useful for testing
+func Set(cfg *Config) {
+	config = cfg
 }
 
 func GenerateCrawlConfig() error {

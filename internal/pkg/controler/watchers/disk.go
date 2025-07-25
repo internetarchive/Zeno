@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"syscall"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 )
@@ -40,18 +38,6 @@ func checkThreshold(total, free uint64, minSpaceRequired float64) error {
 	}
 
 	return nil
-}
-
-func CheckDiskUsage(path string) error {
-	var stat syscall.Statfs_t
-	if err := syscall.Statfs(path, &stat); err != nil {
-		panic(fmt.Sprintf("Error retrieving disk stats: %v\n", err))
-	}
-
-	total := stat.Blocks * uint64(stat.Bsize)
-	free := stat.Bavail * uint64(stat.Bsize)
-
-	return checkThreshold(total, free, config.Get().MinSpaceRequired)
 }
 
 // WatchDiskSpace watches the disk space and pauses the pipeline if it's low

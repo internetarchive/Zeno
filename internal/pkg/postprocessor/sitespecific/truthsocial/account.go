@@ -45,30 +45,13 @@ type account struct {
 	Fields                    []any `json:"fields"`
 }
 
-func IsAccountLookupURL(URL *models.URL) bool {
-	return accountLookupRegex.MatchString(URL.String())
-}
+type TruthsocialAccountOutlinkExtractor struct{}
 
-func IsAccountURL(URL *models.URL) bool {
+func (TruthsocialAccountOutlinkExtractor) Match(URL *models.URL) bool {
 	return usernameRegex.MatchString(URL.String())
 }
 
-func GenerateAccountLookupURL(URL *models.URL) (outlinks []*models.URL, err error) {
-	// Get the username from the URL
-	username := usernameRegex.FindStringSubmatch(URL.String())
-	if len(username) != 2 {
-		return nil, nil
-	}
-
-	// Generate the outlinks URLs
-	outlinks = append(outlinks, &models.URL{
-		Raw: "https://truthsocial.com/api/v1/accounts/lookup?acct=" + username[1],
-	})
-
-	return outlinks, nil
-}
-
-func GenerateOutlinksURLsFromLookup(URL *models.URL) (outlinks []*models.URL, err error) {
+func (TruthsocialAccountOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
 	decoder := json.NewDecoder(URL.GetBody())
@@ -89,6 +72,27 @@ func GenerateOutlinksURLsFromLookup(URL *models.URL) (outlinks []*models.URL, er
 			Raw: "https://truthsocial.com/api/v1/accounts/" + account.ID + "/statuses?with_muted=true&only_media=true",
 		},
 	)
+
+	return outlinks, nil
+}
+
+type TruthsocialAccountLookupOutlinkExtractor struct{}
+
+func (TruthsocialAccountLookupOutlinkExtractor) Match(URL *models.URL) bool {
+	return accountLookupRegex.MatchString(URL.String())
+}
+
+func (TruthsocialAccountLookupOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
+	// Get the username from the URL
+	username := usernameRegex.FindStringSubmatch(URL.String())
+	if len(username) != 2 {
+		return nil, nil
+	}
+
+	// Generate the outlinks URLs
+	outlinks = append(outlinks, &models.URL{
+		Raw: "https://truthsocial.com/api/v1/accounts/lookup?acct=" + username[1],
+	})
 
 	return outlinks, nil
 }

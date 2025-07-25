@@ -100,7 +100,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 			var assets []*models.URL
 			var err error
 
-			assets, outlinksFromAssets, err = extractAssets(item)
+			assets, outlinksFromAssets, err = ExtractAssetsOutlinks(item)
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error(), "item_id", item.GetShortID())
 			} else {
@@ -170,9 +170,6 @@ func postprocessItem(item *models.Item) []*models.Item {
 			}
 		}
 	}
-
-	// Make sure the goquery document's memory can be freed
-	item.GetURL().SetDocument(nil)
 
 	if !item.HasChildren() && !item.HasRedirection() && item.GetStatus() != models.ItemFailed {
 		logger.Debug("item has no children, setting as completed", "item_id", item.GetShortID())
