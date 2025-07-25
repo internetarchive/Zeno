@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver"
+	generalarchiver "github.com/internetarchive/Zeno/internal/pkg/archiver/general"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -99,7 +99,7 @@ func TestExtractURLsFromHeader(t *testing.T) {
 				Body: io.NopCloser(bytes.NewBufferString("")),
 				Header: http.Header{
 					"Content-Type": []string{"text/html"},
-					"Link": []string{tt.link},
+					"Link":         []string{tt.link},
 				},
 			}
 
@@ -113,7 +113,7 @@ func TestExtractURLsFromHeader(t *testing.T) {
 				t.Errorf("unable to read response body: %v", err)
 			}
 
-			err = archiver.ProcessBody(URL, false, false, 0, os.TempDir())
+			err = generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
 			if err != nil {
 				t.Errorf("ProcessBody() error = %v", err)
 			}
