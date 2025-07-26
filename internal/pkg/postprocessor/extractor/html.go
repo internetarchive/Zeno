@@ -22,8 +22,14 @@ func IsHTML(URL *models.URL) bool {
 	return URL.GetMIMEType() != nil && strings.Contains(URL.GetMIMEType().String(), "html")
 }
 
-func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
-	defer item.GetURL().RewindBody()
+type HTMLOutlinkExtractor struct{}
+
+func (HTMLOutlinkExtractor) Match(URL *models.URL) bool {
+	return IsHTML(URL)
+}
+
+func (HTMLOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
+	defer URL.RewindBody()
 
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.extractor.HTMLOutlinks",
@@ -32,13 +38,13 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	var rawOutlinks []string
 
 	// Retrieve (potentially creates it) the document from the body
-	document, err, _ := TransformDocument(item.GetURL())
+	document, err, _ := TransformDocument(URL)
 	if err != nil {
 		return nil, err
 	}
 
 	// Extract the base tag if it exists
-	extractBaseTag(item, document)
+	extractBaseTag(URL, document)
 
 	// Match <a> tags with href, data-href, data-src, data-srcset, data-lazy-src, data-srcset, src, srcset
 	// Extract potential URLs from <a> tags using common attributes
@@ -93,9 +99,9 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	}
 
 	for _, rawOutlink := range rawOutlinks {
-		resolvedURL, err := resolveURL(rawOutlink, item)
+		resolvedURL, err := resolveURL(rawOutlink, URL)
 		if err != nil {
-			logger.Debug("unable to resolve URL", "error", err, "url", item.GetURL(), "item", item.GetShortID())
+			logger.Debug("unable to resolve URL", "error", err, "url", URL)
 		} else if resolvedURL != "" {
 			outlinks = append(outlinks, &models.URL{
 				Raw: resolvedURL,
@@ -104,8 +110,8 @@ func HTMLOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		}
 
 		// Discard URLs that are the same as the base URL or the current URL
-		if (item.GetBase() != nil && rawOutlink == item.GetBase().String()) || rawOutlink == item.GetURL().String() {
-			logger.Debug("discarding outlink because it is the same as the base URL or current URL", "url", rawOutlink, "item", item.GetShortID())
+		if (URL.GetBase() != nil && rawOutlink == URL.GetBase().String()) || rawOutlink == URL.String() {
+			logger.Debug("discarding outlink because it is the same as the base URL or current URL", "url", rawOutlink)
 			continue
 		}
 
@@ -131,7 +137,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	// Extract the base tag if it exists
-	extractBaseTag(item, document)
+	extractBaseTag(item.GetURL(), document)
 
 	// Get assets from JSON payloads in data-item values
 	// Check all elements style attributes for background-image & also data-preview
@@ -392,11 +398,11 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	}
 
 	for _, rawAsset := range rawAssets {
-		resolvedURL, err := resolveURL(rawAsset, item)
+		resolvedURL, err := resolveURL(rawAsset, item.GetURL())
 		if err != nil {
 			var baseURL string
-			if item.GetBase() != nil {
-				baseURL = item.GetBase().String()
+			if item.GetURL().GetBase() != nil {
+				baseURL = item.GetURL().GetBase().String()
 			}
 			logger.Debug("unable to resolve URL", "error", err, "item_url", item.GetURL(), "base_url", baseURL, "target", rawAsset, "item", item.GetShortID())
 		} else if resolvedURL != "" {

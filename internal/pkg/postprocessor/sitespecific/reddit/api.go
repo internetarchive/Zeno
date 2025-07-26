@@ -182,16 +182,22 @@ type Post struct {
 	} `json:"data"`
 }
 
-func IsPostAPI(URL *models.URL) bool {
+func IsRedditURL(URL *models.URL) bool {
+	return strings.Contains(URL.String(), "reddit.com")
+}
+
+type RedditPostAPIOutlinkExtractor struct{}
+
+func (RedditPostAPIOutlinkExtractor) Match(URL *models.URL) bool {
 	return strings.Contains(URL.String(), "reddit.com/api/info.json?id=t3_")
 }
 
-func ExtractAPIPostPermalinks(item *models.Item) (outlinks []*models.URL, err error) {
+func (RedditPostAPIOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
 	var permalinks []string
 
-	defer item.GetURL().RewindBody()
+	defer URL.RewindBody()
 
-	body, err := io.ReadAll(item.GetURL().GetBody())
+	body, err := io.ReadAll(URL.GetBody())
 	if err != nil {
 		return outlinks, err
 	}
@@ -211,7 +217,7 @@ func ExtractAPIPostPermalinks(item *models.Item) (outlinks []*models.URL, err er
 	for _, rawOutlink := range permalinks {
 		outlinks = append(outlinks, &models.URL{
 			Raw:  rawOutlink,
-			Hops: item.GetURL().GetHops() + 1,
+			Hops: URL.GetHops() + 1,
 		})
 	}
 

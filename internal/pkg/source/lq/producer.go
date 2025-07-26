@@ -71,7 +71,7 @@ func (s *LQ) producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh c
 	})
 
 	batchSize := 100
-	maxWaitTime := 5 * time.Second
+	maxWaitTime := 1 * time.Second
 
 	batch := &producerBatch{
 		URLs: make([]sqlc_model.Url, 0, batchSize),

@@ -11,20 +11,23 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-// extractAssets extracts assets from the item's body and returns them.
+// ExtractAssetsOutlinks extracts assets from the item's body and returns them.
 // It also potentially returns outlinks if the body contains URLs that are not assets.
-func extractAssets(item *models.Item) (assets, outlinks []*models.URL, err error) {
-	var (
-		contentType = item.GetURL().GetResponse().Header.Get("Content-Type")
-		logger      = log.NewFieldedLogger(&log.Fields{
-			"component": "postprocessor.extractAssets",
-		})
-	)
+func ExtractAssetsOutlinks(item *models.Item) (assets, outlinks []*models.URL, err error) {
+	assets, outlinks, err = Extractors(item)
+	return SanitizeAssetsOutlinks(item, assets, outlinks, err)
+}
 
-	// Extract assets from the body using the appropriate extractor
+// Extract assets and outlinks from the body using the appropriate extractor
+// Order is important, we want to check for more specific things first,
+// as they may trigger more general extractors (e.g. HTML)
+// TODO this should be refactored using interfaces
+func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "postprocessor.Extractors",
+	})
+
 	switch {
-	// Order is important, we want to check for more specific things first,
-	// as they may trigger more general extractors (e.g. HTML)
 	case ina.IsAPIURL(item.GetURL()):
 		INAAssets, err := ina.ExtractMedias(item.GetURL())
 		if err != nil {
@@ -82,10 +85,18 @@ func extractAssets(item *models.Item) (assets, outlinks []*models.URL, err error
 		}
 		extractor.AddAtImportLinksToItemChild(item, atImportLinks)
 	default:
+		contentType := item.GetURL().GetResponse().Header.Get("Content-Type")
 		logger.Debug("no extractor used for page", "content-type", contentType, "mime", item.GetURL().GetMIMEType().String(), "item", item.GetShortID())
 		return assets, outlinks, nil
 	}
 
+	return assets, outlinks, err
+}
+
+func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []*models.URL, err error) ([]*models.URL, []*models.URL, error) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "postprocessor.SanitizeAssetsOutlinks",
+	})
 	for i := 0; i < len(assets); {
 		asset := assets[i]
 

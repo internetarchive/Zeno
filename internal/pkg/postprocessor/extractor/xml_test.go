@@ -195,8 +195,8 @@ func TestXML(t *testing.T) {
 	}
 }
 
-// TestIsSitemapXML covers multiple scenarios.
-func TestIsSitemapXML(t *testing.T) {
+// TestSitemapXMLOutlinkExtractor covers multiple scenarios.
+func TestSitemapXMLOutlinkExtractor(t *testing.T) {
 	tests := []struct {
 		name    string
 		xmlData string
@@ -296,6 +296,7 @@ func TestIsSitemapXML(t *testing.T) {
 		},
 	}
 
+	extractor := SitemapXMLOutlinkExtractor{}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// Construct a minimal FakeURL with your test data as body
@@ -315,7 +316,7 @@ func TestIsSitemapXML(t *testing.T) {
 
 			URLObj.SetBody(spooledTempFile)
 
-			got := IsSitemapXML(URLObj)
+			got := extractor.Match(URLObj)
 			if got != tc.want {
 				t.Errorf("IsSitemapXML(%q) = %v, want %v", tc.xmlData, got, tc.want)
 			}

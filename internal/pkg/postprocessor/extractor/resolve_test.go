@@ -114,9 +114,9 @@ func TestResolveURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			item := models.NewItemWithID("test", &models.URL{
+			URL := &models.URL{
 				Raw: tt.parentURL,
-			}, "")
+			}
 
 			var doc *goquery.Document
 			if tt.base != "" {
@@ -127,16 +127,16 @@ func TestResolveURL(t *testing.T) {
 				doc, _ = goquery.NewDocumentFromReader(strings.NewReader(`<html></html>`))
 			}
 
-			extractBaseTag(item, doc)
+			extractBaseTag(URL, doc)
 
-			isBaseUnset := item.GetBase() == nil
+			isBaseUnset := URL.GetBase() == nil
 			if tt.wantBaseUnset != isBaseUnset {
 				t.Errorf("resolveURL() isBaseUnset = %v, test_name = %s, wantBaseUnset %v", isBaseUnset, tt.name, tt.wantBaseUnset)
 			}
 
-			preprocessor.NormalizeURL(item.GetURL(), nil, nil)
+			preprocessor.NormalizeURL(URL, nil, nil)
 
-			got, err := resolveURL(tt.URL, item)
+			got, err := resolveURL(tt.URL, URL)
 			if (err != nil) != tt.expectErr {
 				t.Errorf("resolveURL() error = %v, test_name = %s, expectErr %v", err, tt.name, tt.expectErr)
 				return

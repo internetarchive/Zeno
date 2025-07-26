@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	stdliblog "log"
 	"log/slog"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -19,6 +21,7 @@ import (
 
 var (
 	rotatedLogFile *rotatedFile
+	socketCfg      *socketConfig
 )
 
 type logConfig struct {
@@ -27,6 +30,8 @@ type logConfig struct {
 	StdoutLevel   slog.Level
 	StderrEnabled bool
 	StderrLevel   slog.Level
+	SocketEnabled bool
+	SocketConfig  *socketConfig
 	NoColor       bool
 	LogTUI        bool
 	TUILogLevel   slog.Level
@@ -38,6 +43,13 @@ type logfileConfig struct {
 	Level        slog.Level
 	Rotate       bool
 	RotatePeriod time.Duration
+}
+
+type socketConfig struct {
+	SocketPath  string
+	Level       slog.Level
+	NetListener net.Listener
+	Conn        net.Conn
 }
 
 // makeConfig returns the default configuration
@@ -76,12 +88,40 @@ func makeConfig() *logConfig {
 		logFileConfig = nil
 	}
 
+	if config.Get().SocketLogging != "" {
+		socketPath := config.Get().SocketLogging
+		if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
+			stdliblog.Printf("Warning: Failed to remove old socket at %s: %v", socketPath, err)
+		} // Clean up any old socket
+		listener, err := net.Listen("unix", socketPath)
+		if err != nil {
+			stdliblog.Fatalf("Failed to listen on Unix socket at %s: %v", socketPath, err)
+		}
+		stdliblog.Printf("Listening on Unix socket: %s", socketPath)
+
+		// We must wait for a client to connect before we can write logs to the socket.
+		// The --log-socket is only used for tests, so we can block here and only use the first connection.
+		conn, err := listener.Accept()
+		if err != nil {
+			stdliblog.Fatalf("Failed to accept connection on Unix socket: %v", err)
+		}
+		stdliblog.Println("Client connected!")
+		socketCfg = &socketConfig{
+			Level:       parseLevel(config.Get().SocketLevel),
+			SocketPath:  socketPath,
+			NetListener: listener,
+			Conn:        conn,
+		}
+	}
+
 	return &logConfig{
 		FileConfig:    logFileConfig,
 		StdoutEnabled: !config.Get().NoStdoutLogging,
 		StdoutLevel:   parseLevel(config.Get().StdoutLogLevel),
 		StderrEnabled: !config.Get().NoStderrLogging,
 		StderrLevel:   slog.LevelError,
+		SocketEnabled: config.Get().SocketLogging != "",
+		SocketConfig:  socketCfg,
 		NoColor:       config.Get().NoColorLogging,
 		LogTUI:        config.Get().TUI,
 		TUILogLevel:   parseLevel(config.Get().TUILogLevel),
@@ -152,6 +192,14 @@ func (c *logConfig) makeMultiLogger() *slog.Logger {
 		fileHandler := slog.NewTextHandler(rotatedLogFile, &slog.HandlerOptions{Level: c.FileConfig.Level})
 		baseRouter = baseRouter.Add(fileHandler, func(_ context.Context, r slog.Record) bool {
 			return r.Level >= c.FileConfig.Level
+		})
+	}
+
+	// Handle socket logging configuration
+	if c.SocketEnabled && c.SocketConfig != nil {
+		socketHandler := slog.NewTextHandler(c.SocketConfig.Conn, &slog.HandlerOptions{Level: c.SocketConfig.Level})
+		baseRouter = baseRouter.Add(socketHandler, func(_ context.Context, r slog.Record) bool {
+			return r.Level >= c.SocketConfig.Level
 		})
 	}
 

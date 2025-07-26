@@ -21,7 +21,7 @@ var CorruptPDF []byte
 
 func TestPDF(t *testing.T) {
 	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewBuffer(DeveloperPortalPDF)),
+		Body:   io.NopCloser(bytes.NewBuffer(DeveloperPortalPDF)),
 		Header: make(http.Header),
 	}
 	resp.Header.Set("Content-Type", "application/pdf")
@@ -35,7 +35,8 @@ func TestPDF(t *testing.T) {
 	}
 
 	start := time.Now()
-	outlinks, err := PDF(URL)
+	extractor := PDFOutlinkExtractor{}
+	outlinks, err := extractor.Extract(URL)
 	if err != nil {
 		t.Error(err)
 		return
@@ -43,7 +44,7 @@ func TestPDF(t *testing.T) {
 
 	want := 19
 	if len(outlinks) != want {
-		t.Errorf("PDF() got = %v, want %v", len(outlinks), want)
+		t.Errorf("PDFOutlinkExtractor.Extract() got = %v, want %v", len(outlinks), want)
 	}
 	t.Logf("PDF extraction took %v", time.Since(start))
 }
@@ -51,7 +52,7 @@ func TestPDF(t *testing.T) {
 // must fail gracefully with corrupt files.
 func TestCorruptPDF(t *testing.T) {
 	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewBuffer(CorruptPDF)),
+		Body:   io.NopCloser(bytes.NewBuffer(CorruptPDF)),
 		Header: make(http.Header),
 	}
 	resp.Header.Set("Content-Type", "application/pdf")
@@ -64,7 +65,8 @@ func TestCorruptPDF(t *testing.T) {
 		t.Errorf("ProcessBody() error = %v", err)
 	}
 
-	outlinks, err := PDF(URL)
+	extractor := PDFOutlinkExtractor{}
+	outlinks, err := extractor.Extract(URL)
 	if err == nil {
 		t.Error("Corrupt PDF must raise an error")
 	}

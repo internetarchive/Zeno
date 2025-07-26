@@ -22,6 +22,7 @@ type URL struct {
 	parsed    *url.URL
 	request   *http.Request
 	response  *http.Response
+	base      *url.URL // Base is the base URL of the HTML doc, extracted from a <base> tag
 	body      spooledtempfile.ReadSeekCloser
 	mimetype  *mimetype.MIME
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
@@ -150,6 +151,16 @@ func (u *URL) String() string {
 		u.stringCache = URLToString(u.parsed)
 	})
 	return u.stringCache
+}
+
+// GetBase returns the base URL of the item
+func (u *URL) GetBase() *url.URL {
+	return u.base
+}
+
+// SetBase sets the base URL of the item
+func (u *URL) SetBase(base *url.URL) {
+	u.base = base
 }
 
 // URLToString exists to apply some custom stuff, in opposition of simply

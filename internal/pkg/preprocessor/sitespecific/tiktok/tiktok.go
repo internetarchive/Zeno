@@ -7,11 +7,13 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-func IsTikTokURL(URL *models.URL) bool {
+type TikTokPreprocessor struct{}
+
+func (TikTokPreprocessor) Match(URL *models.URL) bool {
 	return strings.Contains(URL.String(), "tiktok.com/")
 }
 
-func AddHeaders(req *http.Request) {
+func (TikTokPreprocessor) Apply(req *http.Request) {
 	req.Header.Set("Authority", "www.tiktok.com")
 	req.Header.Set("Sec-Ch-Ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"99\", \"Microsoft Edge\";v=\"99\"")
 	req.Header.Set("Sec-Ch-Ua-Mobile", "?0")

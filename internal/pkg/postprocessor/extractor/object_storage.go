@@ -15,15 +15,17 @@ var ObjectStorageServers = func() (s []string) {
 	return s
 }()
 
-// IsObjectStorage checks if the response is from an object storage server
-func IsObjectStorage(URL *models.URL) bool {
+type ObjectStorageOutlinkExtractor struct{}
+
+// Check if the response is from an object storage server
+func (ObjectStorageOutlinkExtractor) Match(URL *models.URL) bool {
 	return utils.StringContainsSliceElements(URL.GetResponse().Header.Get("Server"), ObjectStorageServers) &&
 		URL.GetMIMEType() != nil &&
 		strings.Contains(URL.GetMIMEType().String(), "/xml") // tricky match both application/xml and text/xml
 }
 
 // ObjectStorage decides which helper to call based on the object storage server
-func ObjectStorage(URL *models.URL) ([]*models.URL, error) {
+func (ObjectStorageOutlinkExtractor) Extract(URL *models.URL) ([]*models.URL, error) {
 	defer URL.RewindBody()
 
 	server := URL.GetResponse().Header.Get("Server")

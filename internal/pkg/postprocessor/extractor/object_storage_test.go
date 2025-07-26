@@ -32,7 +32,7 @@ func buildTestObjectStorageURLObj(selfURL, xmlBody string, respHeader http.Heade
 }
 
 // TestIsObjectStorage checks the Server header for known OSS Server strings.
-func TestIsObjectStorage(t *testing.T) {
+func TestObjectStorageOutlinkExtractorMatch(t *testing.T) {
 	tests := []struct {
 		name   string
 		server string
@@ -45,6 +45,7 @@ func TestIsObjectStorage(t *testing.T) {
 		{"No match", "Apache", false},
 		{"Partial match", "Amazon", false},
 	}
+	extractor := ObjectStorageOutlinkExtractor{}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -58,9 +59,9 @@ func TestIsObjectStorage(t *testing.T) {
 				},
 			})
 
-			got := IsObjectStorage(URLObj)
+			got := extractor.Match(URLObj)
 			if got != tt.want {
-				t.Errorf("IsObjectStorage(server=%q) = %v, want %v", tt.server, got, tt.want)
+				t.Errorf("ObjectStorageOutlinkExtractor.Match(server=%q) = %v, want %v", tt.server, got, tt.want)
 			}
 		})
 	}
@@ -71,7 +72,8 @@ func TestObjectStorage(t *testing.T) {
 		xmlBody := `<Placeholder>XML</Placeholder>`
 
 		URLObj := buildTestObjectStorageURLObj("https://example.com/", xmlBody, http.Header{"Server": []string{"NotAnOSS"}})
-		_, err := ObjectStorage(URLObj)
+		extractor := ObjectStorageOutlinkExtractor{}
+		_, err := extractor.Extract(URLObj)
 
 		if err == nil {
 			t.Fatalf("expected error for unknown object storage server, got none")
