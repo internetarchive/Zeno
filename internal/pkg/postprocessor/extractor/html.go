@@ -120,7 +120,7 @@ func (HTMLOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, er
 		})
 	}
 
-	return outlinks, nil
+	return encodeNonUTF8QueryURLs(outlinks, URL.GetDocumentEncoding()), nil
 }
 
 func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
@@ -418,7 +418,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 
 	}
 
-	return assets, nil
+	return encodeNonUTF8QueryURLs(assets, item.GetURL().GetDocumentEncoding()), nil
 }
 
 var contentURLRegex = regexp.MustCompile(`(?i)\burl\s*=\s*(\S+)`)

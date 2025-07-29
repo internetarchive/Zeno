@@ -4,8 +4,6 @@ import (
 	"testing"
 
 	"github.com/internetarchive/Zeno/pkg/models"
-	"golang.org/x/text/encoding"
-	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
 func TestNormalizeURL(t *testing.T) {
@@ -15,7 +13,6 @@ func TestNormalizeURL(t *testing.T) {
 		parentURL   string
 		wantErr     bool
 		expectedURL string
-		docEnc      encoding.Encoding
 	}{
 		{
 			name:        "valid absolute URL",
@@ -71,14 +68,6 @@ func TestNormalizeURL(t *testing.T) {
 			wantErr:     true,
 			expectedURL: "",
 		},
-		{
-			name: "GBK Encoded URL",
-			// https://example.com/\xc4\xe3\xba\xc3?\xca\xc0\xbd\xe7=\xd4\xb2\xb5\xc4
-			rawURL:      "https://example.com/你好?世界=圆的",
-			expectedURL: "https://example.com/%E4%BD%A0%E5%A5%BD?%CA%C0%BD%E7=%D4%B2%B5%C4",
-			docEnc:      simplifiedchinese.GBK,
-			wantErr:     false,
-		},
 	}
 
 	for _, tt := range tests {
@@ -90,7 +79,7 @@ func TestNormalizeURL(t *testing.T) {
 				parentURL = &models.URL{Raw: tt.parentURL}
 				parentURL.Parse()
 			}
-			err := NormalizeURL(url, parentURL, tt.docEnc)
+			err := NormalizeURL(url, parentURL)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("normalizeURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
