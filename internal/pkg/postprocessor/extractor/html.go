@@ -38,7 +38,7 @@ func (HTMLOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, er
 	var rawOutlinks []string
 
 	// Retrieve (potentially creates it) the document from the body
-	document, err, _ := TransformDocument(URL)
+	document, err := TransformDocument(URL)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	var rawAssets []string
 
 	// Retrieve (potentially creates it) the document from the body
-	document, err, _ := TransformDocument(item.GetURL())
+	document, err := TransformDocument(item.GetURL())
 	if err != nil {
 		return nil, err
 	}

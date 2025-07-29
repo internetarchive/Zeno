@@ -41,7 +41,7 @@ func charsetNewReader(r io.Reader, contentType string) (io.Reader, error, encodi
 }
 
 // TransformDocument transforms the document of a URL by detecting its encoding and creating a utf-8 goquery document.
-func TransformDocument(u *models.URL) (doc *goquery.Document, err error, enc encoding.Encoding) {
+func TransformDocument(u *models.URL) (doc *goquery.Document, err error) {
 	u.DocumentTransfromMux.Lock()
 	defer u.DocumentTransfromMux.Unlock()
 
@@ -59,14 +59,14 @@ func TransformDocument(u *models.URL) (doc *goquery.Document, err error, enc enc
 		htmldocLogger.Debug("Transforming document step 1", "url", u.String(), "content_type", contentType)
 		transformReader, err, enc, encName, certain := charsetNewReader(u.GetBody(), contentType)
 		if err != nil {
-			return nil, err, nil
+			return nil, err
 		}
 		htmldocLogger.Debug("Transforming document step 2", "url", u.String(), "enc", enc, "enc_name", encName, "certain", certain)
 
 		// Create the document from the converted reader
 		document, err := goquery.NewDocumentFromReader(transformReader)
 		if err != nil {
-			return nil, err, nil
+			return nil, err
 		}
 
 		u.SetDocumentCache(document)
@@ -75,7 +75,7 @@ func TransformDocument(u *models.URL) (doc *goquery.Document, err error, enc enc
 
 	}
 
-	return u.GetDocumentCache(), nil, u.GetDocumentEncoding()
+	return u.GetDocumentCache(), nil
 }
 
 func encodeNonUTF8QueryURLs(urls []*models.URL, enc encoding.Encoding) []*models.URL {
