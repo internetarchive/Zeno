@@ -340,7 +340,7 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	// Run the behaviors script
 	logger.Debug("running behaviors script", "timeout", config.Get().HeadlessBehaviorTimeout)
 	start := time.Now()
-	_, err = page.Evaluate(rod.Eval(behaviorRunJS).ByPromise()) // Theg [BehaviorTimeout] is set in the __bx_behaviors.init() call
+	_, err = page.Evaluate(rod.Eval(behaviorRunJS).ByPromise()) // The [BehaviorTimeout] is set in the __bx_behaviors.init() call
 	if err != nil {
 		logger.Error("unable to run behaviors script", "error", err)
 	}
