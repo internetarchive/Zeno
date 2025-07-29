@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"io"
 	"testing"
+
+	"github.com/internetarchive/Zeno/pkg/models"
+	"golang.org/x/net/html/charset"
 )
 
 func Test_charsetNewReader(t *testing.T) {
@@ -98,6 +101,56 @@ func Test_charsetNewReader(t *testing.T) {
 			}
 			if buf.String() != tt.wantOutput {
 				t.Errorf("charsetNewReader() got = %v, want %v", buf.String(), tt.wantOutput)
+			}
+		})
+	}
+}
+
+func Test_encodeNonUTF8QueryURLs(t *testing.T) {
+	tests := []struct {
+		name     string
+		encName  string
+		urls     []string
+		wantUrls []string
+	}{
+		{
+			name:     "UTF-8 URLs",
+			encName:  "utf-8",
+			urls:     []string{"http://example.com/ABC你好?q=测试", "http://example.com/?q=hello"},
+			wantUrls: []string{"http://example.com/ABC%E4%BD%A0%E5%A5%BD?q=%E6%B5%8B%E8%AF%95", "http://example.com/?q=hello"},
+		},
+		{
+			name:     "GBK URLs",
+			encName:  "gbk",
+			urls:     []string{"http://example.com/ABC你好?q=测试", "http://example.com/?q=hello"},
+			wantUrls: []string{"http://example.com/ABC%E4%BD%A0%E5%A5%BD?q=%B2%E2%CA%D4", "http://example.com/?q=hello"},
+		},
+		{
+			name:     "Shift_JIS URLs",
+			encName:  "shift_jis",
+			urls:     []string{"http://example.com/ABCまんが?q=アニメ", "http://example.com/?q=hello"},
+			wantUrls: []string{"http://example.com/ABC%E3%81%BE%E3%82%93%E3%81%8C?q=%83A%83j%83%81", "http://example.com/?q=hello"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var urls []*models.URL
+			for _, raw := range tt.urls {
+				url := &models.URL{Raw: raw}
+				urls = append(urls, url)
+			}
+
+			enc, _ := charset.Lookup(tt.encName)
+			if enc == nil {
+				t.Errorf("charset.Lookup() not found")
+				return
+			}
+			gotUrls := encodeNonUTF8QueryURLs(urls, enc)
+
+			for i, gotUrl := range gotUrls {
+				if gotUrl.Raw != tt.wantUrls[i] {
+					t.Errorf("encodeNonUTF8QueryURLs() got = %v, want %v", gotUrl.Raw, tt.wantUrls[i])
+				}
 			}
 		})
 	}
