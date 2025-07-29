@@ -151,6 +151,12 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			return
 		}
 
+		if hijack.Request.URL().Scheme != "http" && hijack.Request.URL().Scheme != "https" {
+			logger.Debug("dropping request not in http/https", "scheme", hijack.Request.URL().Scheme)
+			hijack.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
+			return
+		}
+
 		var (
 			req             *http.Request
 			resp            *http.Response
@@ -164,8 +170,11 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			logger.Debug("capturing asset")
 		}
 
+		// Wait for the rate limiter if enabled
 		if bucketManager != nil {
-			bucketManager.Wait(hijack.Request.URL().Host)
+			elapsed := bucketManager.Wait(hijack.Request.URL().Host)
+			logger.Debug("got token from bucket", "elapsed", elapsed)
+
 		}
 		req = hijack.Request.Req()
 
