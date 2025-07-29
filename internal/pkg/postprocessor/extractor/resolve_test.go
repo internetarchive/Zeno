@@ -134,7 +134,7 @@ func TestResolveURL(t *testing.T) {
 				t.Errorf("resolveURL() isBaseUnset = %v, test_name = %s, wantBaseUnset %v", isBaseUnset, tt.name, tt.wantBaseUnset)
 			}
 
-			preprocessor.NormalizeURL(URL, nil, nil)
+			preprocessor.NormalizeURL(URL, nil)
 
 			got, err := resolveURL(tt.URL, URL)
 			if (err != nil) != tt.expectErr {
