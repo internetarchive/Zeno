@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
+	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 	warc "github.com/internetarchive/gowarc"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
@@ -128,7 +130,10 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	flyingRequests := NewWaitGroup()
 
 	requestsMutex := &sync.Mutex{}
+
 	router.MustAdd("*", func(hijack *rod.Hijack) {
+		defer stats.URLsCrawledIncr()
+
 		logger := log.NewFieldedLogger(&log.Fields{
 			"component": "archiver.headless.router",
 			"item_id":   item.GetShortID(),
@@ -183,7 +188,7 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			retrySleepTime := time.Second * time.Duration(retry*2)
 
 			// // Get and measure request time
-			// getStartTime := time.Now()
+			getStartTime := time.Now()
 
 			// If WARC writing is asynchronous, we don't need a feedback channel
 			if !config.Get().WARCWriteAsync {
@@ -200,7 +205,6 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 				req.Header.Set("User-Agent", config.Get().UserAgent)
 			}
 
-			// If the response is for the main page, save the body
 			resp, err = clientDo(&warcClient.Client, req, hijack)
 			if err != nil {
 				if errors.Is(err, context.Canceled) { // failfast if the request is canceled
@@ -219,8 +223,11 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 				hijack.Response.Fail(proto.NetworkErrorReasonAborted)
 				return
 			}
+			stats.MeanHTTPRespTimeAdd(time.Since(getStartTime))
+			stats.HTTPReturnCodesIncr(strconv.Itoa(resp.StatusCode))
+
 			break
-		}
+		} // <--- retry loop end
 
 		if bucketManager != nil {
 			bucketManager.OnSuccess(hijack.Request.URL().Host)
@@ -248,12 +255,14 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			Conn:       <-wrappedConnChan,
 		}
 
+		processStartTime := time.Now()
 		fullBody, err := ProcessBodyHeadless(hijack, resp)
 		if err != nil {
 			logger.Error("unable to process body", "error", err)
 			hijack.Response.Fail(proto.NetworkErrorReasonConnectionFailed)
 			return
 		}
+		stats.MeanProcessBodyTimeAdd(time.Since(processStartTime))
 
 		// OK
 
@@ -266,8 +275,16 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 		hijack.Response.Payload().Body = fullBody
 		fullBody = nil
 
+		// If WARC writing is asynchronous, we don't need to wait for the feedback channel
+		if !config.Get().WARCWriteAsync {
+			feedbackTime := time.Now()
+			// Waiting for WARC writing to finish
+			<-feedbackChan
+			stats.MeanWaitOnFeedbackTimeAdd(time.Since(feedbackTime))
+		}
+
 		logger.Debug("processed body", "size", len(hijack.Response.Payload().Body))
-	})
+	}) // <--- Router End
 
 	go router.Run()
 
