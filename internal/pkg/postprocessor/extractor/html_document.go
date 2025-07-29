@@ -12,6 +12,7 @@ import (
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/htmlindex"
+	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 )
 
@@ -92,8 +93,9 @@ func TransformDocument(u *models.URL) (doc *goquery.Document, err error) {
 }
 
 // encodeNonUTF8QueryURLs encodes the query parameters of the given URLs using the specified encoding.
+// If the encoding is nil/Nop/UTF8, it returns the URLs unchanged.
 func encodeNonUTF8QueryURLs(urls []*models.URL, enc encoding.Encoding) []*models.URL {
-	if enc == nil || enc == encoding.Nop {
+	if enc == nil || enc == encoding.Nop || enc == unicode.UTF8 {
 		return urls
 	}
 
