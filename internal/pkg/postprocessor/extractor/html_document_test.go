@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/internetarchive/Zeno/pkg/models"
-	"golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding/htmlindex"
 )
 
 func Test_charsetNewReader(t *testing.T) {
@@ -140,7 +140,7 @@ func Test_encodeNonUTF8QueryURLs(t *testing.T) {
 				urls = append(urls, url)
 			}
 
-			enc, _ := charset.Lookup(tt.encName)
+			enc, _ := htmlindex.Get(tt.encName)
 			if enc == nil {
 				t.Errorf("charset.Lookup() not found")
 				return

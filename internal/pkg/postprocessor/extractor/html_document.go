@@ -11,6 +11,7 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/htmlindex"
 	"golang.org/x/text/transform"
 )
 
@@ -33,8 +34,17 @@ func charsetNewReader(r io.Reader, contentType string) (io.Reader, error, encodi
 		r = io.MultiReader(bytes.NewReader(preview), r)
 	}
 
-	enc, name, certain := charset.DetermineEncoding(preview, contentType)
-	if enc != encoding.Nop {
+	var enc encoding.Encoding
+	htmlEnc, name, certain := charset.DetermineEncoding(preview, contentType)
+	if htmlEnc != nil && htmlEnc != encoding.Nop {
+		// The htmlEnc will use HTML escape sequences for runes that are not supported by the character set.
+		// To get the original unwrapped encoding, we need to use htmlindex.
+		enc, err = htmlindex.Get(name)
+		if err != nil { // This should never happen
+			htmldocLogger.Error("unable to get encoding from htmlindex", "err", err.Error(), "name", name)
+			return r, err, nil, "", false
+		}
+
 		r = transform.NewReader(r, enc.NewDecoder())
 	}
 
