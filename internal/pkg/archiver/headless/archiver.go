@@ -190,6 +190,11 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			// If the response is for the main page, save the body
 			resp, err = clientDo(&warcClient.Client, req, hijack)
 			if err != nil {
+				if errors.Is(err, context.Canceled) { // failfast if the request is canceled
+					logger.Debug("request canceled", "err", err.Error())
+					hijack.Response.Fail(proto.NetworkErrorReasonTimedOut)
+					return
+				}
 				if retry < config.Get().MaxRetry {
 					logger.Warn("retrying request", "err", err.Error(), "retry", retry, "sleep_time", retrySleepTime)
 					time.Sleep(retrySleepTime)
