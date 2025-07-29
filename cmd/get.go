@@ -72,7 +72,7 @@ func addBasicFlags(getCmd *cobra.Command) {
 
 func addHeadlessFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("headless", false, "[headless] Run in headless mode (experimental).")
-	getCmd.PersistentFlags().Bool("headless-headful", false, "[headless] Switch to headful mode (requires --headless).")
+	getCmd.PersistentFlags().Bool("headless-headful", false, "[headless] Switch to headful mode to run the browser with full graphics stack and show browser GUI (requires --headless).")
 	getCmd.PersistentFlags().Bool("headless-trace", false, "[headless] Trace enables the visual tracing of the input actions on the page.")
 	getCmd.PersistentFlags().Bool("headless-dev-tools", false, "[headless] F12")
 	getCmd.PersistentFlags().Bool("headless-stealth", false, "[headless] Use stealth to prevent bot detection and use the browser's native User-Agent")
