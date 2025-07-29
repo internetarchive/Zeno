@@ -3,6 +3,7 @@ package headless
 import (
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -85,7 +86,7 @@ func clientDo(client *http.Client, req *http.Request, h *rod.Hijack) (*http.Resp
 	return resp, nil
 }
 
-func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, globalBucketManager *ratelimiter.BucketManager, client *warc.CustomHTTPClient) {
+func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, bucketManager *ratelimiter.BucketManager, client *warc.CustomHTTPClient) {
 	defer wg.Done()
 	defer func() { <-guard }()
 
@@ -95,7 +96,7 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 		"item_url":  item.GetURL().String(),
 	})
 
-	err := archivePage(client, item, item.GetSeed())
+	err := archivePage(client, item, item.GetSeed(), bucketManager)
 	if err != nil {
 		item.SetStatus(models.ItemFailed)
 		logger.Error("unable to archive page in headless mode", "err", err.Error())
@@ -107,7 +108,7 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 	logger.Info("page archived successfully")
 }
 
-func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *models.Item) error {
+func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *models.Item, bucketManager *ratelimiter.BucketManager) error {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "archiver.headless.archive.page",
 		"item_id":   item.GetShortID(),
@@ -163,6 +164,9 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			logger.Debug("capturing asset")
 		}
 
+		if bucketManager != nil {
+			bucketManager.Wait(hijack.Request.URL().Host)
+		}
 		req = hijack.Request.Req()
 
 		for retry := 0; retry <= config.Get().MaxRetry; retry++ {
@@ -203,10 +207,14 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 
 				// retries exhausted
 				logger.Error("unable to execute request", "err", err.Error())
-				hijack.Response.Fail(proto.NetworkErrorReasonConnectionFailed)
+				hijack.Response.Fail(proto.NetworkErrorReasonAborted)
 				return
 			}
 			break
+		}
+
+		if bucketManager != nil {
+			bucketManager.OnSuccess(hijack.Request.URL().Host)
 		}
 
 		discarded := false
@@ -323,8 +331,6 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	logger.Debug("all inflight requests finished", "elapsed", time.Since(start))
 
 	warcClient.CloseIdleConnections() // just in case, IDK if this is needed
-
-	page.Activate()
 
 	item.SetStatus(models.ItemArchived)
 	extractAndStoreHTML(item, page)
