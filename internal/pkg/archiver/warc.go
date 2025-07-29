@@ -20,6 +20,9 @@ func startWARCWriter() {
 	if config.Get().WARCOperator != "" {
 		rotatorSettings.WarcinfoContent.Set("operator", config.Get().WARCOperator)
 	}
+	if config.Get().Headless {
+		rotatorSettings.WarcinfoContent.Set("zeno-headless", "true")
+	}
 	// Configure WARC dedupe settings
 	dedupeOptions := warc.DedupeOptions{LocalDedupe: !config.Get().DisableLocalDedupe, SizeThreshold: config.Get().WARCDedupeSize}
 	if config.Get().CDXDedupeServer != "" {
