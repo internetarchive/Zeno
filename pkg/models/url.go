@@ -33,7 +33,7 @@ type URL struct {
 
 	documentCache        *goquery.Document // Transformed utf8 document in-memory cache
 	documentEncoding     encoding.Encoding // Encoding of the document
-	DocumentTransfromMux sync.Mutex        // Protect document transform
+	DocumentTransformMux sync.Mutex        // Protect document transform
 
 }
 
