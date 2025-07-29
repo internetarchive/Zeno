@@ -80,7 +80,7 @@ func addHeadlessFlags(getCmd *cobra.Command) {
 
 	getCmd.PersistentFlags().Int("headless-chromium-revision", headless.DefaultChromiumRevision, "[headless] Default Chromium binary revision to auto download and use (if --headless-chromium-bin is not set). set to -1 to query the latest revision from chromiumdash.appspot.com")
 
-	getCmd.PersistentFlags().String("headless-chromium-bin", "", "[headless] Bin of the browser binary path to launch, if the path is not empty the auto download will be disabled.")
+	getCmd.PersistentFlags().String("headless-chromium-bin", "", "[headless] Path to the browser binary to launch. If the path is not empty, the auto-download will be disabled.")
 	getCmd.PersistentFlags().String("headless-user-data-dir", "", "[headless] Path to the user-data directory to use for browser when running in headless mode. If not set, --warc-temp-dir directory will be used.")
 
 	getCmd.PersistentFlags().StringSlice("headless-allowed-methods", []string{"GET"}, "[headless] Comma separated allowed HTTP methods to use when requesting pages.")
