@@ -85,7 +85,7 @@ type Config struct {
 	HeadlessHeadful          bool     `mapstructure:"headless-headful"`
 	HeadlessTrace            bool     `mapstructure:"headless-trace"`
 	HeadlessChromiumRevision int      `mapstructure:"headless-chromium-revision"`
-	HeadlessChroumiumBin     string   `mapstructure:"headless-chromium-bin"`
+	HeadlessChromiumBin      string   `mapstructure:"headless-chromium-bin"`
 	HeadlessDevTools         bool     `mapstructure:"headless-dev-tools"`
 	HeadlessStealth          bool     `mapstructure:"headless-stealth"`
 	HeadlessUserMode         bool     `mapstructure:"headless-user-mode"`

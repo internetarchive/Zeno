@@ -68,7 +68,7 @@ func Start() {
 		}
 	}
 
-	l.Bin(config.Get().HeadlessChroumiumBin).
+	l.Bin(config.Get().HeadlessChromiumBin).
 		Revision(config.Get().HeadlessChromiumRevision).
 		Headless(!config.Get().HeadlessHeadful).
 		Devtools(config.Get().HeadlessDevTools)
