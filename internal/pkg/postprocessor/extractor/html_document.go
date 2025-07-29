@@ -135,9 +135,10 @@ func encodeNonUTF8QueryURLs(urls []*models.URL, enc encoding.Encoding) []*models
 			}
 		}
 
-		htmldocLogger.Info("encoded URL query", "raw_url", URL.Raw, "enc", enc, "raw_query", parsedURL.RawQuery, "new_query", newQuery.Encode())
+		newQueryEncoded := newQuery.Encode()
+		htmldocLogger.Debug("encoded URL query", "raw_url", URL.Raw, "enc", enc, "raw_query", parsedURL.RawQuery, "new_query", newQueryEncoded)
 
-		parsedURL.RawQuery = newQuery.Encode()
+		parsedURL.RawQuery = newQueryEncoded
 		URL.Raw = parsedURL.String()
 	}
 
