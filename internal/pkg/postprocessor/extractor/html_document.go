@@ -60,6 +60,7 @@ func TransformDocument(u *models.URL) (doc *goquery.Document, err error) {
 		htmldocLogger.Debug("Transforming document step 1", "url", u.String(), "content_type", contentType)
 		transformReader, err, enc, encName, certain := charsetNewReader(u.GetBody(), contentType)
 		if err != nil {
+			htmldocLogger.Error("Transforming document step 1 failed", "url", u.String(), "err", err.Error())
 			return nil, err
 		}
 		htmldocLogger.Debug("Transforming document step 2", "url", u.String(), "enc", enc, "enc_name", encName, "certain", certain)
@@ -67,12 +68,13 @@ func TransformDocument(u *models.URL) (doc *goquery.Document, err error) {
 		// Create the document from the converted reader
 		document, err := goquery.NewDocumentFromReader(transformReader)
 		if err != nil {
+			htmldocLogger.Error("Transforming document step 2 failed", "url", u.String(), "err", err.Error())
 			return nil, err
 		}
 
 		u.SetDocumentCache(document)
 		u.SetDocumentEncoding(enc)
-		htmldocLogger.Debug("Document transformed", "url", u.String(), "encoding", encName, "certain", certain)
+		htmldocLogger.Debug("Document transformed", "url", u.String(), "enc_name", encName)
 
 	}
 
