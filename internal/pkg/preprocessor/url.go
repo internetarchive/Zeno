@@ -12,6 +12,7 @@ import (
 // Normalize the URL by removing fragments, attempting to add URL scheme if missing,
 // and converting relative URLs into absolute URLs. An error is returned if the URL
 // cannot be normalized.
+// If provide docEnc, it will be used to encode the URL query parameters.
 func NormalizeURL(URL *models.URL, parentURL *models.URL, docEnc encoding.Encoding) (err error) {
 	// Clean the URL by removing leading and trailing quotes
 	URL.Raw = strings.Trim(URL.Raw, `"'`)
@@ -21,6 +22,29 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL, docEnc encoding.Encodi
 	parsedURL, err := url.Parse(URL.Raw)
 	if err != nil {
 		return err
+	}
+
+	// Handle non-utf8 document encodings
+	if docEnc != nil && docEnc != encoding.Nop {
+		// According to the URL spec, we only need to encode the query part.
+		// The path part should be left as utf8, we don't need to encode it.
+		query := parsedURL.Query()
+		newQuery := url.Values{}
+		for key, values := range query {
+			for _, value := range values {
+				encodedKey, err := docEnc.NewEncoder().String(key)
+				if err != nil {
+					return err
+				}
+				encodedValue, err := docEnc.NewEncoder().String(value)
+				if err != nil {
+					return err
+				}
+				newQuery.Add(encodedKey, encodedValue)
+			}
+		}
+		parsedURL.RawQuery = newQuery.Encode()
+		URL.Raw = parsedURL.String()
 	}
 
 	if parentURL != nil && !parsedURL.IsAbs() {
