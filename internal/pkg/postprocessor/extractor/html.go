@@ -24,6 +24,10 @@ func IsHTML(URL *models.URL) bool {
 
 type HTMLOutlinkExtractor struct{}
 
+func (HTMLOutlinkExtractor) Support(m Mode) bool {
+	return m == ModeGeneral || m == ModeHeadless
+}
+
 func (HTMLOutlinkExtractor) Match(URL *models.URL) bool {
 	return IsHTML(URL)
 }

@@ -15,6 +15,7 @@ import (
 )
 
 type OutlinkExtractor interface {
+	Support(extractor.Mode) bool // Support checks if the extractor supports the given mode
 	Match(*models.URL) bool
 	Extract(*models.URL) ([]*models.URL, error)
 }
@@ -48,8 +49,17 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		return
 	}
 
+	mode := extractor.ModeGeneral
+	if config.Get().Headless {
+		mode = extractor.ModeHeadless
+	}
+
 	// Run specific extractors
 	for _, p := range outlinkExtractors {
+		if !p.Support(mode) {
+			continue
+		}
+
 		if p.Match(item.GetURL()) {
 			outlinks, err = p.Extract(item.GetURL())
 			break
