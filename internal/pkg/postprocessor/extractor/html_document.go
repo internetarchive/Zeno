@@ -99,22 +99,43 @@ func encodeNonUTF8QueryURLs(urls []*models.URL, enc encoding.Encoding) []*models
 		newQuery := url.Values{}
 		for key, values := range query {
 			for _, value := range values {
-				encodedKey, err := enc.NewEncoder().String(key)
-				if err != nil {
-					htmldocLogger.Warn("unable to encode URL key", "err", err.Error(), "key", key, "url", URL.Raw)
-					continue
+				var encodedKey, encodedValue string
+				if !isValidUTF8(key) {
+					// If the key is not valid UTF-8, we do not encode it.
+					encodedKey = key
+				} else {
+					encodedKey, err = enc.NewEncoder().String(key)
+					if err != nil {
+						htmldocLogger.Warn("unable to encode URL key", "err", err.Error(), "key", key, "url", URL.Raw)
+						continue
+					}
 				}
-				encodedValue, err := enc.NewEncoder().String(value)
-				if err != nil {
-					htmldocLogger.Warn("unable to encode URL value", "err", err.Error(), "value", value, "url", URL.Raw)
-					continue
+				if !isValidUTF8(value) {
+					encodedValue = value
+				} else {
+					encodedValue, err = enc.NewEncoder().String(value)
+					if err != nil {
+						htmldocLogger.Warn("unable to encode URL value", "err", err.Error(), "value", value, "url", URL.Raw)
+						continue
+					}
 				}
 				newQuery.Add(encodedKey, encodedValue)
 			}
 		}
+		htmldocLogger.Warn("Encoded URL query", "url", URL.Raw, "enc", enc, "query", query, "new_query", newQuery, "new_query_string", newQuery.Encode())
 		parsedURL.RawQuery = newQuery.Encode()
 		URL.Raw = parsedURL.String()
 	}
 
 	return urls
+}
+
+func isValidUTF8(s string) bool {
+	// Check if the string contains any invalid UTF-8 characters
+	for i := 0; i < len(s); i++ {
+		if s[i] < 0 || s[i] > 127 {
+			return false
+		}
+	}
+	return true
 }
