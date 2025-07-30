@@ -20,7 +20,7 @@ func newBxLogger(item *models.Item) *ZenoBxLogger {
 	}
 }
 
-// LogFunc expose itself to browser, so we
+// LogFunc expose itself to browser, so we can use our logger function (Golang) as browsertrix-behaviors' log function (JS).
 func (l *ZenoBxLogger) LogFunc(v gson.JSON) (any, error) {
 	var logger = log.NewFieldedLogger(&log.Fields{
 		"component": "archiver.headless.bx_logger",
