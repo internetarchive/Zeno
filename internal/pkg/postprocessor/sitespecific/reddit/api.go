@@ -216,8 +216,7 @@ func (RedditPostAPIOutlinkExtractor) Extract(URL *models.URL) (outlinks []*model
 
 	for _, rawOutlink := range permalinks {
 		outlinks = append(outlinks, &models.URL{
-			Raw:  rawOutlink,
-			Hops: URL.GetHops() + 1,
+			Raw: rawOutlink,
 		})
 	}
 
