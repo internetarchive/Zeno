@@ -3,9 +3,6 @@ package headless
 import (
 	"bytes"
 	"net/http"
-	"os"
-	"sync/atomic"
-	"time"
 
 	"github.com/go-rod/rod"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/body"
@@ -35,24 +32,6 @@ func ProcessBodyHeadless(hijack *rod.Hijack, u *http.Response) ([]byte, error) {
 }
 
 func processBodyHeadless(u *http.Response) ([]byte, error) {
-	onExit := atomic.Bool{}
-
-	if os.Getenv("ZENO_DEBUG_HEADLESS_TRACE") != "" {
-		go func() {
-			ticker := time.NewTicker(time.Duration(time.Second))
-			defer ticker.Stop()
-			for range ticker.C {
-				if onExit.Load() {
-					return
-				}
-				bodyLogger.Debug("resource in progress")
-			}
-		}()
-	}
-	defer func() {
-		onExit.Store(true)
-	}()
-
 	// Copy with timeout to the hijack response
 	buffer := new(bytes.Buffer)
 	if err := body.CopyWithTimeout(buffer, u.Body); err != nil {
