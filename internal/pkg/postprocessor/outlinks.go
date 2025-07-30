@@ -92,8 +92,7 @@ func extractLinksFromPage(URL *models.URL) (links []*models.URL) {
 	// Validate links
 	for _, link := range rawLinks {
 		links = append(links, &models.URL{
-			Raw:  link,
-			Hops: URL.GetHops() + 1,
+			Raw: link,
 		})
 	}
 
