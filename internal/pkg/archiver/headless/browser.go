@@ -84,6 +84,10 @@ func Start() {
 		Trace(config.Get().HeadlessTrace).
 		MustConnect()
 	Launcher = l
+
+	if HeadlessBrowser.MustVersion().ProtocolVersion != "1.3" {
+		panic(fmt.Sprintf("Unsupported DevTools-Protocol version: %s, expected 1.3", HeadlessBrowser.MustVersion().ProtocolVersion))
+	}
 }
 
 func Close() {
