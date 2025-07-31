@@ -356,8 +356,6 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	}), 5*time.Second /* This is progress reporting interval, not the timeout */)
 	logger.Debug("all inflight requests finished", "elapsed", time.Since(start))
 
-	warcClient.CloseIdleConnections() // just in case, IDK if this is needed
-
 	item.SetStatus(models.ItemArchived)
 	extractAndStoreHTML(item, page)
 	return nil
