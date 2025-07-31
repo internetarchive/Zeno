@@ -127,7 +127,7 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	router := HeadlessBrowser.HijackRequests()
 	defer router.MustStop()
 
-	flyingRequests := NewWaitGroup()
+	inFlightRequests := NewWaitGroup()
 
 	requestsMutex := &sync.Mutex{}
 
@@ -146,8 +146,8 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 		seenRequests = append(seenRequests, hijack.Request.URL().String())
 		requestsMutex.Unlock()
 
-		flyingRequests.Add(1, hijack.Request.URL().String())
-		defer flyingRequests.Done(hijack.Request.URL().String())
+		inFlightRequests.Add(1, hijack.Request.URL().String())
+		defer inFlightRequests.Done(hijack.Request.URL().String())
 
 		// drop requests that are not in the allowed methods
 		if !slices.Contains(config.Get().HeadlessAllowedMethods, hijack.Request.Method()) {
@@ -349,7 +349,7 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	// Wait for all the inflight requests to finish
 	start = time.Now()
 	logger.Debug("waiting for all inflight requests to finish")
-	flyingRequests.Wait(log.NewFieldedLogger(&log.Fields{
+	inFlightRequests.Wait(log.NewFieldedLogger(&log.Fields{
 		"component": "archiver.archiveHeadless.wait",
 		"seed_id":   seed.GetShortID(),
 		"item_id":   item.GetShortID(),
