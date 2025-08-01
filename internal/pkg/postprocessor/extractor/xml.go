@@ -162,6 +162,10 @@ func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 
 type SitemapXMLOutlinkExtractor struct{}
 
+func (SitemapXMLOutlinkExtractor) Support(m Mode) bool {
+	return m == ModeGeneral
+}
+
 func (SitemapXMLOutlinkExtractor) Match(URL *models.URL) bool {
 	return IsSitemapXML(URL)
 }

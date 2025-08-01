@@ -9,7 +9,7 @@ import (
 
 	"github.com/ImVexed/fasturl"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver"
+	generalarchiver "github.com/internetarchive/Zeno/internal/pkg/archiver/general"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -98,7 +98,7 @@ func TestJSON(t *testing.T) {
 			var URL = new(models.URL)
 			URL.SetResponse(resp)
 
-			err := archiver.ProcessBody(URL, false, false, 0, os.TempDir())
+			err := generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
 			if err != nil {
 				t.Errorf("ProcessBody() error = %v", err)
 			}
