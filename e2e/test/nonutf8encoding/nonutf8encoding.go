@@ -2,7 +2,7 @@ package nonutf8encoding
 
 import (
 	_ "embed"
-	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -24,7 +24,7 @@ func (rm *RecordMatcher) Match(record map[string]string) {
 
 	if record["msg"] == "url archived" {
 		if record["status"] != "200" {
-			fmt.Printf("Unexpected status for archived URL: %s\n", record["status"])
+			log.Printf("Unexpected status for archived URL: %s\n", record["status"])
 			rm.unexpectedError = true
 			return
 		}
@@ -38,7 +38,7 @@ func (rm *RecordMatcher) Match(record map[string]string) {
 			rm.url3Archived = true
 		case "/raw", "/meta_decl":
 		default:
-			fmt.Printf("Unexpected URL archived: %s\n", record["url"])
+			log.Printf("Unexpected URL archived: %s\n", record["url"])
 			rm.unexpectedError = true
 		}
 	}
@@ -66,7 +66,7 @@ var gbkMetaCharsetPayload []byte
 
 func SetupServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("Received request: %s %s\n", r.Method, r.URL.Path)
+		log.Printf("Received request: %s %s", r.Method, r.URL.Path)
 		switch r.URL.Path {
 		case "/1111你好", "/2222你好", "/3333你好":
 			if strings.Contains(r.URL.RawQuery, "%CA%C0%BD%E7=%D4%D9%BC%FB") { // >>> '世界=再见'.encode('gbk') = b'\xca\xc0\xbd\xe7=\xd4\xd9\xbc\xfb'
