@@ -386,7 +386,7 @@ func extractAndStoreHTML(item *models.Item, page *rod.Page) error {
 		return err
 	}
 
-	item.GetURL().SetDocument(doc)
+	item.GetURL().SetDocumentCache(doc)
 
 	// Create a temp file with a 8MB memory buffer
 	spooledBuff := spooledtempfile.NewSpooledTempFile("zeno", config.Get().WARCTempDir, 8000000, false, -1)
