@@ -1,4 +1,4 @@
-package boot
+package nxdomain
 
 import (
 	_ "embed"
