@@ -171,6 +171,9 @@ func postprocessItem(item *models.Item) []*models.Item {
 		}
 	}
 
+	// Make sure the goquery document's memory can be freed
+	item.GetURL().SetDocumentCache(nil)
+
 	if !item.HasChildren() && !item.HasRedirection() && item.GetStatus() != models.ItemFailed {
 		logger.Debug("item has no children, setting as completed", "item_id", item.GetShortID())
 		item.SetStatus(models.ItemCompleted)

@@ -1,7 +1,7 @@
 package postprocessor
 
 import (
-	"io"
+	"bufio"
 	"strings"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -95,21 +95,32 @@ func extractLinksFromPage(URL *models.URL) (links []*models.URL) {
 	defer URL.RewindBody()
 
 	// Extract links and dedupe them
-	source, err := io.ReadAll(URL.GetBody())
-	if err != nil {
-		return links
-	}
+	scanner := bufio.NewScanner(URL.GetBody())
 	var rawLinks []string
-	if !config.Get().StrictRegex {
-		rawLinks = utils.DedupeStrings(extractor.LinkRegex.FindAllString(string(source), -1))
-	} else {
-		rawLinks = utils.DedupeStrings(extractor.LinkRegexStrict.FindAllString(string(source), -1))
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		var lineLinks []string
+
+		if !config.Get().StrictRegex {
+			lineLinks = extractor.LinkRegex.FindAllString(line, -1)
+		} else {
+			lineLinks = extractor.LinkRegexStrict.FindAllString(line, -1)
+		}
+
+		rawLinks = append(rawLinks, lineLinks...)
 	}
+
+	if err := scanner.Err(); err != nil {
+		logger.Error("error scanning body for links", "err", err.Error(), "url", URL.String())
+	}
+
+	rawLinks = utils.DedupeStrings(rawLinks)
+
 	// Validate links
 	for _, link := range rawLinks {
 		links = append(links, &models.URL{
-			Raw:  link,
-			Hops: URL.GetHops() + 1,
+			Raw: link,
 		})
 	}
 
