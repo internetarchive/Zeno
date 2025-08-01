@@ -54,9 +54,6 @@ func charsetNewReader(r io.Reader, contentType string) (io.Reader, error, encodi
 
 // TransformDocument transforms the document of a URL by detecting its encoding and creating a utf-8 goquery document.
 func TransformDocument(u *models.URL) (doc *goquery.Document, err error) {
-	u.DocumentTransformMux.Lock()
-	defer u.DocumentTransformMux.Unlock()
-
 	if u.GetDocumentCache() == nil {
 		// We need to rewind the body, reason:
 		// 1. charset.NewReader() will read the first 1024 bytes to detect the encoding.
