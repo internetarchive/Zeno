@@ -57,9 +57,6 @@ func TransformDocument(u *models.URL) (doc *goquery.Document, err error) {
 	u.DocumentTransformMux.Lock()
 	defer u.DocumentTransformMux.Unlock()
 
-	// debug: reset cache
-	// u.SetDocumentCache(nil)
-
 	if u.GetDocumentCache() == nil {
 		// We need to rewind the body, reason:
 		// 1. charset.NewReader() will read the first 1024 bytes to detect the encoding.
