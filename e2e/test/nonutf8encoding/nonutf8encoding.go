@@ -66,7 +66,6 @@ var gbkMetaCharsetPayload []byte
 
 func SetupServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Received request: %s %s", r.Method, r.URL.Path)
 		switch r.URL.Path {
 		case "/1111你好", "/2222你好", "/3333你好":
 			if strings.Contains(r.URL.RawQuery, "%CA%C0%BD%E7=%D4%D9%BC%FB") { // >>> '世界=再见'.encode('gbk') = b'\xca\xc0\xbd\xe7=\xd4\xd9\xbc\xfb'
