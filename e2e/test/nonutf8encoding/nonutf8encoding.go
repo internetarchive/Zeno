@@ -1,4 +1,4 @@
-package boot
+package nonutf8encoding
 
 import (
 	_ "embed"
@@ -6,23 +6,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
-	"path"
 	"strings"
-	"sync"
 	"testing"
-
-	"github.com/internetarchive/Zeno/e2e"
 )
 
-type recordMatcher struct {
+type RecordMatcher struct {
 	url1Archived    bool
 	url2Archived    bool
 	url3Archived    bool
 	unexpectedError bool
 }
 
-func (rm *recordMatcher) Match(record map[string]string) {
+func (rm *RecordMatcher) Match(record map[string]string) {
 	if record["level"] == "ERROR" {
 		rm.unexpectedError = true
 	}
@@ -41,7 +36,7 @@ func (rm *recordMatcher) Match(record map[string]string) {
 			rm.url2Archived = true
 		case "/3333你好":
 			rm.url3Archived = true
-		case "/":
+		case "/raw", "/meta_decl":
 		default:
 			fmt.Printf("Unexpected URL archived: %s\n", record["url"])
 			rm.unexpectedError = true
@@ -49,7 +44,7 @@ func (rm *recordMatcher) Match(record map[string]string) {
 	}
 }
 
-func (rm *recordMatcher) Assert(t *testing.T) {
+func (rm *RecordMatcher) Assert(t *testing.T) {
 	if !(rm.url1Archived && rm.url2Archived && rm.url3Archived) {
 		t.Errorf("Not all URLs were archived: url1Archived=%v, url2Archived=%v, url3Archived=%v",
 			rm.url1Archived, rm.url2Archived, rm.url3Archived)
@@ -59,14 +54,17 @@ func (rm *recordMatcher) Assert(t *testing.T) {
 	}
 }
 
-func (rm *recordMatcher) ShouldStop() bool {
+func (rm *RecordMatcher) ShouldStop() bool {
 	return (rm.url1Archived && rm.url2Archived && rm.url3Archived) || rm.unexpectedError
 }
 
-//go:embed testdata/gbk.html
-var gbkPayload []byte
+//go:embed testdata/gbk_raw.html
+var gbkRawPayload []byte
 
-func setupServer() *httptest.Server {
+//go:embed testdata/gbk_meta_charset.html
+var gbkMetaCharsetPayload []byte
+
+func SetupServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Received request: %s %s\n", r.Method, r.URL.Path)
 		switch r.URL.Path {
@@ -74,39 +72,17 @@ func setupServer() *httptest.Server {
 			if strings.Contains(r.URL.RawQuery, "%CA%C0%BD%E7=%D4%D9%BC%FB") { // >>> '世界=再见'.encode('gbk') = b'\xca\xc0\xbd\xe7=\xd4\xd9\xbc\xfb'
 				w.Header().Set("Content-Type", "text/plain")
 				w.Write([]byte("OK"))
-				return
 			} else {
 				http.Error(w, "Bad Request - bad query", http.StatusBadRequest)
-				return
 			}
-		case "/":
+		case "/raw":
 			w.Header().Set("Content-Type", "text/html; charset=gbk") // Declare GBK encoding
-			w.Write(gbkPayload)
-			return
+			w.Write(gbkRawPayload)
+		case "/meta_decl":
+			w.Header().Set("Content-Type", "text/html") //
+			w.Write(gbkMetaCharsetPayload)
+		default:
+			http.NotFound(w, r)
 		}
-		http.NotFound(w, r)
 	}))
-}
-
-func TestNonUTF8Encoding(t *testing.T) {
-	server := setupServer()
-	serverURL := strings.Replace(server.URL, "127.0.0.1", "127.0.0.1.nip.io", 1)
-	defer server.Close()
-
-	os.RemoveAll("jobs")
-
-	tempSocketPath := path.Join(os.TempDir(), fmt.Sprintf("zeno-%d.sock", os.Getpid()))
-	defer os.Remove(tempSocketPath)
-
-	shouldStopCh := make(chan struct{})
-	rm := &recordMatcher{}
-	wg := &sync.WaitGroup{}
-
-	wg.Add(2)
-
-	go e2e.StartHandleLogRecord(t, wg, rm, tempSocketPath, shouldStopCh)
-	go e2e.ExecuteCmdZenoGetURL(t, wg, tempSocketPath, []string{serverURL})
-
-	e2e.WaitForGoroutines(t, wg, shouldStopCh)
-	rm.Assert(t)
 }

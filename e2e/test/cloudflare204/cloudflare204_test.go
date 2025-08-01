@@ -1,4 +1,4 @@
-package boot
+package cloudflare204
 
 import (
 	_ "embed"
