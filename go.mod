@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
-	github.com/MatusOllah/slogcolor v1.6.0
+	github.com/MatusOllah/slogcolor v1.7.0
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/ada-url/goada v1.0.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -22,7 +22,7 @@ require (
 	github.com/ncruces/go-sqlite3 v0.27.1
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/philippgille/gokv/leveldb v0.7.0
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/client_golang v1.23.0
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
 	github.com/samber/slog-multi v1.4.1
 	github.com/spf13/cobra v1.9.1
@@ -33,6 +33,7 @@ require (
 	golang.org/x/net v0.42.0
 	golang.org/x/sync v0.16.0
 	golang.org/x/sys v0.34.0
+	golang.org/x/text v0.27.0
 	mvdan.cc/xurls/v2 v2.6.0
 )
 
@@ -81,9 +82,9 @@ require (
 	github.com/philippgille/gokv/encoding v0.7.0 // indirect
 	github.com/philippgille/gokv/util v0.7.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.62.0 // indirect
-	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/prometheus/client_model v0.6.2 // indirect
+	github.com/prometheus/common v0.65.0 // indirect
+	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/refraction-networking/utls v1.7.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
@@ -102,9 +103,8 @@ require (
 	golang.org/x/image v0.27.0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
 	golang.org/x/term v0.33.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
 	golang.org/x/tools v0.34.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
