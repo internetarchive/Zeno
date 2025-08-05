@@ -424,7 +424,7 @@ func extractAndStoreHTML(item *models.Item, page *rod.Page) error {
 func seencheckSubReq(item *models.Item, seed *models.Item, subRequest string) bool {
 	// Makeup a fake item relationship for the sub-request.
 	// So that the seenchecker can recognize the sub-request as a "asset" URL.
-	fakeRootItem := models.NewItem(&models.URL{Raw: item.GetURL().Raw}, "")
+	fakeRootItem := models.NewItem(&models.URL{Raw: "https://fake-page.zeno-headless.archive.org"}, "") // placeholder URL
 	fakeRootItem.GetURL().Parse()
 
 	fakeChildItem := models.NewItem(&models.URL{Raw: subRequest}, "")
