@@ -119,8 +119,6 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 		"seed_id":   seed.GetShortID(),
 		"item_url":  item.GetURL().String(),
 	})
-	seenRequests := make([]string, 0)
-	defer seencheck(item, seed, &seenRequests)
 	bxLogger := newBxLogger(item)
 
 	var err error
@@ -130,8 +128,6 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	defer router.MustStop()
 
 	inFlightRequests := NewWaitGroup()
-
-	requestsMutex := &sync.Mutex{}
 
 	router.MustAdd("*", func(hijack *rod.Hijack) {
 		defer stats.URLsCrawledIncr()
@@ -144,9 +140,22 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			"url":       hijack.Request.URL().String(),
 		})
 
-		requestsMutex.Lock()
-		seenRequests = append(seenRequests, hijack.Request.URL().String())
-		requestsMutex.Unlock()
+		isSeen := seencheckSubReq(item, seed, hijack.Request.URL().String())
+		if isSeen {
+			if hijack.Request.Method() != http.MethodGet {
+				logger.Debug("request has been seen before, but is not a GET request. Continuing with the request", "method", hijack.Request.Method())
+			} else {
+				resType := hijack.Request.Type()
+				switch resType {
+				case proto.NetworkResourceTypeImage, proto.NetworkResourceTypeMedia, proto.NetworkResourceTypeFont, proto.NetworkResourceTypeStylesheet:
+					logger.Debug("request has been seen before and is a discardable resource. Skipping it", "type", resType)
+					hijack.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
+					return
+				default:
+					logger.Debug("request has been seen before, but is not a discardable resource. Continuing with the request", "type", resType)
+				}
+			}
+		}
 
 		inFlightRequests.Add(1, hijack.Request.URL().String())
 		defer inFlightRequests.Done(hijack.Request.URL().String())
@@ -409,15 +418,20 @@ func extractAndStoreHTML(item *models.Item, page *rod.Page) error {
 	return nil
 }
 
-func seencheck(item *models.Item, seed *models.Item, seenRequests *[]string) {
-	tmpItem := models.NewItem(&models.URL{Raw: item.GetURL().Raw}, "")
-	tmpItem.GetURL().Parse()
-	for _, reqURL := range *seenRequests {
-		tmpChildItem := models.NewItem(&models.URL{Raw: reqURL}, "")
-		tmpChildItem.GetURL().Parse()
-		tmpItem.AddChild(tmpChildItem, models.ItemGotChildren)
-	}
-	if err := preprocessor.GlobalPreprocessor.Seenchecker(tmpItem); err != nil {
+func seencheckSubReq(item *models.Item, seed *models.Item, subRequest string) bool {
+	// Makeup a fake item relationship for the sub-request.
+	// So that the seenchecker can recognize the sub-request as a "asset" URL.
+	fakeRootItem := models.NewItem(&models.URL{Raw: item.GetURL().Raw}, "")
+	fakeRootItem.GetURL().Parse()
+
+	fakeChildItem := models.NewItem(&models.URL{Raw: subRequest}, "")
+	fakeChildItem.GetURL().Parse()
+
+	fakeRootItem.AddChild(fakeChildItem, models.ItemGotChildren)
+
+	if err := preprocessor.GlobalPreprocessor.Seenchecker(fakeRootItem); err != nil {
 		logger.Error("unable to seencheck headless sub-requests", "error", err, "seed_id", seed.GetShortID(), "item_id", item.GetShortID())
 	}
+
+	return fakeChildItem.GetStatus() == models.ItemSeen
 }
