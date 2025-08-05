@@ -294,7 +294,7 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			stats.MeanWaitOnFeedbackTimeAdd(time.Since(feedbackTime))
 		}
 
-		logger.Debug("processed body", "size", len(hijack.Response.Payload().Body))
+		logger.Debug("processed body", "size", len(hijack.Response.Payload().Body), "status_code", resp.StatusCode)
 	}) // <--- Router End
 
 	go router.Run()
