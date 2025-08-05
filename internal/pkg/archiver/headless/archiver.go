@@ -369,8 +369,11 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	}), 5*time.Second /* This is progress reporting interval, not the timeout */)
 	logger.Debug("all inflight requests finished", "elapsed", time.Since(start))
 
+	if err := extractAndStoreHTML(item, page); err != nil {
+		logger.Error("unable to extract and store HTML", "error", err)
+		return err
+	}
 	item.SetStatus(models.ItemArchived)
-	extractAndStoreHTML(item, page)
 	return nil
 }
 
