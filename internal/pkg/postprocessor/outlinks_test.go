@@ -56,7 +56,7 @@ func TestExtractLinksFromPage(t *testing.T) {
 // https://github.com/internetarchive/Zeno/issues/413
 //
 // There are 2 lines in the HTML that are longer than 64KiB, overflowing the default bufio.Scanner buffer size if we use line-by-line reading.
-func TestExtractLinksFromPageWithBigInlineHTML(t *testing.T) {
+func TestExtractLinksFromPageWithLongLines(t *testing.T) {
 	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
 	spooledTempFile.Write(utils.MustDecompressGzippedBytes(q27536592HTMLGZ))
 
