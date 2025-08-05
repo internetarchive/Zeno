@@ -4,33 +4,30 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"regexp"
+	"slices"
 	"strconv"
+	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/pkg/models"
-	"github.com/tdewolff/parse/v2"
-	"github.com/tdewolff/parse/v2/css"
-)
-
-var (
-	useRegexFallbackForCSSParsing = true //  Fallback to regex parsing if tdewolff/parse fails
-	cGroup                        = `(.*?)`
-	cssURLRegex                   = regexp.MustCompile(`(?i:url\(\s*['"]?)` + cGroup + `(?:['"]?\s*\))`)
-	cssAtImportRegex              = regexp.MustCompile(`(?i:@import\s+)` + // start with @import
-		`(?i:` +
-		`url\(\s*['"]?` + cGroup + `["']?\s*\)` + // url token
-		`|` + // OR
-		`\s*['"]` + cGroup + `["']` + `)`, // string token
-	)
+	"go.baoshuo.dev/csslexer"
 )
 
 // The logger also used in the HTML extractor for CSS related logs.
 var cssLogger = log.NewFieldedLogger(&log.Fields{
 	"component": "postprocessor.extractor.css",
 })
+
+// Check if the rune is a ascii newline (\n or \r).
+func isNewline(c rune) bool {
+	return c == '\n' || c == '\r'
+}
+
+// isWhitespace returns true for space, \n, \r, \t, \f.
+func isWhitespace(c rune) bool {
+	return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\f'
+}
 
 // Assuming the input [data] is already trimmed and does not contain any leading
 // or trailing whitespace, quotes, "url(", or ")".
@@ -49,16 +46,18 @@ var cssLogger = log.NewFieldedLogger(&log.Fields{
 //
 // <https://www.w3.org/TR/css-syntax-3/#consume-escaped-code-point>
 // <https://www.w3.org/International/questions/qa-escapes#cssescapes>
-func parseStringOrURLTokenData(data []byte, isString bool) []byte {
+func parseStringOrURLTokenData(data []rune, isString bool) string {
 	// In this function, all the "qouted" comments are references to the CSS spec.
 
 	// Fast path for unescaped URLs/strings
-	if len(data) == 0 || !bytes.Contains(data, []byte{'\\'}) {
-		return data
+	if len(data) == 0 || !slices.Contains(data, '\\') {
+		return string(data)
 	}
 
+	var value strings.Builder
+	value.Grow(len(data))
+
 	// Slow path for escaped URLs/strings
-	value := make([]byte, 0, len(data))
 	pos := 0
 	for pos < len(data) {
 		c := data[pos]
@@ -79,7 +78,7 @@ func parseStringOrURLTokenData(data []byte, isString bool) []byte {
 			// Yes, this is the only difference between <url-token> and <string-token> handling.
 			//
 			// 2. "Otherwise, if the next input code point is a newline, consume it."
-			if isString && parse.IsNewline(data[pos]) {
+			if isString && isNewline(data[pos]) {
 				pos++
 				continue
 			}
@@ -91,7 +90,7 @@ func parseStringOrURLTokenData(data []byte, isString bool) []byte {
 
 			// 3.1.1  "Consume as many hex digits as possible, but no more than 5. Note that
 			// this means 1-6 hex digits have been consumed in total"
-			hexDigits := make([]byte, 0, 6)
+			hexDigits := make([]rune, 0, 6)
 			for pos < len(data) && len(hexDigits) < 6 { // max 6 hex digits
 				hc := data[pos]
 
@@ -109,11 +108,11 @@ func parseStringOrURLTokenData(data []byte, isString bool) []byte {
 				// If this number is zero, or is for a surrogate, or is greater than
 				// the maximum allowed code point, return U+FFFD REPLACEMENT CHARACTER (�).
 				// Otherwise, return the code point with that value. "
-				value = append(value, runeToBytes(sanitizeRune(hexToRune(hexDigits)))...)
+				value.WriteRune(sanitizeRune(hexToRune(hexDigits)))
 
 				if pos >= len(data) { // EOF after hex digits
 					break
-				} else if parse.IsWhitespace(data[pos]) { // whitespace after hex digits
+				} else if isWhitespace(data[pos]) { // whitespace after hex digits
 					// 3.1.1 "If the next input code point is whitespace, consume it as well"
 					// Bonus: If you wander why do not append the whitespace to the value:
 					// https://www.w3.org/International/questions/qa-escapes#cssescapes
@@ -134,34 +133,45 @@ func parseStringOrURLTokenData(data []byte, isString bool) []byte {
 				} else {
 					// 3.3 "anything else: Return the current input code point. "
 					//  Append the current input code point to the  value.
-					value = append(value, data[pos])
+					value.WriteRune(data[pos])
 					pos++
 				}
 			}
 		} else {
-			value = append(value, c)
+			value.WriteRune(c)
 			pos++
 		}
 	}
 
-	return value
+	return value.String()
 }
 
-func parseURLTokenData(data []byte) []byte {
-	return parseStringOrURLTokenData(data, false)
+const urlTokenPrefix = "url("
+
+// Trim leading and trailing whitespace
+func TrimSpace(data []rune) []rune {
+	start := 0
+	for start < len(data) && isWhitespace(data[start]) {
+		start++
+	}
+
+	end := len(data)
+	for end > start && isWhitespace(data[end-1]) {
+		end--
+	}
+
+	return data[start:end]
 }
 
-func parseStringTokenData(data []byte) []byte {
-	return parseStringOrURLTokenData(data, true)
+func parseURLTokenData(data []rune) string {
+	return parseStringOrURLTokenData(TrimSpace(data[len(urlTokenPrefix):len(data)-1]), false)
 }
 
-func runeToBytes(r rune) []byte {
-	buf := make([]byte, utf8.UTFMax)
-	n := utf8.EncodeRune(buf, r)
-	return buf[:n]
+func parseStringTokenData(data []rune) string {
+	return parseStringOrURLTokenData(TrimSpace(data[1:len(data)-1]), true)
 }
 
-func hexToRune(hexDigits []byte) rune {
+func hexToRune(hexDigits []rune) rune {
 	if len(hexDigits) == 0 {
 		panic("no hex digits provided") // never happen
 	}
@@ -183,202 +193,192 @@ func sanitizeRune(r rune) rune {
 	return r
 }
 
-func urlTokenToValue(t css.Token) string {
-	if t.TokenType != css.URLToken {
-		panic("urlTokenToValue called with non-url token")
-	}
-	end := len(t.Data) - 1
-	if t.Data[len(t.Data)-1] != ')' { // closing parenthesis
-		end = len(t.Data)
-	}
-	data := parse.TrimWhitespace(t.Data[4:end]) // remove "url(" and ")"
+var allowedPrecedeAtRules = []string{
+	"@charset",
+	"@layer",
+}
 
-	delim := byte(0)
-	if len(data) > 0 && (data[0] == '\'' || data[0] == '"') { // quoted url
-		delim = data[0]
-		end = len(data) - 1
-		if data[end] != delim { // unclosed quote
-			end = len(data)
-		}
-		data = data[1:end] // remove the quotes
-	}
+const atImportRule = "@import"
 
-	if delim == byte(0) { // unquoted url
-		return string(parseURLTokenData(data))
-	} else if delim == '\'' || delim == '"' { // quoted url
-		return string(parseStringTokenData(data))
-	} else {
-		panic("invalid delimiter") // never happen
+type AtRuleStateManager struct {
+	inOKArea        bool // Whether the current area is allowed to contain @import rules
+	inAt            bool // Whether the current state is in an @-rule
+	inValidATImport bool // Whether the current state is in an @import rule
+}
+
+func newAtRuleStateMnager() *AtRuleStateManager {
+	return &AtRuleStateManager{
+		inOKArea:        true,  // Initially, the area is allowed to contain @import rules
+		inAt:            false, // Initially, we are not in an @-rule
+		inValidATImport: false, // Initially, we are not in an @import rule
 	}
 }
 
-func stringTokenToValue(t css.Token) string {
-	if t.TokenType != css.StringToken {
-		panic("stringTokenToValue called with non-string token")
-	}
-	end := len(t.Data) - 1
-	if t.Data[len(t.Data)-1] != t.Data[0] { // closing quote
-		end = len(t.Data)
-	}
-	return string(parseStringOrURLTokenData(t.Data[1:end], true)) // remove the quotes
-}
-
-var atRule = []byte("@import")
-var allowedPrecedeAtRules = [][]byte{
-	[]byte("@charset"),
-	[]byte("@layer"),
-}
-
-// "Any @import rules must precede all other valid at-rules and style rules
-// in a style sheet (ignoring @charset and empty @layer definitions)
-// and must not have any other valid at-rules or style rules between it and
-// previous @import rules, or else the @import rule is invalid."
-//
-// <https://www.w3.org/TR/css-cascade-5/#at-ruledef-import>
-//
-// Returns: importAtRuleAreaOK, isValidImportRule
-func isValidAtImport(gt css.GrammarType, tt css.TokenType, data []byte, pAreaState bool, pImportSate bool) (bool, bool) {
-	if !pAreaState {
-		return false, false
+func (self *AtRuleStateManager) Feed(tt csslexer.TokenType, data string) {
+	if !self.inOKArea {
+		self.Done()
+		return
 	}
 
-	if gt == css.CommentGrammar { // ignore comments
-		return pAreaState, pImportSate
-	}
+	self.inOKArea = true
 
 	// empty @layer definitions:
 	// <https://www.w3.org/TR/css-cascade-5/#layer-empty>
-	if gt == css.AtRuleGrammar && tt == css.AtKeywordToken {
+	if tt == csslexer.AtKeywordToken {
+		self.inAt = true
 		for _, rule := range allowedPrecedeAtRules {
-			if bytes.Equal(data, rule) {
-				if pImportSate {
-					return false, false // must not have any other valid at-rules or style rules between it and previous @import rules
-				} else {
-					return true, false
+			if strings.EqualFold(data, rule) {
+				if self.inValidATImport {
+					self.Done() // must not have any other valid at-rules or style rules between it and previous @import rules
+					return
 				}
+				return
 			}
 		}
-		if bytes.Equal(data, atRule) {
-			return true, true // @import rule
+		if strings.EqualFold(data, atImportRule) {
+			self.inValidATImport = true // @import rule
+			return
 		}
-		return false, false
 	}
 
-	// NOTE:
-	// Unlike css.AtRuleGrammar, the css.BeginAtRuleGrammar is for the inline @ block rules, like:
-	// @layer default {
-	//   audio[controls] {
-	//     display: block;
-	//   }
-	// }
-	// This is NOT an empty @layer definition
-
-	return false, false
+	if self.inAt {
+		// NOTE: This is NOT an empty @layer definition:
+		// @layer default {
+		//   audio[controls] {
+		//     display: block;
+		//   }
+		// }
+		if tt == csslexer.LeftBraceToken {
+			self.inOKArea = false
+			return
+		}
+	}
 }
 
-// parseCSSRegex parses the CSS content using regex to extract URLs and @import links.
-// This is a fallback method if the CSS parser fails or if the content is not valid CSS.
-func parseCSSRegex(cssBody string) (links []string, atImportLinks []string) {
-	linksMap := make(map[string]bool)
-	atImportsMap := make(map[string]bool)
+func (self *AtRuleStateManager) Done() {
+	self.inOKArea, self.inAt, self.inValidATImport = false, false, false
+}
 
-	matches := cssURLRegex.FindAllStringSubmatch(cssBody, -1)
-	for _, match := range matches {
-		if len(match) > 1 {
-			linksMap[match[1]] = true
-		}
+func (self *AtRuleStateManager) Report() (inOKArea, inAt, inValidATImport bool) {
+	return self.inOKArea, self.inAt, self.inValidATImport
+}
+
+type cssParser struct {
+	lexer          *csslexer.Lexer
+	atManager      *AtRuleStateManager
+	inURLFunction  bool
+	inAtImportRule bool
+	links          []string
+	atImportLinks  []string
+}
+
+func newCSSParser(reader io.Reader, inline bool) *cssParser {
+	p := &cssParser{
+		lexer:         csslexer.NewLexer(csslexer.NewInputReader(reader)),
+		atManager:     newAtRuleStateMnager(),
+		links:         make([]string, 0, 16),
+		atImportLinks: make([]string, 0, 4),
 	}
 
-	matches = cssAtImportRegex.FindAllStringSubmatch(cssBody, -1)
-	for _, match := range matches {
-		if len(match) > 1 {
-			if match[1] != "" { // url token
-				atImportsMap[match[1]] = true
-			} else if match[2] != "" { // string token
-				atImportsMap[match[2]] = true
+	if inline {
+		p.atManager.Done() // disable @import for inline CSS
+	}
+
+	return p
+}
+
+func (p *cssParser) processFunctionToken(traw []rune) {
+	if len(traw) >= len(urlTokenPrefix) && strings.EqualFold(string(traw[:len(urlTokenPrefix)]), urlTokenPrefix) {
+		p.inURLFunction = true
+	}
+}
+
+func (p *cssParser) processAtKeywordToken(traw []rune) {
+	if len(traw) >= len(atImportRule) && strings.EqualFold(string(traw[:len(atImportRule)]), atImportRule) {
+		p.inAtImportRule = true
+	}
+}
+
+func (p *cssParser) processSemicolonToken() {
+	p.inAtImportRule = false
+}
+
+func (p *cssParser) processRightParenthesisToken() {
+	p.inURLFunction = false // end of url() function
+}
+
+func (p *cssParser) processStringToken(traw []rune) {
+	_, _, inValidATImportRule := p.atManager.Report()
+
+	if p.inAtImportRule {
+		if !inValidATImportRule {
+			return // skip invalid @import rules
+		}
+		p.atImportLinks = append(p.atImportLinks, parseStringTokenData(traw))
+	} else if p.inURLFunction {
+		p.links = append(p.links, parseStringTokenData(traw))
+	}
+}
+
+func (p *cssParser) processUrlToken(traw []rune) {
+	_, _, inValidATImportRule := p.atManager.Report()
+
+	if p.inAtImportRule {
+		if !inValidATImportRule {
+			return // skip invalid @import rules
+		}
+		p.atImportLinks = append(p.atImportLinks, parseURLTokenData(traw))
+	} else {
+		p.links = append(p.links, parseURLTokenData(traw))
+	}
+}
+
+func (p *cssParser) processToken(tt csslexer.TokenType, traw []rune) {
+	switch tt {
+	case csslexer.FunctionToken:
+		p.processFunctionToken(traw)
+	case csslexer.AtKeywordToken:
+		p.processAtKeywordToken(traw)
+	case csslexer.SemicolonToken:
+		p.processSemicolonToken()
+	case csslexer.RightParenthesisToken:
+		p.processRightParenthesisToken()
+	case csslexer.StringToken:
+		p.processStringToken(traw)
+	case csslexer.UrlToken:
+		p.processUrlToken(traw)
+	}
+}
+
+func (p *cssParser) parse() ([]string, []string, error) {
+	for {
+		tt, traw := p.lexer.Next()
+		if tt == csslexer.WhitespaceToken || tt == csslexer.CommentToken {
+			continue // skip whitespace and comments
+		}
+
+		p.atManager.Feed(tt, string(traw))
+
+		if tt == csslexer.EOFToken {
+			var parseErr error
+			if p.lexer.Err() != nil && !errors.Is(p.lexer.Err(), io.EOF) {
+				parseErr = p.lexer.Err()
+				cssLogger.Error("error parsing CSS", "error", parseErr)
 			}
+			return p.links, p.atImportLinks, parseErr
 		}
-	}
 
-	// Remove @import links from the main links map
-	for link := range linksMap {
-		if _, ok := atImportsMap[link]; ok {
-			delete(linksMap, link)
-		}
+		p.processToken(tt, traw)
 	}
-
-	links = make([]string, 0, len(linksMap))
-	atImportLinks = make([]string, 0, len(atImportsMap))
-	for link := range linksMap {
-		links = append(links, link)
-	}
-	for link := range atImportsMap {
-		atImportLinks = append(atImportLinks, link)
-	}
-
-	return links, atImportLinks
 }
 
-// parseCSS parses the CSS content from the given reader and extracts URLs.
-//
-// Returns:
-//
-//	links: all urls found in the CSS content except for @import rules
-//	atImportLinks: all urls from *valid* @import rules
-//	parseErr: any parsing error encountered.
-//
-// NOTE: if parseErr encountered half-way, you may still get some good links and atImportLinks
 func parseCSS(reader io.Reader, inline bool) (links []string, atImportLinks []string, parseErr error) {
-	// TODO: separate CSS file
-
 	// "The @import rule allows users to import style rules from other style sheets.
 	// If an @import rule refers to a valid stylesheet, user agents must treat the
 	// contents of the stylesheet as if they were written in place of the @import
 	// rule, with two exceptions"
-	p := css.NewParser(parse.NewInput(reader), inline)
-	// Whether the area allowed to contain @import rules
-	importAtRuleAreaOK := true
-	// Is the current GrammarType is a valid @import rule
-	var isValidImportRule bool
-	for {
-		gt, tt, data := p.Next()
-		importAtRuleAreaOK, isValidImportRule = isValidAtImport(gt, tt, data, importAtRuleAreaOK, isValidImportRule)
-		if !importAtRuleAreaOK && !isValidImportRule && gt == css.AtRuleGrammar && tt == css.AtKeywordToken && bytes.Equal(data, atRule) {
-			// bad @import rule, ignore it
-			continue
-		}
-
-		if tt == css.URLToken {
-			links = append(links, urlTokenToValue(css.Token{TokenType: tt, Data: data}))
-		}
-
-		if gt == css.ErrorGrammar {
-			if p.Err() != nil && !errors.Is(p.Err(), io.EOF) {
-				parseErr = p.Err()
-				cssLogger.Error("error parsing CSS", "inline", inline, "error", parseErr)
-			}
-			break
-		} else if gt == css.AtRuleGrammar || gt == css.BeginAtRuleGrammar || gt == css.BeginRulesetGrammar || gt == css.DeclarationGrammar {
-			for _, tk := range p.Values() {
-				if isValidImportRule {
-					switch tk.TokenType {
-					case css.URLToken:
-						atImportLinks = append(atImportLinks, urlTokenToValue(tk))
-					case css.StringToken:
-						atImportLinks = append(atImportLinks, stringTokenToValue(tk))
-					}
-					continue // skip other tokens in the @import rule
-				}
-
-				if tk.TokenType == css.URLToken {
-					links = append(links, urlTokenToValue(tk))
-				}
-			}
-		} else {
-		}
-	}
-
-	return links, atImportLinks, parseErr
+	parser := newCSSParser(reader, inline)
+	return parser.parse()
 }
 
 // https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet:process-the-linked-resource
@@ -389,29 +389,12 @@ func IsCSS(URL *models.URL) bool {
 
 // ExtractFromStringCSS extracts URLs from a CSS content string.
 func ExtractFromStringCSS(cssBody string, inline bool) (links []string, atImportLinks []string, err error) {
-	links, atImportLinks, err = parseCSS(bytes.NewBufferString(cssBody), inline)
-	if err != nil && useRegexFallbackForCSSParsing {
-		links, atImportLinks = parseCSSRegex(cssBody)
-
-		cssLogger.Warn("fallback to regex parsing for CSS", "links", len(links), "at_import_links", len(atImportLinks), "inline", inline)
-
-		err = errors.Join(err, errors.New("fallback to regex parsing for CSS"))
-	}
-	return links, atImportLinks, err
+	return parseCSS(bytes.NewBufferString(cssBody), inline)
 }
 
 // ExtractFromURLCSS extracts URLs from a CSS URL
 func ExtractFromURLCSS(URL *models.URL) (links []*models.URL, atImportLinks []*models.URL, err error) {
 	defer URL.RewindBody()
 	sLinks, sAtImportLinks, err := parseCSS(URL.GetBody(), false)
-	if err != nil && useRegexFallbackForCSSParsing {
-		URL.RewindBody()
-		cssBody, _ := io.ReadAll(URL.GetBody())
-
-		sLinks, sAtImportLinks = parseCSSRegex(string(cssBody))
-
-		cssLogger.Warn("fallback to regex parsing for CSS", "url", URL.String(), "links", len(sLinks), "at_import_links", len(sAtImportLinks))
-		err = errors.Join(err, errors.New("fallback to regex parsing for CSS"))
-	}
 	return toURLs(sLinks), toURLs(sAtImportLinks), err
 }

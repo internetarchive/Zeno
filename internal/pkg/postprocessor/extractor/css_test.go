@@ -2,15 +2,11 @@ package extractor
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
-func disableRegexFallback() {
-	useRegexFallbackForCSSParsing = false
-}
-
 func TestCSSParser(t *testing.T) {
-	disableRegexFallback()
 	tests := []struct {
 		name                  string
 		CSS                   string
@@ -107,16 +103,16 @@ func TestCSSParser(t *testing.T) {
 		{
 			name:          "bare declaration URL separete CSS",
 			CSS:           `url("https://example.com/style.css");`,
-			expectedLinks: []string{},
+			expectedLinks: []string{"https://example.com/style.css"},
 			inline:        false,
-			err:           true, // got unexpected token in declaration
+			err:           false,
 		},
 		{
 			name:          "bare declaration URL inline CSS",
 			CSS:           `url("https://example.com/style.css");`,
 			expectedLinks: []string{"https://example.com/style.css"},
 			inline:        true,
-			err:           true, // got unexpected token in declaration
+			err:           false,
 		},
 		{
 			name: "At-Import Rules",
@@ -238,10 +234,8 @@ func TestCSSRegex(t *testing.T) {
 					background-image: url(  i\(mage3.png  );
 				}
 			`,
-			expectedLinks: []string{"image1.png", "image2.png",
-				"i\\(mage3.png"}, // regex does not unescape the backslash
-			expectedAtImportLinks: []string{"1.css", "2.css", "3.css", "4.css", "5.css", "6.css", "7.css", "8.css", "9.css",
-				"invalid.css"}, // invalid.css is included because the regex does not validate the @import rule
+			expectedLinks:         []string{"image1.png", "image2.png", "i(mage3.png"},
+			expectedAtImportLinks: []string{"1.css", "2.css", "3.css", "4.css", "5.css", "6.css", "7.css", "8.css", "9.css"},
 		},
 	}
 	for _, tt := range tests {
@@ -249,7 +243,7 @@ func TestCSSRegex(t *testing.T) {
 			slices.Sort(tt.expectedLinks)
 			slices.Sort(tt.expectedAtImportLinks)
 
-			links, atImportLinks := parseCSSRegex(tt.CSS)
+			links, atImportLinks, _ := parseCSS(strings.NewReader(tt.CSS), false)
 
 			slices.Sort(links)
 			slices.Sort(atImportLinks)
