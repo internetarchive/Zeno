@@ -71,8 +71,9 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	}
 
 	// Try to extract links from link headers
-	linksFromLinkHeader := extractor.ExtractURLsFromHeader(item.GetURL())
-	if linksFromLinkHeader != nil {
+	linkHeaderExtractor := extractor.LinkHeaderExtractor{}
+	if linkHeaderExtractor.Support(mode) && linkHeaderExtractor.Match(item.GetURL()) {
+		linksFromLinkHeader, _ := linkHeaderExtractor.Extract(item.GetURL())
 		outlinks = append(outlinks, linksFromLinkHeader...)
 	}
 

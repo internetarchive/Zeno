@@ -118,14 +118,14 @@ func TestExtractURLsFromHeader(t *testing.T) {
 				t.Errorf("ProcessBody() error = %v", err)
 			}
 
-			got := ExtractURLsFromHeader(URL)
+			got, _ := LinkHeaderExtractor{}.Extract(URL)
 			if len(got) != len(tt.expected) {
-				t.Fatalf("ExtractURLsFromHeader() length = %v, want %v", len(got), len(tt.expected))
+				t.Fatalf("LinkHeaderExtractor{}.Extract() length = %v, want %v", len(got), len(tt.expected))
 			}
 
 			for i := range got {
 				if got[i].Raw != tt.expected[i].Raw {
-					t.Fatalf("ExtractURLsFromHeader()[%d].Raw = %v, want %v", i, got[i].Raw, tt.expected[i].Raw)
+					t.Fatalf("LinkHeaderExtractor{}.Extract()[%d].Raw = %v, want %v", i, got[i].Raw, tt.expected[i].Raw)
 				}
 			}
 		})

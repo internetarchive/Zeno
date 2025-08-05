@@ -6,22 +6,25 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-// ExtractURLsFromHeader parses a raw Link header in the form:
+type LinkHeaderExtractor struct{}
+
+func (l LinkHeaderExtractor) Support(m Mode) bool {
+	return m == ModeGeneral
+}
+
+func (l LinkHeaderExtractor) Match(URL *models.URL) bool {
+	return URL.GetResponse().Header.Get("link") != ""
+}
+
+// Extract parses a raw Link header in the form:
 //
 //	<url1>; rel="what", <url2>; rel="any"; another="yes", <url3>; rel="thing"
 //
 // returning a slice of models.URL structs
 // Each of these are separated by a `, ` and the in turn by a `; `, with the first always being the url, and the remaining the key-val pairs
 // See: https://simon-frey.com/blog/link-header/, https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link
-func ExtractURLsFromHeader(URL *models.URL) (URLs []*models.URL) {
-	if URL.GetResponse() == nil {
-		return URLs
-	}
+func (l LinkHeaderExtractor) Extract(URL *models.URL) (URLs []*models.URL, _ error) {
 	var link = URL.GetResponse().Header.Get("link")
-
-	if link == "" {
-		return URLs
-	}
 
 	for _, link := range strings.Split(link, ", ") {
 		parts := strings.Split(link, ";")
@@ -53,7 +56,7 @@ func ExtractURLsFromHeader(URL *models.URL) (URLs []*models.URL) {
 		})
 	}
 
-	return URLs
+	return URLs, nil
 }
 
 // Parse a single attribute key value pair and return it
