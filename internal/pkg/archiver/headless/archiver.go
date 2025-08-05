@@ -345,9 +345,9 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	}
 
 	// if --post-load-delay is set, wait for the specified delay
-	if config.Get().HeadlessPostLoadDelay > 0 {
-		logger.Debug("waiting for post-load delay", "delay", config.Get().HeadlessPostLoadDelay)
-		time.Sleep(config.Get().HeadlessPostLoadDelay)
+	if config.Get().HeadlessPagePostLoadDelay > 0 {
+		logger.Debug("waiting for post-load delay", "delay", config.Get().HeadlessPagePostLoadDelay)
+		time.Sleep(config.Get().HeadlessPagePostLoadDelay)
 	}
 
 	// Run the behaviors script

@@ -92,9 +92,9 @@ type Config struct {
 	HeadlessUserDataDir      string   `mapstructure:"headless-user-data-dir"`
 	HeadlessAllowedMethods   []string `mapstructure:"headless-allowed-methods"`
 
-	HeadlessPageTimeout     time.Duration `mapstructure:"headless-page-timeout"`
-	HeadlessPageLoadTimeout time.Duration `mapstructure:"headless-page-load-timeout"`
-	HeadlessPostLoadDelay   time.Duration `mapstructure:"headless-post-load-delay"`
+	HeadlessPageTimeout       time.Duration `mapstructure:"headless-page-timeout"`
+	HeadlessPageLoadTimeout   time.Duration `mapstructure:"headless-page-load-timeout"`
+	HeadlessPagePostLoadDelay time.Duration `mapstructure:"headless-page-post-load-delay"`
 
 	HeadlessBehaviors       []string      `mapstructure:"headless-behaviors"`
 	HeadlessBehaviorTimeout time.Duration `mapstructure:"headless-behavior-timeout"`
