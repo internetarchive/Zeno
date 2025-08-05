@@ -360,19 +360,19 @@ func (p *cssParser) parse() ([]string, []string, error) {
 		p.atManager.Feed(tt, string(traw))
 
 		if tt == csslexer.EOFToken {
-			var parseErr error
+			var lexErr error
 			if p.lexer.Err() != nil && !errors.Is(p.lexer.Err(), io.EOF) {
-				parseErr = p.lexer.Err()
-				cssLogger.Error("error parsing CSS", "error", parseErr)
+				lexErr = p.lexer.Err()
+				cssLogger.Error("error lexing CSS", "error", lexErr)
 			}
-			return p.links, p.atImportLinks, parseErr
+			return p.links, p.atImportLinks, lexErr
 		}
 
 		p.processToken(tt, traw)
 	}
 }
 
-func parseCSS(reader io.Reader, inline bool) (links []string, atImportLinks []string, parseErr error) {
+func parseCSS(reader io.Reader, inline bool) (links []string, atImportLinks []string, lexErr error) {
 	// "The @import rule allows users to import style rules from other style sheets.
 	// If an @import rule refers to a valid stylesheet, user agents must treat the
 	// contents of the stylesheet as if they were written in place of the @import
