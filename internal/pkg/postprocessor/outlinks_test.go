@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
@@ -28,8 +29,8 @@ func TestFilterURLsByProtocol(t *testing.T) {
 //go:embed testdata/wikipedia_IA.txt
 var wikitext []byte // CC BY-SA 4.0
 
-//go:embed testdata/Q27536592.html
-var q27536592HTML []byte // CC BY-SA 4.0
+//go:embed testdata/Q27536592.html.gz
+var q27536592HTMLGZ []byte // CC BY-SA 4.0
 
 func TestExtractLinksFromPage(t *testing.T) {
 	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
@@ -57,7 +58,7 @@ func TestExtractLinksFromPage(t *testing.T) {
 // There are 2 lines in the HTML that are longer than 64KiB, overflowing the default bufio.Scanner buffer size if we use line-by-line reading.
 func TestExtractLinksFromPageWithBigInlineHTML(t *testing.T) {
 	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
-	spooledTempFile.Write(q27536592HTML)
+	spooledTempFile.Write(utils.MustDecompressGzippedBytes(q27536592HTMLGZ))
 
 	URL := &models.URL{Raw: "https://www.wikidata.org/wiki/Q27536592"}
 	URL.SetBody(spooledTempFile)
