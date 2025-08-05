@@ -96,21 +96,17 @@ func TestCSSParser(t *testing.T) {
 						url("trickster-outline.woff") format("woff");
 					}`,
 			expectedLinks: []string{"trickster-COLRv1.otf", "trickster-outline.otf", "trickster-outline.woff"},
-			inline:        false,
 		},
 		{
 			name:          "bare declaration URL separete CSS",
 			CSS:           `url("https://example.com/style.css");`,
 			expectedLinks: []string{"https://example.com/style.css"},
-			inline:        false,
-			err:           false,
 		},
 		{
 			name:          "bare declaration URL inline CSS",
 			CSS:           `url("https://example.com/style.css");`,
 			expectedLinks: []string{"https://example.com/style.css"},
 			inline:        true,
-			err:           false,
 		},
 		{
 			name: "At-Import Rules",
@@ -145,7 +141,6 @@ func TestCSSParser(t *testing.T) {
 			expectedLinks: []string{"image.png"},
 			// no "invalid.css" because it's not a valid @import rule
 			expectedAtImportLinks: []string{"1.css", "2.css", "3.css", "4.css", "5.css", "6.css", "7.css", "8.css", "9.css"},
-			inline:                false,
 		},
 		{
 			name: "At-Import Rules after layer block",
@@ -162,7 +157,6 @@ func TestCSSParser(t *testing.T) {
 				}`,
 			expectedLinks:         []string{"image.png"},
 			expectedAtImportLinks: []string{},
-			inline:                false,
 		},
 		{
 			name:          "bare declaration URL at start of a line",
