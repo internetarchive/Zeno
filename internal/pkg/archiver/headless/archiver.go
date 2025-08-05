@@ -301,14 +301,16 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 
 	// Create a new page
 	logger.Debug("creating new page for browser")
-	var page *rod.Page
+	var rawPage *rod.Page
 	if config.Get().HeadlessStealth {
 		logger.Debug("using stealth for browser")
-		page = stealth.MustPage(HeadlessBrowser)
+		rawPage = stealth.MustPage(HeadlessBrowser)
 	} else {
-		page = HeadlessBrowser.MustPage()
+		rawPage = HeadlessBrowser.MustPage()
 	}
-	defer page.MustClose()
+	defer rawPage.MustClose()
+
+	page := rawPage.Timeout(config.Get().HeadlessPageTimeout)
 
 	logger.Debug("Injecting behaviors.js...")
 	page.MustEvalOnNewDocument(behaviorsJS)
