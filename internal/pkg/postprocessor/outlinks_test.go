@@ -28,6 +28,9 @@ func TestFilterURLsByProtocol(t *testing.T) {
 //go:embed testdata/wikipedia_IA.txt
 var wikitext []byte // CC BY-SA 4.0
 
+//go:embed testdata/Q27536592.html
+var q27536592HTML []byte // CC BY-SA 4.0
+
 func TestExtractLinksFromPage(t *testing.T) {
 	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
 	spooledTempFile.Write(wikitext)
@@ -46,6 +49,26 @@ func TestExtractLinksFromPage(t *testing.T) {
 	links = extractLinksFromPage(URL)
 	if len(links) != 449 {
 		t.Errorf("expected 449 links, got %d", len(links))
+	}
+}
+
+// https://github.com/internetarchive/Zeno/issues/413
+//
+// There are 2 lines in the HTML that are longer than 64KiB, overflowing the default bufio.Scanner buffer size if we use line-by-line reading.
+func TestExtractLinksFromPageWithBigInlineHTML(t *testing.T) {
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile.Write(q27536592HTML)
+
+	URL := &models.URL{Raw: "https://www.wikidata.org/wiki/Q27536592"}
+	URL.SetBody(spooledTempFile)
+	URL.Parse()
+
+	config.InitConfig()
+	config.Get().StrictRegex = false
+
+	links := extractLinksFromPage(URL)
+	if len(links) != 72 {
+		t.Errorf("expected 72 links, got %d", len(links))
 	}
 }
 
