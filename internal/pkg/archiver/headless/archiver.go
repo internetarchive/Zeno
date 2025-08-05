@@ -403,6 +403,7 @@ func extractAndStoreHTML(item *models.Item, page *rod.Page) error {
 
 	htmlBytesUnsafe := unsafe.Slice(unsafe.StringData(htmlText), len(htmlText)) // Convert string to []byte without allocation
 	item.GetURL().SetMIMEType(mimetype.Detect(htmlBytesUnsafe))
+	logger.Debug("detected MIME type", "mime", item.GetURL().GetMIMEType().String())
 
 	// Create a temp file with a 8MB memory buffer
 	spooledBuff := spooledtempfile.NewSpooledTempFile("zeno", config.Get().WARCTempDir, 8000000, false, -1)
