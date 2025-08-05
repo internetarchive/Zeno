@@ -84,9 +84,11 @@ func Stop() {
 	}
 }
 
+type SeencheckerFunc = func(item *models.Item) error
+
 // SetSeenchecker sets the seenchecker function to be used by the preprocessor.
 // It should be called only once, and it will panic if called more than once or if the preprocessor is not initialized.
-func SetSeenchecker(seenchecker func(item *models.Item) error) {
+func SetSeenchecker(seenchecker SeencheckerFunc) {
 	if GlobalPreprocessor == nil {
 		panic("preprocessor is not initialized")
 	}
