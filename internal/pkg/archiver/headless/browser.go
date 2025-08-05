@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 var HeadlessBrowser *rod.Browser
 var Launcher *launcher.Launcher
 
-var DefaultChromiumRevision = 1465706
+const MagicLatestChromiumRevision = -1
 
 var browserLogger = log.NewFieldedLogger(&log.Fields{"component": "archiver.headless.client"})
 
@@ -57,15 +58,14 @@ func Start() {
 		l = launcher.New()
 	}
 
-	if config.Get().HeadlessChromiumRevision == -1 {
+	if config.Get().HeadlessChromiumRevision == MagicLatestChromiumRevision {
 		latestRev, err := queryLatestChromiumRevision()
 		if err != nil {
-			browserLogger.Error("failed to get latest Chromium revision, using default", "err", err, "default_revision", DefaultChromiumRevision)
-			config.Get().HeadlessChromiumRevision = DefaultChromiumRevision
-		} else {
-			browserLogger.Info("using latest Chromium revision", "revision", latestRev)
-			config.Get().HeadlessChromiumRevision = latestRev
+			browserLogger.Error("failed to query latest Chromium revision, you can try to specify the revision manually", "err", err)
+			os.Exit(1)
 		}
+		browserLogger.Info("using latest Chromium revision", "revision", latestRev)
+		config.Get().HeadlessChromiumRevision = latestRev
 	}
 
 	l.Bin(config.Get().HeadlessChromiumBin).
