@@ -1,8 +1,6 @@
 package extractor
 
 import (
-	"slices"
-	"strings"
 	"testing"
 )
 
@@ -166,42 +164,6 @@ func TestCSSParser(t *testing.T) {
 			expectedAtImportLinks: []string{},
 			inline:                false,
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			links, atImportLinks, err := ExtractFromStringCSS(tt.CSS, tt.inline)
-			if (err != nil) != tt.err {
-				t.Errorf("Expected error %v, got %v", tt.err, err)
-			}
-			if len(links) != len(tt.expectedLinks) {
-				t.Errorf("Expected %d links, got %d", len(tt.expectedLinks), len(links))
-				return
-			}
-			if len(atImportLinks) != len(tt.expectedAtImportLinks) {
-				t.Errorf("Expected %d at-import links, got %d", len(tt.expectedAtImportLinks), len(atImportLinks))
-				return
-			}
-			for i, link := range links {
-				if link != tt.expectedLinks[i] {
-					t.Errorf("Expected link %s, got %s", tt.expectedLinks[i], link)
-				}
-			}
-			for i, atImportLink := range atImportLinks {
-				if atImportLink != tt.expectedAtImportLinks[i] {
-					t.Errorf("Expected at-import link %s, got %s", tt.expectedAtImportLinks[i], atImportLink)
-				}
-			}
-		})
-	}
-}
-
-func TestCSSRegex(t *testing.T) {
-	tests := []struct {
-		name                  string
-		CSS                   string
-		expectedLinks         []string
-		expectedAtImportLinks []string
-	}{
 		{
 			name:          "bare declaration URL at start of a line",
 			CSS:           `url("https://example.com/style.css");`,
@@ -240,14 +202,10 @@ func TestCSSRegex(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			slices.Sort(tt.expectedLinks)
-			slices.Sort(tt.expectedAtImportLinks)
-
-			links, atImportLinks, _ := parseCSS(strings.NewReader(tt.CSS), false)
-
-			slices.Sort(links)
-			slices.Sort(atImportLinks)
-
+			links, atImportLinks, err := ExtractFromStringCSS(tt.CSS, tt.inline)
+			if (err != nil) != tt.err {
+				t.Errorf("Expected error %v, got %v", tt.err, err)
+			}
 			if len(links) != len(tt.expectedLinks) {
 				t.Errorf("Expected %d links, got %d", len(tt.expectedLinks), len(links))
 				return
