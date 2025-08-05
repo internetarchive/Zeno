@@ -12,8 +12,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
@@ -387,6 +389,9 @@ func extractAndStoreHTML(item *models.Item, page *rod.Page) error {
 	}
 
 	item.GetURL().SetDocumentCache(doc)
+
+	htmlBytesUnsafe := unsafe.Slice(unsafe.StringData(htmlText), len(htmlText)) // Convert string to []byte without allocation
+	item.GetURL().SetMIMEType(mimetype.Detect(htmlBytesUnsafe))
 
 	// Create a temp file with a 8MB memory buffer
 	spooledBuff := spooledtempfile.NewSpooledTempFile("zeno", config.Get().WARCTempDir, 8000000, false, -1)
