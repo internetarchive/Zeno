@@ -1,7 +1,6 @@
 package extractor
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"slices"
@@ -18,16 +17,6 @@ import (
 var cssLogger = log.NewFieldedLogger(&log.Fields{
 	"component": "postprocessor.extractor.css",
 })
-
-// Check if the rune is a ascii newline (\n or \r).
-func isNewline(c rune) bool {
-	return c == '\n' || c == '\r'
-}
-
-// isWhitespace returns true for space, \n, \r, \t, \f.
-func isWhitespace(c rune) bool {
-	return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\f'
-}
 
 // Assuming the input [data] is already trimmed and does not contain any leading
 // or trailing whitespace, quotes, "url(", or ")".
@@ -146,7 +135,7 @@ func parseStringOrURLTokenData(data []rune, isString bool) string {
 	return value.String()
 }
 
-const urlTokenPrefix = "url("
+var urlTokenPrefix = []rune("url(")
 
 // Trim leading and trailing whitespace
 func TrimSpace(data []rune) []rune {
@@ -193,28 +182,28 @@ func sanitizeRune(r rune) rune {
 	return r
 }
 
-var allowedPrecedeAtRules = []string{
-	"@charset",
-	"@layer",
+var allowedPrecedeAtRules = [][]rune{
+	[]rune("@charset"),
+	[]rune("@layer"),
 }
 
-const atImportRule = "@import"
+var atImportRule = []rune("@import")
 
-type AtRuleStateManager struct {
+type atRuleStateManager struct {
 	inOKArea        bool // Whether the current area is allowed to contain @import rules
 	inAt            bool // Whether the current state is in an @-rule
 	inValidATImport bool // Whether the current state is in an @import rule
 }
 
-func newAtRuleStateMnager() *AtRuleStateManager {
-	return &AtRuleStateManager{
+func newAtRuleStateMnager() *atRuleStateManager {
+	return &atRuleStateManager{
 		inOKArea:        true,  // Initially, the area is allowed to contain @import rules
 		inAt:            false, // Initially, we are not in an @-rule
 		inValidATImport: false, // Initially, we are not in an @import rule
 	}
 }
 
-func (self *AtRuleStateManager) Feed(tt csslexer.TokenType, data string) {
+func (self *atRuleStateManager) Feed(tt csslexer.TokenType, data []rune) {
 	if !self.inOKArea {
 		self.Done()
 		return
@@ -227,7 +216,7 @@ func (self *AtRuleStateManager) Feed(tt csslexer.TokenType, data string) {
 	if tt == csslexer.AtKeywordToken {
 		self.inAt = true
 		for _, rule := range allowedPrecedeAtRules {
-			if strings.EqualFold(data, rule) {
+			if equalFold(data, rule) {
 				if self.inValidATImport {
 					self.Done() // must not have any other valid at-rules or style rules between it and previous @import rules
 					return
@@ -235,7 +224,7 @@ func (self *AtRuleStateManager) Feed(tt csslexer.TokenType, data string) {
 				return
 			}
 		}
-		if strings.EqualFold(data, atImportRule) {
+		if equalFold(data, atImportRule) {
 			self.inValidATImport = true // @import rule
 			return
 		}
@@ -255,26 +244,26 @@ func (self *AtRuleStateManager) Feed(tt csslexer.TokenType, data string) {
 	}
 }
 
-func (self *AtRuleStateManager) Done() {
+func (self *atRuleStateManager) Done() {
 	self.inOKArea, self.inAt, self.inValidATImport = false, false, false
 }
 
-func (self *AtRuleStateManager) Report() (inOKArea, inAt, inValidATImport bool) {
+func (self *atRuleStateManager) Report() (inOKArea, inAt, inValidATImport bool) {
 	return self.inOKArea, self.inAt, self.inValidATImport
 }
 
 type cssParser struct {
 	lexer          *csslexer.Lexer
-	atManager      *AtRuleStateManager
+	atManager      *atRuleStateManager
 	inURLFunction  bool
 	inAtImportRule bool
 	links          []string
 	atImportLinks  []string
 }
 
-func newCSSParser(reader io.Reader, inline bool) *cssParser {
+func newCSSParser(css string, inline bool) *cssParser {
 	p := &cssParser{
-		lexer:         csslexer.NewLexer(csslexer.NewInputReader(reader)),
+		lexer:         csslexer.NewLexer(csslexer.NewInput(css)),
 		atManager:     newAtRuleStateMnager(),
 		links:         make([]string, 0, 16),
 		atImportLinks: make([]string, 0, 4),
@@ -288,13 +277,13 @@ func newCSSParser(reader io.Reader, inline bool) *cssParser {
 }
 
 func (p *cssParser) processFunctionToken(traw []rune) {
-	if len(traw) >= len(urlTokenPrefix) && strings.EqualFold(string(traw[:len(urlTokenPrefix)]), urlTokenPrefix) {
+	if hasPrefixFold(traw, urlTokenPrefix) { // trailing space may be present
 		p.inURLFunction = true
 	}
 }
 
 func (p *cssParser) processAtKeywordToken(traw []rune) {
-	if len(traw) >= len(atImportRule) && strings.EqualFold(string(traw[:len(atImportRule)]), atImportRule) {
+	if equalFold(traw, atImportRule) {
 		p.inAtImportRule = true
 	}
 }
@@ -357,7 +346,7 @@ func (p *cssParser) parse() ([]string, []string, error) {
 			continue // skip whitespace and comments
 		}
 
-		p.atManager.Feed(tt, string(traw))
+		p.atManager.Feed(tt, traw)
 
 		if tt == csslexer.EOFToken {
 			var lexErr error
@@ -372,12 +361,12 @@ func (p *cssParser) parse() ([]string, []string, error) {
 	}
 }
 
-func parseCSS(reader io.Reader, inline bool) (links []string, atImportLinks []string, lexErr error) {
+func parseCSS(css string, inline bool) (links []string, atImportLinks []string, lexErr error) {
 	// "The @import rule allows users to import style rules from other style sheets.
 	// If an @import rule refers to a valid stylesheet, user agents must treat the
 	// contents of the stylesheet as if they were written in place of the @import
 	// rule, with two exceptions"
-	parser := newCSSParser(reader, inline)
+	parser := newCSSParser(css, inline)
 	return parser.parse()
 }
 
@@ -389,12 +378,16 @@ func IsCSS(URL *models.URL) bool {
 
 // ExtractFromStringCSS extracts URLs from a CSS content string.
 func ExtractFromStringCSS(cssBody string, inline bool) (links []string, atImportLinks []string, err error) {
-	return parseCSS(bytes.NewBufferString(cssBody), inline)
+	return parseCSS(cssBody, inline)
 }
 
 // ExtractFromURLCSS extracts URLs from a CSS URL
 func ExtractFromURLCSS(URL *models.URL) (links []*models.URL, atImportLinks []*models.URL, err error) {
 	defer URL.RewindBody()
-	sLinks, sAtImportLinks, err := parseCSS(URL.GetBody(), false)
+	cssBody := strings.Builder{}
+	if _, err := io.Copy(&cssBody, URL.GetBody()); err != nil {
+		return nil, nil, err
+	}
+	sLinks, sAtImportLinks, err := parseCSS(cssBody.String(), false)
 	return toURLs(sLinks), toURLs(sAtImportLinks), err
 }
