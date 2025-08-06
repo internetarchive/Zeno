@@ -9,7 +9,9 @@ import (
 // ZenoBxLogger is a custom logger for Browsertrix behaviors.
 // https://github.com/webrecorder/browsertrix-behaviors/#logging
 type ZenoBxLogger struct {
-	item *models.Item
+	item               *models.Item
+	lastMessage        string
+	suppressedMessages int
 }
 
 func newBxLogger(item *models.Item) *ZenoBxLogger {
@@ -40,8 +42,22 @@ func (l *ZenoBxLogger) LogFunc(v gson.JSON) (any, error) {
 		delete(vMap, "type")
 	}
 
+	if dataMessage, ok := vMap["data"]; ok {
+		if l.lastMessage == dataMessage.String() {
+			// Suppress spamming the same scroll message
+			l.suppressedMessages += 1
+			return nil, nil
+		}
+		l.lastMessage = dataMessage.String()
+	}
+
 	for k, val := range vMap {
 		args = append(args, k, val)
+	}
+
+	if l.suppressedMessages > 0 {
+		args = append(args, "suppressed", l.suppressedMessages)
+		l.suppressedMessages = 0
 	}
 
 	loggerFunc("page log", args...)
