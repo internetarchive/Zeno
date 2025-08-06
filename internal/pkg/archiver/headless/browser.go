@@ -18,14 +18,20 @@ import (
 var HeadlessBrowser *rod.Browser
 var Launcher *launcher.Launcher
 
-const MagicLatestChromiumRevision = -1
+const (
+	MagicLatestChromiumRevision = 0
+	MagicSecondChromiumRevision = -1 // Google some time publish version number before uploading the binary. Use the second newest revision to avoid this issue.
+)
 
 var browserLogger = log.NewFieldedLogger(&log.Fields{"component": "archiver.headless.client"})
 
-func queryLatestChromiumRevision() (int, error) {
+func queryLatestChromiumRevision(offset int) (int, error) {
+	if offset < 0 {
+		return 0, fmt.Errorf("offset must be non-negative")
+	}
 	client := &http.Client{Timeout: 10 * time.Second}
 	// From web page: https://chromiumdash.appspot.com/releases?platform=Linux
-	resp, err := client.Get("https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1&offset=0")
+	resp, err := client.Get(fmt.Sprintf("https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1&offset=%d", offset))
 	if err != nil {
 		return 0, err
 	}
@@ -58,13 +64,13 @@ func Start() {
 		l = launcher.New()
 	}
 
-	if config.Get().HeadlessChromiumRevision == MagicLatestChromiumRevision {
-		latestRev, err := queryLatestChromiumRevision()
+	if config.Get().HeadlessChromiumRevision <= 0 {
+		latestRev, err := queryLatestChromiumRevision(-config.Get().HeadlessChromiumRevision)
 		if err != nil {
 			browserLogger.Error("failed to query latest Chromium revision, you can try to specify the revision manually", "err", err)
 			os.Exit(1)
 		}
-		browserLogger.Info("using latest Chromium revision", "revision", latestRev)
+		browserLogger.Info("using Chromium revision", "revision", latestRev, "offset_from_latest", -config.Get().HeadlessChromiumRevision)
 		config.Get().HeadlessChromiumRevision = latestRev
 	}
 
