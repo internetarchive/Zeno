@@ -1,7 +1,14 @@
 package extractor
 
 import (
+	_ "embed"
+	"os"
 	"testing"
+	"time"
+
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
 func TestCSSParser(t *testing.T) {
@@ -220,4 +227,38 @@ func TestCSSParser(t *testing.T) {
 			}
 		})
 	}
+}
+
+//go:embed testdata/font-awesome-all.css.gz
+var fontAwesomeCSSGZ []byte
+
+func BenchmarkExtractFromURLCSS(b *testing.B) {
+	url := &models.URL{
+		Raw: "http://test.css",
+	}
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile.Write(utils.MustDecompressGzippedBytes(fontAwesomeCSSGZ))
+	url.SetBody(spooledTempFile)
+	url.Parse()
+	started := time.Now()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		r1, r2, err := ExtractFromURLCSS(url)
+		if err != nil {
+			b.Errorf("Error extracting CSS: %v", err)
+		}
+		if len(r1) != 18 {
+			b.Errorf("Expected 18 links, got %d", len(r1))
+		}
+		if len(r2) != 0 {
+			b.Errorf("Expected 0 at-import links, got %d", len(r2))
+		}
+	}
+	b.StopTimer()
+
+	totalBytes := len(utils.MustDecompressGzippedBytes(fontAwesomeCSSGZ)) * b.N
+	elapsed := time.Since(started)
+	totalKiB := totalBytes / 1024
+	b.ReportMetric(float64(totalKiB)/elapsed.Seconds(), "kB/s")
 }
