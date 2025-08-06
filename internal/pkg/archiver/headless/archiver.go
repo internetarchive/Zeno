@@ -121,10 +121,21 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	})
 	bxLogger := newBxLogger(item)
 
-	var err error
+	// Create a new page
+	logger.Debug("creating new page for browser")
+	var rawPage *rod.Page
+	if config.Get().HeadlessStealth {
+		logger.Debug("using stealth for browser")
+		rawPage = stealth.MustPage(HeadlessBrowser)
+	} else {
+		rawPage = HeadlessBrowser.MustPage()
+	}
+	defer rawPage.MustClose()
 
-	// Set the hijack router
-	router := HeadlessBrowser.HijackRequests()
+	page := rawPage.Timeout(config.Get().HeadlessPageTimeout)
+
+	var err error // Set the hijack router
+	router := page.HijackRequests()
 	defer router.MustStop()
 
 	inFlightRequests := NewWaitGroup()
@@ -139,6 +150,17 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			"item_url":  item.GetURL().String(),
 			"url":       hijack.Request.URL().String(),
 		})
+
+		// debug:
+		if hijack.Request.URL().String() == "https://wiki.saveweb.org/start?do=index" && item.GetURL().String() != "https://wiki.saveweb.org/start?do=index" {
+			logger.Debug("!!!debugging request")
+			if item.GetURL().String() == "https://badge.fury.io/py/wikiteam3" {
+				ticker := time.NewTicker(1 * time.Second)
+				for range ticker.C {
+					logger.Warn("!!!Check this request!!!", "url", hijack.Request.URL().String())
+				}
+			}
+		}
 
 		isSeen := seencheckSubReq(item, seed, hijack.Request.URL().String())
 		if isSeen {
@@ -297,21 +319,6 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 		logger.Debug("processed body", "size", len(hijack.Response.Payload().Body), "status_code", resp.StatusCode)
 	}) // <--- Router End
 
-	go router.Run()
-
-	// Create a new page
-	logger.Debug("creating new page for browser")
-	var rawPage *rod.Page
-	if config.Get().HeadlessStealth {
-		logger.Debug("using stealth for browser")
-		rawPage = stealth.MustPage(HeadlessBrowser)
-	} else {
-		rawPage = HeadlessBrowser.MustPage()
-	}
-	defer rawPage.MustClose()
-
-	page := rawPage.Timeout(config.Get().HeadlessPageTimeout)
-
 	logger.Debug("Injecting behaviors.js...")
 	page.MustEvalOnNewDocument(behaviorsJS)
 
@@ -324,6 +331,9 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 
 	// Navigate to the URL
 	logger.Debug("navigating to URL")
+
+	go router.Run()
+
 	err = page.Navigate(item.GetURL().String())
 	if err != nil {
 		logger.Error("unable to navigate to URL", "error", err)
