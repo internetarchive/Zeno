@@ -1,16 +1,17 @@
 package extractor
 
 import (
-	"slices"
+	_ "embed"
+	"os"
 	"testing"
+	"time"
+
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
-func disableRegexFallback() {
-	useRegexFallbackForCSSParsing = false
-}
-
 func TestCSSParser(t *testing.T) {
-	disableRegexFallback()
 	tests := []struct {
 		name                  string
 		CSS                   string
@@ -102,21 +103,17 @@ func TestCSSParser(t *testing.T) {
 						url("trickster-outline.woff") format("woff");
 					}`,
 			expectedLinks: []string{"trickster-COLRv1.otf", "trickster-outline.otf", "trickster-outline.woff"},
-			inline:        false,
 		},
 		{
 			name:          "bare declaration URL separete CSS",
 			CSS:           `url("https://example.com/style.css");`,
-			expectedLinks: []string{},
-			inline:        false,
-			err:           true, // got unexpected token in declaration
+			expectedLinks: []string{"https://example.com/style.css"},
 		},
 		{
 			name:          "bare declaration URL inline CSS",
 			CSS:           `url("https://example.com/style.css");`,
 			expectedLinks: []string{"https://example.com/style.css"},
 			inline:        true,
-			err:           true, // got unexpected token in declaration
 		},
 		{
 			name: "At-Import Rules",
@@ -151,7 +148,6 @@ func TestCSSParser(t *testing.T) {
 			expectedLinks: []string{"image.png"},
 			// no "invalid.css" because it's not a valid @import rule
 			expectedAtImportLinks: []string{"1.css", "2.css", "3.css", "4.css", "5.css", "6.css", "7.css", "8.css", "9.css"},
-			inline:                false,
 		},
 		{
 			name: "At-Import Rules after layer block",
@@ -168,44 +164,7 @@ func TestCSSParser(t *testing.T) {
 				}`,
 			expectedLinks:         []string{"image.png"},
 			expectedAtImportLinks: []string{},
-			inline:                false,
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			links, atImportLinks, err := ExtractFromStringCSS(tt.CSS, tt.inline)
-			if (err != nil) != tt.err {
-				t.Errorf("Expected error %v, got %v", tt.err, err)
-			}
-			if len(links) != len(tt.expectedLinks) {
-				t.Errorf("Expected %d links, got %d", len(tt.expectedLinks), len(links))
-				return
-			}
-			if len(atImportLinks) != len(tt.expectedAtImportLinks) {
-				t.Errorf("Expected %d at-import links, got %d", len(tt.expectedAtImportLinks), len(atImportLinks))
-				return
-			}
-			for i, link := range links {
-				if link != tt.expectedLinks[i] {
-					t.Errorf("Expected link %s, got %s", tt.expectedLinks[i], link)
-				}
-			}
-			for i, atImportLink := range atImportLinks {
-				if atImportLink != tt.expectedAtImportLinks[i] {
-					t.Errorf("Expected at-import link %s, got %s", tt.expectedAtImportLinks[i], atImportLink)
-				}
-			}
-		})
-	}
-}
-
-func TestCSSRegex(t *testing.T) {
-	tests := []struct {
-		name                  string
-		CSS                   string
-		expectedLinks         []string
-		expectedAtImportLinks []string
-	}{
 		{
 			name:          "bare declaration URL at start of a line",
 			CSS:           `url("https://example.com/style.css");`,
@@ -238,22 +197,16 @@ func TestCSSRegex(t *testing.T) {
 					background-image: url(  i\(mage3.png  );
 				}
 			`,
-			expectedLinks: []string{"image1.png", "image2.png",
-				"i\\(mage3.png"}, // regex does not unescape the backslash
-			expectedAtImportLinks: []string{"1.css", "2.css", "3.css", "4.css", "5.css", "6.css", "7.css", "8.css", "9.css",
-				"invalid.css"}, // invalid.css is included because the regex does not validate the @import rule
+			expectedLinks:         []string{"image1.png", "image2.png", "i(mage3.png"},
+			expectedAtImportLinks: []string{"1.css", "2.css", "3.css", "4.css", "5.css", "6.css", "7.css", "8.css", "9.css"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			slices.Sort(tt.expectedLinks)
-			slices.Sort(tt.expectedAtImportLinks)
-
-			links, atImportLinks := parseCSSRegex(tt.CSS)
-
-			slices.Sort(links)
-			slices.Sort(atImportLinks)
-
+			links, atImportLinks, err := ExtractFromStringCSS(tt.CSS, tt.inline)
+			if (err != nil) != tt.err {
+				t.Errorf("Expected error %v, got %v", tt.err, err)
+			}
 			if len(links) != len(tt.expectedLinks) {
 				t.Errorf("Expected %d links, got %d", len(tt.expectedLinks), len(links))
 				return
@@ -274,4 +227,38 @@ func TestCSSRegex(t *testing.T) {
 			}
 		})
 	}
+}
+
+//go:embed testdata/font-awesome-all.css.gz
+var fontAwesomeCSSGZ []byte
+
+func BenchmarkExtractFromURLCSS(b *testing.B) {
+	url := &models.URL{
+		Raw: "http://test.css",
+	}
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile.Write(utils.MustDecompressGzippedBytes(fontAwesomeCSSGZ))
+	url.SetBody(spooledTempFile)
+	url.Parse()
+	started := time.Now()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		r1, r2, err := ExtractFromURLCSS(url)
+		if err != nil {
+			b.Errorf("Error extracting CSS: %v", err)
+		}
+		if len(r1) != 18 {
+			b.Errorf("Expected 18 links, got %d", len(r1))
+		}
+		if len(r2) != 0 {
+			b.Errorf("Expected 0 at-import links, got %d", len(r2))
+		}
+	}
+	b.StopTimer()
+
+	totalBytes := len(utils.MustDecompressGzippedBytes(fontAwesomeCSSGZ)) * b.N
+	elapsed := time.Since(started)
+	totalKiB := totalBytes / 1024
+	b.ReportMetric(float64(totalKiB)/elapsed.Seconds(), "kB/s")
 }
