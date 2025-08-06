@@ -5,7 +5,7 @@ import (
 )
 
 func Test_queryLatestChromiumRevision(t *testing.T) {
-	latestRev, err := queryLatestChromiumRevision()
+	latestRev, err := queryLatestChromiumRevision(MagicLatestChromiumRevision)
 	if err != nil {
 		t.Fatalf("failed to get latest Chromium revision: %v", err)
 	}
