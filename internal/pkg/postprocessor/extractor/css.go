@@ -261,9 +261,9 @@ type cssParser struct {
 	atImportLinks  []string
 }
 
-func newCSSParser(css string, inline bool) *cssParser {
+func newCSSParser(css []rune, inline bool) *cssParser {
 	p := &cssParser{
-		lexer:         csslexer.NewLexer(csslexer.NewInput(css)),
+		lexer:         csslexer.NewLexer(csslexer.NewInputRunes(css)),
 		atManager:     newAtRuleStateMnager(),
 		links:         make([]string, 0, 16),
 		atImportLinks: make([]string, 0, 4),
@@ -361,24 +361,15 @@ func (p *cssParser) parse() ([]string, []string, error) {
 	}
 }
 
-func parseCSS(css string, inline bool) (links []string, atImportLinks []string, lexErr error) {
-	// "The @import rule allows users to import style rules from other style sheets.
-	// If an @import rule refers to a valid stylesheet, user agents must treat the
-	// contents of the stylesheet as if they were written in place of the @import
-	// rule, with two exceptions"
-	parser := newCSSParser(css, inline)
-	return parser.parse()
-}
-
 // https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet:process-the-linked-resource
 // According to the spec, we should only check the Content-Type header if the resource is came from a HTTP(S) request.
 func IsCSS(URL *models.URL) bool {
 	return URL.GetMIMEType().Is("text/css")
 }
 
-// ExtractFromStringCSS extracts URLs from a CSS content string.
-func ExtractFromStringCSS(cssBody string, inline bool) (links []string, atImportLinks []string, err error) {
-	return parseCSS(cssBody, inline)
+func ExtractFromStringCSS(css string, inline bool) (links []string, atImportLinks []string, lexErr error) {
+	parser := newCSSParser([]rune(css), inline)
+	return parser.parse()
 }
 
 // ExtractFromURLCSS extracts URLs from a CSS URL
@@ -388,6 +379,6 @@ func ExtractFromURLCSS(URL *models.URL) (links []*models.URL, atImportLinks []*m
 	if _, err := io.Copy(&cssBody, URL.GetBody()); err != nil {
 		return nil, nil, err
 	}
-	sLinks, sAtImportLinks, err := parseCSS(cssBody.String(), false)
+	sLinks, sAtImportLinks, err := ExtractFromStringCSS(cssBody.String(), false)
 	return toURLs(sLinks), toURLs(sAtImportLinks), err
 }
