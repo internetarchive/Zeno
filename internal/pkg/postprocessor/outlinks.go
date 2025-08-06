@@ -92,24 +92,34 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	return outlinks, nil
 }
 
+const minLinkLength = len("http://a.b")
+
 func extractLinksFromPage(URL *models.URL) (links []*models.URL) {
 	defer URL.RewindBody()
 
 	// Extract links and dedupe them
 	scanner := bufio.NewScanner(URL.GetBody())
+	scanner.Split(bufio.ScanWords)
+
 	var rawLinks []string
 
 	for scanner.Scan() {
-		line := scanner.Text()
-		var lineLinks []string
+		token := scanner.Text()
+
+		var tokenLinks []string
 
 		if !config.Get().StrictRegex {
-			lineLinks = extractor.LinkRegex.FindAllString(line, -1)
+			// perf optimization: skip short token and those without a protocol
+			if len(token) < minLinkLength || !strings.Contains(token, "://") {
+				continue
+			}
+
+			tokenLinks = extractor.LinkRegex.FindAllString(token, -1)
 		} else {
-			lineLinks = extractor.LinkRegexStrict.FindAllString(line, -1)
+			tokenLinks = extractor.LinkRegexStrict.FindAllString(token, -1)
 		}
 
-		rawLinks = append(rawLinks, lineLinks...)
+		rawLinks = append(rawLinks, tokenLinks...)
 	}
 
 	if err := scanner.Err(); err != nil {
