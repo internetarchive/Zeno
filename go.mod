@@ -30,8 +30,8 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
-	github.com/tdewolff/parse/v2 v2.8.1
 	github.com/ysmood/gson v0.7.3
+	go.baoshuo.dev/csslexer v0.0.3
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.42.0
 	golang.org/x/sync v0.16.0
