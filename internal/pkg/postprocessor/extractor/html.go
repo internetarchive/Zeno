@@ -126,6 +126,8 @@ func (HTMLOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, er
 func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.extractor.HTMLAssets",
+		"url": item.GetURL(),
+		"item": item.GetShortID(),
 	})
 
 	var rawAssets []string
@@ -146,7 +148,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		if exists {
 			URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(dataItem)))
 			if err != nil {
-				logger.Debug("unable to extract URLs from JSON in data-item attribute", "err", err, "url", item.GetURL(), "item", item.GetShortID())
+				logger.Debug("unable to extract URLs from JSON in data-item attribute", "err", err)
 			} else {
 				rawAssets = append(rawAssets, URLsFromJSON...)
 			}
@@ -156,7 +158,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		if exists {
 			links, _, err := ExtractFromStringCSS(style, true)
 			if err != nil {
-				cssLogger.Warn("error parsing inline attribute style CSS", "err", err, "url", item.GetURL(), "item", item.GetShortID(), "links", len(links))
+				cssLogger.Warn("error parsing inline attribute style CSS", "err", err, "links", len(links))
 			}
 			rawAssets = append(rawAssets, links...)
 		}
@@ -249,7 +251,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 		document.Find("style").Each(func(index int, i *goquery.Selection) {
 			links, atImportLinks, err := ExtractFromStringCSS(i.Text(), false)
 			if err != nil {
-				cssLogger.Warn("error parsing HTML style block CSS", "url", item.GetURL(), "item", item.GetShortID(), "links", len(links), "at_import_links", len(atImportLinks), "err", err)
+				cssLogger.Warn("error parsing HTML style block CSS", "links", len(links), "at_import_links", len(atImportLinks), "err", err)
 			}
 			AddAtImportLinksToItemChild(item, toURLs(atImportLinks))
 			for _, link := range links {
@@ -278,7 +280,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 				if strings.Contains(scriptType, "json") {
 					URLsFromJSON, _, err := GetURLsFromJSON(json.NewDecoder(strings.NewReader(i.Text())))
 					if err != nil {
-						logger.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", item.GetURL(), "item", item.GetShortID())
+						logger.Debug("unable to extract URLs from JSON in script tag", "error", err)
 					} else {
 						rawAssets = append(rawAssets, URLsFromJSON...)
 					}
@@ -288,7 +290,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			// Apply regex on the script's HTML to extract potential assets
 			outerHTML, err := goquery.OuterHtml(i)
 			if err != nil {
-				logger.Debug("unable to extract outer HTML from script tag", "err", err, "url", item.GetURL(), "item", item.GetShortID())
+				logger.Debug("unable to extract outer HTML from script tag", "err", err)
 			} else {
 				var scriptLinks []string
 				if !config.Get().StrictRegex {
@@ -301,7 +303,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 						// Escape URLs when unicode runes are present in the extracted URLs
 						scriptLink, err := strconv.Unquote(`"` + scriptLink + `"`)
 						if err != nil {
-							logger.Debug("unable to escape URL from JSON in script tag", "error", err, "url", item.GetURL(), "item", item.GetShortID())
+							logger.Debug("unable to escape URL from JSON in script tag", "error", err)
 							continue
 						}
 						rawAssets = append(rawAssets, scriptLink)
@@ -313,7 +315,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			if !strings.HasPrefix(i.Text(), "{") {
 				assetsFromScriptContent, err := extractFromScriptContent(i.Text())
 				if err != nil {
-					logger.Debug("unable to extract URLs from JSON in script tag", "error", err, "url", item.GetURL(), "item", item.GetShortID())
+					logger.Debug("unable to extract URLs from JSON in script tag", "error", err)
 				} else {
 					rawAssets = append(rawAssets, assetsFromScriptContent...)
 				}
@@ -404,7 +406,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			if item.GetURL().GetBase() != nil {
 				baseURL = item.GetURL().GetBase().String()
 			}
-			logger.Debug("unable to resolve URL", "error", err, "item_url", item.GetURL(), "base_url", baseURL, "target", rawAsset, "item", item.GetShortID())
+			logger.Debug("unable to resolve URL", "error", err, "base_url", baseURL, "target", rawAsset)
 		} else if resolvedURL != "" {
 			assets = append(assets, &models.URL{
 				Raw: resolvedURL,
