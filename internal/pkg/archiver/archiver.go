@@ -187,6 +187,7 @@ func archive(workerID string, seed *models.Item) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "archiver.archive",
 		"worker_id": workerID,
+		"seed_id": seed.GetShortID(),
 	})
 
 	var (
@@ -196,13 +197,13 @@ func archive(workerID string, seed *models.Item) {
 
 	items, err := seed.GetNodesAtLevel(seed.GetMaxDepth())
 	if err != nil {
-		logger.Error("unable to get nodes at level", "err", err.Error(), "seed_id", seed.GetShortID())
+		logger.Error("unable to get nodes at level", "err", err.Error())
 		panic(err)
 	}
 
 	for i := range items {
 		if items[i].GetStatus() != models.ItemPreProcessed {
-			logger.Debug("skipping item", "seed_id", seed.GetShortID(), "item_id", items[i].GetShortID(), "status", items[i].GetStatus(), "depth", items[i].GetDepth())
+			logger.Debug("skipping item", "item_id", items[i].GetShortID(), "status", items[i].GetStatus(), "depth", items[i].GetDepth())
 			continue
 		}
 
@@ -231,7 +232,7 @@ func archive(workerID string, seed *models.Item) {
 			// Wait for the rate limiter if enabled
 			if globalBucketManager != nil {
 				elapsed := globalBucketManager.Wait(req.URL.Host)
-				logger.Debug("got token from bucket", "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "elapsed", elapsed)
+				logger.Debug("got token from bucket", "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "elapsed", elapsed)
 			}
 
 			// Don't use the global bucket manager in the retry loop.
@@ -263,13 +264,13 @@ func archive(workerID string, seed *models.Item) {
 				resp, err = client.Do(req)
 				if err != nil {
 					if retry < config.Get().MaxRetry {
-						logger.Warn("retrying request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime)
+						logger.Warn("retrying request", "err", err.Error(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime)
 						time.Sleep(retrySleepTime)
 						continue
 					}
 
 					// retries exhausted
-					logger.Error("unable to execute request", "err", err.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+					logger.Error("unable to execute request", "err", err.Error(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 					item.SetStatus(models.ItemFailed)
 					return
 				}
@@ -291,7 +292,7 @@ func archive(workerID string, seed *models.Item) {
 					// Consume and close the body before retrying
 					copyErr := closeConnWithError(conn, copyWithTimeout(io.Discard, resp.Body))
 					if copyErr != nil {
-						logger.Warn("copyWithTimeout failed for bad status code response", "err", copyErr.Error(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+						logger.Warn("copyWithTimeout failed for bad status code response", "err", copyErr.Error(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 					}
 					resp.Body.Close()
 				}
@@ -311,11 +312,11 @@ func archive(workerID string, seed *models.Item) {
 					}
 
 					if retry < config.Get().MaxRetry {
-						logger.Warn("retrying", "reason", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime, "status_code", resp.StatusCode, "url", req.URL)
+						logger.Warn("retrying", "reason", retryReason, "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "retry", retry, "sleep_time", retrySleepTime, "status_code", resp.StatusCode, "url", req.URL)
 						time.Sleep(retrySleepTime)
 						continue
 					} else {
-						logger.Error("retries exceeded", "reason", retryReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL)
+						logger.Error("retries exceeded", "reason", retryReason, "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL)
 						item.SetStatus(models.ItemFailed)
 						return
 					}
@@ -323,7 +324,7 @@ func archive(workerID string, seed *models.Item) {
 
 				// Discarded
 				if discarded {
-					logger.Warn("response was blocked by DiscardHook", "reason", discardReason, "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL)
+					logger.Warn("response was blocked by DiscardHook", "reason", discardReason, "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status_code", resp.StatusCode, "url", req.URL)
 					item.SetStatus(models.ItemFailed)
 					return
 				}
@@ -349,7 +350,7 @@ func archive(workerID string, seed *models.Item) {
 			processStartTime := time.Now()
 			err = ProcessBody(item.GetURL(), config.Get().DisableAssetsCapture, domainscrawl.Enabled(), config.Get().MaxHops, config.Get().WARCTempDir)
 			if err != nil {
-				logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "seed_id", seed.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
+				logger.Error("unable to process body", "err", err.Error(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops())
 				item.SetStatus(models.ItemFailed)
 				return
 			}
@@ -365,7 +366,7 @@ func archive(workerID string, seed *models.Item) {
 				stats.MeanWaitOnFeedbackTimeAdd(time.Since(feedbackTime))
 			}
 
-			logger.Info("url archived", "url", item.GetURL(), "seed_id", seed.GetShortID(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
+			logger.Info("url archived", "url", item.GetURL(), "item_id", item.GetShortID(), "depth", item.GetDepth(), "hops", item.GetURL().GetHops(), "status", resp.StatusCode)
 
 			item.SetStatus(models.ItemArchived)
 		}(items[i])
