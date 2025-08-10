@@ -26,6 +26,28 @@ func TestFilterURLsByProtocol(t *testing.T) {
 	}
 }
 
+func TestFilterMaxOutlinks(t *testing.T) {
+	var outlinks []*models.URL
+	outlinks = append(outlinks, &models.URL{Raw: "http://e1.com"})
+	outlinks = append(outlinks, &models.URL{Raw: "http://e2.com"})
+	outlinks = append(outlinks, &models.URL{Raw: "http://e3.com"})
+
+	config.InitConfig()
+
+	// no limit by default
+	outlinks2 := filterMaxOutlinks(outlinks)
+	if len(outlinks2) != 3 {
+		t.Errorf("expected 3 outlinks and no filtering, got %d", len(outlinks2))
+	}
+
+	// set limit = 1
+	config.Get().MaxOutlinks = 1
+	outlinks3 := filterMaxOutlinks(outlinks)
+	if len(outlinks3) != 1 {
+		t.Errorf("expected 1 outlink, got %d", len(outlinks3))
+	}
+}
+
 //go:embed testdata/wikipedia_IA.txt
 var wikitext []byte // CC BY-SA 4.0
 
