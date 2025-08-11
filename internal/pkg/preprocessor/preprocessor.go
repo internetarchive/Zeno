@@ -157,6 +157,7 @@ func preprocess(workerID string, seed *models.Item) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor.preprocess",
 		"worker_id": workerID,
+		"seed_id": seed.GetShortID(),
 	})
 
 	operatingDepth := seed.GetMaxDepth()
@@ -177,14 +178,14 @@ func preprocess(workerID string, seed *models.Item) {
 		if items[i].IsSeed() {
 			err := NormalizeURL(items[i].GetURL(), nil)
 			if err != nil {
-				logger.Debug("unable to validate URL", "item_id", items[i].GetShortID(), "seed_id", seed.GetShortID(), "url", items[i].GetURL().Raw, "err", err.Error())
+				logger.Debug("unable to validate URL", "item_id", items[i].GetShortID(), "url", items[i].GetURL().Raw, "err", err.Error())
 				items[i].SetStatus(models.ItemFailed)
 				return
 			}
 		} else {
 			err := NormalizeURL(items[i].GetURL(), items[i].GetParent().GetURL())
 			if err != nil {
-				logger.Debug("unable to validate URL", "item_id", items[i].GetShortID(), "seed_id", seed.GetShortID(), "url", items[i].GetURL().Raw, "err", err.Error())
+				logger.Debug("unable to validate URL", "item_id", items[i].GetShortID(), "url", items[i].GetURL().Raw, "err", err.Error())
 				items[i].GetParent().RemoveChild(items[i])
 				continue
 			}
@@ -197,7 +198,6 @@ func preprocess(workerID string, seed *models.Item) {
 
 				logger.Debug("URL excluded (does not match include filters)",
 					"item_id", items[i].GetShortID(),
-					"seed_id", seed.GetShortID(),
 					"url", items[i].GetURL())
 
 				if items[i].IsChild() || items[i].IsRedirection() {
@@ -217,7 +217,6 @@ func preprocess(workerID string, seed *models.Item) {
 
 			logger.Debug("URL excluded (matches exclusion filters)",
 				"item_id", items[i].GetShortID(),
-				"seed_id", seed.GetShortID(),
 				"url", items[i].GetURL())
 
 			if items[i].IsChild() || items[i].IsRedirection() {
@@ -248,7 +247,7 @@ func preprocess(workerID string, seed *models.Item) {
 	}
 
 	if len(items) == 0 {
-		logger.Debug("no more work to do after dedupe", "seed_id", seed.GetShortID())
+		logger.Debug("no more work to do after dedupe")
 		seed.SetStatus(models.ItemCompleted)
 		return
 	}
@@ -257,7 +256,7 @@ func preprocess(workerID string, seed *models.Item) {
 	if (config.Get().UseHQ || config.Get().UseSeencheck) && GlobalPreprocessor.seencheckerSet {
 		err = GlobalPreprocessor.Seenchecker(seed)
 		if err != nil {
-			logger.Warn("unable to seencheck seed", "seed_id", seed.GetShortID(), "err", err.Error(), "func", "preprocessor.preprocess")
+			logger.Warn("unable to seencheck seed", "err", err.Error())
 		}
 	}
 
@@ -275,7 +274,7 @@ func preprocess(workerID string, seed *models.Item) {
 	}
 
 	if len(items) == 0 {
-		logger.Debug("no more work to do after seencheck", "seed_id", seed.GetShortID())
+		logger.Debug("no more work to do after seencheck")
 		seed.SetStatus(models.ItemCompleted)
 		return
 	}
@@ -284,7 +283,7 @@ func preprocess(workerID string, seed *models.Item) {
 	for i := range items {
 		req, err := http.NewRequest(http.MethodGet, items[i].GetURL().String(), nil)
 		if err != nil {
-			logger.Error("unable to create request for URL", "item_id", items[i].GetShortID(), "seed_id", seed.GetShortID(), "url", items[i].GetURL(), "err", err.Error())
+			logger.Error("unable to create request for URL", "item_id", items[i].GetShortID(), "url", items[i].GetURL(), "err", err.Error())
 			items[i].SetStatus(models.ItemFailed)
 			continue
 		}

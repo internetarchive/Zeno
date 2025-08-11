@@ -67,6 +67,7 @@ type Config struct {
 	MaxCSSJump               int           `mapstructure:"max-css-jump"`
 	MaxRetry                 int           `mapstructure:"max-retry"`
 	MaxContentLengthMiB      int           `mapstructure:"max-content-length"`
+	MaxOutlinks				 int		   `mapstructure:"max-outlinks"`
 	HTTPTimeout              time.Duration `mapstructure:"http-timeout"`
 	ConnReadDeadline         time.Duration `mapstructure:"conn-read-deadline"`
 	CrawlTimeLimit           int           `mapstructure:"crawl-time-limit"`
@@ -281,6 +282,10 @@ func GenerateCrawlConfig() error {
 
 	if config.MaxContentLengthMiB > 0 {
 		slog.Info("Max content length is set, payload over X MiB would be discarded", "X", config.MaxContentLengthMiB)
+	}
+
+	if config.MaxOutlinks > 0 {
+		slog.Info("Max outlinks is set, only the first X outlinks will be processed", "X", config.MaxOutlinks)
 	}
 
 	if config.RandomLocalIP {

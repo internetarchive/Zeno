@@ -83,6 +83,7 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	}
 
 	outlinks = filterURLsByProtocol(outlinks)
+	outlinks = filterMaxOutlinks(outlinks)
 
 	// Set the hops level to the item's level + 1
 	for _, outlink := range outlinks {
@@ -136,6 +137,15 @@ func extractLinksFromPage(URL *models.URL) (links []*models.URL) {
 	}
 
 	return links
+}
+
+func filterMaxOutlinks(outlinks []*models.URL) []*models.URL {
+	limit := config.Get().MaxOutlinks
+	outlinksLen := len(outlinks)
+	if limit > 0 && outlinksLen > 0 && outlinksLen > limit {
+		return outlinks[:limit]
+	}
+	return outlinks
 }
 
 func shouldExtractOutlinks(item *models.Item) bool {
