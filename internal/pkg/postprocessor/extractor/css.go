@@ -1,7 +1,6 @@
 package extractor
 
 import (
-	"errors"
 	"io"
 	"slices"
 	"strconv"
@@ -339,25 +338,20 @@ func (p *cssParser) processToken(tt csslexer.TokenType, traw []rune) {
 	}
 }
 
-func (p *cssParser) parse() ([]string, []string, error) {
+func (p *cssParser) parse() ([]string, []string) {
 	for {
-		tt, traw := p.lexer.Next()
-		if tt == csslexer.WhitespaceToken || tt == csslexer.CommentToken {
+		tok := p.lexer.Next()
+		if tok.Type == csslexer.WhitespaceToken || tok.Type == csslexer.CommentToken {
 			continue // skip whitespace and comments
 		}
 
-		p.atManager.Feed(tt, traw)
+		p.atManager.Feed(tok.Type, tok.Data)
 
-		if tt == csslexer.EOFToken {
-			var lexErr error
-			if p.lexer.Err() != nil && !errors.Is(p.lexer.Err(), io.EOF) {
-				lexErr = p.lexer.Err()
-				cssLogger.Error("error lexing CSS", "error", lexErr)
-			}
-			return p.links, p.atImportLinks, lexErr
+		if tok.Type == csslexer.EOFToken {
+			return p.links, p.atImportLinks
 		}
 
-		p.processToken(tt, traw)
+		p.processToken(tok.Type, tok.Data)
 	}
 }
 
@@ -367,7 +361,7 @@ func IsCSS(URL *models.URL) bool {
 	return URL.GetMIMEType().Is("text/css")
 }
 
-func ExtractFromStringCSS(css string, inline bool) (links []string, atImportLinks []string, lexErr error) {
+func ExtractFromStringCSS(css string, inline bool) (links []string, atImportLinks []string) {
 	parser := newCSSParser([]rune(css), inline)
 	return parser.parse()
 }
@@ -379,6 +373,6 @@ func ExtractFromURLCSS(URL *models.URL) (links []*models.URL, atImportLinks []*m
 	if _, err := io.Copy(&cssBody, URL.GetBody()); err != nil {
 		return nil, nil, err
 	}
-	sLinks, sAtImportLinks, err := ExtractFromStringCSS(cssBody.String(), false)
-	return toURLs(sLinks), toURLs(sAtImportLinks), err
+	sLinks, sAtImportLinks := ExtractFromStringCSS(cssBody.String(), false)
+	return toURLs(sLinks), toURLs(sAtImportLinks), nil
 }
