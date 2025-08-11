@@ -133,10 +133,6 @@ func (u *URL) GetRedirects() int {
 	return u.Redirects
 }
 
-func (u *URL) IncRedirects() {
-	u.Redirects++
-}
-
 func (u *URL) SetHops(hops int) {
 	u.Hops = hops
 }
