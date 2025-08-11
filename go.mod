@@ -12,6 +12,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/gdamore/tcell/v2 v2.9.0
+	github.com/getsentry/sentry-go v0.35.1
 	github.com/go-logfmt/logfmt v0.6.0
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
@@ -32,7 +33,7 @@ require (
 	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
 	github.com/ysmood/gson v0.7.3
-	go.baoshuo.dev/csslexer v0.0.3
+	go.baoshuo.dev/csslexer v0.0.8
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.43.0
 	golang.org/x/sync v0.16.0
@@ -52,7 +53,6 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/gammazero/deque v1.0.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/getsentry/sentry-go v0.35.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
