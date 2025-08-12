@@ -146,7 +146,7 @@ var (
 )
 
 // Add this method to set the context on the package's config struct
-func SetContext(ctx context.Context) {
+func (c *Config) SetContext(ctx context.Context) {
 	if ctx == nil {
 		// Create a new context with cancel if none is provided
 		config.ctx, config.cancel = context.WithCancel(context.Background())
@@ -157,7 +157,7 @@ func SetContext(ctx context.Context) {
 }
 
 // Add this method to cancel the package's context
-func Cancel() {
+func (c *Config) Cancel() {
 	if !atomic.CompareAndSwapInt32(&config.cancellationRequested, 0, 1) {
 		return // Already cancelled
 	}
@@ -183,6 +183,7 @@ func InitConfig() error {
 	var err error
 	once.Do(func() {
 		config = &Config{}
+		config.SetContext(context.Background())
 
 		// Check if a config file is provided via flag
 		if configFile := viper.GetString("config-file"); configFile != "" {
@@ -327,7 +328,7 @@ func GenerateCrawlConfig() error {
 					case <-ticker.C:
 						var exclusions []*regexp.Regexp
 						for _, file := range config.ExclusionFile {
-							newExclusions, err := loadExclusions(file)
+							newExclusions, err := config.loadExclusions(file)
 							if err != nil {
 								slog.Error("failed to reload exclusion file, will retry in X seconds",
 									"file", file,
@@ -347,7 +348,7 @@ func GenerateCrawlConfig() error {
 			var exclusions []*regexp.Regexp
 
 			for _, file := range config.ExclusionFile {
-				newExclusions, err := loadExclusions(file)
+				newExclusions, err := config.loadExclusions(file)
 				if err != nil {
 					return err
 				}

@@ -134,7 +134,8 @@ func Stop() {
 
 	// Cancel config related contexts
 	// e.g. the goroutine that watches for exclusions file changes
-	config.Cancel()
+	config.Get().Cancel()
+	logger.Info("stopped config related contexts")
 }
 
 func (a *archiver) worker(workerID string) {

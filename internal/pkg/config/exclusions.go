@@ -19,7 +19,7 @@ func (c *Config) setExclusionRegexes(next []*regexp.Regexp) {
 	c.exclusionRegexes.Store(next)
 }
 
-func loadExclusions(file string) ([]*regexp.Regexp, error) {
+func (c *Config) loadExclusions(file string) ([]*regexp.Regexp, error) {
 	var (
 		regexes []string
 		err     error
@@ -27,7 +27,7 @@ func loadExclusions(file string) ([]*regexp.Regexp, error) {
 
 	if strings.HasPrefix(file, "http://") || strings.HasPrefix(file, "https://") {
 		slog.Info("reading (remote) exclusion file", "file", file)
-		regexes, err = readRemoteExclusionFile(file)
+		regexes, err = c.readRemoteExclusionFile(file)
 		if err != nil {
 			return nil, err
 		}
@@ -42,6 +42,37 @@ func loadExclusions(file string) ([]*regexp.Regexp, error) {
 	slog.Info("compiling exclusion regexes", "regexes", len(regexes))
 
 	return compileRegexes(regexes), nil
+}
+
+func (c *Config) readRemoteExclusionFile(URL string) (regexes []string, err error) {
+	httpClient := &http.Client{
+		Timeout: time.Second * 5,
+	}
+
+	req, err := http.NewRequest(http.MethodGet, URL, nil)
+	if err != nil {
+		return regexes, err
+	}
+
+	req.Header.Set("User-Agent", c.UserAgent)
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return regexes, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return regexes, fmt.Errorf("failed to download exclusion file: %s", resp.Status)
+	}
+
+	// Read file line by line
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		regexes = append(regexes, scanner.Text())
+	}
+	return regexes, scanner.Err()
 }
 
 func compileRegexes(regexes []string) []*regexp.Regexp {
@@ -69,36 +100,5 @@ func readLocalExclusionFile(file string) (regexes []string, err error) {
 		regexes = append(regexes, scanner.Text())
 	}
 
-	return regexes, scanner.Err()
-}
-
-func readRemoteExclusionFile(URL string) (regexes []string, err error) {
-	httpClient := &http.Client{
-		Timeout: time.Second * 5,
-	}
-
-	req, err := http.NewRequest(http.MethodGet, URL, nil)
-	if err != nil {
-		return regexes, err
-	}
-
-	req.Header.Set("User-Agent", config.UserAgent)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return regexes, err
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return regexes, fmt.Errorf("failed to download exclusion file: %s", resp.Status)
-	}
-
-	// Read file line by line
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		regexes = append(regexes, scanner.Text())
-	}
 	return regexes, scanner.Err()
 }
