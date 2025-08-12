@@ -41,7 +41,12 @@ func (c *Config) loadExclusions(file string) ([]*regexp.Regexp, error) {
 
 	slog.Info("compiling exclusion regexes", "regexes", len(regexes))
 
-	return compileRegexes(regexes), nil
+	compiledRegexes, errs := compileRegexes(regexes)
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("failed to compile %d regexes", len(errs))
+	}
+
+	return compiledRegexes, nil
 }
 
 func (c *Config) readRemoteExclusionFile(URL string) (regexes []string, err error) {
@@ -75,17 +80,20 @@ func (c *Config) readRemoteExclusionFile(URL string) (regexes []string, err erro
 	return regexes, scanner.Err()
 }
 
-func compileRegexes(regexes []string) []*regexp.Regexp {
-	var compiledRegexes []*regexp.Regexp
-
+func compileRegexes(regexes []string) (compiledRegexes []*regexp.Regexp, errs []error) {
 	for _, regex := range regexes {
 		slog.Debug("compiling regex", "regex", regex)
-		compiledRegex := regexp.MustCompile(regex)
+		compiledRegex, err := regexp.Compile(regex)
+		if err != nil {
+			slog.Error("failed to compile regex", "regex", regex, "error", err)
+			errs = append(errs, err)
+			continue
+		}
 
 		compiledRegexes = append(compiledRegexes, compiledRegex)
 	}
 
-	return compiledRegexes
+	return compiledRegexes, errs
 }
 
 func readLocalExclusionFile(file string) (regexes []string, err error) {
