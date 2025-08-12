@@ -25,8 +25,9 @@ import (
 // The `mapstructure` tags are used to map the fields to the viper configuration
 type Config struct {
 	// Context for managing goroutine cancellation
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx       context.Context
+	cancel    context.CancelFunc
+	waitGroup sync.WaitGroup
 
 	// Atomic flag to track if cancellation is requested
 	cancellationRequested int32
@@ -163,6 +164,7 @@ func (c *Config) Cancel() {
 	}
 	if c.cancel != nil {
 		c.cancel()
+		c.waitGroup.Wait()
 	}
 }
 
@@ -316,7 +318,10 @@ func GenerateCrawlConfig() error {
 	config.exclusionRegexes.Store([]*regexp.Regexp(nil))
 	if len(config.ExclusionFile) > 0 {
 		if config.ExclusionFileLiveReload {
+			config.waitGroup.Add(1)
 			go func() {
+				defer config.waitGroup.Done()
+
 				ticker := time.NewTicker(time.Duration(config.ExclusionFileLiveReloadInterval) * time.Second)
 				defer ticker.Stop()
 
