@@ -84,3 +84,26 @@ func TestSanitizeAssetsOutlinks(t *testing.T) {
 		t.Errorf("expected 1 filtered outlink, got %d", len(outlinks))
 	}
 }
+
+// Replace &amp; with & in reddit.com assets to fix Reddit quirk.
+func TestRedditAssetQuirks(t *testing.T) {
+	var err error
+	newURL, _ := models.NewURL("https://reddit.com/")
+	newItem := models.NewItem(&newURL, "")
+
+	o1, _ := models.NewURL("http://cnn.com")
+	a1, _ := models.NewURL("http://reddit.com/asset?a=1&b=2&amp;c=3")
+
+	assets := []*models.URL{&a1}
+	outlinks := []*models.URL{&o1}
+
+	assets, _, err = SanitizeAssetsOutlinks(newItem, assets, outlinks, err)
+
+	if err != nil {
+		t.Errorf("unexpected error  %v", err)
+	}
+
+	if assets[0].Raw != "http://reddit.com/asset?a=1&b=2&c=3" {
+		t.Errorf("expected reddit.com &amp; replacement with & got %s", assets[0].Raw)
+	}
+}
