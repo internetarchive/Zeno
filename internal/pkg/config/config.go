@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -23,6 +24,13 @@ import (
 // Config holds all configuration for our program, parsed from various sources
 // The `mapstructure` tags are used to map the fields to the viper configuration
 type Config struct {
+	// Context for managing goroutine cancellation
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	// Atomic flag to track if cancellation is requested
+	cancellationRequested int32
+
 	Job           string `mapstructure:"job"`
 	JobPrometheus string
 	JobPath       string
@@ -137,6 +145,37 @@ var (
 	once   sync.Once
 )
 
+// Add this method to set the context on the package's config struct
+func SetContext(ctx context.Context) {
+	if ctx == nil {
+		// Create a new context with cancel if none is provided
+		config.ctx, config.cancel = context.WithCancel(context.Background())
+	} else {
+		// Use the provided context
+		config.ctx, config.cancel = context.WithCancel(ctx)
+	}
+}
+
+// Add this method to cancel the package's context
+func Cancel() {
+	if !atomic.CompareAndSwapInt32(&config.cancellationRequested, 0, 1) {
+		return // Already cancelled
+	}
+	if config.cancel != nil {
+		config.cancel()
+	}
+}
+
+// Get returns the config struct
+func Get() *Config {
+	return config
+}
+
+// Useful for testing
+func Set(cfg *Config) {
+	config = cfg
+}
+
 // InitConfig initializes the configuration
 // Flags -> Env -> Config file -> Consul config
 // Latest has precedence over the rest
@@ -205,16 +244,6 @@ func BindFlags(flagSet *pflag.FlagSet) {
 	flagSet.VisitAll(func(flag *pflag.Flag) {
 		viper.BindPFlag(flag.Name, flag)
 	})
-}
-
-// Get returns the config struct
-func Get() *Config {
-	return config
-}
-
-// Useful for testing
-func Set(cfg *Config) {
-	config = cfg
 }
 
 func GenerateCrawlConfig() error {
@@ -290,22 +319,28 @@ func GenerateCrawlConfig() error {
 				ticker := time.NewTicker(time.Duration(config.ExclusionFileLiveReloadInterval) * time.Second)
 				defer ticker.Stop()
 
-				for range ticker.C {
-					var exclusions []*regexp.Regexp
-					for _, file := range config.ExclusionFile {
-						newExclusions, err := loadExclusions(file)
-						if err != nil {
-							slog.Error("failed to reload exclusion file, will retry in X seconds",
-								"file", file,
-								"err", err,
-								"interval", config.ExclusionFileLiveReloadInterval)
-							continue
+				for {
+					select {
+					case <-config.ctx.Done():
+						slog.Info("exclusion file live reload goroutine cancelled")
+						return
+					case <-ticker.C:
+						var exclusions []*regexp.Regexp
+						for _, file := range config.ExclusionFile {
+							newExclusions, err := loadExclusions(file)
+							if err != nil {
+								slog.Error("failed to reload exclusion file, will retry in X seconds",
+									"file", file,
+									"err", err,
+									"interval", config.ExclusionFileLiveReloadInterval)
+								continue
+							}
+
+							exclusions = append(exclusions, newExclusions...)
 						}
 
-						exclusions = append(exclusions, newExclusions...)
+						config.setExclusionRegexes(exclusions)
 					}
-
-					config.setExclusionRegexes(exclusions)
 				}
 			}()
 		} else {

@@ -125,11 +125,16 @@ func Stop() {
 
 		logger.Info("stopped")
 	}
+
 	if globalBucketManager != nil {
 		logger.Debug("closing bucket manager")
 		globalBucketManager.Close()
 		logger.Info("closed bucket manager")
 	}
+
+	// Cancel config related contexts
+	// e.g. the goroutine that watches for exclusions file changes
+	config.Cancel()
 }
 
 func (a *archiver) worker(workerID string) {
@@ -187,7 +192,7 @@ func archive(workerID string, seed *models.Item) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "archiver.archive",
 		"worker_id": workerID,
-		"seed_id": seed.GetShortID(),
+		"seed_id":   seed.GetShortID(),
 	})
 
 	var (
