@@ -1,12 +1,15 @@
 package postprocessor
 
 import (
+	"net/url"
 	"slices"
+	"strings"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/ina"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -115,6 +118,19 @@ func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []
 			logger.Debug("removing asset that is a duplicate of the item URL", "asset", asset.Raw)
 			assets = slices.Delete(assets, i, i+1)
 			continue // same: skip increment to check the next item now at index i
+		}
+
+		// This is required to work around quirks in Reddit's URL encoding.
+		if reddit.IsRedditURL(item.GetURL()) {
+			unescaped, err := url.QueryUnescape(strings.ReplaceAll(asset.Raw, "amp;", ""))
+			if err != nil {
+				logger.Warn("reddit url unescapable", "item", item.GetShortID(), "asset", asset.Raw)
+				continue
+			}
+			assets[i] = &models.URL{
+				Raw:  unescaped,
+				Hops: asset.Hops,
+			}
 		}
 
 		// Nothing to delete → move to next item

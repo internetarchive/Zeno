@@ -1,14 +1,12 @@
 package postprocessor
 
 import (
-	"net/url"
 	"strings"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -109,22 +107,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 						logger.Warn("nil asset")
 						continue
 					}
-
-					// This is required to work around quirks in Reddit's URL encoding.
-					if reddit.IsRedditURL(item.GetURL()) {
-						unescaped, err := url.QueryUnescape(strings.ReplaceAll(assets[i].Raw, "amp;", ""))
-
-						if err != nil {
-							logger.Warn("reddit url unescapable", "asset", assets[i])
-							continue
-						}
-
-						assets[i] = &models.URL{
-							Raw:  unescaped,
-							Hops: assets[i].Hops,
-						}
-					}
-
+          
 					newChild := models.NewItem(assets[i], "")
 					err = item.AddChild(newChild, models.ItemGotChildren)
 					if err != nil {

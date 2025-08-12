@@ -155,7 +155,6 @@ func (s *LQ) consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <
 			}
 			parsedURL.SetHops(int(URL.Hops))
 			newItem := models.NewItemWithID(URL.ID, &parsedURL, URL.Via)
-			newItem.SetStatus(models.ItemFresh)
 			newItem.SetSource(models.ItemSourceQueue)
 
 			if discard {
