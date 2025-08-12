@@ -283,9 +283,8 @@ func GenerateCrawlConfig() error {
 		slog.Info("IPv6 is disabled")
 	}
 
+	config.exclusionRegexes.Store([]*regexp.Regexp(nil))
 	if len(config.ExclusionFile) > 0 {
-		config.exclusionRegexes.Store([]*regexp.Regexp(nil))
-
 		if config.ExclusionFileLiveReload {
 			go func() {
 				ticker := time.NewTicker(time.Duration(config.ExclusionFileLiveReloadInterval) * time.Second)
