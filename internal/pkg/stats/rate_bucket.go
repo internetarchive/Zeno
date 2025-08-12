@@ -44,6 +44,10 @@ func (rb *rateBucket) getAllTotal() map[string]uint64 {
 	return m
 }
 
+// getFiltered returns a map of the current stats filtered by the given regex-like pattern.
+// For example, if the pattern is "2*", it will return all stats that start with "2".
+// If the pattern is "*", it will return all stats.
+// If the pattern is "2?", it will return all stats that start with "2" and have one more character.
 func (rb *rateBucket) getFiltered(filter string) map[string]uint64 {
 	m := make(map[string]uint64)
 	rb.data.Range(func(k, v any) bool {
