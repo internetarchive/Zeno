@@ -15,24 +15,25 @@ func postprocessItem(item *models.Item) []*models.Item {
 
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.postprocess.postprocessItem",
+		"item_id": item.GetShortID(),
 	})
 
 	outlinks := make([]*models.Item, 0)
 
 	if item.GetStatus() != models.ItemArchived {
-		logger.Debug("item not archived, skipping", "item_id", item.GetShortID())
+		logger.Debug("item not archived, skipping")
 		return outlinks
 	}
 
-	logger.Debug("postprocessing item", "item_id", item.GetShortID())
+	logger.Debug("postprocessing item")
 
 	// Verify if there is any redirection
 	if isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
-		logger.Debug("item is a redirection", "item_id", item.GetShortID())
+		logger.Debug("item is a redirection")
 
 		// Check if the current redirections count doesn't exceed the max allowed
 		if item.GetURL().GetRedirects() >= config.Get().MaxRedirect {
-			logger.Warn("max redirects reached", "item_id", item.GetShortID())
+			logger.Warn("max redirects reached")
 			item.SetStatus(models.ItemCompleted)
 			return outlinks
 		}
@@ -74,21 +75,21 @@ func postprocessItem(item *models.Item) []*models.Item {
 	//    -> CSS @import chains can be very long, the depth control logic for embedded CSS item is in the AddAtImportLinksToItemChild() function separately.
 	// 2. assets capture and domains crawl are disabled
 	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 && !extractor.IsEmbeddedCSS(item) {
-		logger.Debug("item is a child and it's depth (without redirections) is more than 2", "item_id", item.GetShortID())
+		logger.Debug("item is a child and it's depth (without redirections) is more than 2")
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
 	} else if !domainscrawl.Enabled() && (item.GetDepthWithoutRedirections() == 1 && strings.Contains(item.GetURL().GetMIMEType().String(), "html")) {
-		logger.Debug("HTML got extracted as asset, skipping", "item_id", item.GetShortID())
+		logger.Debug("HTML got extracted as asset, skipping")
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
 	} else if config.Get().DisableAssetsCapture && !domainscrawl.Enabled() {
-		logger.Debug("assets capture and domains crawl are disabled", "item_id", item.GetShortID())
+		logger.Debug("assets capture and domains crawl are disabled")
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
 	}
 
 	if item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200 {
-		logger.Debug("item is a success", "item_id", item.GetShortID())
+		logger.Debug("item is a success")
 
 		var outlinksFromAssets []*models.URL
 
@@ -99,14 +100,14 @@ func postprocessItem(item *models.Item) []*models.Item {
 
 			assets, outlinksFromAssets, err = ExtractAssetsOutlinks(item)
 			if err != nil {
-				logger.Error("unable to extract assets", "err", err.Error(), "item_id", item.GetShortID())
+				logger.Error("unable to extract assets", "err", err.Error())
 			} else {
 				for i := range assets {
 					if assets[i] == nil {
-						logger.Warn("nil asset", "item", item.GetShortID())
+						logger.Warn("nil asset")
 						continue
 					}
-
+          
 					newChild := models.NewItem(assets[i], "")
 					err = item.AddChild(newChild, models.ItemGotChildren)
 					if err != nil {
@@ -114,7 +115,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 					}
 				}
 
-				logger.Debug("extracted assets", "item_id", item.GetShortID(), "count", len(assets))
+				logger.Debug("extracted assets", "count", len(assets))
 			}
 		}
 
@@ -122,14 +123,14 @@ func postprocessItem(item *models.Item) []*models.Item {
 		if shouldExtractOutlinks(item) {
 			newOutlinks, err := extractOutlinks(item)
 			if err != nil {
-				logger.Error("unable to extract outlinks", "err", err.Error(), "item_id", item.GetShortID())
+				logger.Error("unable to extract outlinks", "err", err.Error())
 			} else {
 				// Append the outlinks found from the assets
 				newOutlinks = append(newOutlinks, outlinksFromAssets...)
 
 				for i := range newOutlinks {
 					if newOutlinks[i] == nil {
-						logger.Warn("nil link", "item_id", item.GetShortID())
+						logger.Warn("nil link")
 						continue
 					}
 
@@ -137,10 +138,10 @@ func postprocessItem(item *models.Item) []*models.Item {
 					// and if its parent is at hop 0, then we need to set the hop count to 0.
 					// TODO: maybe be more flexible than a strict match
 					if domainscrawl.Enabled() && domainscrawl.Match(newOutlinks[i].Raw) {
-						logger.Debug("setting hop count to 0 (domains crawl)", "item_id", item.GetShortID(), "url", newOutlinks[i].Raw)
+						logger.Debug("setting hop count to 0 (domains crawl)", "url", newOutlinks[i].Raw)
 						newOutlinks[i].SetHops(0)
 					} else if domainscrawl.Enabled() && !domainscrawl.Match(newOutlinks[i].Raw) && item.GetURL().GetHops() >= config.Get().MaxHops {
-						logger.Debug("skipping outlink due to hop count", "item_id", item.GetShortID(), "url", newOutlinks[i].Raw)
+						logger.Debug("skipping outlink due to hop count", "url", newOutlinks[i].Raw)
 						continue
 					}
 
@@ -148,7 +149,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 					outlinks = append(outlinks, newOutlinkItem)
 				}
 
-				logger.Debug("extracted outlinks", "item_id", item.GetShortID(), "count", len(newOutlinks))
+				logger.Debug("extracted outlinks", "count", len(newOutlinks))
 			}
 		}
 	}
@@ -157,7 +158,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 	item.GetURL().SetDocumentCache(nil)
 
 	if !item.HasChildren() && !item.HasRedirection() && item.GetStatus() != models.ItemFailed {
-		logger.Debug("item has no children, setting as completed", "item_id", item.GetShortID())
+		logger.Debug("item has no children, setting as completed")
 		item.SetStatus(models.ItemCompleted)
 	}
 
