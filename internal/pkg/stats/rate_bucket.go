@@ -5,110 +5,78 @@ import (
 )
 
 type rateBucket struct {
-	sync.Mutex
-	data map[string]*rate
+	data sync.Map // key: string, value: *rate
 }
 
 func newRateBucket() *rateBucket {
-	return &rateBucket{
-		data: make(map[string]*rate),
-	}
+	return &rateBucket{}
 }
 
 func (rb *rateBucket) get(key string) uint64 {
-	rb.Lock()
-	defer rb.Unlock()
-
-	if rps, ok := rb.data[key]; ok {
-		return rps.get()
+	if v, ok := rb.data.Load(key); ok {
+		return v.(*rate).get()
 	}
-
 	return 0
 }
 
 func (rb *rateBucket) getTotal(key string) uint64 {
-	rb.Lock()
-	defer rb.Unlock()
-
-	if rps, ok := rb.data[key]; ok {
-		return rps.getTotal()
+	if v, ok := rb.data.Load(key); ok {
+		return v.(*rate).getTotal()
 	}
-
 	return 0
 }
 
 func (rb *rateBucket) getAll() map[string]uint64 {
-	rb.Lock()
-	defer rb.Unlock()
-
 	m := make(map[string]uint64)
-	for k, rps := range rb.data {
-		m[k] = rps.get()
-	}
-
+	rb.data.Range(func(k, v any) bool {
+		m[k.(string)] = v.(*rate).get()
+		return true
+	})
 	return m
 }
 
 func (rb *rateBucket) getAllTotal() map[string]uint64 {
-	rb.Lock()
-	defer rb.Unlock()
-
 	m := make(map[string]uint64)
-	for k, rps := range rb.data {
-		m[k] = rps.getTotal()
-	}
-
+	rb.data.Range(func(k, v any) bool {
+		m[k.(string)] = v.(*rate).getTotal()
+		return true
+	})
 	return m
 }
 
-// getFiltered returns a map of the current stats filtered by the given regex-like pattern.
-// For example, if the pattern is "2*", it will return all stats that start with "2".
-// If the pattern is "*", it will return all stats.
-// If the pattern is "2?", it will return all stats that start with "2" and have one more character.
 func (rb *rateBucket) getFiltered(filter string) map[string]uint64 {
-	rb.Lock()
-	defer rb.Unlock()
-
 	m := make(map[string]uint64)
-	for k, rps := range rb.data {
-		if match := match(filter, k); match {
-			m[k] = rps.get()
+	rb.data.Range(func(k, v any) bool {
+		key := k.(string)
+		if match(filter, key) {
+			m[key] = v.(*rate).get()
 		}
-	}
-
+		return true
+	})
 	return m
 }
 
 func (rb *rateBucket) incr(key string, step uint64) {
-	rb.Lock()
-	defer rb.Unlock()
-
-	if rps, ok := rb.data[key]; ok {
-		rps.incr(step)
+	if v, ok := rb.data.Load(key); ok {
+		v.(*rate).incr(step)
 		return
 	}
-
-	rps := &rate{}
-	rps.incr(step)
-	rb.data[key] = rps
+	r := &rate{}
+	r.incr(step)
+	rb.data.Store(key, r)
 }
 
 func (rb *rateBucket) reset(key string) {
-	rb.Lock()
-	defer rb.Unlock()
-
-	if rps, ok := rb.data[key]; ok {
-		rps.reset()
+	if v, ok := rb.data.Load(key); ok {
+		v.(*rate).reset()
 	}
 }
 
 func (rb *rateBucket) resetAll() {
-	rb.Lock()
-	defer rb.Unlock()
-
-	for _, rps := range rb.data {
-		rps.reset()
-	}
+	rb.data.Range(func(_, v any) bool {
+		v.(*rate).reset()
+		return true
+	})
 }
 
 // match checks if the string s matches the pattern with wildcards
