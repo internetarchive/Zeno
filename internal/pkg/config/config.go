@@ -149,20 +149,20 @@ var (
 func (c *Config) SetContext(ctx context.Context) {
 	if ctx == nil {
 		// Create a new context with cancel if none is provided
-		config.ctx, config.cancel = context.WithCancel(context.Background())
+		c.ctx, c.cancel = context.WithCancel(context.Background())
 	} else {
 		// Use the provided context
-		config.ctx, config.cancel = context.WithCancel(ctx)
+		c.ctx, c.cancel = context.WithCancel(ctx)
 	}
 }
 
 // Add this method to cancel the package's context
 func (c *Config) Cancel() {
-	if !atomic.CompareAndSwapInt32(&config.cancellationRequested, 0, 1) {
+	if !atomic.CompareAndSwapInt32(&c.cancellationRequested, 0, 1) {
 		return // Already cancelled
 	}
-	if config.cancel != nil {
-		config.cancel()
+	if c.cancel != nil {
+		c.cancel()
 	}
 }
 
