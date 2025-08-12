@@ -105,7 +105,11 @@ func readLocalExclusionFile(file string) (regexes []string, err error) {
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		regexes = append(regexes, scanner.Text())
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		regexes = append(regexes, line)
 	}
 
 	return regexes, scanner.Err()
