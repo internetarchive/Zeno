@@ -1,10 +1,8 @@
 package config
 
 import (
-	"bufio"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -12,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -129,8 +128,8 @@ type Config struct {
 	ConsulRegister     bool     `mapstructure:"consul-register"`
 	ConsulRegisterTags []string `mapstructure:"consul-register-tags"`
 
-	InputSeeds       []string         // Special field to store the input URLs
-	ExclusionRegexes []*regexp.Regexp // Special field to store the compiled exclusion regex (from --exclusion-file)
+	InputSeeds       []string     // Special field to store the input URLs
+	exclusionRegexes atomic.Value // Special field to store the compiled exclusion regex (from --exclusion-file)
 }
 
 var (
@@ -285,6 +284,8 @@ func GenerateCrawlConfig() error {
 	}
 
 	if len(config.ExclusionFile) > 0 {
+		config.exclusionRegexes.Store([]*regexp.Regexp(nil))
+
 		if config.ExclusionFileLiveReload {
 			go func() {
 				ticker := time.NewTicker(time.Duration(config.ExclusionFileLiveReloadInterval) * time.Second)
@@ -305,7 +306,7 @@ func GenerateCrawlConfig() error {
 						exclusions = append(exclusions, newExclusions...)
 					}
 
-					config.ExclusionRegexes = exclusions
+					config.setExclusionRegexes(exclusions)
 				}
 			}()
 		} else {
@@ -320,7 +321,7 @@ func GenerateCrawlConfig() error {
 				exclusions = append(exclusions, newExclusions...)
 			}
 
-			config.ExclusionRegexes = exclusions
+			config.setExclusionRegexes(exclusions)
 		}
 	}
 
@@ -333,90 +334,6 @@ func GenerateCrawlConfig() error {
 	}
 
 	return nil
-}
-
-func loadExclusions(file string) ([]*regexp.Regexp, error) {
-	var (
-		regexes []string
-		err     error
-	)
-
-	if strings.HasPrefix(file, "http://") || strings.HasPrefix(file, "https://") {
-		slog.Info("reading (remote) exclusion file", "file", file)
-		regexes, err = readRemoteExclusionFile(file)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		slog.Info("reading (local) exclusion file", "file", file)
-		regexes, err = readLocalExclusionFile(file)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	slog.Info("compiling exclusion regexes", "regexes", len(regexes))
-
-	return compileRegexes(regexes), nil
-}
-
-func compileRegexes(regexes []string) []*regexp.Regexp {
-	var compiledRegexes []*regexp.Regexp
-
-	for _, regex := range regexes {
-		slog.Debug("compiling regex", "regex", regex)
-		compiledRegex := regexp.MustCompile(regex)
-
-		compiledRegexes = append(compiledRegexes, compiledRegex)
-	}
-
-	return compiledRegexes
-}
-
-func readLocalExclusionFile(file string) (regexes []string, err error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return regexes, err
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		regexes = append(regexes, scanner.Text())
-	}
-
-	return regexes, scanner.Err()
-}
-
-func readRemoteExclusionFile(URL string) (regexes []string, err error) {
-	httpClient := &http.Client{
-		Timeout: time.Second * 5,
-	}
-
-	req, err := http.NewRequest(http.MethodGet, URL, nil)
-	if err != nil {
-		return regexes, err
-	}
-
-	req.Header.Set("User-Agent", config.UserAgent)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return regexes, err
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return regexes, fmt.Errorf("failed to download exclusion file: %s", resp.Status)
-	}
-
-	// Read file line by line
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		regexes = append(regexes, scanner.Text())
-	}
-	return regexes, scanner.Err()
 }
 
 func handleFlagsEdgeCases() {
