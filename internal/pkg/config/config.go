@@ -33,53 +33,55 @@ type Config struct {
 	DisableSeencheck bool `mapstructure:"disable-seencheck"`
 	UseSeencheck     bool
 
-	UserAgent                string        `mapstructure:"user-agent"`
-	Cookies                  string        `mapstructure:"cookies"`
-	WARCPrefix               string        `mapstructure:"warc-prefix"`
-	WARCOperator             string        `mapstructure:"warc-operator"`
-	WARCTempDir              string        `mapstructure:"warc-temp-dir"`
-	WARCSize                 int           `mapstructure:"warc-size"`
-	WARCOnDisk               bool          `mapstructure:"warc-on-disk"`
-	WARCPoolSize             int           `mapstructure:"warc-pool-size"`
-	WARCQueueSize            int           `mapstructure:"warc-queue-size"`
-	WARCDedupeSize           int           `mapstructure:"warc-dedupe-size"`
-	WARCWriteAsync           bool          `mapstructure:"async-warc-write"`
-	WARCDiscardStatus        []int         `mapstructure:"warc-discard-status"`
-	CDXDedupeServer          string        `mapstructure:"warc-cdx-dedupe-server"`
-	CDXCookie                string        `mapstructure:"warc-cdx-cookie"`
-	DoppelgangerDedupeServer string        `mapstructure:"warc-doppelganger-dedupe-server"`
-	HQAddress                string        `mapstructure:"hq-address"`
-	HQKey                    string        `mapstructure:"hq-key"`
-	HQSecret                 string        `mapstructure:"hq-secret"`
-	HQProject                string        `mapstructure:"hq-project"`
-	HQBatchSize              int           `mapstructure:"hq-batch-size"`
-	HQBatchConcurrency       int           `mapstructure:"hq-batch-concurrency"`
-	DisableHTMLTag           []string      `mapstructure:"disable-html-tag"`
-	ExcludeHosts             []string      `mapstructure:"exclude-host"`
-	IncludeHosts             []string      `mapstructure:"include-host"`
-	IncludeString            []string      `mapstructure:"include-string"`
-	ExcludeString            []string      `mapstructure:"exclude-string"`
-	ExclusionFile            []string      `mapstructure:"exclusion-file"`
-	WorkersCount             int           `mapstructure:"workers"`
-	MaxConcurrentAssets      int           `mapstructure:"max-concurrent-assets"`
-	MaxHops                  int           `mapstructure:"max-hops"`
-	MaxRedirect              int           `mapstructure:"max-redirect"`
-	MaxCSSJump               int           `mapstructure:"max-css-jump"`
-	MaxRetry                 int           `mapstructure:"max-retry"`
-	MaxContentLengthMiB      int           `mapstructure:"max-content-length"`
-	MaxOutlinks				 int		   `mapstructure:"max-outlinks"`
-	HTTPTimeout              time.Duration `mapstructure:"http-timeout"`
-	ConnReadDeadline         time.Duration `mapstructure:"conn-read-deadline"`
-	CrawlTimeLimit           int           `mapstructure:"crawl-time-limit"`
-	CrawlMaxTimeLimit        int           `mapstructure:"crawl-max-time-limit"`
-	MinSpaceRequired         float64       `mapstructure:"min-space-required"`
-	DomainsCrawl             []string      `mapstructure:"domains-crawl"`
-	CaptureAlternatePages    bool          `mapstructure:"capture-alternate-pages"`
-	StrictRegex              bool          `mapstructure:"strict-regex"`
-	DisableLocalDedupe       bool          `mapstructure:"disable-local-dedupe"`
-	CertValidation           bool          `mapstructure:"cert-validation"`
-	DisableAssetsCapture     bool          `mapstructure:"disable-assets-capture"`
-	UseHQ                    bool          // Special field to check if HQ is enabled depending on the command called
+	UserAgent                       string        `mapstructure:"user-agent"`
+	Cookies                         string        `mapstructure:"cookies"`
+	WARCPrefix                      string        `mapstructure:"warc-prefix"`
+	WARCOperator                    string        `mapstructure:"warc-operator"`
+	WARCTempDir                     string        `mapstructure:"warc-temp-dir"`
+	WARCSize                        int           `mapstructure:"warc-size"`
+	WARCOnDisk                      bool          `mapstructure:"warc-on-disk"`
+	WARCPoolSize                    int           `mapstructure:"warc-pool-size"`
+	WARCQueueSize                   int           `mapstructure:"warc-queue-size"`
+	WARCDedupeSize                  int           `mapstructure:"warc-dedupe-size"`
+	WARCWriteAsync                  bool          `mapstructure:"async-warc-write"`
+	WARCDiscardStatus               []int         `mapstructure:"warc-discard-status"`
+	CDXDedupeServer                 string        `mapstructure:"warc-cdx-dedupe-server"`
+	CDXCookie                       string        `mapstructure:"warc-cdx-cookie"`
+	DoppelgangerDedupeServer        string        `mapstructure:"warc-doppelganger-dedupe-server"`
+	HQAddress                       string        `mapstructure:"hq-address"`
+	HQKey                           string        `mapstructure:"hq-key"`
+	HQSecret                        string        `mapstructure:"hq-secret"`
+	HQProject                       string        `mapstructure:"hq-project"`
+	HQBatchSize                     int           `mapstructure:"hq-batch-size"`
+	HQBatchConcurrency              int           `mapstructure:"hq-batch-concurrency"`
+	DisableHTMLTag                  []string      `mapstructure:"disable-html-tag"`
+	ExcludeHosts                    []string      `mapstructure:"exclude-host"`
+	IncludeHosts                    []string      `mapstructure:"include-host"`
+	IncludeString                   []string      `mapstructure:"include-string"`
+	ExcludeString                   []string      `mapstructure:"exclude-string"`
+	ExclusionFile                   []string      `mapstructure:"exclusion-file"`
+	ExclusionFileLiveReload         bool          `mapstructure:"exclusion-file-live-reload"`
+	ExclusionFileLiveReloadInterval int           `mapstructure:"exclusion-file-live-reload-interval"`
+	WorkersCount                    int           `mapstructure:"workers"`
+	MaxConcurrentAssets             int           `mapstructure:"max-concurrent-assets"`
+	MaxHops                         int           `mapstructure:"max-hops"`
+	MaxRedirect                     int           `mapstructure:"max-redirect"`
+	MaxCSSJump                      int           `mapstructure:"max-css-jump"`
+	MaxRetry                        int           `mapstructure:"max-retry"`
+	MaxContentLengthMiB             int           `mapstructure:"max-content-length"`
+	MaxOutlinks                     int           `mapstructure:"max-outlinks"`
+	HTTPTimeout                     time.Duration `mapstructure:"http-timeout"`
+	ConnReadDeadline                time.Duration `mapstructure:"conn-read-deadline"`
+	CrawlTimeLimit                  int           `mapstructure:"crawl-time-limit"`
+	CrawlMaxTimeLimit               int           `mapstructure:"crawl-max-time-limit"`
+	MinSpaceRequired                float64       `mapstructure:"min-space-required"`
+	DomainsCrawl                    []string      `mapstructure:"domains-crawl"`
+	CaptureAlternatePages           bool          `mapstructure:"capture-alternate-pages"`
+	StrictRegex                     bool          `mapstructure:"strict-regex"`
+	DisableLocalDedupe              bool          `mapstructure:"disable-local-dedupe"`
+	CertValidation                  bool          `mapstructure:"cert-validation"`
+	DisableAssetsCapture            bool          `mapstructure:"disable-assets-capture"`
+	UseHQ                           bool          // Special field to check if HQ is enabled depending on the command called
 
 	// Network
 	Proxy         string `mapstructure:"proxy"`
@@ -262,19 +264,19 @@ func GenerateCrawlConfig() error {
 	}
 
 	if config.MaxContentLengthMiB > 0 {
-		slog.Info("Max content length is set, payload over X MiB would be discarded", "X", config.MaxContentLengthMiB)
+		slog.Info("max content length is set, payload over X MiB would be discarded", "X", config.MaxContentLengthMiB)
 	}
 
 	if config.MaxOutlinks > 0 {
-		slog.Info("Max outlinks is set, only the first X outlinks will be processed", "X", config.MaxOutlinks)
+		slog.Info("max outlinks is set, only the first X outlinks will be processed", "X", config.MaxOutlinks)
 	}
 
 	if config.RandomLocalIP {
-		slog.Warn("Random local IP is enabled")
+		slog.Warn("random local IP is enabled")
 	}
 
 	if config.DisableIPv4 && config.DisableIPv6 {
-		slog.Error("Both IPv4 and IPv6 are disabled, at least one of them must be enabled.")
+		slog.Error("both IPv4 and IPv6 are disabled, at least one of them must be enabled.")
 		os.Exit(1)
 	} else if config.DisableIPv4 {
 		slog.Info("IPv4 is disabled")
@@ -283,35 +285,47 @@ func GenerateCrawlConfig() error {
 	}
 
 	if len(config.ExclusionFile) > 0 {
-		for _, file := range config.ExclusionFile {
-			var (
-				regexes []string
-				err     error
-			)
+		if config.ExclusionFileLiveReload {
+			go func() {
+				ticker := time.NewTicker(time.Duration(config.ExclusionFileLiveReloadInterval) * time.Second)
+				defer ticker.Stop()
 
-			if strings.HasPrefix(file, "http://") || strings.HasPrefix(file, "https://") {
-				slog.Info("Reading (remote) exclusion file", "file", file)
-				regexes, err = readRemoteExclusionFile(file)
+				for range ticker.C {
+					var exclusions []*regexp.Regexp
+					for _, file := range config.ExclusionFile {
+						newExclusions, err := loadExclusions(file)
+						if err != nil {
+							slog.Error("failed to reload exclusion file, will retry in X seconds",
+								"file", file,
+								"err", err,
+								"interval", config.ExclusionFileLiveReloadInterval)
+							continue
+						}
+
+						exclusions = append(exclusions, newExclusions...)
+					}
+
+					config.ExclusionRegexes = exclusions
+				}
+			}()
+		} else {
+			var exclusions []*regexp.Regexp
+
+			for _, file := range config.ExclusionFile {
+				newExclusions, err := loadExclusions(file)
 				if err != nil {
 					return err
 				}
-			} else {
-				slog.Info("Reading (local) exclusion file", "file", file)
-				regexes, err = readLocalExclusionFile(file)
-				if err != nil {
-					return err
-				}
+
+				exclusions = append(exclusions, newExclusions...)
 			}
 
-			slog.Info("Compiling exclusion regexes", "regexes", len(regexes))
-			compiledRegexes := compileRegexes(regexes)
-
-			config.ExclusionRegexes = append(config.ExclusionRegexes, compiledRegexes...)
+			config.ExclusionRegexes = exclusions
 		}
 	}
 
 	if len(config.DomainsCrawl) > 0 {
-		slog.Info("Domains crawl enabled", "domains/regex", config.DomainsCrawl)
+		slog.Info("domains crawl enabled", "domains/regex", config.DomainsCrawl)
 		err := domainscrawl.AddElements(config.DomainsCrawl)
 		if err != nil {
 			panic(err)
@@ -321,11 +335,36 @@ func GenerateCrawlConfig() error {
 	return nil
 }
 
+func loadExclusions(file string) ([]*regexp.Regexp, error) {
+	var (
+		regexes []string
+		err     error
+	)
+
+	if strings.HasPrefix(file, "http://") || strings.HasPrefix(file, "https://") {
+		slog.Info("reading (remote) exclusion file", "file", file)
+		regexes, err = readRemoteExclusionFile(file)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		slog.Info("reading (local) exclusion file", "file", file)
+		regexes, err = readLocalExclusionFile(file)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	slog.Info("compiling exclusion regexes", "regexes", len(regexes))
+
+	return compileRegexes(regexes), nil
+}
+
 func compileRegexes(regexes []string) []*regexp.Regexp {
 	var compiledRegexes []*regexp.Regexp
 
 	for _, regex := range regexes {
-		slog.Debug("Compiling regex", "regex", regex)
+		slog.Debug("compiling regex", "regex", regex)
 		compiledRegex := regexp.MustCompile(regex)
 
 		compiledRegexes = append(compiledRegexes, compiledRegex)
@@ -345,6 +384,7 @@ func readLocalExclusionFile(file string) (regexes []string, err error) {
 	for scanner.Scan() {
 		regexes = append(regexes, scanner.Text())
 	}
+
 	return regexes, scanner.Err()
 }
 
