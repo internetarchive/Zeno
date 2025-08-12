@@ -75,7 +75,11 @@ func (c *Config) readRemoteExclusionFile(URL string) (regexes []string, err erro
 	// Read file line by line
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
-		regexes = append(regexes, scanner.Text())
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		regexes = append(regexes, line)
 	}
 	return regexes, scanner.Err()
 }
