@@ -7,7 +7,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -37,8 +36,6 @@ func (s *LQ) Start(finishChan, produceChan chan *models.Item) error {
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "lq",
 	})
-
-	stats.Init()
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
