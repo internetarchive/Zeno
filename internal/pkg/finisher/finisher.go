@@ -32,7 +32,6 @@ var (
 // Start initializes the global finisher with the given input channel.
 // This method can only be called once.
 func Start(inputChan, sourceFinishedChan, sourceProducedChan chan *models.Item) error {
-	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "finisher",
 	})

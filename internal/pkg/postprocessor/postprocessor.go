@@ -30,12 +30,9 @@ var (
 // This functions starts the preprocessor responsible for preparing
 // the seeds sent by the reactor for captures
 func Start(inputChan, outputChan chan *models.Item) error {
-	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor",
 	})
-
-	stats.Init()
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())

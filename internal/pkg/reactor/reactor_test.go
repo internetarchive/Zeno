@@ -99,7 +99,6 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 	for i := 0; i < seeds; i++ {
 		newItem := models.NewItem(&models.URL{Raw: fmt.Sprintf("http://example.com/%d", i)}, "")
 		newItem.SetSource(models.ItemSourceInsert)
-		newItem.SetStatus(models.ItemFresh)
 		mockItems = append(mockItems, newItem)
 	}
 

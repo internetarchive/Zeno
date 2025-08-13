@@ -45,12 +45,9 @@ var (
 
 // Start initializes the internal preprocessor structure and start routines, should only be called once and returns an error if called more than once
 func Start(inputChan, outputChan chan *models.Item) error {
-	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor",
 	})
-
-	stats.Init()
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())

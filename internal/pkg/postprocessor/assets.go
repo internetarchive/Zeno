@@ -1,12 +1,15 @@
 package postprocessor
 
 import (
+	"net/url"
 	"slices"
+	"strings"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/ina"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
@@ -25,19 +28,20 @@ func ExtractAssetsOutlinks(item *models.Item) (assets, outlinks []*models.URL, e
 func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.Extractors",
+		"item": item.GetShortID(),
 	})
 
 	switch {
 	case ina.IsAPIURL(item.GetURL()):
 		INAAssets, err := ina.ExtractMedias(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract medias from INA", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract medias from INA", "err", err.Error())
 			return assets, outlinks, err
 		}
 
 		HTMLAssets, err := extractor.HTMLAssets(item)
 		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract assets", "err", err.Error())
 			return assets, outlinks, err
 		}
 
@@ -45,38 +49,38 @@ func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 	case truthsocial.NeedExtraction(item.GetURL()):
 		assets, outlinks, err = truthsocial.ExtractAssets(item)
 		if err != nil {
-			logger.Error("unable to extract assets from TruthSocial", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract assets from TruthSocial", "err", err.Error())
 			return assets, outlinks, err
 		}
 	case extractor.IsM3U8(item.GetURL()):
 		assets, err = extractor.M3U8(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract assets", "err", err.Error())
 			return assets, outlinks, err
 		}
 	case extractor.IsJSON(item.GetURL()):
 		assets, outlinks, err = extractor.JSON(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract assets", "err", err.Error())
 			return assets, outlinks, err
 		}
 	case extractor.IsXML(item.GetURL()):
 		assets, outlinks, err = extractor.XML(item.GetURL())
 		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract assets", "err", err.Error())
 			return assets, outlinks, err
 		}
 	case extractor.IsHTML(item.GetURL()):
 		assets, err = extractor.HTMLAssets(item)
 		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error(), "item", item.GetShortID())
+			logger.Error("unable to extract assets", "err", err.Error())
 			return assets, outlinks, err
 		}
 	case extractor.IsEmbeddedCSS(item):
 		var atImportLinks []*models.URL
 		assets, atImportLinks, err = extractor.ExtractFromURLCSS(item.GetURL())
 
-		logArgs := []any{"item", item.GetShortID(), "links", len(assets), "at_import_links", len(atImportLinks)}
+		logArgs := []any{"links", len(assets), "at_import_links", len(atImportLinks)}
 		if err != nil {
 			logArgs = append(logArgs, "err", err)
 			logger.Error("error extracting assets from CSS", logArgs...)
@@ -86,7 +90,7 @@ func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 		extractor.AddAtImportLinksToItemChild(item, atImportLinks)
 	default:
 		contentType := item.GetURL().GetResponse().Header.Get("Content-Type")
-		logger.Debug("no extractor used for page", "content-type", contentType, "mime", item.GetURL().GetMIMEType().String(), "item", item.GetShortID())
+		logger.Debug("no extractor used for page", "content-type", contentType, "mime", item.GetURL().GetMIMEType().String())
 		return assets, outlinks, nil
 	}
 
@@ -96,13 +100,14 @@ func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []*models.URL, err error) ([]*models.URL, []*models.URL, error) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.SanitizeAssetsOutlinks",
+		"item": item.GetShortID(),
 	})
 	for i := 0; i < len(assets); {
 		asset := assets[i]
 
 		// Case 1: asset is nil
 		if asset == nil {
-			logger.Debug("asset is nil, removing", "item", item.GetShortID())
+			logger.Debug("asset is nil, removing")
 			assets = slices.Delete(assets, i, i+1)
 			continue // don't increment i, next item is now at same index
 		}
@@ -110,10 +115,22 @@ func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []
 		// Case 2: asset is a duplicate of the item's URL
 		itemURL := item.GetURL()
 		if itemURL != nil && asset.Raw == itemURL.String() {
-			logger.Debug("removing asset that is a duplicate of the item URL",
-				"item", item.GetShortID(), "asset", asset.Raw)
+			logger.Debug("removing asset that is a duplicate of the item URL", "asset", asset.Raw)
 			assets = slices.Delete(assets, i, i+1)
 			continue // same: skip increment to check the next item now at index i
+		}
+
+		// This is required to work around quirks in Reddit's URL encoding.
+		if reddit.IsRedditURL(item.GetURL()) {
+			unescaped, err := url.QueryUnescape(strings.ReplaceAll(asset.Raw, "amp;", ""))
+			if err != nil {
+				logger.Warn("reddit url unescapable", "item", item.GetShortID(), "asset", asset.Raw)
+				continue
+			}
+			assets[i] = &models.URL{
+				Raw:  unescaped,
+				Hops: asset.Hops,
+			}
 		}
 
 		// Nothing to delete → move to next item
