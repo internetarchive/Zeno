@@ -35,7 +35,6 @@ var (
 func Start(maxTokens int, outputChan chan *models.Item) error {
 	var done bool
 
-	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "reactor",
 	})

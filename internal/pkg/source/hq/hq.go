@@ -36,7 +36,6 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 	var done bool
 	var startErr error
 
-	log.Start()
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "hq",
 	})
