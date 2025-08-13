@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver"
+	generalarchiver "github.com/internetarchive/Zeno/internal/pkg/archiver/general"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -24,7 +24,7 @@ func setupURL(html string) *models.URL {
 		panic(err)
 	}
 	newURL.SetResponse(resp)
-	if err := archiver.ProcessBody(&newURL, false, false, 0, os.TempDir()); err != nil {
+	if err := generalarchiver.ProcessBody(&newURL, false, false, 0, os.TempDir(), nil); err != nil {
 		panic(err)
 	}
 	return &newURL

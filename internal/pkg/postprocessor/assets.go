@@ -153,5 +153,5 @@ func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []
 }
 
 func shouldExtractAssets(item *models.Item) bool {
-	return !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil
+	return !config.Get().Headless && !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil
 }

@@ -364,7 +364,8 @@ func (p *cssParser) parse() ([]string, []string, error) {
 // https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet:process-the-linked-resource
 // According to the spec, we should only check the Content-Type header if the resource is came from a HTTP(S) request.
 func IsCSS(URL *models.URL) bool {
-	return URL.GetMIMEType().Is("text/css")
+	mimeType := URL.GetMIMEType()
+	return mimeType != nil && mimeType.Is("text/css")
 }
 
 func ExtractFromStringCSS(css string, inline bool) (links []string, atImportLinks []string, lexErr error) {
