@@ -37,6 +37,8 @@ type prometheusStats struct {
 }
 
 func newPrometheusStats() *prometheusStats {
+	buckets := prometheus.ExponentialBucketsRange(float64(20*time.Millisecond), float64(10*time.Second), 50)
+
 	return &prometheusStats{
 		urlCrawled: prometheus.NewCounterVec(
 			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "url_crawled", Help: "Total number of URLs crawled"},
@@ -83,15 +85,15 @@ func newPrometheusStats() *prometheusStats {
 			[]string{"project", "hostname", "version"},
 		),
 		meanHTTPRespTime: prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_http_resp_time", Help: "Mean HTTP response time in ns", Buckets: prometheus.ExponentialBucketsRange(float64(20*time.Millisecond), float64(10*time.Second), 50)},
+			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_http_resp_time", Help: "Mean HTTP response time in ns", Buckets: buckets},
 			[]string{"project", "hostname", "version"},
 		),
 		meanProcessBodyTime: prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_process_body_time", Help: "Mean time in ns to process the body of a response", Buckets: prometheus.ExponentialBucketsRange(float64(time.Microsecond), float64(10*time.Second), 50)},
+			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_process_body_time", Help: "Mean time in ns to process the body of a response", Buckets: buckets},
 			[]string{"project", "hostname", "version"},
 		),
 		meanWaitOnFeedbackTime: prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_wait_on_feedback_time", Help: "Mean time in ns to wait on WARC writing feedback signal", Buckets: prometheus.ExponentialBucketsRange(float64(time.Microsecond), float64(10*time.Second), 50)},
+			prometheus.HistogramOpts{Name: config.Get().PrometheusPrefix + "mean_wait_on_feedback_time", Help: "Mean time in ns to wait on WARC writing feedback signal", Buckets: buckets},
 			[]string{"project", "hostname", "version"},
 		),
 		warcWritingQueueSize: prometheus.NewGaugeVec(
