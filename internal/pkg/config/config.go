@@ -69,7 +69,7 @@ type Config struct {
 	ExcludeString                   []string      `mapstructure:"exclude-string"`
 	ExclusionFile                   []string      `mapstructure:"exclusion-file"`
 	ExclusionFileLiveReload         bool          `mapstructure:"exclusion-file-live-reload"`
-	ExclusionFileLiveReloadInterval int           `mapstructure:"exclusion-file-live-reload-interval"`
+	ExclusionFileLiveReloadInterval time.Duration `mapstructure:"exclusion-file-live-reload-interval"`
 	WorkersCount                    int           `mapstructure:"workers"`
 	MaxConcurrentAssets             int           `mapstructure:"max-concurrent-assets"`
 	MaxHops                         int           `mapstructure:"max-hops"`
@@ -322,7 +322,7 @@ func GenerateCrawlConfig() error {
 			go func() {
 				defer config.waitGroup.Done()
 
-				ticker := time.NewTicker(time.Duration(config.ExclusionFileLiveReloadInterval) * time.Second)
+				ticker := time.NewTicker(config.ExclusionFileLiveReloadInterval)
 				defer ticker.Stop()
 
 				for {
