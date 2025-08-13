@@ -55,8 +55,6 @@ func Start(inputChan, outputChan chan *models.Item) error {
 		"component": "archiver",
 	})
 
-	stats.Init()
-
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		globalArchiver = &archiver{

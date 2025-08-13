@@ -8,7 +8,6 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 )
@@ -40,8 +39,6 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "hq",
 	})
-
-	stats.Init()
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
