@@ -331,7 +331,7 @@ func GenerateCrawlConfig() error {
 		config.setExclusionRegexes(exclusions)
 
 		if config.ExclusionFileLiveReload {
-			config.waitGroup.Go(func() { config.exclusionFileLiveReloader() })
+			config.waitGroup.Go(config.exclusionFileLiveReloader)
 		}
 	}
 

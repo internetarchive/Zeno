@@ -12,8 +12,6 @@ import (
 )
 
 func (c *Config) exclusionFileLiveReloader() {
-	defer config.waitGroup.Done()
-
 	ticker := time.NewTicker(config.ExclusionFileLiveReloadInterval)
 	defer ticker.Stop()
 
