@@ -13,16 +13,9 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 )
 
-var ctx, cancel = context.WithCancel(context.Background())
-
-// Stop cancels the context used to update the TTL check, which will eventually deregister the registered services.
-func Stop() {
-	cancel()
-}
-
 // Register creates a Consul client and registers the service along with a TTL health check.
 // If the program stops updating the TTL, Consul will deregister the service after 30 seconds.
-func Register() error {
+func Register(ctx context.Context) error {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "consul.Register",
 	})

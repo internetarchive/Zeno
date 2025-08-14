@@ -37,8 +37,9 @@ func TestReactor_E2E_UnbalancedBig_MoreTokens(t *testing.T) {
 }
 
 func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
+	rootContext, rootContextCancel := context.WithCancel(context.Background())
 	outputChan := make(chan *models.Item)
-	err := Start(tokens, outputChan)
+	err := Start(rootContext, tokens, outputChan)
 
 	var consumedCount atomic.Int64
 	consumedCount.Store(0)
@@ -119,6 +120,7 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 	for {
 		select {
 		case err := <-fatalChan:
+			rootContextCancel()
 			cancel()
 			wg.Wait()
 			Stop()
@@ -126,6 +128,7 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 			t.Errorf("Received error while processing %s", err)
 			return
 		case <-time.After(5 * time.Second):
+			rootContextCancel()
 			cancel()
 			wg.Wait()
 			if len(GetStateTable()) > 0 {
@@ -142,6 +145,7 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 			return
 		default:
 			if len(GetStateTable()) == 0 {
+				rootContextCancel()
 				cancel()
 				wg.Wait()
 				if consumedCount.Load() != int64(seeds) {
