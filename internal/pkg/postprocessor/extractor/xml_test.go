@@ -122,7 +122,7 @@ func TestXML(t *testing.T) {
                 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` + strings.Repeat(`<url><loc>https://example.com/page</loc></url>`, 1000) + `</urlset>`,
 			expected: func() []string {
 				var urls = []string{"http://www.sitemaps.org/schemas/sitemap/0.9"}
-				for i := 0; i < 1000; i++ {
+				for range 1000 {
 					urls = append(urls, "https://example.com/page")
 				}
 				return urls

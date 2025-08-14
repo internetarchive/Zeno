@@ -71,14 +71,14 @@ func TestExtractURLsFromHeader(t *testing.T) {
 			name: "Large Link header content",
 			link: func() string {
 				var link string
-				for i := 0; i < 1000; i++ {
+				for i := range 1000 {
 					link += fmt.Sprintf("<https://example.com/page%d>; rel=\"preconnect\", ", i)
 				}
 				return link[:len(link)-2]
 			}(),
 			expected: func() []*models.URL {
 				var urls []*models.URL
-				for i := 0; i < 1000; i++ {
+				for i := range 1000 {
 					urls = append(urls, &models.URL{Raw: fmt.Sprintf("https://example.com/page%d", i)})
 				}
 				return urls
@@ -99,7 +99,7 @@ func TestExtractURLsFromHeader(t *testing.T) {
 				Body: io.NopCloser(bytes.NewBufferString("")),
 				Header: http.Header{
 					"Content-Type": []string{"text/html"},
-					"Link": []string{tt.link},
+					"Link":         []string{tt.link},
 				},
 			}
 

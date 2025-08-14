@@ -20,7 +20,7 @@ func ExtractURLsFromHeader(URL *models.URL) (URLs []*models.URL) {
 		return URLs
 	}
 
-	for _, link := range strings.Split(link, ", ") {
+	for link := range strings.SplitSeq(link, ", ") {
 		parts := strings.Split(link, ";")
 		if len(parts) < 1 {
 			// Malformed input, somehow we didn't get at least one part

@@ -58,10 +58,8 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Consume items from the output channel, start 5 goroutines
-	for i := 0; i < consumers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range consumers {
+		wg.Go(func() {
 			for {
 				select {
 				case <-ctx.Done():
@@ -91,12 +89,12 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 					}
 				}
 			}
-		}()
+		})
 	}
 
 	// Create mock seeds
 	mockItems := []*models.Item{}
-	for i := 0; i < seeds; i++ {
+	for i := range seeds {
 		newItem := models.NewItem(&models.URL{Raw: fmt.Sprintf("http://example.com/%d", i)}, "")
 		newItem.SetSource(models.ItemSourceInsert)
 		mockItems = append(mockItems, newItem)

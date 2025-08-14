@@ -168,7 +168,7 @@ func TestAdjustOnFailureAndOnSuccess(t *testing.T) {
 	bm.mu.Unlock()
 
 	// Call OnSuccess repeatedly; now failureCount should decrease.
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		bm.OnSuccess(host)
 	}
 
@@ -196,7 +196,7 @@ func TestConcurrentAccess(t *testing.T) {
 	var wg sync.WaitGroup
 	concurrentCalls := 50
 
-	for i := 0; i < concurrentCalls; i++ {
+	for range concurrentCalls {
 		for _, host := range hosts {
 			wg.Add(1)
 			go func(h string) {
@@ -231,12 +231,10 @@ func TestConcurrentSameHost(t *testing.T) {
 	concurrentCalls := 100
 
 	// Spawn many goroutines that call Wait for the same host.
-	for i := 0; i < concurrentCalls; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range concurrentCalls {
+		wg.Go(func() {
 			bm.Wait(host)
-		}()
+		})
 	}
 	wg.Wait()
 

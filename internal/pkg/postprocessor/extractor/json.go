@@ -34,7 +34,7 @@ func JSON(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 }
 
 func GetURLsFromJSON(decoder *json.Decoder) (assets, outlinks []string, err error) {
-	var data interface{}
+	var data any
 
 	err = decoder.Decode(&data)
 	if err != nil {
@@ -66,7 +66,7 @@ func isLikelyJSON(str string) bool {
 	return ((str[0] == '{' && str[len(str)-1] == '}') || (str[0] == '[' && str[len(str)-1] == ']')) && strings.Contains(str, `"`)
 }
 
-func findURLs(data interface{}, links *[]string) {
+func findURLs(data any, links *[]string) {
 	switch v := data.(type) {
 	case string:
 		if isValidURL(v) {
@@ -74,7 +74,7 @@ func findURLs(data interface{}, links *[]string) {
 			return
 		} else if isLikelyJSON(v) {
 			// handle JSON in JSON
-			var jsonstringdata interface{}
+			var jsonstringdata any
 			err := json.Unmarshal([]byte(v), &jsonstringdata)
 			if err == nil {
 				findURLs(jsonstringdata, links)
@@ -94,11 +94,11 @@ func findURLs(data interface{}, links *[]string) {
 				*links = append(*links, link)
 			}
 		}
-	case []interface{}:
+	case []any:
 		for _, element := range v {
 			findURLs(element, links)
 		}
-	case map[string]interface{}:
+	case map[string]any:
 		for _, value := range v {
 			findURLs(value, links)
 		}
