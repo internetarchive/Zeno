@@ -37,9 +37,11 @@ func TestReactor_E2E_UnbalancedBig_MoreTokens(t *testing.T) {
 }
 
 func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
-	rootContext, rootContextCancel := context.WithCancel(context.Background())
+	// Context to cancel consumers
+	ctx, cancel := context.WithCancel(context.Background())
+
 	outputChan := make(chan *models.Item)
-	err := Start(rootContext, tokens, outputChan)
+	err := Start(ctx, tokens, outputChan)
 
 	var consumedCount atomic.Int64
 	consumedCount.Store(0)
@@ -54,9 +56,6 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 
 	// WaitGroup to wait for all goroutines to finish
 	var wg sync.WaitGroup
-
-	// Context to cancel consumers
-	ctx, cancel := context.WithCancel(context.Background())
 
 	// Consume items from the output channel, start 5 goroutines
 	for i := 0; i < consumers; i++ {
@@ -120,7 +119,6 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 	for {
 		select {
 		case err := <-fatalChan:
-			rootContextCancel()
 			cancel()
 			wg.Wait()
 			Stop()
@@ -128,7 +126,6 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 			t.Errorf("Received error while processing %s", err)
 			return
 		case <-time.After(5 * time.Second):
-			rootContextCancel()
 			cancel()
 			wg.Wait()
 			if len(GetStateTable()) > 0 {
@@ -145,7 +142,6 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 			return
 		default:
 			if len(GetStateTable()) == 0 {
-				rootContextCancel()
 				cancel()
 				wg.Wait()
 				if consumedCount.Load() != int64(seeds) {
