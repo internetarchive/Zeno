@@ -50,7 +50,7 @@ func TestWaitBlocksUntilTokenIsAvailable(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		// Advance time in a separate goroutine.
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			time.Sleep(50 * time.Millisecond)
 			baseTime = baseTime.Add(50 * time.Millisecond)
 		}
@@ -148,13 +148,11 @@ func TestConcurrentWait(t *testing.T) {
 	results := make(chan struct{}, concurrentCalls)
 
 	// Start concurrent goroutines that call Wait.
-	for i := 0; i < concurrentCalls; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range concurrentCalls {
+		wg.Go(func() {
 			tb.Wait()
 			results <- struct{}{}
-		}()
+		})
 	}
 
 	// Wait for all to finish (with a timeout safeguard).

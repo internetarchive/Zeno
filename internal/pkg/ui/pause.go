@@ -8,10 +8,7 @@ import (
 )
 
 func (ui *UI) pauseMonitor() {
-	ui.wg.Add(1)
-	go func() {
-		defer ui.wg.Done()
-
+	ui.wg.Go(func() {
 		ticker := time.NewTicker(300 * time.Millisecond)
 		defer ticker.Stop()
 
@@ -38,7 +35,7 @@ func (ui *UI) pauseMonitor() {
 				})
 			}
 		}
-	}()
+	})
 }
 
 func (ui *UI) showPausedModal() {

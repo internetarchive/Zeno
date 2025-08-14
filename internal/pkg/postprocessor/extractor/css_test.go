@@ -242,8 +242,7 @@ func BenchmarkExtractFromURLCSS(b *testing.B) {
 	url.Parse()
 	started := time.Now()
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		r1, r2, err := ExtractFromURLCSS(url)
 		if err != nil {
 			b.Errorf("Error extracting CSS: %v", err)

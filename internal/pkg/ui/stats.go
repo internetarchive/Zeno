@@ -31,7 +31,7 @@ func (ui *UI) updateStatsLoop() {
 }
 
 // populateStatsTable lays out the stats in columnsPerRow, then resizes the box.
-func (ui *UI) populateStatsTable(statMap map[string]interface{}) {
+func (ui *UI) populateStatsTable(statMap map[string]any) {
 	ui.statsTable.Clear()
 
 	displayMap := flattenStatsMap(statMap)
@@ -77,8 +77,8 @@ func (ui *UI) populateStatsTable(statMap map[string]interface{}) {
 	ui.mainFlex.ResizeItem(ui.statsRowFlex, linesNeeded, 0)
 }
 
-func flattenStatsMap(statMap map[string]interface{}) map[string]interface{} {
-	flatMap := make(map[string]interface{})
+func flattenStatsMap(statMap map[string]any) map[string]any {
+	flatMap := make(map[string]any)
 
 	for primaryKey, primaryValue := range statMap {
 		switch statMap[primaryKey].(type) {

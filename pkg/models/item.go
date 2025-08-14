@@ -146,10 +146,7 @@ func (i *Item) GetShortID() string {
 	hqPrefixes := []string{"seed-", "asset-"}
 	for _, prefix := range hqPrefixes {
 		if strings.HasPrefix(i.id, prefix) {
-			end := len(prefix) + 5
-			if end > len(i.id) {
-				end = len(i.id)
-			}
+			end := min(len(prefix)+5, len(i.id))
 			return i.id[:end]
 		}
 	}
