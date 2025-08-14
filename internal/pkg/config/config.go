@@ -317,51 +317,21 @@ func GenerateCrawlConfig() error {
 
 	config.exclusionRegexes.Store([]*regexp.Regexp(nil))
 	if len(config.ExclusionFile) > 0 {
-		if config.ExclusionFileLiveReload {
-			config.waitGroup.Add(1)
-			go func() {
-				defer config.waitGroup.Done()
+		var exclusions []*regexp.Regexp
 
-				ticker := time.NewTicker(config.ExclusionFileLiveReloadInterval)
-				defer ticker.Stop()
-
-				for {
-					select {
-					case <-config.ctx.Done():
-						slog.Info("exclusion file live reload goroutine cancelled")
-						return
-					case <-ticker.C:
-						var exclusions []*regexp.Regexp
-						for _, file := range config.ExclusionFile {
-							newExclusions, err := config.loadExclusions(file)
-							if err != nil {
-								slog.Error("failed to reload exclusion file, will retry in X seconds",
-									"file", file,
-									"err", err,
-									"interval", config.ExclusionFileLiveReloadInterval)
-								continue
-							}
-
-							exclusions = append(exclusions, newExclusions...)
-						}
-
-						config.setExclusionRegexes(exclusions)
-					}
-				}
-			}()
-		} else {
-			var exclusions []*regexp.Regexp
-
-			for _, file := range config.ExclusionFile {
-				newExclusions, err := config.loadExclusions(file)
-				if err != nil {
-					return err
-				}
-
-				exclusions = append(exclusions, newExclusions...)
+		for _, file := range config.ExclusionFile {
+			newExclusions, err := config.loadExclusions(file)
+			if err != nil {
+				return err
 			}
 
-			config.setExclusionRegexes(exclusions)
+			exclusions = append(exclusions, newExclusions...)
+		}
+
+		config.setExclusionRegexes(exclusions)
+
+		if config.ExclusionFileLiveReload {
+			config.waitGroup.Go(func() { config.exclusionFileLiveReloader() })
 		}
 	}
 

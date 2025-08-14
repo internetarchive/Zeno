@@ -11,6 +11,37 @@ import (
 	"time"
 )
 
+func (c *Config) exclusionFileLiveReloader() {
+	defer config.waitGroup.Done()
+
+	ticker := time.NewTicker(config.ExclusionFileLiveReloadInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-config.ctx.Done():
+			slog.Info("exclusion file live reload goroutine cancelled")
+			return
+		case <-ticker.C:
+			var exclusions []*regexp.Regexp
+			for _, file := range config.ExclusionFile {
+				newExclusions, err := c.loadExclusions(file)
+				if err != nil {
+					slog.Error("failed to reload exclusion file, will retry in X seconds",
+						"file", file,
+						"err", err,
+						"interval", c.ExclusionFileLiveReloadInterval)
+					continue
+				}
+
+				exclusions = append(exclusions, newExclusions...)
+			}
+
+			config.setExclusionRegexes(exclusions)
+		}
+	}
+}
+
 func (c *Config) GetExclusionRegexes() []*regexp.Regexp {
 	return c.exclusionRegexes.Load().([]*regexp.Regexp)
 }
