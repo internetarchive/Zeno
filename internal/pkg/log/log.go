@@ -24,7 +24,6 @@ func Start() error {
 		config := makeConfig()
 		multiLogger = config.makeMultiLogger()
 	})
-
 	if multiLogger == nil {
 		return ErrLoggerAlreadyInitialized
 	}
