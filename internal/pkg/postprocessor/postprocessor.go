@@ -16,7 +16,6 @@ import (
 type postprocessor struct {
 	wg       sync.WaitGroup
 	ctx      context.Context
-	cancel   context.CancelFunc
 	inputCh  chan *models.Item
 	outputCh chan *models.Item
 }
@@ -29,16 +28,14 @@ var (
 
 // This functions starts the preprocessor responsible for preparing
 // the seeds sent by the reactor for captures
-func Start(inputChan, outputChan chan *models.Item) error {
+func Start(ctx context.Context, inputChan, outputChan chan *models.Item) error {
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor",
 	})
 
 	once.Do(func() {
-		ctx, cancel := context.WithCancel(context.Background())
 		globalPostprocessor = &postprocessor{
 			ctx:      ctx,
-			cancel:   cancel,
 			inputCh:  inputChan,
 			outputCh: outputChan,
 		}
@@ -59,7 +56,6 @@ func Start(inputChan, outputChan chan *models.Item) error {
 
 func Stop() {
 	if globalPostprocessor != nil {
-		globalPostprocessor.cancel()
 		globalPostprocessor.wg.Wait()
 		logger.Info("stopped")
 	}

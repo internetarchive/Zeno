@@ -37,8 +37,11 @@ func TestReactor_E2E_UnbalancedBig_MoreTokens(t *testing.T) {
 }
 
 func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
+	// Context to cancel consumers
+	ctx, cancel := context.WithCancel(context.Background())
+
 	outputChan := make(chan *models.Item)
-	err := Start(tokens, outputChan)
+	err := Start(ctx, tokens, outputChan)
 
 	var consumedCount atomic.Int64
 	consumedCount.Store(0)
@@ -53,9 +56,6 @@ func _testerFunc(tokens, consumers, seeds int, t testing.TB) {
 
 	// WaitGroup to wait for all goroutines to finish
 	var wg sync.WaitGroup
-
-	// Context to cancel consumers
-	ctx, cancel := context.WithCancel(context.Background())
 
 	// Consume items from the output channel, start 5 goroutines
 	for range consumers {

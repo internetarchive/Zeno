@@ -16,7 +16,6 @@ import (
 
 type finisher struct {
 	ctx              context.Context
-	cancel           context.CancelFunc
 	inputCh          chan *models.Item
 	sourceFinishedCh chan *models.Item
 	sourceProducedCh chan *models.Item
@@ -31,16 +30,14 @@ var (
 
 // Start initializes the global finisher with the given input channel.
 // This method can only be called once.
-func Start(inputChan, sourceFinishedChan, sourceProducedChan chan *models.Item) error {
+func Start(ctx context.Context, inputChan, sourceFinishedChan, sourceProducedChan chan *models.Item) error {
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "finisher",
 	})
 
 	once.Do(func() {
-		ctx, cancel := context.WithCancel(context.Background())
 		globalFinisher = &finisher{
 			ctx:              ctx,
-			cancel:           cancel,
 			inputCh:          inputChan,
 			sourceFinishedCh: sourceFinishedChan,
 			sourceProducedCh: sourceProducedChan,
@@ -65,7 +62,6 @@ func Start(inputChan, sourceFinishedChan, sourceProducedChan chan *models.Item) 
 func Stop() {
 	if globalFinisher != nil {
 		logger.Debug("received stop signal")
-		globalFinisher.cancel()
 		globalFinisher.wg.Wait()
 		globalFinisher = nil
 		once = sync.Once{}
