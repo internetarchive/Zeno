@@ -13,11 +13,6 @@ var cssLogger = log.NewFieldedLogger(&log.Fields{
 	"component": "postprocessor.extractor.css",
 })
 
-var allowedPrecedeAtRules = [2]string{
-	"charset",
-	"layer",
-}
-
 type atRuleStateManager struct {
 	inOKArea        bool // Whether the current area is allowed to contain @import rules
 	inAt            bool // Whether the current state is in an @-rule
@@ -44,16 +39,14 @@ func (self *atRuleStateManager) Feed(tt csslexer.TokenType, v string) {
 	// <https://www.w3.org/TR/css-cascade-5/#layer-empty>
 	if tt == csslexer.AtKeywordToken {
 		self.inAt = true
-		for _, rule := range allowedPrecedeAtRules {
-			if v == rule {
-				if self.inValidATImport {
-					self.Done() // must not have any other valid at-rules or style rules between it and previous @import rules
-					return
-				}
+		switch v {
+		case "charset", "layer":
+			if self.inValidATImport {
+				self.Done() // must not have any other valid at-rules or style rules between it and previous @import rules
 				return
 			}
-		}
-		if v == "import" {
+			return
+		case "import":
 			self.inValidATImport = true // @import rule
 			return
 		}
