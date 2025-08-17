@@ -1,7 +1,6 @@
 package controler
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"time"
@@ -24,11 +23,7 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
-var (
-	rootContext       context.Context
-	cancelRootContext context.CancelFunc
-	sourceInterface   source.Source
-)
+var sourceInterface source.Source
 
 /**
  * Channel description:
@@ -44,8 +39,6 @@ func startPipeline() {
 		fmt.Printf("can't create job directory: %s\n", err)
 		os.Exit(1)
 	}
-
-	rootContext, cancelRootContext = context.WithCancel(context.Background())
 
 	if err := watchers.CheckDiskUsage(config.Get().JobPath); err != nil {
 		fmt.Printf("can't start Zeno: %s\n", err)
@@ -78,7 +71,7 @@ func startPipeline() {
 
 	// Register Zeno as Consul service if needed
 	if config.Get().ConsulRegister {
-		err := consul.Register(rootContext)
+		err := consul.Register()
 		if err != nil {
 			logger.Error("error registering Zeno in Consul", "err", err.Error())
 			panic(err)
@@ -87,7 +80,7 @@ func startPipeline() {
 
 	// Start the reactor that will receive
 	reactorOutputChan := makeStageChannel(config.Get().WorkersCount)
-	err = reactor.Start(rootContext, config.Get().WorkersCount, reactorOutputChan)
+	err = reactor.Start(config.Get().WorkersCount, reactorOutputChan)
 	if err != nil {
 		logger.Error("error starting reactor", "err", err.Error())
 		panic(err)
@@ -103,7 +96,7 @@ func startPipeline() {
 	}
 
 	preprocessorOutputChan := makeStageChannel(config.Get().WorkersCount)
-	err = preprocessor.Start(rootContext, reactorOutputChan, preprocessorOutputChan)
+	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting preprocessor", "err", err.Error())
 		panic(err)
@@ -117,10 +110,10 @@ func startPipeline() {
 	}
 
 	// Start the WARC writing queue watcher
-	watchers.StartWatchWARCWritingQueue(rootContext, 1*time.Second, 2*time.Second, 250*time.Millisecond)
+	watchers.StartWatchWARCWritingQueue(1*time.Second, 2*time.Second, 250*time.Millisecond)
 
 	postprocessorOutputChan := makeStageChannel(config.Get().WorkersCount)
-	err = postprocessor.Start(rootContext, archiverOutputChan, postprocessorOutputChan)
+	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting postprocessor", "err", err.Error())
 		panic(err)
@@ -148,7 +141,7 @@ func startPipeline() {
 		panic(err)
 	}
 
-	err = finisher.Start(rootContext, postprocessorOutputChan, finisherFinishChan, finisherProduceChan)
+	err = finisher.Start(postprocessorOutputChan, finisherFinishChan, finisherProduceChan)
 	if err != nil {
 		logger.Error("error starting finisher", "err", err.Error())
 		panic(err)
@@ -179,10 +172,6 @@ func stopPipeline() {
 		"component": "controler.stopPipeline",
 	})
 
-	if cancelRootContext != nil {
-		cancelRootContext()
-	}
-
 	watchers.StopDiskWatcher()
 	watchers.StopWARCWritingQueueWatcher()
 
@@ -210,6 +199,10 @@ func stopPipeline() {
 
 	if config.Get().API {
 		api.Stop(5 * time.Second)
+	}
+
+	if config.Get().ConsulRegister {
+		consul.Stop()
 	}
 
 	logger.Info("done, logs are flushing and will be closed")

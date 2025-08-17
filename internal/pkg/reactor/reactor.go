@@ -14,6 +14,7 @@ import (
 type reactor struct {
 	tokenPool    chan struct{}      // Token pool to control asset count
 	ctx          context.Context    // Context for stopping the reactor
+	cancel       context.CancelFunc // Context's cancel func
 	freezeCtx    context.Context    // Context for freezing the reactor
 	freezeCancel context.CancelFunc // Freezing context's cancel func
 	input        chan *models.Item  // Combined input channel for source and feedback
@@ -31,7 +32,7 @@ var (
 
 // Start initializes the global reactor with the given maximum tokens.
 // This method can only be called once.
-func Start(ctx context.Context, maxTokens int, outputChan chan *models.Item) error {
+func Start(maxTokens int, outputChan chan *models.Item) error {
 	var done bool
 
 	logger = log.NewFieldedLogger(&log.Fields{
@@ -39,10 +40,12 @@ func Start(ctx context.Context, maxTokens int, outputChan chan *models.Item) err
 	})
 
 	once.Do(func() {
+		ctx, cancel := context.WithCancel(context.Background())
 		freezeCtx, freezeCancel := context.WithCancel(ctx)
 		globalReactor = &reactor{
 			tokenPool:    make(chan struct{}, maxTokens),
 			ctx:          ctx,
+			cancel:       cancel,
 			freezeCtx:    freezeCtx,
 			freezeCancel: freezeCancel,
 			input:        make(chan *models.Item, maxTokens),
@@ -66,6 +69,7 @@ func Start(ctx context.Context, maxTokens int, outputChan chan *models.Item) err
 func Stop() {
 	if globalReactor != nil {
 		logger.Debug("received stop signal")
+		globalReactor.cancel()
 		globalReactor.wg.Wait()
 		close(globalReactor.input)
 		once = sync.Once{}

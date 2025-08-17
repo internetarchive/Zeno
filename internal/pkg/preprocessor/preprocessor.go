@@ -29,6 +29,7 @@ import (
 type preprocessor struct {
 	wg       sync.WaitGroup
 	ctx      context.Context
+	cancel   context.CancelFunc
 	inputCh  chan *models.Item
 	outputCh chan *models.Item
 
@@ -43,14 +44,16 @@ var (
 )
 
 // Start initializes the internal preprocessor structure and start routines, should only be called once and returns an error if called more than once
-func Start(ctx context.Context, inputChan, outputChan chan *models.Item) error {
+func Start(inputChan, outputChan chan *models.Item) error {
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor",
 	})
 
 	once.Do(func() {
+		ctx, cancel := context.WithCancel(context.Background())
 		globalPreprocessor = &preprocessor{
 			ctx:      ctx,
+			cancel:   cancel,
 			inputCh:  inputChan,
 			outputCh: outputChan,
 		}
@@ -72,6 +75,7 @@ func Start(ctx context.Context, inputChan, outputChan chan *models.Item) error {
 // Stop stops the preprocessor routines
 func Stop() {
 	if globalPreprocessor != nil {
+		globalPreprocessor.cancel()
 		globalPreprocessor.wg.Wait()
 		logger.Info("stopped")
 	}
