@@ -266,3 +266,12 @@ func WARCLocalDedupeTotalSet(value int64) {
 		globalPromStats.localDedupeTotal.WithLabelValues(config.Get().JobPrometheus, hostname, version).Set(float64(value))
 	}
 }
+
+// CFMitigatedIncr increments the CFMitigated counter by 1.
+func CFMitigatedIncr() {
+	globalStats.cfMitigated.Add(1)
+
+	if globalPromStats != nil {
+		globalPromStats.cfMitigated.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
+	}
+}
