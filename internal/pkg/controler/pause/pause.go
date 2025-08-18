@@ -54,7 +54,7 @@ func Pause(message ...string) {
 
 	manager.message = message[0]
 
-	manager.subscribers.Range(func(key, _ interface{}) bool {
+	manager.subscribers.Range(func(key, _ any) bool {
 		chans := key.(*ControlChans)
 		// Send pause signal (non-blocking since PauseCh is buffered).
 		select {
@@ -71,7 +71,7 @@ func Pause(message ...string) {
 // Resume reads from each subscriber's ResumeCh to unblock them.
 func Resume() {
 	var wg sync.WaitGroup
-	manager.subscribers.Range(func(key, _ interface{}) bool {
+	manager.subscribers.Range(func(key, _ any) bool {
 		chans := key.(*ControlChans)
 		wg.Add(1)
 		go func(chans *ControlChans) {

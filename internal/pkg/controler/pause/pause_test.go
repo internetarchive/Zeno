@@ -83,7 +83,7 @@ func TestMultipleSubscribers(t *testing.T) {
 	resumedChans := make([]chan struct{}, numSubscribers)
 
 	// Create multiple subscribers.
-	for i := 0; i < numSubscribers; i++ {
+	for i := range numSubscribers {
 		wg.Add(1)
 		subscribedChans[i] = make(chan struct{})
 		pausedChans[i] = make(chan struct{})
@@ -114,7 +114,7 @@ func TestMultipleSubscribers(t *testing.T) {
 	}
 
 	// Wait for all subscribers to subscribe
-	for i := 0; i < numSubscribers; i++ {
+	for i := range numSubscribers {
 		<-subscribedChans[i]
 	}
 
@@ -122,7 +122,7 @@ func TestMultipleSubscribers(t *testing.T) {
 	Pause()
 
 	// Wait for all subscribers to acknowledge the pause
-	for i := 0; i < numSubscribers; i++ {
+	for i := range numSubscribers {
 		select {
 		case <-pausedChans[i]:
 			// Subscriber paused
@@ -135,7 +135,7 @@ func TestMultipleSubscribers(t *testing.T) {
 	Resume()
 
 	// Wait for all subscribers to acknowledge the resume
-	for i := 0; i < numSubscribers; i++ {
+	for i := range numSubscribers {
 		select {
 		case <-resumedChans[i]:
 			// Subscriber resumed
@@ -219,7 +219,7 @@ func TestConcurrentPauseResume(t *testing.T) {
 	}, numSubscribers)
 
 	// Create subscribers
-	for i := 0; i < numSubscribers; i++ {
+	for range numSubscribers {
 		go func() {
 			defer wg.Done()
 			controlChans := Subscribe()
@@ -229,7 +229,7 @@ func TestConcurrentPauseResume(t *testing.T) {
 
 			var pauses, resumes int32
 
-			for j := 0; j < numCycles; j++ {
+			for range numCycles {
 				// Wait for pause signal
 				<-controlChans.PauseCh
 				pauses++
@@ -254,17 +254,17 @@ func TestConcurrentPauseResume(t *testing.T) {
 	}
 
 	// Wait for all subscribers to subscribe
-	for i := 0; i < numSubscribers; i++ {
+	for range numSubscribers {
 		<-subscribedCh
 	}
 
 	// Perform pause and resume cycles
-	for i := 0; i < numCycles; i++ {
+	for range numCycles {
 		// Perform pause
 		Pause()
 
 		// Wait for all subscribers to acknowledge the pause
-		for j := 0; j < numSubscribers; j++ {
+		for range numSubscribers {
 			<-pauseComplete
 		}
 
@@ -272,7 +272,7 @@ func TestConcurrentPauseResume(t *testing.T) {
 		Resume()
 
 		// Wait for all subscribers to acknowledge the resume
-		for j := 0; j < numSubscribers; j++ {
+		for range numSubscribers {
 			<-resumeComplete
 		}
 	}

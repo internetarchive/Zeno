@@ -154,7 +154,7 @@ func preprocess(workerID string, seed *models.Item) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor.preprocess",
 		"worker_id": workerID,
-		"seed_id": seed.GetShortID(),
+		"seed_id":   seed.GetShortID(),
 	})
 
 	operatingDepth := seed.GetMaxDepth()
@@ -210,7 +210,7 @@ func preprocess(workerID string, seed *models.Item) {
 		// Apply exclusion filters even if it passed inclusion
 		if utils.StringContainsSliceElements(items[i].GetURL().GetParsed().Host, config.Get().ExcludeHosts) ||
 			utils.StringContainsSliceElements(items[i].GetURL().String(), config.Get().ExcludeString) ||
-			matchRegexExclusion(config.Get().ExclusionRegexes, items[i]) {
+			matchRegexExclusion(config.Get().GetExclusionRegexes(), items[i]) {
 
 			logger.Debug("URL excluded (matches exclusion filters)",
 				"item_id", items[i].GetShortID(),

@@ -139,10 +139,10 @@ func TestHighVolume(t *testing.T) {
 
 	// Start multiple producers
 	wg.Add(producerCount)
-	for p := 0; p < producerCount; p++ {
+	for p := range producerCount {
 		go func(id int) {
 			defer wg.Done()
-			for i := 0; i < totalPerProducer; i++ {
+			for i := range totalPerProducer {
 				// Here we do a simple Enqueue of an integer
 				msg := id*1_000_000 + i // encode producer id + index
 				rb.Enqueue(msg)
@@ -238,7 +238,7 @@ func BenchmarkSampling(b *testing.B) {
 					// We'll run producers for "runDuration"
 					producerStop := make(chan struct{})
 
-					for p := 0; p < producerCount; p++ {
+					for p := range producerCount {
 						go func(id int) {
 							defer wg.Done()
 							r := rand.New(rand.NewSource(time.Now().UnixNano()))

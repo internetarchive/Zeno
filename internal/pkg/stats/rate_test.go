@@ -33,7 +33,7 @@ func TestRate_Start(t *testing.T) {
 	}
 
 	// Increment the rate counter multiple times and check the rate over several seconds
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		rate.incr(2)
 		time.Sleep(1100 * time.Millisecond)
 		expectedRate := uint64(2)

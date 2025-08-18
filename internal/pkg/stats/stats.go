@@ -104,8 +104,8 @@ func Reset() {
 
 // GetMapTUI returns a map of the current stats.
 // This is used by the TUI to update the stats table.
-func GetMapTUI() map[string]interface{} {
-	result := map[string]interface{}{
+func GetMapTUI() map[string]any {
+	result := map[string]any{
 		"URL/s":                      globalStats.URLsCrawled.get(),
 		"Total URL crawled":          globalStats.URLsCrawled.getTotal(),
 		"Finished seeds":             globalStats.SeedsFinished.getTotal(),

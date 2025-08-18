@@ -89,14 +89,11 @@ func (rb *MP1COverwritingRingBuffer[T]) DumpN(maxCount uint64) []T {
 
 		// Number of items currently available
 		available := oldTail - oldHead
-		n := available
-		if n > maxCount {
-			n = maxCount
-		}
+		n := min(available, maxCount)
 
 		// Copy out up to n items
 		out := make([]T, 0, n)
-		for i := uint64(0); i < n; i++ {
+		for i := range n {
 			idx := (oldHead + i) & rb.mask
 			val := rb.items[idx].Load()
 			typedVal, _ := val.(T)
@@ -106,7 +103,7 @@ func (rb *MP1COverwritingRingBuffer[T]) DumpN(maxCount uint64) []T {
 		// Try to consume all n items at once
 		if rb.head.CompareAndSwap(oldHead, oldHead+n) {
 			// (Optional) Zero out the consumed slots for GC or security reasons
-			for i := uint64(0); i < n; i++ {
+			for i := range n {
 				idx := (oldHead + i) & rb.mask
 				rb.items[idx].Store(zero)
 			}

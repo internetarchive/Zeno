@@ -26,7 +26,11 @@ func (l LinkHeaderExtractor) Match(URL *models.URL) bool {
 func (l LinkHeaderExtractor) Extract(URL *models.URL) (URLs []*models.URL, _ error) {
 	var link = URL.GetResponse().Header.Get("link")
 
-	for _, link := range strings.Split(link, ", ") {
+	if link == "" {
+		return URLs, nil
+	}
+
+	for link := range strings.SplitSeq(link, ", ") {
 		parts := strings.Split(link, ";")
 		if len(parts) < 1 {
 			// Malformed input, somehow we didn't get at least one part

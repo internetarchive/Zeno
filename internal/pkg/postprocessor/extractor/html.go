@@ -130,8 +130,8 @@ func (HTMLOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, er
 func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.extractor.HTMLAssets",
-		"url": item.GetURL(),
-		"item": item.GetShortID(),
+		"url":       item.GetURL(),
+		"item":      item.GetShortID(),
 	})
 
 	var rawAssets []string
@@ -222,8 +222,8 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			// Handle srcset and data-srcset attributes
 			for _, srcsetAttr := range []string{"srcset", "data-srcset"} {
 				if link, exists := i.Attr(srcsetAttr); exists {
-					links := strings.Split(link, ",")
-					for _, link := range links {
+					links := strings.SplitSeq(link, ",")
+					for link := range links {
 						rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
 					}
 				}
@@ -369,8 +369,8 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			// Handle srcset and data-srcset attributes
 			for _, srcsetAttr := range []string{"srcset", "data-srcset"} {
 				if link, exists := i.Attr(srcsetAttr); exists {
-					links := strings.Split(link, ",")
-					for _, link := range links {
+					links := strings.SplitSeq(link, ",")
+					for link := range links {
 						rawAssets = append(rawAssets, strings.Split(strings.TrimSpace(link), " ")[0])
 					}
 				}
