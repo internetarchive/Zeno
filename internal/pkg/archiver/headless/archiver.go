@@ -150,17 +150,6 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			"url":       hijack.Request.URL().String(),
 		})
 
-		// debug:
-		if hijack.Request.URL().String() == "https://wiki.saveweb.org/start?do=index" && item.GetURL().String() != "https://wiki.saveweb.org/start?do=index" {
-			logger.Debug("!!!debugging request")
-			if item.GetURL().String() == "https://badge.fury.io/py/wikiteam3" {
-				ticker := time.NewTicker(1 * time.Second)
-				for range ticker.C {
-					logger.Warn("!!!Check this request!!!", "url", hijack.Request.URL().String())
-				}
-			}
-		}
-
 		isSeen := seencheckSubReq(item, seed, hijack.Request.URL().String())
 		if isSeen {
 			if hijack.Request.Method() != http.MethodGet {
