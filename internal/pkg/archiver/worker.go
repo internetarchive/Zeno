@@ -134,6 +134,11 @@ func Stop() {
 		globalBucketManager.Close()
 		logger.Info("closed bucket manager")
 	}
+
+	// Cancel config related contexts
+	// e.g. the goroutine that watches for exclusions file changes
+	config.Get().Cancel()
+	logger.Info("stopped config related contexts")
 }
 
 func (a *archiver) worker(workerID string) {
