@@ -11,7 +11,7 @@ jobs:
     name: release linux/amd64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - uses: NGTmeaty/go-release-action@467859a11c0b30701421f85f0cb2506aa8a8403f #v1
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -27,7 +27,7 @@ jobs:
     name: release linux/arm64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
     - uses: NGTmeaty/go-release-action@467859a11c0b30701421f85f0cb2506aa8a8403f #v1
       with:
@@ -44,7 +44,7 @@ jobs:
     name: release windows/amd64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
     - uses: NGTmeaty/go-release-action@467859a11c0b30701421f85f0cb2506aa8a8403f #v1
       with:
