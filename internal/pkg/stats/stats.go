@@ -119,7 +119,7 @@ func GetMapTUI() map[string]any {
 		"HTTP 3xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("3*")),
 		"HTTP 4xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("4*")),
 		"HTTP 5xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("5*")),
-		"CF Challenge count":         globalStats.cfMitigated.Load(),
+		"CF Challenge pages seen":    globalStats.cfMitigated.Load(),
 		"Mean HTTP response time":    globalStats.MeanHTTPResponseTime.get(),
 		"Mean wait on feedback time": globalStats.MeanWaitOnFeedbackTime.get(),
 		"Mean process body time":     globalStats.MeanProcessBodyTime.get(),

@@ -132,7 +132,7 @@ func newPrometheusStats() *prometheusStats {
 			[]string{"project", "hostname", "version"},
 		),
 		cfMitigated: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "cf_mitigated_count", Help: "Total number of CF challenges"},
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "cf_challenge_pages_seena", Help: "Total number of CF challenge pages seen"},
 			[]string{"project", "hostname", "version"},
 		),
 	}
