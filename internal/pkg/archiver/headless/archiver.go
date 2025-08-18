@@ -77,7 +77,6 @@ func clientDo(client *http.Client, req *http.Request, h *rod.Hijack) (*http.Resp
 		return nil, err
 	}
 
-	// TODO: handle hijack response in another function
 	h.Response.Payload().ResponseCode = resp.StatusCode
 	h.Response.RawResponse = resp
 
