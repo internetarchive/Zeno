@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/MatusOllah/slogcolor"
@@ -21,6 +22,7 @@ import (
 
 var (
 	rotatedLogFile *rotatedFile
+	E2eConnMutex   sync.RWMutex
 	E2EConnCfg     *e2eConnConfig
 )
 
@@ -89,12 +91,14 @@ func makeConfig() *logConfig {
 
 	if config.Get().E2ELogging {
 		connW, connR := net.Pipe() // Use a pipe for testing purposes
-		stdliblog.Println("Client connected!")
+		E2eConnMutex.Lock()
 		E2EConnCfg = &e2eConnConfig{
 			Level: parseLevel(config.Get().E2ELevel),
 			connW: connW,
 			ConnR: connR,
 		}
+		E2eConnMutex.Unlock()
+		stdliblog.Println("E2E connection is ready!")
 	}
 
 	return &logConfig{

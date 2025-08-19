@@ -38,9 +38,13 @@ func lazyDial(timeout time.Duration) (net.Conn, error) {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("timeout while waiting for connection")
 		default:
-			if zenolog.E2EConnCfg != nil && zenolog.E2EConnCfg.ConnR != nil {
-				return zenolog.E2EConnCfg.ConnR, nil
+			zenolog.E2eConnMutex.RLock()
+			if zenolog.E2EConnCfg != nil {
+				conn := zenolog.E2EConnCfg.ConnR
+				zenolog.E2eConnMutex.RUnlock()
+				return conn, nil
 			}
+			zenolog.E2eConnMutex.RUnlock()
 			time.Sleep(100 * time.Millisecond) // Retry
 		}
 	}
