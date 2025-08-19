@@ -25,6 +25,7 @@ type prometheusStats struct {
 	meanProcessBodyTime    *prometheus.HistogramVec // in ns
 	meanWaitOnFeedbackTime *prometheus.HistogramVec // in ns
 	warcWritingQueueSize   *prometheus.GaugeVec
+	cfMitigated            *prometheus.GaugeVec
 
 	// Dedup WARC metrics
 	dataTotalBytes               *prometheus.GaugeVec
@@ -130,6 +131,10 @@ func newPrometheusStats() *prometheusStats {
 			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "total_local_dedupe", Help: "Total number of local hash table hits"},
 			[]string{"project", "hostname", "version"},
 		),
+		cfMitigated: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "cf_challenge_pages_seena", Help: "Total number of CF challenge pages seen"},
+			[]string{"project", "hostname", "version"},
+		),
 	}
 }
 
@@ -149,6 +154,7 @@ func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.meanProcessBodyTime)
 	prometheus.MustRegister(globalPromStats.warcWritingQueueSize)
 	prometheus.MustRegister(globalPromStats.meanWaitOnFeedbackTime)
+	prometheus.MustRegister(globalPromStats.cfMitigated)
 
 	// Register dedup WARC metrics
 	prometheus.MustRegister(globalPromStats.dataTotalBytes)
