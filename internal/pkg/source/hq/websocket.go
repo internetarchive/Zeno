@@ -55,30 +55,35 @@ func (s *HQ) listenMessages() {
 				continue
 			}
 			for _, msg := range msgs {
-				dispatchMessageByType(bytes.TrimSpace(msg.Payload))
+				mType, err := dispatchMessageByType(bytes.TrimSpace(msg.Payload))
+				if err != nil {
+					logger.Error("error dispatching message by type", "msg_type", mType, "err", err)
+					continue
+				}
 			}
 		}
 	}
 }
 
-func dispatchMessageByType(msg []byte) error {
+func dispatchMessageByType(msg []byte) (string, error) {
 	type msgType struct {
 		Type string `json:"type"`
 	}
-	var m msgType
-	if err := json.Unmarshal(msg, &m); err != nil {
-		return err
-	}
 
+	var m msgType
 	var err error
+
+	if err = json.Unmarshal(msg, &m); err != nil {
+		return "", err
+	}
 
 	switch m.Type {
 	case "signal":
 		err = handleSignalMsg(msg)
 	default:
-		logger.Warn("unknown HQ websocket message type", "type", m.Type, "payload", string(msg))
+		logger.Warn("unknown HQ websocket message type", "msg_type", m.Type, "payload", string(msg))
 	}
-	return err
+	return m.Type, err
 }
 
 func handleSignalMsg(msg []byte) error {
