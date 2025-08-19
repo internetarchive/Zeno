@@ -1,0 +1,1 @@
+max-retry = 0 # avoid waiting for retries to speed up test
