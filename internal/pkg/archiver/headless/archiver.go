@@ -31,8 +31,6 @@ import (
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
-var archiverLogger = log.NewFieldedLogger(&log.Fields{"component": "archiver.headless.archiver"})
-
 //go:embed behaviors.js
 var behaviorsJS string
 

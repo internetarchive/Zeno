@@ -17,6 +17,7 @@ import (
 
 var HeadlessBrowser *rod.Browser
 var Launcher *launcher.Launcher
+var DefaultChromiumRevision = 1465706
 
 const (
 	MagicLatestChromiumRevision = 0
