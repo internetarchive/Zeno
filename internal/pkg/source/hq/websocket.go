@@ -3,6 +3,7 @@ package hq
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"syscall"
@@ -14,6 +15,8 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/gocrawlhq"
 )
+
+var unknownMsgTypeErr = errors.New("unknown HQ websocket message type")
 
 // websocket connects to HQ's websocket and listen for messages.
 // It also sends and "identify" message to the HQ to let it know that
@@ -81,7 +84,7 @@ func dispatchMessageByType(msg []byte) (string, error) {
 	case "signal":
 		err = handleSignalMsg(msg)
 	default:
-		logger.Warn("unknown HQ websocket message type", "msg_type", m.Type, "payload", string(msg))
+		err = unknownMsgTypeErr
 	}
 	return m.Type, err
 }
@@ -96,7 +99,7 @@ func handleSignalMsg(msg []byte) error {
 		return err
 	}
 
-	logger.Warn("sending signal to process", "signal", m.Signal)
+	logger.Warn("sending signal to process", "signal", m.Signal, "pid", os.Getpid(), "payload", string(msg))
 
 	p, err1 := os.FindProcess(os.Getpid())
 	err2 := p.Signal(syscall.Signal(m.Signal))
