@@ -7,74 +7,72 @@ import (
 	"net"
 	"os"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
 	"github.com/internetarchive/Zeno/cmd"
 	"github.com/internetarchive/Zeno/e2e/log"
 	"github.com/spf13/cobra"
+
+	"github.com/internetarchive/Zeno/internal/pkg/controler"
+	zenolog "github.com/internetarchive/Zeno/internal/pkg/log"
 )
 
 var DefaultTimeout = 60 * time.Second
 var DialTimeout = 10 * time.Second
 
-func cmdZenoGetURL(socketPath string, urls []string) *cobra.Command {
+func cmdZenoGetURL(urls []string) *cobra.Command {
 	cmd := cmd.Prepare()
-	args := append([]string{"get", "url", "--config-file", "config.toml", "--log-socket-level", "debug", "--no-stdout-log", "--no-stderr-log", "--log-socket", socketPath}, urls...)
+	args := append([]string{"get", "url", "--config-file", "config.toml", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}, urls...)
 	fmt.Println("Command arguments:", args)
 	cmd.SetArgs(args)
 	return cmd
 }
 
-func lazyDial(socketPath string, timeout time.Duration) (net.Conn, error) {
+func lazyDial(timeout time.Duration) (net.Conn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-
-	var conn net.Conn
-	var err error
 
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("timeout while waiting for socket %s", socketPath)
+			return nil, fmt.Errorf("timeout while waiting for connection")
 		default:
-			conn, err = net.Dial("unix", socketPath)
-			if err == nil {
-				return conn, nil
+			if zenolog.E2EConnCfg != nil && zenolog.E2EConnCfg.ConnR != nil {
+				return zenolog.E2EConnCfg.ConnR, nil
 			}
 			time.Sleep(100 * time.Millisecond) // Retry
 		}
 	}
 }
 
-// connects to [socketPath] and copies logs from it to [W] until the connection is closed
-func connectSocketThenCopy(t *testing.T, wg *sync.WaitGroup, W *io.PipeWriter, socketPath string) {
+// connects to the log conn and copies logs from it to [W] until the connection is closed
+func connectThenCopy(t *testing.T, wg *sync.WaitGroup, W *io.PipeWriter) {
 	defer wg.Done()
-	conn, err := lazyDial(socketPath, DialTimeout)
+	conn, err := lazyDial(DialTimeout)
 	if err != nil {
-		t.Errorf("failed to connect to log socket: %v", err)
+		t.Errorf("failed to connect to log conn: %v", err)
 	}
 	defer conn.Close()
 	io.Copy(W, conn)
 	defer W.Close()
 }
 
-// ExecuteCmdZenoGetURL executes the Zeno get URL command with the provided socket path, URLs and custom config.toml file
-func ExecuteCmdZenoGetURL(t *testing.T, wg *sync.WaitGroup, socketPath string, urls []string) {
+// ExecuteCmdZenoGetURL executes the Zeno get URL command with the e2e logging, URLs and custom config.toml file
+func ExecuteCmdZenoGetURL(t *testing.T, wg *sync.WaitGroup, urls []string) {
 	defer wg.Done()
-	cmdErr := cmdZenoGetURL(socketPath, urls).Execute()
+	cmdErr := cmdZenoGetURL(urls).Execute()
 	if cmdErr != nil {
 		t.Errorf("failed to start command: %v", cmdErr)
 	}
 }
 
-// Connects to the log socket and processes log records using the provided RecordMatcher
-func StartHandleLogRecord(t *testing.T, wg *sync.WaitGroup, rm log.RecordMatcher, socketPath string, stopCh chan struct{}) {
+// Connects to the log conn and processes log records using the provided RecordMatcher
+func StartHandleLogRecord(t *testing.T, wg *sync.WaitGroup, rm log.RecordMatcher, stopCh chan struct{}) {
 	defer wg.Done()
 	R, W := io.Pipe()
 	wg.Add(1)
-	go connectSocketThenCopy(t, wg, W, socketPath)
+	go connectThenCopy(t, wg, W)
 
 	err := log.LogRecordProcessor(R, rm, stopCh)
 	if err != nil {
@@ -86,14 +84,10 @@ func StartHandleLogRecord(t *testing.T, wg *sync.WaitGroup, rm log.RecordMatcher
 // WaitForGoroutines waits for ANY of the following conditions to be met:
 //
 //   - [1] all goroutines in the wait group to finish
-//   - [2] the test deadline is reached
-//   - [3] the shouldStop channel is closed
+//   - [2] the shouldStop channel is closed
 //
-// If [2], [3] are met, it will send a termination signal to the current process to gracefully stop Zeno.
-// If [2] is met, mark the test as failed.
+// Then send a termination signal to the Zeno controler to gracefully stop Zeno.
 func WaitForGoroutines(t *testing.T, wg *sync.WaitGroup, shouldStopCh chan struct{}) {
-	deadline, _ := t.Deadline()
-	// wait until the deadline is reached or the test is done
 	wgDone := make(chan struct{})
 	go func() {
 		wg.Wait()
@@ -103,14 +97,9 @@ func WaitForGoroutines(t *testing.T, wg *sync.WaitGroup, shouldStopCh chan struc
 	select {
 	case <-wgDone:
 		t.Log("All goroutines finished")
-	case <-time.After(time.Until(deadline)):
-		t.Error("Test timed out before all goroutines finished")
-		p, _ := os.FindProcess(os.Getpid())
-		p.Signal(syscall.SIGTERM)
 	case <-shouldStopCh:
 		t.Log("Should stop channel received a signal, stopping test")
-		p, _ := os.FindProcess(os.Getpid())
-		p.Signal(syscall.SIGTERM)
+		controler.SignalChan <- os.Interrupt
 	}
 
 	wg.Wait()

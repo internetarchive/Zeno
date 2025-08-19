@@ -1,9 +1,7 @@
 package contenttype
 
 import (
-	"fmt"
 	"os"
-	"path"
 	"strings"
 	"sync"
 	"testing"
@@ -19,17 +17,14 @@ func TestNonUTF8HTMLMetaCharset(t *testing.T) {
 
 	os.RemoveAll("jobs")
 
-	tempSocketPath := path.Join(os.TempDir(), fmt.Sprintf("zeno-%d.sock", os.Getpid()))
-	defer os.Remove(tempSocketPath)
-
 	shouldStopCh := make(chan struct{})
 	rm := &nonutf8encoding.RecordMatcher{}
 	wg := &sync.WaitGroup{}
 
 	wg.Add(2)
 
-	go e2e.StartHandleLogRecord(t, wg, rm, tempSocketPath, shouldStopCh)
-	go e2e.ExecuteCmdZenoGetURL(t, wg, tempSocketPath, []string{serverURL + "/meta_decl"})
+	go e2e.StartHandleLogRecord(t, wg, rm, shouldStopCh)
+	go e2e.ExecuteCmdZenoGetURL(t, wg, []string{serverURL + "/meta_decl"})
 
 	e2e.WaitForGoroutines(t, wg, shouldStopCh)
 	rm.Assert(t)

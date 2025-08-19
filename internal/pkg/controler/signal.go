@@ -10,6 +10,7 @@ import (
 )
 
 var signalWatcherCtx, signalWatcherCancel = context.WithCancel(context.Background())
+var SignalChan = make(chan os.Signal, 1)
 
 // WatchSignals listens for OS signals and handles them gracefully
 func WatchSignals() {
@@ -17,17 +18,16 @@ func WatchSignals() {
 		"component": "controler.signalWatcher",
 	})
 	// Handle OS signals for graceful shutdown
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(SignalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
 	case <-signalWatcherCtx.Done():
 		return
-	case <-signalChan:
+	case <-SignalChan:
 		logger.Info("received shutdown signal, stopping services...")
 		// Catch a second signal to force exit
 		go func() {
-			<-signalChan
+			<-SignalChan
 			logger.Info("received second shutdown signal, forcing exit...")
 			os.Exit(1)
 		}()

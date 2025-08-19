@@ -21,7 +21,7 @@ import (
 
 var (
 	rotatedLogFile *rotatedFile
-	socketCfg      *socketConfig
+	E2EConnCfg     *e2eConnConfig
 )
 
 type logConfig struct {
@@ -30,8 +30,8 @@ type logConfig struct {
 	StdoutLevel   slog.Level
 	StderrEnabled bool
 	StderrLevel   slog.Level
-	SocketEnabled bool
-	SocketConfig  *socketConfig
+	E2EEnabled    bool
+	E2EConfig     *e2eConnConfig
 	NoColor       bool
 	LogTUI        bool
 	TUILogLevel   slog.Level
@@ -45,11 +45,10 @@ type logfileConfig struct {
 	RotatePeriod time.Duration
 }
 
-type socketConfig struct {
-	SocketPath  string
-	Level       slog.Level
-	NetListener net.Listener
-	Conn        net.Conn
+type e2eConnConfig struct {
+	Level slog.Level
+	connW net.Conn
+	ConnR net.Conn
 }
 
 // makeConfig returns the default configuration
@@ -88,29 +87,13 @@ func makeConfig() *logConfig {
 		logFileConfig = nil
 	}
 
-	if config.Get().SocketLogging != "" {
-		socketPath := config.Get().SocketLogging
-		if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
-			stdliblog.Printf("Warning: Failed to remove old socket at %s: %v", socketPath, err)
-		} // Clean up any old socket
-		listener, err := net.Listen("unix", socketPath)
-		if err != nil {
-			stdliblog.Fatalf("Failed to listen on Unix socket at %s: %v", socketPath, err)
-		}
-		stdliblog.Printf("Listening on Unix socket: %s", socketPath)
-
-		// We must wait for a client to connect before we can write logs to the socket.
-		// The --log-socket is only used for tests, so we can block here and only use the first connection.
-		conn, err := listener.Accept()
-		if err != nil {
-			stdliblog.Fatalf("Failed to accept connection on Unix socket: %v", err)
-		}
+	if config.Get().E2ELogging {
+		connW, connR := net.Pipe() // Use a pipe for testing purposes
 		stdliblog.Println("Client connected!")
-		socketCfg = &socketConfig{
-			Level:       parseLevel(config.Get().SocketLevel),
-			SocketPath:  socketPath,
-			NetListener: listener,
-			Conn:        conn,
+		E2EConnCfg = &e2eConnConfig{
+			Level: parseLevel(config.Get().E2ELevel),
+			connW: connW,
+			ConnR: connR,
 		}
 	}
 
@@ -120,8 +103,8 @@ func makeConfig() *logConfig {
 		StdoutLevel:   parseLevel(config.Get().StdoutLogLevel),
 		StderrEnabled: !config.Get().NoStderrLogging,
 		StderrLevel:   slog.LevelError,
-		SocketEnabled: config.Get().SocketLogging != "",
-		SocketConfig:  socketCfg,
+		E2EEnabled:    config.Get().E2ELogging,
+		E2EConfig:     E2EConnCfg,
 		NoColor:       config.Get().NoColorLogging,
 		LogTUI:        config.Get().TUI,
 		TUILogLevel:   parseLevel(config.Get().TUILogLevel),
@@ -195,11 +178,11 @@ func (c *logConfig) makeMultiLogger() *slog.Logger {
 		})
 	}
 
-	// Handle socket logging configuration
-	if c.SocketEnabled && c.SocketConfig != nil {
-		socketHandler := slog.NewTextHandler(c.SocketConfig.Conn, &slog.HandlerOptions{Level: c.SocketConfig.Level})
-		baseRouter = baseRouter.Add(socketHandler, func(_ context.Context, r slog.Record) bool {
-			return r.Level >= c.SocketConfig.Level
+	// Handle e2e logging configuration
+	if c.E2EEnabled && c.E2EConfig != nil {
+		e2eConnHandler := slog.NewTextHandler(c.E2EConfig.connW, &slog.HandlerOptions{Level: c.E2EConfig.Level})
+		baseRouter = baseRouter.Add(e2eConnHandler, func(_ context.Context, r slog.Record) bool {
+			return r.Level >= c.E2EConfig.Level
 		})
 	}
 
