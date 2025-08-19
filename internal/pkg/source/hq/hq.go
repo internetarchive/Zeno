@@ -5,7 +5,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -19,6 +18,10 @@ type HQ struct {
 	finishCh  chan *models.Item
 	produceCh chan *models.Item
 	client    *gocrawlhq.Client
+	HQKey     string
+	HQSecret  string
+	HQProject string
+	HQAddress string
 }
 
 var (
@@ -26,8 +29,13 @@ var (
 	logger *log.FieldedLogger
 )
 
-func New() *HQ {
-	return &HQ{}
+func New(HQKey, HQSecret, HQProject, HQAddress string) *HQ {
+	return &HQ{
+		HQKey:     HQKey,
+		HQSecret:  HQSecret,
+		HQProject: HQProject,
+		HQAddress: HQAddress,
+	}
 }
 
 // Start initializes HQ async routines with the given input and output channels.
@@ -41,7 +49,7 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
-		HQclient, err := gocrawlhq.Init(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, "", 5)
+		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.HQProject, s.HQAddress, "", 5)
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
 			cancel()

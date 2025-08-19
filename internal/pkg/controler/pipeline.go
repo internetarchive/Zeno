@@ -123,7 +123,7 @@ func startPipeline() {
 	finisherProduceChan := makeStageChannel(config.Get().WorkersCount)
 
 	if config.Get().UseHQ {
-		hqSource := hq.New()
+		hqSource := hq.New(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress)
 		preprocessor.SetSeenchecker(hqSource.SeencheckItem)
 		sourceInterface = hqSource
 	} else {
