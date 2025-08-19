@@ -45,13 +45,18 @@ func (s *HQ) websocket() {
 	}
 }
 
+const readTimeout = 30 * time.Second
+
 func (s *HQ) listenMessages() {
 	for {
 		select {
 		case <-s.ctx.Done():
 			return
 		default:
-			msgs, err := wsutil.ReadServerMessage(*s.client.WebsocketConn, nil) // this is a blocking op
+			conn := *s.client.WebsocketConn
+			conn.SetReadDeadline(time.Now().Add(readTimeout))
+			msgs, err := wsutil.ReadServerMessage(conn, nil)
+			conn.SetReadDeadline(time.Time{}) // Reset read deadline
 			if err != nil {
 				logger.Error("error reading message from HQ websocket, retrying", "err", err)
 				time.Sleep(5 * time.Second)
