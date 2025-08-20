@@ -109,8 +109,8 @@ type Config struct {
 	NoStderrLogging  bool   `mapstructure:"no-stderr-log"`
 	NoColorLogging   bool   `mapstructure:"no-color-logs"`
 	NoFileLogging    bool   `mapstructure:"no-log-file"`
-	SocketLogging    string `mapstructure:"log-socket"`
-	SocketLevel      string `mapstructure:"log-socket-level"`
+	E2ELogging       bool   `mapstructure:"log-e2e"`
+	E2ELevel         string `mapstructure:"log-e2e-level"`
 	StdoutLogLevel   string `mapstructure:"log-level"`
 	TUI              bool   `mapstructure:"tui"`
 	TUILogLevel      string `mapstructure:"tui-log-level"`

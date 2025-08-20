@@ -36,10 +36,11 @@ func Stop() {
 	if rotatedLogFile != nil {
 		rotatedLogFile.Close()
 	}
-	if socketCfg != nil {
-		socketCfg.NetListener.Close()
-		socketCfg.Conn.Close()
+	E2eConnMutex.RLock()
+	if E2EConnCfg != nil {
+		E2EConnCfg.connW.Close()
 	}
+	E2eConnMutex.RUnlock()
 	wg.Wait()
 	multiLogger = nil
 	once = sync.Once{}
