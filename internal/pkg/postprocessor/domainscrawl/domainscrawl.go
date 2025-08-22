@@ -1,3 +1,5 @@
+// Package domainscrawl is a postprocessing component that parse domains from a given input and stores them for later matching.
+// It can store naive domains, full URLs, and regex patterns. It can then check if a given URL matches any of the stored patterns.
 package domainscrawl
 
 import (
@@ -13,7 +15,7 @@ type matchEngine struct {
 	sync.RWMutex
 	enabled bool
 	regexes []*regexp.Regexp
-	domains map[string]struct{} // Changed to map for O(1) lookups
+	domains map[string]struct{}
 	urls    []url.URL
 }
 
