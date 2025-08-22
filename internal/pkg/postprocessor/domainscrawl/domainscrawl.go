@@ -1,5 +1,3 @@
-// Package domainscrawl is a postprocessing component that parse domains from a given input and stores them for later matching.
-// It can store naive domains, full URLs, and regex patterns. It can then check if a given URL matches any of the stored patterns.
 package domainscrawl
 
 import (
@@ -15,7 +13,7 @@ type matchEngine struct {
 	sync.RWMutex
 	enabled bool
 	regexes []*regexp.Regexp
-	domains []string
+	domains map[string]struct{} // Changed to map for O(1) lookups
 	urls    []url.URL
 }
 
@@ -23,7 +21,7 @@ var (
 	globalMatcher = &matchEngine{
 		enabled: false,
 		regexes: make([]*regexp.Regexp, 0),
-		domains: make([]string, 0),
+		domains: make(map[string]struct{}),
 		urls:    make([]url.URL, 0),
 	}
 )
@@ -35,7 +33,7 @@ func Reset() {
 
 	globalMatcher.enabled = false
 	globalMatcher.regexes = make([]*regexp.Regexp, 0)
-	globalMatcher.domains = make([]string, 0)
+	globalMatcher.domains = make(map[string]struct{})
 	globalMatcher.urls = make([]url.URL, 0)
 }
 
@@ -65,7 +63,7 @@ func AddElements(elements []string) error {
 
 		// Check if it's a naive domain (e.g., "example.com")
 		if isNaiveDomain(element) {
-			globalMatcher.domains = append(globalMatcher.domains, element)
+			globalMatcher.domains[element] = struct{}{}
 			continue
 		}
 
@@ -89,8 +87,13 @@ func Match(rawURL string) bool {
 	globalMatcher.RLock()
 	defer globalMatcher.RUnlock()
 
-	// Check against naive domains
-	for _, domain := range globalMatcher.domains {
+	// Check against naive domains using map for O(1) lookup
+	if _, exists := globalMatcher.domains[u.Host]; exists {
+		return true
+	}
+
+	// Check for subdomains
+	for domain := range globalMatcher.domains {
 		if isSubdomainOrExactMatch(u.Host, domain) {
 			return true
 		}
