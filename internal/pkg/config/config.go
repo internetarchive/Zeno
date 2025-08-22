@@ -84,6 +84,7 @@ type Config struct {
 	CrawlMaxTimeLimit               int           `mapstructure:"crawl-max-time-limit"`
 	MinSpaceRequired                float64       `mapstructure:"min-space-required"`
 	DomainsCrawl                    []string      `mapstructure:"domains-crawl"`
+	DomainsCrawlFile                []string      `mapstructure:"domains-crawl-file"`
 	CaptureAlternatePages           bool          `mapstructure:"capture-alternate-pages"`
 	StrictRegex                     bool          `mapstructure:"strict-regex"`
 	DisableLocalDedupe              bool          `mapstructure:"disable-local-dedupe"`
@@ -128,8 +129,8 @@ type Config struct {
 	NoStderrLogging  bool   `mapstructure:"no-stderr-log"`
 	NoColorLogging   bool   `mapstructure:"no-color-logs"`
 	NoFileLogging    bool   `mapstructure:"no-log-file"`
-	SocketLogging    string `mapstructure:"log-socket"`
-	SocketLevel      string `mapstructure:"log-socket-level"`
+	E2ELogging       bool   `mapstructure:"log-e2e"`
+	E2ELevel         string `mapstructure:"log-e2e-level"`
 	StdoutLogLevel   string `mapstructure:"log-level"`
 	TUI              bool   `mapstructure:"tui"`
 	TUILogLevel      string `mapstructure:"tui-log-level"`
@@ -354,9 +355,9 @@ func GenerateCrawlConfig() error {
 		}
 	}
 
-	if len(config.DomainsCrawl) > 0 {
+	if len(config.DomainsCrawl) > 0 || len(config.DomainsCrawlFile) > 0 {
 		slog.Info("domains crawl enabled", "domains/regex", config.DomainsCrawl)
-		err := domainscrawl.AddElements(config.DomainsCrawl)
+		err := domainscrawl.AddElements(config.DomainsCrawl, config.DomainsCrawlFile)
 		if err != nil {
 			panic(err)
 		}
