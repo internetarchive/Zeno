@@ -42,6 +42,7 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Duration("http-timeout", 0, "Time to wait before timing out a request. Note: this will CANCEL large files download.")
 	getCmd.PersistentFlags().Duration("conn-read-deadline", 60*time.Second, "Time to wait before timing out a (blocking) TCP connection read.")
 	getCmd.PersistentFlags().StringSlice("domains-crawl", []string{}, "Naive domains, full URLs or regexp to match against any URL to determine hop behaviour for outlinks. If an outlink URL is matched it will be queued to crawl with a hop of 0. This flag helps crawling entire domains while doing non-focused crawls.")
+	getCmd.PersistentFlags().StringSlice("domains-crawl-file", []string{}, "File(s) containing domains, full URLs or regexp to match against any URL to determine hop behaviour for outlinks. If an outlink URL is matched it will be queued to crawl with a hop of 0. This flag helps crawling entire domains while doing non-focused crawls.")
 	getCmd.PersistentFlags().StringSlice("disable-html-tag", []string{}, "Specify HTML tag to not extract assets from")
 	getCmd.PersistentFlags().Bool("capture-alternate-pages", false, "If turned on, <link> HTML tags with \"alternate\" values for their \"rel\" attribute will be archived.")
 	getCmd.PersistentFlags().StringSlice("exclude-host", []string{}, "Exclude a specific host from the crawl, note that it will not exclude the domain if it is encountered as an asset for another web page.")

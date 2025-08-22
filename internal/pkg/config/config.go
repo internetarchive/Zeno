@@ -84,6 +84,7 @@ type Config struct {
 	CrawlMaxTimeLimit               int           `mapstructure:"crawl-max-time-limit"`
 	MinSpaceRequired                float64       `mapstructure:"min-space-required"`
 	DomainsCrawl                    []string      `mapstructure:"domains-crawl"`
+	DomainsCrawlFile                []string      `mapstructure:"domains-crawl-file"`
 	CaptureAlternatePages           bool          `mapstructure:"capture-alternate-pages"`
 	StrictRegex                     bool          `mapstructure:"strict-regex"`
 	DisableLocalDedupe              bool          `mapstructure:"disable-local-dedupe"`
@@ -335,9 +336,9 @@ func GenerateCrawlConfig() error {
 		}
 	}
 
-	if len(config.DomainsCrawl) > 0 {
+	if len(config.DomainsCrawl) > 0 || len(config.DomainsCrawlFile) > 0 {
 		slog.Info("domains crawl enabled", "domains/regex", config.DomainsCrawl)
-		err := domainscrawl.AddElements(config.DomainsCrawl)
+		err := domainscrawl.AddElements(config.DomainsCrawl, config.DomainsCrawlFile)
 		if err != nil {
 			panic(err)
 		}

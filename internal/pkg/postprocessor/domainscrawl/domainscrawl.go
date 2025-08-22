@@ -3,7 +3,9 @@
 package domainscrawl
 
 import (
+	"bufio"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -15,7 +17,7 @@ type matchEngine struct {
 	sync.RWMutex
 	enabled bool
 	regexes []*regexp.Regexp
-	domains []string
+	domains map[string]struct{}
 	urls    []url.URL
 }
 
@@ -23,7 +25,7 @@ var (
 	globalMatcher = &matchEngine{
 		enabled: false,
 		regexes: make([]*regexp.Regexp, 0),
-		domains: make([]string, 0),
+		domains: make(map[string]struct{}),
 		urls:    make([]url.URL, 0),
 	}
 )
@@ -35,7 +37,7 @@ func Reset() {
 
 	globalMatcher.enabled = false
 	globalMatcher.regexes = make([]*regexp.Regexp, 0)
-	globalMatcher.domains = make([]string, 0)
+	globalMatcher.domains = make(map[string]struct{})
 	globalMatcher.urls = make([]url.URL, 0)
 }
 
@@ -47,12 +49,30 @@ func Enabled() bool {
 	return globalMatcher.enabled
 }
 
-// AddElements takes a slice of strings, heuristically determines their type, and stores them
-func AddElements(elements []string) error {
+// AddElements takes a slice of strings or files containing patterns, heuristically determines their type, and stores them
+func AddElements(elements []string, files []string) error {
 	globalMatcher.Lock()
 	defer globalMatcher.Unlock()
 
 	globalMatcher.enabled = true
+
+	for _, file := range files {
+		file, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+
+		for scanner.Scan() {
+			elements = append(elements, scanner.Text())
+		}
+
+		if err := scanner.Err(); err != nil {
+			return err
+		}
+	}
 
 	for _, element := range elements {
 		// Try to parse as a URL first
@@ -65,7 +85,7 @@ func AddElements(elements []string) error {
 
 		// Check if it's a naive domain (e.g., "example.com")
 		if isNaiveDomain(element) {
-			globalMatcher.domains = append(globalMatcher.domains, element)
+			globalMatcher.domains[element] = struct{}{}
 			continue
 		}
 
@@ -89,8 +109,13 @@ func Match(rawURL string) bool {
 	globalMatcher.RLock()
 	defer globalMatcher.RUnlock()
 
-	// Check against naive domains
-	for _, domain := range globalMatcher.domains {
+	// Check against naive domains using map for O(1) lookup
+	if _, exists := globalMatcher.domains[u.Host]; exists {
+		return true
+	}
+
+	// Check for subdomains
+	for domain := range globalMatcher.domains {
 		if isSubdomainOrExactMatch(u.Host, domain) {
 			return true
 		}
