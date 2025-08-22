@@ -118,6 +118,14 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	})
 	bxLogger := newBxLogger(item)
 
+	defer func() {
+		// assert that the response is nil, just in case
+		if item.GetURL().GetResponse() != nil {
+			logger.Error("item URL response is not nil, this should not happen in headless mode!!!, resetting it")
+			item.GetURL().SetResponse(nil)
+		}
+	}()
+
 	// Create a new page
 	logger.Debug("creating new page for browser")
 	var rawPage *rod.Page
