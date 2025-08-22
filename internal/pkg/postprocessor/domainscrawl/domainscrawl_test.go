@@ -61,7 +61,7 @@ func TestEnabled(t *testing.T) {
 		t.Error("Enabled() = true, expected false")
 	}
 
-	err := AddElements([]string{"example.com"})
+	err := AddElements([]string{"example.com"}, nil)
 	if err != nil {
 		t.Fatalf("Failed to add elements: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestAddElements(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			Reset()
-			err := AddElements(tt.elements)
+			err := AddElements(tt.elements, nil)
 			if (err != nil) != tt.expectErr {
 				t.Errorf("AddElements() error = %v, expectErr = %v", err, tt.expectErr)
 			}
@@ -265,7 +265,7 @@ func TestMatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			Reset()
 
-			err := AddElements(tt.elements)
+			err := AddElements(tt.elements, nil)
 			if err != nil {
 				t.Fatalf("Failed to add elements: %v", err)
 			}
