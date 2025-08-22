@@ -113,6 +113,14 @@ func TestAddElements(t *testing.T) {
 			expectRegexes:      nil,
 			expectNaiveDomains: nil,
 		},
+		{
+			name:               "Mixed valid and invalid",
+			elements:           []string{"example.com", `[invalid`},
+			expectErr:          true,
+			expectURLs:         nil,
+			expectRegexes:      nil,
+			expectNaiveDomains: []string{"example.com"},
+		},
 	}
 
 	for _, tt := range tests {

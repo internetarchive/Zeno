@@ -3,7 +3,9 @@
 package domainscrawl
 
 import (
+	"bufio"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -47,12 +49,30 @@ func Enabled() bool {
 	return globalMatcher.enabled
 }
 
-// AddElements takes a slice of strings, heuristically determines their type, and stores them
-func AddElements(elements []string) error {
+// AddElements takes a slice of strings or files containing patterns, heuristically determines their type, and stores them
+func AddElements(elements []string, files []string) error {
 	globalMatcher.Lock()
 	defer globalMatcher.Unlock()
 
 	globalMatcher.enabled = true
+
+	for _, file := range files {
+		file, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+
+		for scanner.Scan() {
+			elements = append(elements, scanner.Text())
+		}
+
+		if err := scanner.Err(); err != nil {
+			return err
+		}
+	}
 
 	for _, element := range elements {
 		// Try to parse as a URL first
