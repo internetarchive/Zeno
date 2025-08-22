@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/body"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/connutil"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -18,7 +18,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 	defer u.GetResponse().Body.Close() // Ensure the response body is closed
 	// Retrieve the underlying *warc.CustomConnection if available (In unit tests, this may not be set)
 	var conn *warc.CustomConnection
-	bodyWithConn, ok := u.GetResponse().Body.(*body.BodyWithConn)
+	bodyWithConn, ok := u.GetResponse().Body.(*connutil.BodyWithConn)
 	if ok {
 		conn = bodyWithConn.Conn
 	} else {
@@ -27,7 +27,7 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		}
 	}
 
-	return body.CloseConnWithError(logger, conn, processBody(u, disableAssetsCapture, domainsCrawl, maxHops, WARCTempDir))
+	return connutil.CloseConnWithError(logger, conn, processBody(u, disableAssetsCapture, domainsCrawl, maxHops, WARCTempDir))
 }
 
 // ProcessBody processes the body of a URL response, loading it into memory or a temporary file
@@ -36,7 +36,7 @@ func processBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 	// If we are not capturing assets, not extracting outlinks, and domains crawl is disabled
 	// we can just consume and discard the body
 	if disableAssetsCapture && !domainsCrawl && maxHops == 0 {
-		if err := body.CopyWithTimeout(io.Discard, u.GetResponse().Body); err != nil {
+		if err := connutil.CopyWithTimeout(io.Discard, u.GetResponse().Body); err != nil {
 			return err
 		}
 	}
@@ -46,7 +46,7 @@ func processBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 	if u.GetMIMEType() == nil {
 		// Create a buffer to hold the body (first 3KB) as suggested by mimetype author
 		// https://github.com/gabriel-vasile/mimetype/blob/66e5c005d80684b64f47eeeb15ad439ee6fad667/mimetype.go#L15
-		if err := body.CopyWithTimeoutN(buffer, u.GetResponse().Body, 3072); err != nil {
+		if err := connutil.CopyWithTimeoutN(buffer, u.GetResponse().Body, 3072); err != nil {
 			return err
 		}
 		u.SetMIMEType(mimetype.Detect(buffer.Bytes()))
@@ -69,7 +69,7 @@ func processBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		}
 
 		// Read the rest of the body into the spooled buffer
-		if err := body.CopyWithTimeout(spooledBuff, u.GetResponse().Body); err != nil {
+		if err := connutil.CopyWithTimeout(spooledBuff, u.GetResponse().Body); err != nil {
 			closeErr := spooledBuff.Close()
 			if closeErr != nil {
 				panic(closeErr)
@@ -83,7 +83,7 @@ func processBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		return nil
 	} else {
 		// Read the rest of the body but discard it
-		if err := body.CopyWithTimeout(io.Discard, u.GetResponse().Body); err != nil {
+		if err := connutil.CopyWithTimeout(io.Discard, u.GetResponse().Body); err != nil {
 			return err
 		}
 	}

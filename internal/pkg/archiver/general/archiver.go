@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/body"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/connutil"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -102,7 +102,7 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 			io.Copy(io.Discard, resp.Body) // Then, consume the buffer.
 		} else if isBadStatusCode {
 			// Consume and close the body before retrying
-			copyErr := body.CloseConnWithError(logger, conn, body.CopyWithTimeout(io.Discard, resp.Body))
+			copyErr := connutil.CloseConnWithError(logger, conn, connutil.CopyWithTimeout(io.Discard, resp.Body))
 			if copyErr != nil {
 				logger.Warn("copyWithTimeout failed for bad status code response", "err", copyErr.Error())
 			}
@@ -150,7 +150,7 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 		break
 	}
 
-	resp.Body = &body.BodyWithConn{ // Wrap the response body to hold the connection
+	resp.Body = &connutil.BodyWithConn{ // Wrap the response body to hold the connection
 		ReadCloser: resp.Body,
 		Conn:       <-wrappedConnChan,
 	}

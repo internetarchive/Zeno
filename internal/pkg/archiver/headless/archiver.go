@@ -19,7 +19,7 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/body"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/connutil"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -277,7 +277,7 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			return
 		}
 
-		resp.Body = &body.BodyWithConn{ // Wrap the response body to hold the connection
+		resp.Body = &connutil.BodyWithConn{ // Wrap the response body to hold the connection
 			ReadCloser: resp.Body,
 			Conn:       <-wrappedConnChan,
 		}

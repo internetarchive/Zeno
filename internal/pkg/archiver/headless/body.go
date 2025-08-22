@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-rod/rod"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/body"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/connutil"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	warc "github.com/internetarchive/gowarc"
 )
@@ -20,7 +20,7 @@ func ProcessBodyHeadless(hijack *rod.Hijack, u *http.Response) ([]byte, error) {
 
 	// Retrieve the underlying *warc.CustomConnection if available (In unit tests, this may not be set)
 	var conn *warc.CustomConnection
-	bodyWithConn, ok := u.Body.(*body.BodyWithConn)
+	bodyWithConn, ok := u.Body.(*connutil.BodyWithConn)
 	if ok {
 		conn = bodyWithConn.Conn
 	} else {
@@ -28,13 +28,13 @@ func ProcessBodyHeadless(hijack *rod.Hijack, u *http.Response) ([]byte, error) {
 	}
 
 	fullBody, err := processBodyHeadless(u)
-	return fullBody, body.CloseConnWithError(bodyLogger, conn, err)
+	return fullBody, connutil.CloseConnWithError(bodyLogger, conn, err)
 }
 
 func processBodyHeadless(u *http.Response) ([]byte, error) {
 	// Copy with timeout to the hijack response
 	buffer := new(bytes.Buffer)
-	if err := body.CopyWithTimeout(buffer, u.Body); err != nil {
+	if err := connutil.CopyWithTimeout(buffer, u.Body); err != nil {
 		bodyLogger.Error("failed to copy response body", "error", err)
 		return nil, err
 	}

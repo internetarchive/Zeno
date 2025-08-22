@@ -1,4 +1,4 @@
-package body
+package connutil
 
 import (
 	"errors"
