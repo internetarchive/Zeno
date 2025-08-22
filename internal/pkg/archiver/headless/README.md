@@ -92,6 +92,21 @@ gantt
     Extract and Store HTML      :a6, after a5, 1m
 ```
 
+## Write a outlinks extractor that works for headless mode
+
+Declare your extractor Support the headless mode.
+
+```golang
+func (MyOutlinkExtractor) Support(m Mode) bool {
+	return m == ModeGeneral || m == ModeHeadless // both modes are supported
+}
+```
+
+And just two things to keep in mind:
+
+1. The `GetResponse()` method will always return nil in headless mode.
+2. Everything is rendered as an HTML page. `GetDocumentCache()` can be used to access the DOM tree.
+
 ---
 
 TODOs:
