@@ -134,14 +134,7 @@ func TestAddElements(t *testing.T) {
 				t.Errorf("len(domains) = %d, expected %d", len(domainSlice), len(tt.expectNaiveDomains))
 			} else {
 				for _, expectedDomain := range tt.expectNaiveDomains {
-					found := false
-					for _, actualDomain := range domainSlice {
-						if actualDomain == expectedDomain {
-							found = true
-							break
-						}
-					}
-					if !found {
+					if _, found := domainMap[expectedDomain]; !found {
 						t.Errorf("expected domain %q not found in domains", expectedDomain)
 					}
 				}
