@@ -1,6 +1,6 @@
 # Headless/Headful Browser-based Archiver
 
-`behaviors.js` builds from the [browsertrix-behaviors](https://github.com/webrecorder/browsertrix-behaviors) v0.9.2 (AGPL-3.0). It provides the core browser automation behaviors for archiving.
+`behaviors.js` builds from the [browsertrix-behaviors](https://github.com/webrecorder/browsertrix-behaviors) v0.9.2 (AGPL-3.0). It provides the core browser automation behaviors (like clicking play buttons, scrolling, etc.) for archiving.
 
 ## Differences from general archiver
 
