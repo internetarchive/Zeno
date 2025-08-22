@@ -28,7 +28,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
-	go.baoshuo.dev/csslexer v0.0.3
+	go.baoshuo.dev/csslexer v0.1.0
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.43.0
 	golang.org/x/sync v0.16.0
@@ -97,6 +97,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
+	go.baoshuo.dev/cssutil v0.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect

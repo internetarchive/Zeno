@@ -193,8 +193,8 @@ func TestCSSParser(t *testing.T) {
 
 				div {
 					background-image: url("image1.png");
-					background-image: url(  image2.png  );
-					background-image: url(  i\(mage3.png  );
+					background-image: uRl(  image2.png  );
+					background-image: u\72 l(  i\(mage3.png  );
 				}
 			`,
 			expectedLinks:         []string{"image1.png", "image2.png", "i(mage3.png"},
@@ -203,10 +203,7 @@ func TestCSSParser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			links, atImportLinks, err := ExtractFromStringCSS(tt.CSS, tt.inline)
-			if (err != nil) != tt.err {
-				t.Errorf("Expected error %v, got %v", tt.err, err)
-			}
+			links, atImportLinks := ExtractFromStringCSS(tt.CSS, tt.inline)
 			if len(links) != len(tt.expectedLinks) {
 				t.Errorf("Expected %d links, got %d", len(tt.expectedLinks), len(links))
 				return
