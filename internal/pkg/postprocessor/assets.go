@@ -28,7 +28,7 @@ func ExtractAssetsOutlinks(item *models.Item) (assets, outlinks []*models.URL, e
 func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.Extractors",
-		"item": item.GetShortID(),
+		"item":      item.GetShortID(),
 	})
 
 	switch {
@@ -100,7 +100,7 @@ func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []*models.URL, err error) ([]*models.URL, []*models.URL, error) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.SanitizeAssetsOutlinks",
-		"item": item.GetShortID(),
+		"item":      item.GetShortID(),
 	})
 	for i := 0; i < len(assets); {
 		asset := assets[i]
@@ -152,6 +152,9 @@ func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []
 	return assets, outlinks, nil
 }
 
+// 1. If Zeno is running in headless mode, we don't extract assets
+// 2. If --disable-assets-capture is set, we don't extract assets
+// 3. If the item.body is nil, we don't extract assets
 func shouldExtractAssets(item *models.Item) bool {
 	return !config.Get().Headless && !config.Get().DisableAssetsCapture && item.GetURL().GetBody() != nil
 }

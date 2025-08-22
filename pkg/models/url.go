@@ -81,6 +81,8 @@ func (u *URL) SetDocumentEncoding(enc encoding.Encoding) {
 }
 
 // if mimetype is not set, try to get it from Content-Type header and cache it.
+//
+// WARN: Remember to check for nil return values
 func (u *URL) GetMIMEType() *mimetype.MIME {
 	if u.mimetype != nil {
 		return u.mimetype
