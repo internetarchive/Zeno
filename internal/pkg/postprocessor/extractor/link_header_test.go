@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver"
+	generalarchiver "github.com/internetarchive/Zeno/internal/pkg/archiver/general"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -113,19 +113,19 @@ func TestExtractURLsFromHeader(t *testing.T) {
 				t.Errorf("unable to read response body: %v", err)
 			}
 
-			err = archiver.ProcessBody(URL, false, false, 0, os.TempDir())
+			err = generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
 			if err != nil {
 				t.Errorf("ProcessBody() error = %v", err)
 			}
 
-			got := ExtractURLsFromHeader(URL)
+			got := LinkHeaderExtractor{}.ExtractLink(URL)
 			if len(got) != len(tt.expected) {
-				t.Fatalf("ExtractURLsFromHeader() length = %v, want %v", len(got), len(tt.expected))
+				t.Fatalf("LinkHeaderExtractor{}.ExtractLink() length = %v, want %v", len(got), len(tt.expected))
 			}
 
 			for i := range got {
 				if got[i].Raw != tt.expected[i].Raw {
-					t.Fatalf("ExtractURLsFromHeader()[%d].Raw = %v, want %v", i, got[i].Raw, tt.expected[i].Raw)
+					t.Fatalf("LinkHeaderExtractor{}.ExtractLink()[%d].Raw = %v, want %v", i, got[i].Raw, tt.expected[i].Raw)
 				}
 			}
 		})
