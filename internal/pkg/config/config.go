@@ -286,10 +286,8 @@ func GenerateCrawlConfig() error {
 	}
 
 	// Verify that the digest is supported
-	if config.WARCDigestAlgorithm != "sha1" {
-		if ok := warc.IsDigestSupported(config.WARCDigestAlgorithm); !ok {
-			return fmt.Errorf("digest algorithm %s is not supported", config.WARCDigestAlgorithm)
-		}
+	if ok := warc.IsDigestSupported(config.WARCDigestAlgorithm); !ok {
+		return fmt.Errorf("digest algorithm %s is not supported", config.WARCDigestAlgorithm)
 	}
 
 	if config.UserAgent == "" {
