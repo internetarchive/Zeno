@@ -17,6 +17,10 @@ var ObjectStorageServers = func() (s []string) {
 
 type ObjectStorageOutlinkExtractor struct{}
 
+func (ObjectStorageOutlinkExtractor) Support(m Mode) bool {
+	return m == ModeGeneral
+}
+
 // Check if the response is from an object storage server
 func (ObjectStorageOutlinkExtractor) Match(URL *models.URL) bool {
 	return utils.StringContainsSliceElements(URL.GetResponse().Header.Get("Server"), ObjectStorageServers) &&
