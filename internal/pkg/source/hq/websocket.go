@@ -136,12 +136,7 @@ func handleConfirmedMsg(msg []byte) error {
 		return err
 	}
 
-	if m.Type == "confirmed" {
-		return nil
-	}
-
-	return unknownMsgTypeErr
-
+	return nil
 }
 
 func (s *HQ) sendIdentify(logger *log.FieldedLogger) {
