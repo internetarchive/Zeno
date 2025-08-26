@@ -14,7 +14,7 @@ func startWARCWriter() {
 	rotatorSettings := warc.NewRotatorSettings()
 	rotatorSettings.Prefix = config.Get().WARCPrefix
 	rotatorSettings.WARCWriterPoolSize = config.Get().WARCPoolSize
-	rotatorSettings.WarcSize = float64(config.Get().WARCSize)
+	rotatorSettings.WARCSize = float64(config.Get().WARCSize)
 	rotatorSettings.OutputDirectory = path.Join(config.Get().JobPath, "warcs")
 
 	if config.Get().WARCOperator != "" {
@@ -52,6 +52,7 @@ func startWARCWriter() {
 		DisableIPv6:      config.Get().DisableIPv6,
 		IPv6AnyIP:        config.Get().IPv6AnyIP,
 		ConnReadDeadline: config.Get().ConnReadDeadline,
+		DigestAlgorithm:  warc.GetDigestFromPrefix(config.Get().WARCDigestAlgorithm),
 	}
 
 	// Instantiate WARC client

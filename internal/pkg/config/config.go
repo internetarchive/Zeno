@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	warc "github.com/internetarchive/gowarc"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -53,6 +54,7 @@ type Config struct {
 	WARCDedupeSize                  int           `mapstructure:"warc-dedupe-size"`
 	WARCWriteAsync                  bool          `mapstructure:"async-warc-write"`
 	WARCDiscardStatus               []int         `mapstructure:"warc-discard-status"`
+	WARCDigestAlgorithm             string        `mapstructure:"warc-digest-algorithm"`
 	CDXDedupeServer                 string        `mapstructure:"warc-cdx-dedupe-server"`
 	CDXCookie                       string        `mapstructure:"warc-cdx-cookie"`
 	DoppelgangerDedupeServer        string        `mapstructure:"warc-doppelganger-dedupe-server"`
@@ -281,6 +283,13 @@ func GenerateCrawlConfig() error {
 
 	if config.WARCTempDir == "" {
 		config.WARCTempDir = path.Join(config.JobPath, "temp")
+	}
+
+	// Verify that the digest is supported
+	if config.WARCDigestAlgorithm != "sha1" {
+		if ok := warc.IsDigestSupported(config.WARCDigestAlgorithm); !ok {
+			return fmt.Errorf("digest algorithm %s is not supported", config.WARCDigestAlgorithm)
+		}
 	}
 
 	if config.UserAgent == "" {
