@@ -88,6 +88,8 @@ func dispatchMessageByType(msg []byte) (string, error) {
 	switch m.Type {
 	case "signal":
 		err = handleSignalMsg(msg)
+	case "confirmed":
+		err = handleConfirmedMsg(msg)
 	default:
 		err = unknownMsgTypeErr
 	}
@@ -113,6 +115,33 @@ func handleSignalMsg(msg []byte) error {
 	}
 
 	return nil
+}
+
+func handleConfirmedMsg(msg []byte) error {
+	type confirmedMsg struct {
+		Type    string `json:"type"`
+		Payload struct {
+			Project    string `json:"project"`
+			Job        string `json:"job"`
+			IP         string `json:"ip"`
+			Hostname   string `json:"hostname"`
+			Identifier string `json:"identifier"`
+			Timestamp  int64  `json:"timestamp"`
+			GoVersion  string `json:"goVersion"`
+		} `json:"payload"`
+	}
+	var m confirmedMsg
+
+	if err := json.Unmarshal(msg, &m); err != nil {
+		return err
+	}
+
+	if m.Type == "confirmed" {
+		return nil
+	}
+
+	return unknownMsgTypeErr
+
 }
 
 func (s *HQ) sendIdentify(logger *log.FieldedLogger) {
