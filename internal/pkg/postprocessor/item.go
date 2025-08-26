@@ -15,7 +15,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.postprocess.postprocessItem",
-		"item_id": item.GetShortID(),
+		"item_id":   item.GetShortID(),
 	})
 
 	outlinks := make([]*models.Item, 0)
@@ -28,7 +28,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 	logger.Debug("postprocessing item")
 
 	// Verify if there is any redirection
-	if isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
+	if item.GetURL().GetResponse() != nil && isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
 		logger.Debug("item is a redirection")
 
 		// Check if the current redirections count doesn't exceed the max allowed
@@ -88,7 +88,8 @@ func postprocessItem(item *models.Item) []*models.Item {
 		return outlinks
 	}
 
-	if item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200 {
+	if (item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200) || // standard item
+		(item.GetURL().GetResponse() == nil && item.GetURL().GetBody() != nil) { // headless item
 		logger.Debug("item is a success")
 
 		var outlinksFromAssets []*models.URL
@@ -107,7 +108,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 						logger.Warn("nil asset")
 						continue
 					}
-          
+
 					newChild := models.NewItem(assets[i], "")
 					err = item.AddChild(newChild, models.ItemGotChildren)
 					if err != nil {

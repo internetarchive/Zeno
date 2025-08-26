@@ -27,6 +27,10 @@ jobs:
     - name: Make coverage dirs
       run: mkdir -p /tmp/unit_coverage /tmp/e2e_coverage
 
+    - name: Disable AppArmor unprivileged user namespaces limitations
+      # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+      run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+
     - name: Test
       run: go test -v -p=12 -race -cover -covermode=atomic -coverpkg=./... $(go list ./... | grep -v /e2e/test/) -args -test.gocoverdir=/tmp/unit_coverage
 

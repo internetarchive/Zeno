@@ -3,6 +3,7 @@ package cmd
 import (
 	"time"
 
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/headless"
 	"github.com/spf13/cobra"
 )
 
@@ -27,6 +28,19 @@ func getCMDs() *cobra.Command {
 }
 
 func getCMDsFlags(getCmd *cobra.Command) {
+	addBasicFlags(getCmd)
+	addHeadlessFlags(getCmd)
+	addNetworkFlags(getCmd)
+	addRateLimitFlags(getCmd)
+	addWARCFlags(getCmd)
+	addLoggingFlags(getCmd)
+	addProfilingFlags(getCmd)
+	addPrometheusFlags(getCmd)
+	addConsulFlags(getCmd)
+	addAliasFlags(getCmd)
+}
+
+func addBasicFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("user-agent", "", "User agent to use when requesting URLs.")
 	getCmd.PersistentFlags().String("job", "", "Job name to use, will determine the path for the persistent queue, seencheck database, and WARC files.")
 	getCmd.PersistentFlags().IntP("workers", "w", 1, "Number of concurrent workers to run.")
@@ -57,21 +71,45 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("max-content-length", 0, "Max content length in MB to download for a single resource.")
 	getCmd.PersistentFlags().Float64("min-space-required", 0, "Minimum space required in GB to continue the crawl. Default will be 50GB * (total disk space / 256GB) if total disk space is less than 256GB, else 50GB.")
 	getCmd.PersistentFlags().Bool("strict-regex", false, "If turned on, the xurls `strict` regex setting will be used. Otherwise a looser regex will be used.")
+}
 
-	// Network flags
+func addHeadlessFlags(getCmd *cobra.Command) {
+	getCmd.PersistentFlags().Bool("headless", false, "[headless] Run in headless mode (experimental).")
+	getCmd.PersistentFlags().Bool("headless-headful", false, "[headless] Switch to headful mode to run the browser with full graphics stack and show browser GUI (requires --headless).")
+	getCmd.PersistentFlags().Bool("headless-trace", false, "[headless] Trace enables the visual tracing of the input actions on the page.")
+	getCmd.PersistentFlags().Bool("headless-dev-tools", false, "[headless] Open DevTools Panel (F12)")
+	getCmd.PersistentFlags().Bool("headless-stealth", false, "[headless] Use stealth to prevent bot detection and use the browser's native User-Agent")
+	getCmd.PersistentFlags().Bool("headless-user-mode", false, "[headless] Launch your regular user browser session")
+
+	getCmd.PersistentFlags().Int("headless-chromium-revision", headless.DefaultChromiumRevision, "[headless] Chromium binary revision to auto download and use (if --headless-chromium-bin is not set), you could get revision from chromiumdash.appspot.com . [>0 revision, 0 - latest, -1 - second latest, -2 - third latest, ...]")
+
+	getCmd.PersistentFlags().String("headless-chromium-bin", "", "[headless] Path to the browser binary to launch. If the path is not empty, the auto-download will be disabled.")
+	getCmd.PersistentFlags().String("headless-user-data-dir", "", "[headless] Path to the user-data directory to use for browser when running in headless mode. If not set, --warc-temp-dir directory will be used.")
+
+	getCmd.PersistentFlags().StringSlice("headless-allowed-methods", []string{"GET"}, "[headless] Comma separated allowed HTTP methods to use when requesting pages.")
+	getCmd.PersistentFlags().StringSlice("headless-behaviors", []string{"autoscroll", "autoplay", "siteSpecific"}, "[headless] Comma separated list of browser behaviors to run. (ref: https://crawler.docs.browsertrix.com/user-guide/behaviors/#site-specific-behaviors)")
+
+	getCmd.PersistentFlags().Duration("headless-page-timeout", 5*time.Minute, "[headless] hard timeout for page")
+	getCmd.PersistentFlags().Duration("headless-page-load-timeout", 90*time.Second, "[headless] How long to wait for page to finish loading, before doing anything else.")
+	getCmd.PersistentFlags().Duration("headless-page-post-load-delay", 3*time.Second, "[headless] How long to wait before starting any behaviors, but after page has finished loading.")
+	getCmd.PersistentFlags().Duration("headless-behavior-timeout", 90*time.Second, "[headless] maximum time to spend on running site-specific / Autoscroll behaviors (can be less if behavior finishes early).")
+}
+
+func addNetworkFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("proxy", "", "Proxy to use when requesting pages.")
 	getCmd.PersistentFlags().Bool("random-local-ip", false, "Use random local IP for requests. (will be ignored if a proxy is set)")
 	getCmd.PersistentFlags().Bool("disable-ipv4", false, "Disable IPv4 for requests.")
 	getCmd.PersistentFlags().Bool("disable-ipv6", false, "Disable IPv6 for requests.")
 	getCmd.PersistentFlags().Bool("ipv6-anyip", false, "Use AnyIP kernel feature for requests. (only IPv6, need --random-local-ip)")
+}
 
-	// Rate limiting flags
+func addRateLimitFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("disable-rate-limit", false, "Disable the Token Bucket rate limiting.")
 	getCmd.PersistentFlags().Float64("rate-limit-capacity", 150, "Bucket capacity for each host.")
 	getCmd.PersistentFlags().Float64("rate-limit-refill-rate", 50, "Ideal requests per second for each host.")
 	getCmd.PersistentFlags().Duration("rate-limit-cleanup-frequency", time.Duration(5*time.Minute), "How often to run cleanup of stale buckets that are not accessed in the duration.")
-
-	// WARC flags
+}
+func addWARCFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("warc-prefix", "ZENO", "Prefix to use when naming the WARC files.")
 	getCmd.PersistentFlags().String("warc-operator", "", "Contact informations of the crawl operator to write in the Warc-Info record in each WARC file.")
 	getCmd.PersistentFlags().String("warc-cdx-dedupe-server", "", "Identify the server to use CDX deduplication. This activates CDX deduplication.")
@@ -88,8 +126,9 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("warc-size", 1024, "Size of the WARC files in MB.")
 	getCmd.PersistentFlags().IntSlice("warc-discard-status", []int{429}, "HTTP status codes to discard from WARC files. By default, 429 is always discarded.")
 	getCmd.PersistentFlags().Bool("async-warc-write", false, "Write WARC records asynchronously. EXPERIMENTAL - may cause OOMs, lost data, or other unknown/unpredicted issues. No support will be provided for this feature.")
+}
 
-	// Logging flags
+func addLoggingFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("tui", false, "Display a terminal user interface.")
 	getCmd.PersistentFlags().String("tui-log-level", "info", "Log level for the TUI.")
 	getCmd.PersistentFlags().Bool("no-log-file", false, "Disable log file output.")
@@ -97,27 +136,32 @@ func getCMDsFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("log-file-prefix", "ZENO", "Prefix to use when naming the log files. Default is : `ZENO`, without '-'")
 	getCmd.PersistentFlags().String("log-file-level", "info", "Log level for the log file.")
 	getCmd.PersistentFlags().String("log-file-rotation", "1h", "Log file rotation period. Default is : `1h`. Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'.")
+}
 
-	// Profiling flags
+func addProfilingFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("pyroscope-address", "", "Pyroscope server address. Setting this flag will enable profiling.")
+}
 
-	// Prometheus and metrics flags
+func addPrometheusFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("prometheus", false, "Export metrics in Prometheus format. (implies --api)")
 	getCmd.PersistentFlags().String("prometheus-prefix", "zeno_", "String used as a prefix for the exported Prometheus metrics.")
+}
 
-	// Consul flags
+func addConsulFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("consul-address", "", "Consul address to use for service registration.")
 	getCmd.PersistentFlags().String("consul-port", "8500", "Consul port to use for service registration.")
 	getCmd.PersistentFlags().String("consul-acl-token", "", "Consul ACL token to use for service registration.")
 	getCmd.PersistentFlags().Bool("consul-register", false, "Register Zeno in Consul via the API. (useful when Zeno is running on host and not containerized)")
 	getCmd.PersistentFlags().StringSlice("consul-register-tags", []string{}, "Tags to use when registering Zeno in Consul with `--consul-register`.")
+}
 
-	// Alias support
-	// As cobra doesn't support aliases natively (couldn't find a way to do it), we have to do it manually
-	// This is a workaround to allow users to use `--hops` instead of `--max-hops` for example
-	// Aliases shouldn't be used as proper flags nor declared in the config struct
-	// Aliases should be marked as deprecated to inform the user base
-	// Aliases values should be copied to the proper flag in the config/config.go:handleFlagsAliases() function
+// Alias support
+// As cobra doesn't support aliases natively (couldn't find a way to do it), we have to do it manually
+// This is a workaround to allow users to use `--hops` instead of `--max-hops` for example
+// Aliases shouldn't be used as proper flags nor declared in the config struct
+// Aliases should be marked as deprecated to inform the user base
+// Aliases values should be copied to the proper flag in the config/config.go:handleFlagsAliases() function
+func addAliasFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("hops", 0, "Maximum number of hops to execute.")
 	getCmd.PersistentFlags().MarkDeprecated("hops", "use --max-hops instead")
 	getCmd.PersistentFlags().MarkHidden("hops")

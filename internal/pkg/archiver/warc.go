@@ -6,6 +6,7 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	warc "github.com/internetarchive/gowarc"
 )
 
@@ -17,8 +18,13 @@ func startWARCWriter() {
 	rotatorSettings.WarcSize = float64(config.Get().WARCSize)
 	rotatorSettings.OutputDirectory = path.Join(config.Get().JobPath, "warcs")
 
+	version := utils.GetVersion()
+	rotatorSettings.WarcinfoContent.Set("software", "Zeno/"+version.Version+" warc/"+version.WarcVersion)
 	if config.Get().WARCOperator != "" {
 		rotatorSettings.WarcinfoContent.Set("operator", config.Get().WARCOperator)
+	}
+	if config.Get().Headless {
+		rotatorSettings.WarcinfoContent.Set("zeno-headless", "true")
 	}
 	// Configure WARC dedupe settings
 	dedupeOptions := warc.DedupeOptions{LocalDedupe: !config.Get().DisableLocalDedupe, SizeThreshold: config.Get().WARCDedupeSize}

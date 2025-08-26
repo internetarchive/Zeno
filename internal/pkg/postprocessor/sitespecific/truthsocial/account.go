@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -47,6 +48,10 @@ type account struct {
 
 type TruthsocialAccountOutlinkExtractor struct{}
 
+func (TruthsocialAccountOutlinkExtractor) Support(m extractor.Mode) bool {
+	return m == extractor.ModeGeneral
+}
+
 func (TruthsocialAccountOutlinkExtractor) Match(URL *models.URL) bool {
 	return usernameRegex.MatchString(URL.String())
 }
@@ -77,6 +82,10 @@ func (TruthsocialAccountOutlinkExtractor) Extract(URL *models.URL) (outlinks []*
 }
 
 type TruthsocialAccountLookupOutlinkExtractor struct{}
+
+func (TruthsocialAccountLookupOutlinkExtractor) Support(m extractor.Mode) bool {
+	return m == extractor.ModeGeneral
+}
 
 func (TruthsocialAccountLookupOutlinkExtractor) Match(URL *models.URL) bool {
 	return accountLookupRegex.MatchString(URL.String())

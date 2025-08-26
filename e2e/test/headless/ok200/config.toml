@@ -1,0 +1,2 @@
+headless = true # use headless browser for testing
+max-retry = 0 # avoid waiting for retries to speed up test
