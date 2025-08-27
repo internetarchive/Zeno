@@ -31,14 +31,13 @@ func TestIsNaiveDomain(t *testing.T) {
 	}
 }
 
-// Test isSubdomainOrExactMatch function
-func TestIsSubdomainOrExactMatch(t *testing.T) {
+// Test isSubdomain function
+func TestIsSubdomain(t *testing.T) {
 	tests := []struct {
 		host     string
 		domain   string
 		expected bool
 	}{
-		{"example.com", "example.com", true},      // Exact match
 		{"sub.example.com", "example.com", true},  // Subdomain match
 		{"example.com", "sub.example.com", false}, // Not a subdomain
 		{"example.org", "example.com", false},     // Different domain
@@ -46,9 +45,9 @@ func TestIsSubdomainOrExactMatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.host+"_"+tt.domain, func(t *testing.T) {
-			result := isSubdomainOrExactMatch(tt.host, tt.domain)
+			result := isSubdomain(tt.host, tt.domain)
 			if result != tt.expected {
-				t.Errorf("isSubdomainOrExactMatch(%q, %q) = %v, expected %v", tt.host, tt.domain, result, tt.expected)
+				t.Errorf("isSubdomain(%q, %q) = %v, expected %v", tt.host, tt.domain, result, tt.expected)
 			}
 		})
 	}
