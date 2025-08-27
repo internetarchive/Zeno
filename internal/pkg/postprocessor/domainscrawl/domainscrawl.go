@@ -116,7 +116,7 @@ func Match(rawURL string) bool {
 
 	// Check for subdomains
 	for domain := range globalMatcher.domains {
-		if len(domain) <= len(u.Host) && isSubdomain(u.Host, domain) {
+		if isSubdomain(u.Host, domain) {
 			return true
 		}
 	}
