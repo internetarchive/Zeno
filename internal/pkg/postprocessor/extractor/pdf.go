@@ -15,6 +15,10 @@ func init() {
 
 type PDFOutlinkExtractor struct{}
 
+func (PDFOutlinkExtractor) Support(m Mode) bool {
+	return m == ModeGeneral
+}
+
 func (PDFOutlinkExtractor) Match(URL *models.URL) bool {
 	return URL.GetMIMEType().Is("application/pdf")
 }

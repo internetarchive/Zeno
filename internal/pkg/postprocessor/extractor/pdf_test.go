@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver"
+	generalarchiver "github.com/internetarchive/Zeno/internal/pkg/archiver/general"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -29,7 +29,7 @@ func TestPDF(t *testing.T) {
 	var URL = new(models.URL)
 	URL.SetResponse(resp)
 
-	err := archiver.ProcessBody(URL, false, false, 0, os.TempDir())
+	err := generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
 	if err != nil {
 		t.Errorf("ProcessBody() error = %v", err)
 	}
@@ -60,7 +60,7 @@ func TestCorruptPDF(t *testing.T) {
 	var URL = new(models.URL)
 	URL.SetResponse(resp)
 
-	err := archiver.ProcessBody(URL, false, false, 0, os.TempDir())
+	err := generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
 	if err != nil {
 		t.Errorf("ProcessBody() error = %v", err)
 	}

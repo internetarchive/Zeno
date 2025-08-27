@@ -94,6 +94,25 @@ type Config struct {
 	DisableAssetsCapture            bool          `mapstructure:"disable-assets-capture"`
 	UseHQ                           bool          // Special field to check if HQ is enabled depending on the command called
 
+	// Headless
+	Headless                 bool     `mapstructure:"headless"`
+	HeadlessHeadful          bool     `mapstructure:"headless-headful"`
+	HeadlessTrace            bool     `mapstructure:"headless-trace"`
+	HeadlessChromiumRevision int      `mapstructure:"headless-chromium-revision"`
+	HeadlessChromiumBin      string   `mapstructure:"headless-chromium-bin"`
+	HeadlessDevTools         bool     `mapstructure:"headless-dev-tools"`
+	HeadlessStealth          bool     `mapstructure:"headless-stealth"`
+	HeadlessUserMode         bool     `mapstructure:"headless-user-mode"`
+	HeadlessUserDataDir      string   `mapstructure:"headless-user-data-dir"`
+	HeadlessAllowedMethods   []string `mapstructure:"headless-allowed-methods"`
+
+	HeadlessPageTimeout       time.Duration `mapstructure:"headless-page-timeout"`
+	HeadlessPageLoadTimeout   time.Duration `mapstructure:"headless-page-load-timeout"`
+	HeadlessPagePostLoadDelay time.Duration `mapstructure:"headless-page-post-load-delay"`
+
+	HeadlessBehaviors       []string      `mapstructure:"headless-behaviors"`
+	HeadlessBehaviorTimeout time.Duration `mapstructure:"headless-behavior-timeout"`
+
 	// Network
 	Proxy         string `mapstructure:"proxy"`
 	RandomLocalIP bool   `mapstructure:"random-local-ip"`
@@ -286,10 +305,8 @@ func GenerateCrawlConfig() error {
 	}
 
 	// Verify that the digest is supported
-	if config.WARCDigestAlgorithm != "sha1" {
-		if ok := warc.IsDigestSupported(config.WARCDigestAlgorithm); !ok {
-			return fmt.Errorf("digest algorithm %s is not supported", config.WARCDigestAlgorithm)
-		}
+	if ok := warc.IsDigestSupported(config.WARCDigestAlgorithm); !ok {
+		return fmt.Errorf("digest algorithm %s is not supported", config.WARCDigestAlgorithm)
 	}
 
 	if config.UserAgent == "" {

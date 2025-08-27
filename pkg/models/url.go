@@ -81,6 +81,8 @@ func (u *URL) SetDocumentEncoding(enc encoding.Encoding) {
 }
 
 // if mimetype is not set, try to get it from Content-Type header and cache it.
+//
+// WARN: Remember to check for nil return values
 func (u *URL) GetMIMEType() *mimetype.MIME {
 	if u.mimetype != nil {
 		return u.mimetype
@@ -125,6 +127,10 @@ func (u *URL) SetResponse(r *http.Response) {
 	u.response = r
 }
 
+// NOTE:
+//
+//	In normal mode, GetResponse() always returns a valid *http.Response
+//	In headless mode, GetResponse() always returns nil
 func (u *URL) GetResponse() *http.Response {
 	return u.response
 }

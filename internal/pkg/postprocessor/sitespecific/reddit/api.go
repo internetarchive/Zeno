@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
@@ -187,6 +188,10 @@ func IsRedditURL(URL *models.URL) bool {
 }
 
 type RedditPostAPIOutlinkExtractor struct{}
+
+func (RedditPostAPIOutlinkExtractor) Support(m extractor.Mode) bool {
+	return m == extractor.ModeGeneral
+}
 
 func (RedditPostAPIOutlinkExtractor) Match(URL *models.URL) bool {
 	return strings.Contains(URL.String(), "reddit.com/api/info.json?id=t3_")
