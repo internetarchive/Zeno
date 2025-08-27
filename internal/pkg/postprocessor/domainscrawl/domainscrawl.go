@@ -116,7 +116,7 @@ func Match(rawURL string) bool {
 
 	// Check for subdomains
 	for domain := range globalMatcher.domains {
-		if isSubdomainOrExactMatch(u.Host, domain) {
+		if len(domain) <= len(u.Host) && isSubdomain(u.Host, domain) {
 			return true
 		}
 	}
@@ -126,8 +126,9 @@ func Match(rawURL string) bool {
 		if storedURL.String() == rawURL {
 			return true
 		}
+
 		// If the stored URL has no query, path, or fragment, we greedily match (sub)domain
-		if storedURL.RawQuery == "" && storedURL.Path == "" && storedURL.Fragment == "" && isSubdomainOrExactMatch(u.Host, storedURL.Host) {
+		if storedURL.RawQuery == "" && storedURL.Path == "" && storedURL.Fragment == "" && isSubdomain(u.Host, storedURL.Host) {
 			return true
 		}
 	}
@@ -152,17 +153,7 @@ func isNaiveDomain(s string) bool {
 	return strings.Contains(s, ".") && !strings.Contains(s, " ")
 }
 
-// isSubdomainOrExactMatch checks if the given host is a subdomain or an exact match of the domain
-func isSubdomainOrExactMatch(host, domain string) bool {
-	// Exact match
-	if host == domain {
-		return true
-	}
-
-	// Subdomain match (e.g., "sub.example.com" matches "example.com")
-	if strings.HasSuffix(host, "."+domain) {
-		return true
-	}
-
-	return false
+// isSubdomain checks if the given host is a subdomain or an exact match of the domain
+func isSubdomain(host, domain string) bool {
+	return host == domain || (len(host) > len(domain) && strings.HasSuffix(host, "."+domain))
 }
