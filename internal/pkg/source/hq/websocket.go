@@ -88,6 +88,8 @@ func dispatchMessageByType(msg []byte) (string, error) {
 	switch m.Type {
 	case "signal":
 		err = handleSignalMsg(msg)
+	case "confirmed":
+		err = handleConfirmedMsg(msg)
 	default:
 		err = unknownMsgTypeErr
 	}
@@ -110,6 +112,28 @@ func handleSignalMsg(msg []byte) error {
 	err2 := p.Signal(syscall.Signal(m.Signal))
 	if err1 != nil || err2 != nil {
 		return fmt.Errorf("error sending signal %d to process %d: %v, %v", m.Signal, os.Getpid(), err1, err2)
+	}
+
+	return nil
+}
+
+func handleConfirmedMsg(msg []byte) error {
+	type confirmedMsg struct {
+		Type    string `json:"type"`
+		Payload struct {
+			Project    string `json:"project"`
+			Job        string `json:"job"`
+			IP         string `json:"ip"`
+			Hostname   string `json:"hostname"`
+			Identifier string `json:"identifier"`
+			Timestamp  int64  `json:"timestamp"`
+			GoVersion  string `json:"goVersion"`
+		} `json:"payload"`
+	}
+	var m confirmedMsg
+
+	if err := json.Unmarshal(msg, &m); err != nil {
+		return err
 	}
 
 	return nil
