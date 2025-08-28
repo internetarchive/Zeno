@@ -141,7 +141,7 @@ func handleConfirmedMsg(msg []byte) error {
 
 func (s *HQ) sendIdentify(logger *log.FieldedLogger) {
 	err := s.client.Identify(&gocrawlhq.IdentifyMessage{
-		Project:   config.Get().HQProject,
+		Project:   s.HQProject,
 		Job:       config.Get().Job,
 		IP:        utils.GetOutboundIP().String(),
 		Hostname:  utils.GetHostname(),
