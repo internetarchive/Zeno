@@ -17,7 +17,7 @@ type matchEngine struct {
 	sync.RWMutex
 	enabled bool
 	regexes []*regexp.Regexp
-	domains map[string]struct{}
+	domains *ART
 	urls    []url.URL
 }
 
@@ -25,7 +25,7 @@ var (
 	globalMatcher = &matchEngine{
 		enabled: false,
 		regexes: make([]*regexp.Regexp, 0),
-		domains: make(map[string]struct{}),
+		domains: newART(),
 		urls:    make([]url.URL, 0),
 	}
 )
@@ -37,7 +37,7 @@ func Reset() {
 
 	globalMatcher.enabled = false
 	globalMatcher.regexes = make([]*regexp.Regexp, 0)
-	globalMatcher.domains = make(map[string]struct{})
+	globalMatcher.domains = newART()
 	globalMatcher.urls = make([]url.URL, 0)
 }
 
@@ -85,7 +85,7 @@ func AddElements(elements []string, files []string) error {
 
 		// Check if it's a naive domain (e.g., "example.com")
 		if isNaiveDomain(element) {
-			globalMatcher.domains[element] = struct{}{}
+			globalMatcher.domains.Insert(element)
 			continue
 		}
 
@@ -109,16 +109,9 @@ func Match(rawURL string) bool {
 	globalMatcher.RLock()
 	defer globalMatcher.RUnlock()
 
-	// Check against naive domains using map for O(1) lookup
-	if _, exists := globalMatcher.domains[u.Host]; exists {
+	// Check against naive domains, trying an exact match (O(1) lookup, fastest), else do a prefix search for subdomains (O(n) where n is the length of the domain)
+	if globalMatcher.domains.ExactMatch(u.Host) || globalMatcher.domains.PrefixMatch(u.Host) {
 		return true
-	}
-
-	// Check for subdomains
-	for domain := range globalMatcher.domains {
-		if isSubdomain(u.Host, domain) {
-			return true
-		}
 	}
 
 	// Check against full URLs

@@ -132,16 +132,13 @@ func TestAddElements(t *testing.T) {
 
 			// Check naive domains - convert map to slice for comparison
 			domainMap := globalMatcher.domains
-			domainSlice := make([]string, 0, len(domainMap))
-			for domain := range domainMap {
-				domainSlice = append(domainSlice, domain)
-			}
+			domainSlice := domainMap.Range()
 
 			if len(tt.expectNaiveDomains) != len(domainSlice) {
 				t.Errorf("len(domains) = %d, expected %d", len(domainSlice), len(tt.expectNaiveDomains))
 			} else {
 				for _, expectedDomain := range tt.expectNaiveDomains {
-					if _, found := domainMap[expectedDomain]; !found {
+					if !domainMap.ExactMatch(expectedDomain) {
 						t.Errorf("expected domain %q not found in domains", expectedDomain)
 					}
 				}
