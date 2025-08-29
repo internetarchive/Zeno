@@ -44,16 +44,9 @@ func TestReverseHost(t *testing.T) {
 		// Raw Unicode IDN input (URLs should be ASCII, but we handle bytes & lower-casing)
 		// Note: behavior is "best effort" unless we normalize with x/net/idna first.
 		{"unicode_idn", "www.bücher.example", "example.bücher.www"},
-	}
 
-	// Fix the malformed test case name with space—use proper expected result:
-	// For "a:b:c.example.com" (not IPv6), SplitHostPort fails, so we reverse by dots:
-	// labels: ["a:b:c", "example", "com"] -> "com.example.a:b:c"
-	for i := range tests {
-		if tests[i].name == "many_colons_not_ipv6" {
-			tests[i].in = "a:b:c.example.com"
-			tests[i].want = "com.example.a:b:c"
-		}
+		// Many colons but not IPv6
+		{"many_colons_not_ipv6", "a:b:c.example.com", "com.example.a:b:c"},
 	}
 
 	for _, tt := range tests {
