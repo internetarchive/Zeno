@@ -50,7 +50,7 @@ func reverseHost(hostport string) string {
 
 	out := b.String()
 	if port != "" {
-		return fmt.Sprintf("%s:%s", out, port)
+		return out + ":" + port
 	}
 	return out
 }
