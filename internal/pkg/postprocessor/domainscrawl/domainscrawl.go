@@ -4,6 +4,7 @@ package domainscrawl
 
 import (
 	"bufio"
+	"log/slog"
 	"net/url"
 	"os"
 	"regexp"
@@ -96,6 +97,9 @@ func AddElements(elements []string, files []string) error {
 		}
 		globalMatcher.regexes = append(globalMatcher.regexes, re)
 	}
+
+	slog.Info("domainscrawl", "enabled", globalMatcher.enabled, "domains", globalMatcher.domains.Size(), "urls", len(globalMatcher.urls), "regexes", len(globalMatcher.regexes))
+
 	return nil
 }
 

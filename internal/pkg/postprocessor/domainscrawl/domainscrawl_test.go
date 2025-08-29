@@ -1,6 +1,10 @@
 package domainscrawl
 
 import (
+	"bufio"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -271,5 +275,67 @@ func TestMatch(t *testing.T) {
 				t.Errorf("Match(%q) = %v, expected %v", tt.rawURL, result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestAddElements_FromFile_HappyPath(t *testing.T) {
+	t.Parallel()
+
+	// Create a temp file with one domain, one full URL, one regex
+	dir := t.TempDir()
+	path := filepath.Join(dir, "patterns.txt")
+	content := strings.Join([]string{
+		"example.com",
+		"https://example.org/",
+		`^https?://(www\.)?example\.net/.*$`,
+	}, "\n")
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	Reset()
+	if err := AddElements(nil, []string{path}); err != nil {
+		t.Fatalf("AddElements(file) error = %v; want nil", err)
+	}
+
+	// Verify we ingested exactly 1 domain, 1 URL, 1 regex from the file
+	if got, want := globalMatcher.domains.Size(), 1; got != want {
+		t.Fatalf("domains.Size() = %d; want %d", got, want)
+	}
+	if got, want := len(globalMatcher.urls), 1; got != want {
+		t.Fatalf("len(urls) = %d; want %d", got, want)
+	}
+	if got, want := len(globalMatcher.regexes), 1; got != want {
+		t.Fatalf("len(regexes) = %d; want %d", got, want)
+	}
+}
+
+func TestAddElements_FileOpenError(t *testing.T) {
+	t.Parallel()
+
+	Reset()
+	// Point to a non-existent file → os.Open should fail and AddElements must return error
+	err := AddElements(nil, []string{"/definitely/does/not/exist.txt"})
+	if err == nil {
+		t.Fatalf("AddElements(nonexistent) error = nil; want non-nil")
+	}
+}
+
+func TestAddElements_FileScannerErrTooLong(t *testing.T) {
+	t.Parallel()
+
+	// Create a file with a single line longer than bufio.Scanner's token limit
+	dir := t.TempDir()
+	path := filepath.Join(dir, "too_long.txt")
+
+	longLine := strings.Repeat("a", bufio.MaxScanTokenSize+1) // triggers ErrTooLong
+	if err := os.WriteFile(path, []byte(longLine), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	Reset()
+	err := AddElements(nil, []string{path})
+	if err == nil {
+		t.Fatalf("AddElements(too-long-line) error = nil; want non-nil (scanner.Err)")
 	}
 }
