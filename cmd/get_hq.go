@@ -32,7 +32,10 @@ var getHQCmd = &cobra.Command{
 		}
 
 		if cfg.SentryDSN != "" {
-			startSentry()
+			err = startSentry()
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil

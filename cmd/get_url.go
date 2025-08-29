@@ -42,7 +42,10 @@ var getURLCmd = &cobra.Command{
 		}
 
 		if cfg.SentryDSN != "" {
-			startSentry()
+			err = startSentry()
+			if err != nil {
+				return err
+			}
 		}
 
 		controler.Start()
