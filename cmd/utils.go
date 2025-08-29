@@ -50,12 +50,13 @@ func startPyroscope() error {
 	return nil
 }
 
-func startSentry() {
+func startSentry() error {
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn: cfg.SentryDSN,
 	})
 
 	if err != nil {
-		panic(fmt.Errorf("error starting sentry: %w", err))
+		return fmt.Errorf("error starting sentry: %w", err)
 	}
+	return nil
 }
