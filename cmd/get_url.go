@@ -41,6 +41,10 @@ var getURLCmd = &cobra.Command{
 			}
 		}
 
+		if cfg.SentryDSN != "" {
+			startSentry()
+		}
+
 		controler.Start()
 		if config.Get().TUI {
 			tui := ui.New()

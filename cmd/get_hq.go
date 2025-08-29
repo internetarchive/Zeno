@@ -31,6 +31,10 @@ var getHQCmd = &cobra.Command{
 			}
 		}
 
+		if cfg.SentryDSN != "" {
+			startSentry()
+		}
+
 		return nil
 	},
 	RunE: func(_ *cobra.Command, _ []string) error {

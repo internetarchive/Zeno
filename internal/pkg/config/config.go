@@ -121,6 +121,7 @@ type Config struct {
 
 	// Profiling
 	PyroscopeAddress string `mapstructure:"pyroscope-address"`
+	SentryDSN        string `mapstructure:"sentry-dsn"`
 
 	// API
 	APIPort int  `mapstructure:"api-port"`

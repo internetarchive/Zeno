@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/grafana/pyroscope-go"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -47,4 +48,14 @@ func startPyroscope() error {
 		panic(fmt.Errorf("error starting pyroscope: %w", err))
 	}
 	return nil
+}
+
+func startSentry() {
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn: cfg.SentryDSN,
+	})
+
+	if err != nil {
+		panic(fmt.Errorf("error starting sentry: %w", err))
+	}
 }
