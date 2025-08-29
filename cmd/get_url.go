@@ -34,6 +34,13 @@ var getURLCmd = &cobra.Command{
 			return err
 		}
 
+		if cfg.PyroscopeAddress != "" {
+			err = startPyroscope()
+			if err != nil {
+				return err
+			}
+		}
+
 		controler.Start()
 		if config.Get().TUI {
 			tui := ui.New()
