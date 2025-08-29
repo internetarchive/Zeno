@@ -55,7 +55,9 @@ func TestStatusOK(t *testing.T) {
 	server := SetupServer()
 	serverURL := strings.Replace(server.URL, "127.0.0.1", "127.0.0.1.nip.io", 1)
 	defer server.Close()
+
 	os.RemoveAll("jobs")
+	defer os.RemoveAll("jobs")
 
 	shouldStopCh := make(chan struct{})
 	rm := &recordMatcher{}

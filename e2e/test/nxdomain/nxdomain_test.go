@@ -40,6 +40,7 @@ func (rm *recordMatcher) ShouldStop() bool {
 
 func TestNXDomain(t *testing.T) {
 	os.RemoveAll("jobs")
+	defer os.RemoveAll("jobs")
 
 	shouldStopCh := make(chan struct{})
 	rm := &recordMatcher{}
