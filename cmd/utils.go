@@ -46,4 +46,5 @@ func startPyroscope() error {
 	if err != nil {
 		panic(fmt.Errorf("error starting pyroscope: %w", err))
 	}
+	return nil
 }
