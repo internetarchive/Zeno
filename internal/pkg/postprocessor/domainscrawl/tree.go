@@ -16,7 +16,6 @@ type ART struct {
 
 func newART() *ART {
 	return &ART{
-		RWMutex: sync.RWMutex{},
 		exact:   make(map[string]struct{}),
 		tree:    art.New(),
 	}
