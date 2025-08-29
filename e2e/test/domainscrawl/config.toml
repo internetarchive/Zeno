@@ -1,0 +1,5 @@
+workers = 1
+max-hops = 1  # Set max-hops to 1 to test domains-crawl behavior
+domains-crawl = ["127.0.0.1.nip.io"]
+disable-seencheck = true
+log-level = "debug"
