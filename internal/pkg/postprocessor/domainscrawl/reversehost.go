@@ -1,7 +1,6 @@
 package domainscrawl
 
 import (
-	"fmt"
 	"net"
 	"strings"
 )
