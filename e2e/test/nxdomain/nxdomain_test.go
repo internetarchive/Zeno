@@ -2,9 +2,7 @@ package nxdomain
 
 import (
 	_ "embed"
-	"fmt"
 	"os"
-	"path"
 	"strings"
 	"sync"
 	"testing"
@@ -43,17 +41,14 @@ func (rm *recordMatcher) ShouldStop() bool {
 func TestNXDomain(t *testing.T) {
 	os.RemoveAll("jobs")
 
-	tempSocketPath := path.Join(os.TempDir(), fmt.Sprintf("zeno-%d.sock", os.Getpid()))
-	defer os.Remove(tempSocketPath)
-
 	shouldStopCh := make(chan struct{})
 	rm := &recordMatcher{}
 	wg := &sync.WaitGroup{}
 
 	wg.Add(2)
 
-	go e2e.StartHandleLogRecord(t, wg, rm, tempSocketPath, shouldStopCh)
-	go e2e.ExecuteCmdZenoGetURL(t, wg, tempSocketPath, []string{"http://nxdomain.nxtld/"})
+	go e2e.StartHandleLogRecord(t, wg, rm, shouldStopCh)
+	go e2e.ExecuteCmdZenoGetURL(t, wg, []string{"http://nxdomain.nxtld/"})
 
 	e2e.WaitForGoroutines(t, wg, shouldStopCh)
 	rm.Assert(t)

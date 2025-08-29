@@ -105,8 +105,7 @@ func BenchmarkExtractLinksFromPageRelax(b *testing.B) {
 	config.InitConfig()
 	config.Get().StrictRegex = false
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		extractLinksFromPage(URL)
 	}
 
@@ -128,8 +127,7 @@ func BenchmarkExtractLinksFromPageStrict(b *testing.B) {
 	config.InitConfig()
 	config.Get().StrictRegex = true
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		extractLinksFromPage(URL)
 	}
 

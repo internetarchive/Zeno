@@ -167,8 +167,8 @@ func getJWPlayerURLs(c *warc.CustomHTTPClient) (URLs []string) {
 }
 
 func extractJWPlayerVersion(body string) string {
-	lines := strings.Split(body, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(body, "\n")
+	for line := range lines {
 		if strings.Contains(line, "JW Player version") {
 			return strings.Split(line, "JW Player version ")[1]
 		}

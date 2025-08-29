@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver"
+	generalarchiver "github.com/internetarchive/Zeno/internal/pkg/archiver/general"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
@@ -122,7 +122,7 @@ func TestXML(t *testing.T) {
                 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` + strings.Repeat(`<url><loc>https://example.com/page</loc></url>`, 1000) + `</urlset>`,
 			expected: func() []string {
 				var urls = []string{"http://www.sitemaps.org/schemas/sitemap/0.9"}
-				for i := 0; i < 1000; i++ {
+				for range 1000 {
 					urls = append(urls, "https://example.com/page")
 				}
 				return urls
@@ -169,7 +169,7 @@ func TestXML(t *testing.T) {
 			var URL = new(models.URL)
 			URL.SetResponse(resp)
 
-			err := archiver.ProcessBody(URL, false, false, 0, os.TempDir())
+			err := generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
 			if err != nil {
 				t.Errorf("ProcessBody() error = %v", err)
 			}

@@ -22,9 +22,7 @@ func StartWatchWARCWritingQueue(pauseCheckInterval time.Duration, pauseTimeout t
 	// If Zeno writes WARCs synchronously, no need to check for the queue size and pause the pipeline
 	if config.Get().WARCWriteAsync {
 		// Watch the WARC writing queue size and pause the pipeline if it exceeds the worker count
-		wwqWg.Add(1)
-		go func() {
-			defer wwqWg.Done()
+		wwqWg.Go(func() {
 
 			logger := log.NewFieldedLogger(&log.Fields{
 				"component": "controler.warcWritingQueueWatcher.pause",
@@ -72,13 +70,11 @@ func StartWatchWARCWritingQueue(pauseCheckInterval time.Duration, pauseTimeout t
 					}
 				}
 			}
-		}()
+		})
 	}
 
 	// Update the stats every statsUpdateInterval
-	wwqWg.Add(1)
-	go func() {
-		defer wwqWg.Done()
+	wwqWg.Go(func() {
 
 		logger := log.NewFieldedLogger(&log.Fields{
 			"component": "controler.warcWritingQueueWatcher.stats",
@@ -105,7 +101,7 @@ func StartWatchWARCWritingQueue(pauseCheckInterval time.Duration, pauseTimeout t
 				stats.WARCLocalDedupeTotalSet(s.LocalDedupeTotal)
 			}
 		}
-	}()
+	})
 }
 
 // StopWARCWritingQueueWatcher stops the WARC writing queue watcher by canceling the context and waiting for the goroutine to finish

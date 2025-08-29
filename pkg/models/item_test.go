@@ -1300,7 +1300,7 @@ func TestConcurrentAddChild(t *testing.T) {
 	numChildren := 100
 	wg.Add(numChildren)
 
-	for i := 0; i < numChildren; i++ {
+	for i := range numChildren {
 		go func(i int) {
 			defer wg.Done()
 			child := createTestItem(fmt.Sprintf("childID%d", i), nil)
@@ -1643,9 +1643,9 @@ func TestItem_Traverse(t *testing.T) {
 			name: "Very large tree",
 			setupTree: func() *Item {
 				root := createTestItem("root", nil)
-				for i := 0; i < 100; i++ {
+				for i := range 100 {
 					child := createTestItem(fmt.Sprintf("child%d", i), root)
-					for j := 0; j < 10; j++ {
+					for j := range 10 {
 						createTestItem(fmt.Sprintf("grandchild%d", i*10+j), child)
 					}
 				}
@@ -1656,9 +1656,9 @@ func TestItem_Traverse(t *testing.T) {
 			},
 			expected: func() []string {
 				ids := []string{"root"}
-				for i := 0; i < 100; i++ {
+				for i := range 100 {
 					ids = append(ids, fmt.Sprintf("child%d", i))
-					for j := 0; j < 10; j++ {
+					for j := range 10 {
 						ids = append(ids, fmt.Sprintf("grandchild%d", i*10+j))
 					}
 				}

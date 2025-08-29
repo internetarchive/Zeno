@@ -14,6 +14,7 @@ type Fields map[string]any
 
 // FieldedLogger allows adding predefined fields to log entries
 type FieldedLogger struct {
+	ctx	   context.Context
 	fields *[]any
 }
 
@@ -24,6 +25,7 @@ func NewFieldedLogger(args *Fields) *FieldedLogger {
 		sortedArgs = append(sortedArgs, k, (*args)[k])
 	}
 	return &FieldedLogger{
+		ctx:    context.Background(),
 		fields: &sortedArgs,
 	}
 }
@@ -60,8 +62,7 @@ func (fl *FieldedLogger) logWithLevel(level slog.Level, msg string, args ...any)
 		// This is needed to feed the correct caller frame PC to the Record
 		// since we warpped the [slog.Logger] with our own [FieldedLogger].
 		// https://github.com/golang/go/issues/73707#issuecomment-2878940561
-		ctx := context.Background()
-		if !multiLogger.Enabled(ctx, level) {
+		if !multiLogger.Enabled(fl.ctx, level) {
 			return
 		}
 		var pc uintptr
@@ -72,6 +73,6 @@ func (fl *FieldedLogger) logWithLevel(level slog.Level, msg string, args ...any)
 
 		record := slog.NewRecord(time.Now(), level, msg, pc)
 		record.Add(combinedArgs...)
-		multiLogger.Handler().Handle(ctx, record)
+		multiLogger.Handler().Handle(fl.ctx, record)
 	}
 }

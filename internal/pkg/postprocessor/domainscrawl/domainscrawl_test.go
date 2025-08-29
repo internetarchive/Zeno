@@ -61,7 +61,7 @@ func TestEnabled(t *testing.T) {
 		t.Error("Enabled() = true, expected false")
 	}
 
-	err := AddElements([]string{"example.com"})
+	err := AddElements([]string{"example.com"}, nil)
 	if err != nil {
 		t.Fatalf("Failed to add elements: %v", err)
 	}
@@ -126,18 +126,24 @@ func TestAddElements(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			Reset()
-			err := AddElements(tt.elements)
+			err := AddElements(tt.elements, nil)
 			if (err != nil) != tt.expectErr {
 				t.Errorf("AddElements() error = %v, expectErr = %v", err, tt.expectErr)
 			}
 
-			// Check naive domains
-			if len(tt.expectNaiveDomains) != len(globalMatcher.domains) {
-				t.Errorf("len(globalMatcher.domains) = %d, expected %d", len(globalMatcher.domains), len(tt.expectNaiveDomains))
+			// Check naive domains - convert map to slice for comparison
+			domainMap := globalMatcher.domains
+			domainSlice := make([]string, 0, len(domainMap))
+			for domain := range domainMap {
+				domainSlice = append(domainSlice, domain)
+			}
+
+			if len(tt.expectNaiveDomains) != len(domainSlice) {
+				t.Errorf("len(domains) = %d, expected %d", len(domainSlice), len(tt.expectNaiveDomains))
 			} else {
-				for i, domain := range tt.expectNaiveDomains {
-					if globalMatcher.domains[i] != domain {
-						t.Errorf("globalMatcher.domains[%d] = %q, expected %q", i, globalMatcher.domains[i], domain)
+				for _, expectedDomain := range tt.expectNaiveDomains {
+					if _, found := domainMap[expectedDomain]; !found {
+						t.Errorf("expected domain %q not found in domains", expectedDomain)
 					}
 				}
 			}
@@ -259,7 +265,7 @@ func TestMatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			Reset()
 
-			err := AddElements(tt.elements)
+			err := AddElements(tt.elements, nil)
 			if err != nil {
 				t.Fatalf("Failed to add elements: %v", err)
 			}

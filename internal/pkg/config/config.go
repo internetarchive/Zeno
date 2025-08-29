@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	warc "github.com/internetarchive/gowarc"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -53,6 +54,7 @@ type Config struct {
 	WARCDedupeSize                  int           `mapstructure:"warc-dedupe-size"`
 	WARCWriteAsync                  bool          `mapstructure:"async-warc-write"`
 	WARCDiscardStatus               []int         `mapstructure:"warc-discard-status"`
+	WARCDigestAlgorithm             string        `mapstructure:"warc-digest-algorithm"`
 	CDXDedupeServer                 string        `mapstructure:"warc-cdx-dedupe-server"`
 	CDXCookie                       string        `mapstructure:"warc-cdx-cookie"`
 	DoppelgangerDedupeServer        string        `mapstructure:"warc-doppelganger-dedupe-server"`
@@ -84,12 +86,32 @@ type Config struct {
 	CrawlMaxTimeLimit               int           `mapstructure:"crawl-max-time-limit"`
 	MinSpaceRequired                float64       `mapstructure:"min-space-required"`
 	DomainsCrawl                    []string      `mapstructure:"domains-crawl"`
+	DomainsCrawlFile                []string      `mapstructure:"domains-crawl-file"`
 	CaptureAlternatePages           bool          `mapstructure:"capture-alternate-pages"`
 	StrictRegex                     bool          `mapstructure:"strict-regex"`
 	DisableLocalDedupe              bool          `mapstructure:"disable-local-dedupe"`
 	CertValidation                  bool          `mapstructure:"cert-validation"`
 	DisableAssetsCapture            bool          `mapstructure:"disable-assets-capture"`
 	UseHQ                           bool          // Special field to check if HQ is enabled depending on the command called
+
+	// Headless
+	Headless                 bool     `mapstructure:"headless"`
+	HeadlessHeadful          bool     `mapstructure:"headless-headful"`
+	HeadlessTrace            bool     `mapstructure:"headless-trace"`
+	HeadlessChromiumRevision int      `mapstructure:"headless-chromium-revision"`
+	HeadlessChromiumBin      string   `mapstructure:"headless-chromium-bin"`
+	HeadlessDevTools         bool     `mapstructure:"headless-dev-tools"`
+	HeadlessStealth          bool     `mapstructure:"headless-stealth"`
+	HeadlessUserMode         bool     `mapstructure:"headless-user-mode"`
+	HeadlessUserDataDir      string   `mapstructure:"headless-user-data-dir"`
+	HeadlessAllowedMethods   []string `mapstructure:"headless-allowed-methods"`
+
+	HeadlessPageTimeout       time.Duration `mapstructure:"headless-page-timeout"`
+	HeadlessPageLoadTimeout   time.Duration `mapstructure:"headless-page-load-timeout"`
+	HeadlessPagePostLoadDelay time.Duration `mapstructure:"headless-page-post-load-delay"`
+
+	HeadlessBehaviors       []string      `mapstructure:"headless-behaviors"`
+	HeadlessBehaviorTimeout time.Duration `mapstructure:"headless-behavior-timeout"`
 
 	// Network
 	Proxy         string `mapstructure:"proxy"`
@@ -109,8 +131,8 @@ type Config struct {
 	NoStderrLogging  bool   `mapstructure:"no-stderr-log"`
 	NoColorLogging   bool   `mapstructure:"no-color-logs"`
 	NoFileLogging    bool   `mapstructure:"no-log-file"`
-	SocketLogging    string `mapstructure:"log-socket"`
-	SocketLevel      string `mapstructure:"log-socket-level"`
+	E2ELogging       bool   `mapstructure:"log-e2e"`
+	E2ELevel         string `mapstructure:"log-e2e-level"`
 	StdoutLogLevel   string `mapstructure:"log-level"`
 	TUI              bool   `mapstructure:"tui"`
 	TUILogLevel      string `mapstructure:"tui-log-level"`
@@ -283,6 +305,11 @@ func GenerateCrawlConfig() error {
 		config.WARCTempDir = path.Join(config.JobPath, "temp")
 	}
 
+	// Verify that the digest is supported
+	if ok := warc.IsDigestSupported(config.WARCDigestAlgorithm); !ok {
+		return fmt.Errorf("digest algorithm %s is not supported", config.WARCDigestAlgorithm)
+	}
+
 	if config.UserAgent == "" {
 		version := utils.GetVersion()
 
@@ -336,9 +363,9 @@ func GenerateCrawlConfig() error {
 		}
 	}
 
-	if len(config.DomainsCrawl) > 0 {
+	if len(config.DomainsCrawl) > 0 || len(config.DomainsCrawlFile) > 0 {
 		slog.Info("domains crawl enabled", "domains/regex", config.DomainsCrawl)
-		err := domainscrawl.AddElements(config.DomainsCrawl)
+		err := domainscrawl.AddElements(config.DomainsCrawl, config.DomainsCrawlFile)
 		if err != nil {
 			panic(err)
 		}

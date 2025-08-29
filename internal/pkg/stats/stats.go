@@ -23,6 +23,7 @@ type stats struct {
 	MeanProcessBodyTime    *mean // in ms
 	MeanWaitOnFeedbackTime *mean // in ms
 	WARCWritingQueueSize   atomic.Int64
+	cfMitigated            atomic.Int64
 
 	WARCDataTotalBytes               atomic.Int64
 	WARCCDXDedupeTotalBytes          atomic.Int64
@@ -104,8 +105,8 @@ func Reset() {
 
 // GetMapTUI returns a map of the current stats.
 // This is used by the TUI to update the stats table.
-func GetMapTUI() map[string]interface{} {
-	result := map[string]interface{}{
+func GetMapTUI() map[string]any {
+	result := map[string]any{
 		"URL/s":                      globalStats.URLsCrawled.get(),
 		"Total URL crawled":          globalStats.URLsCrawled.getTotal(),
 		"Finished seeds":             globalStats.SeedsFinished.getTotal(),
@@ -118,6 +119,7 @@ func GetMapTUI() map[string]interface{} {
 		"HTTP 3xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("3*")),
 		"HTTP 4xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("4*")),
 		"HTTP 5xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("5*")),
+		"CF Challenge pages seen":    globalStats.cfMitigated.Load(),
 		"Mean HTTP response time":    globalStats.MeanHTTPResponseTime.get(),
 		"Mean wait on feedback time": globalStats.MeanWaitOnFeedbackTime.get(),
 		"Mean process body time":     globalStats.MeanProcessBodyTime.get(),

@@ -11,15 +11,18 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
 	github.com/gabriel-vasile/mimetype v1.4.9
-	github.com/gdamore/tcell/v2 v2.8.1
+	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/go-logfmt/logfmt v0.6.0
+	github.com/go-rod/rod v0.116.2
+	github.com/go-rod/stealth v0.4.9
+	github.com/gobwas/ws v1.4.0
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.4
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.32.1
 	github.com/internetarchive/gocrawlhq v1.2.33
-	github.com/internetarchive/gowarc v0.8.85
-	github.com/ncruces/go-sqlite3 v0.27.1
+	github.com/internetarchive/gowarc v0.8.87
+	github.com/ncruces/go-sqlite3 v0.28.0
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/prometheus/client_golang v1.23.0
@@ -28,12 +31,13 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
+	github.com/ysmood/gson v0.7.3
 	go.baoshuo.dev/csslexer v0.0.3
 	go.uber.org/goleak v1.3.0
-	golang.org/x/net v0.42.0
+	golang.org/x/net v0.43.0
 	golang.org/x/sync v0.16.0
-	golang.org/x/sys v0.34.0
-	golang.org/x/text v0.27.0
+	golang.org/x/sys v0.35.0
+	golang.org/x/text v0.28.0
 	mvdan.cc/xurls/v2 v2.6.0
 )
 
@@ -49,10 +53,9 @@ require (
 	github.com/gammazero/deque v1.0.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/getsentry/sentry-go v0.35.1 // indirect
-	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
+	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
-	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -68,6 +71,7 @@ require (
 	github.com/hhrutter/tiff v1.0.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -97,14 +101,19 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
-	github.com/ulikunitz/xz v0.5.12 // indirect
+	github.com/ulikunitz/xz v0.5.14 // indirect
+	github.com/ysmood/fetchup v0.2.3 // indirect
+	github.com/ysmood/goob v0.4.0 // indirect
+	github.com/ysmood/got v0.40.0 // indirect
+	github.com/ysmood/leakless v0.9.0 // indirect
+	github.com/zeebo/blake3 v0.2.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/image v0.27.0 // indirect
-	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/term v0.33.0 // indirect
-	golang.org/x/tools v0.34.0 // indirect
+	golang.org/x/mod v0.26.0 // indirect
+	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/tools v0.35.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

@@ -42,8 +42,8 @@ func Prepare() *cobra.Command {
 	// Define flags and configuration settings
 	rootCmd.PersistentFlags().String("log-level", "info", "stdout log level (debug, info, warn, error)")
 	rootCmd.PersistentFlags().String("config-file", "", "config file (default is $HOME/zeno-config.yaml)")
-	rootCmd.PersistentFlags().String("log-socket", "", "unix socket log address (e.g. /tmp/zenolog.sock) [NOTE: this flag is only used for e2e and integration tests, NOT for production use]")
-	rootCmd.PersistentFlags().String("log-socket-level", "info", "socket log level")
+	rootCmd.PersistentFlags().Bool("log-e2e", false, "[NOTE: this flag is only used for e2e and integration tests, NOT for production use]")
+	rootCmd.PersistentFlags().String("log-e2e-level", "info", "e2e log level")
 	rootCmd.PersistentFlags().Bool("no-stdout-log", false, "disable stdout logging.")
 	rootCmd.PersistentFlags().Bool("no-stderr-log", false, "disable stderr logging.")
 	rootCmd.PersistentFlags().Bool("no-color-logs", false, "switch the terminal (stdout and stderr) logging handler from [slogcolor] handler to the standard [slog] handler (help ensure compatibility with logging collectors)")

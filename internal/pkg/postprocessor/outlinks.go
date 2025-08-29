@@ -15,6 +15,7 @@ import (
 )
 
 type OutlinkExtractor interface {
+	Support(extractor.Mode) bool // Support checks if the extractor supports the given mode
 	Match(*models.URL) bool
 	Extract(*models.URL) ([]*models.URL, error)
 }
@@ -31,19 +32,34 @@ var outlinkExtractors = []OutlinkExtractor{
 
 func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	var (
-		contentType = item.GetURL().GetResponse().Header.Get("Content-Type")
+		contentType string
 		logger      = log.NewFieldedLogger(&log.Fields{
 			"component": "postprocessor.extractOutlinks",
 		})
 	)
+
+	if item.GetURL().GetResponse() != nil {
+		contentType = item.GetURL().GetResponse().Header.Get("Content-Type")
+	} else {
+		contentType = "text/html" // Headless, hardcoded to HTML
+	}
 
 	if item.GetURL().GetBody() == nil {
 		logger.Error("no body to extract outlinks from", "url", item.GetURL(), "item", item.GetShortID())
 		return
 	}
 
+	mode := extractor.ModeGeneral
+	if config.Get().Headless {
+		mode = extractor.ModeHeadless
+	}
+
 	// Run specific extractors
 	for _, p := range outlinkExtractors {
+		if !p.Support(mode) {
+			continue
+		}
+
 		if p.Match(item.GetURL()) {
 			outlinks, err = p.Extract(item.GetURL())
 			break
@@ -55,8 +71,9 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 	}
 
 	// Try to extract links from link headers
-	linksFromLinkHeader := extractor.ExtractURLsFromHeader(item.GetURL())
-	if linksFromLinkHeader != nil {
+	linkHeaderExtractor := extractor.LinkHeaderExtractor{}
+	if linkHeaderExtractor.Support(mode) && linkHeaderExtractor.Match(item.GetURL()) {
+		linksFromLinkHeader := linkHeaderExtractor.ExtractLink(item.GetURL())
 		outlinks = append(outlinks, linksFromLinkHeader...)
 	}
 

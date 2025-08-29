@@ -14,7 +14,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Go
       uses: actions/setup-go@v5
@@ -26,6 +26,10 @@ jobs:
 
     - name: Make coverage dirs
       run: mkdir -p /tmp/unit_coverage /tmp/e2e_coverage
+
+    - name: Disable AppArmor unprivileged user namespaces limitations
+      # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+      run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
 
     - name: Test
       run: go test -v -p=12 -race -cover -covermode=atomic -coverpkg=./... $(go list ./... | grep -v /e2e/test/) -args -test.gocoverdir=/tmp/unit_coverage
@@ -39,7 +43,7 @@ jobs:
         go tool covdata textfmt -i /tmp/e2e_coverage/ -o e2e_coverage.txt
 
     - name: Upload coverage reports to Codecov (unittests)
-      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 #v5.4.3
+      uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00 #v5.5.0
       continue-on-error: true
       with:
         flags: unittests
@@ -48,7 +52,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage reports to Codecov (e2e tests)
-      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 #v5.4.3
+      uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00 #v5.5.0
       continue-on-error: true
       with:
         flags: e2etests
@@ -63,7 +67,7 @@ jobs:
   cross-build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Go
       uses: actions/setup-go@v5
