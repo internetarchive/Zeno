@@ -33,7 +33,7 @@ require (
 	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
 	github.com/ysmood/gson v0.7.3
-	go.baoshuo.dev/csslexer v0.0.3
+	go.baoshuo.dev/csslexer v0.1.0
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.43.0
 	golang.org/x/sync v0.16.0
@@ -101,12 +101,13 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
-	github.com/ulikunitz/xz v0.5.14 // indirect
+	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
 	github.com/ysmood/got v0.40.0 // indirect
 	github.com/ysmood/leakless v0.9.0 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
+	go.baoshuo.dev/cssutil v0.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
