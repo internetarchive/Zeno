@@ -26,6 +26,7 @@ require (
 	github.com/ncruces/go-sqlite3 v0.28.0
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/philippgille/gokv/leveldb v0.7.0
+	github.com/plar/go-adaptive-radix-tree/v2 v2.0.3
 	github.com/prometheus/client_golang v1.23.0
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
 	github.com/samber/slog-multi v1.4.1

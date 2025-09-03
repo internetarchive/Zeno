@@ -45,6 +45,7 @@ func (rm *recordMatcher) ShouldStop() bool {
 
 func TestCloudFlare204(t *testing.T) {
 	os.RemoveAll("jobs")
+	defer os.RemoveAll("jobs")
 
 	shouldStopCh := make(chan struct{})
 	rm := &recordMatcher{}

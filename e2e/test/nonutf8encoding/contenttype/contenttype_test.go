@@ -16,6 +16,7 @@ func TestNonUTF8ContentType(t *testing.T) {
 	defer server.Close()
 
 	os.RemoveAll("jobs")
+	defer os.RemoveAll("jobs")
 
 	shouldStopCh := make(chan struct{})
 	rm := &nonutf8encoding.RecordMatcher{}
