@@ -26,10 +26,11 @@ func cmdZenoGetURL(urls []string) *cobra.Command {
 	
 	// If config.toml exists in pwd, include it in args
 	var args []string
+	commonArgs := []string{"get", "url", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}
 	if _, err := os.Stat("config.toml"); err == nil {
-		args = append([]string{"get", "url", "--config-file", "config.toml", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}, urls...)
+		args = append(commonArgs...,"--config-file", "config.toml", urls...)
 	} else {
-		args = append([]string{"get", "url", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}, urls...)
+		args = append(commonArgs..., urls...)
 	}
 	
 	fmt.Println("Command arguments:", args)
