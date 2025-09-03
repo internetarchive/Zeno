@@ -1,0 +1,4 @@
+# Minimal config for e2e testing framework
+workers = 1
+disable-seencheck = true
+log-level = "debug"
