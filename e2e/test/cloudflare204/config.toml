@@ -1,4 +1,0 @@
-# Config for cloudflare204 e2e test
-workers = 1
-disable-seencheck = true
-log-level = "debug"
