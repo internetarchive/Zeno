@@ -16,9 +16,9 @@ and the first librarian of the Library of Alexandria.
 
 - **Go 1.25+** - As specified in go.mod
 - **GCC 12+** - Required for building C++ dependencies with C++20 constexpr support
-- **CGO enabled** - This project requires C++ compilation (CGO_ENABLED=1)
+- **CGO enabled** - This project requires C++ compilation (CGO_ENABLED=1) due to Go bindings for Ada, the WHATWG URL parser ([github.com/ada-url/goada](https://github.com/ada-url/goada)). We hope to move away from this dependency to a pure Go alternative in the future.
 
-Note: GCC 11 and earlier versions do not support the C++20 constexpr features required by some dependencies (specifically ada-url/goada). On Ubuntu 22 LTS and earlier, you may need to install a newer GCC version.
+Note: GCC 11 and earlier versions do not support the C++20 constexpr features required by the ada-url/goada dependency. On Ubuntu 22 LTS and earlier, you may need to install a newer GCC version.
 
 ## Installation
 
