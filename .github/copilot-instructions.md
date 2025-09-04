@@ -10,7 +10,9 @@ Always reference these instructions first and fallback to search or bash command
 - **Go 1.25+** is required (specified in go.mod)
 - **CGO is REQUIRED** - this project depends on C++ libraries 
 - **C++ compiler** (g++ or equivalent) is required for building
-- **Linux/amd64** is the primary supported platform
+- **Linux/amd64** is the primary supported platform, but also builds on:
+  - **Linux/arm64** via zig cross-compilation toolchain
+  - **Windows/amd64** via zig cross-compilation toolchain
 - Dependencies: `libstdc++` and `libgcc` runtime libraries
 
 ### Build and Test Commands
@@ -76,6 +78,8 @@ After making changes, ALWAYS:
 3. **Check binary dependencies**: `ldd ./Zeno` to verify C++ linkage
 4. **Run formatting check**: `gofmt -l .` and fix any issues
 5. **Run vet**: `go vet ./...` to catch common issues
+6. **Try to crawl example website**: `./Zeno get url https://example.com --workers 1` to test basic archiving functionality
+7. **(if applicable) attempt to crawl using HQ as well**: `./Zeno get hq --help` to verify HQ connector works
 
 ### Testing Scenarios
 - **CLI functionality**: Test `--help` commands and basic argument parsing
@@ -127,11 +131,12 @@ After making changes, ALWAYS:
 ### Adding New Features
 1. Build and test baseline: `go build -o Zeno . && ./Zeno --help`
 2. Make focused changes to relevant packages
-3. Run tests: `go test ./...` (exclude e2e if needed)
-4. Verify build: `go build -o Zeno .`
-5. Test CLI functionality: `./Zeno --help`
-6. Format code: `gofmt -w .` 
-7. Run vet: `go vet ./...`
+3. **Ensure tests are added for new features**: Write unit/integration tests for any new functionality
+4. Run tests: `go test ./...` (exclude e2e if needed)
+5. Verify build: `go build -o Zeno .`
+6. Test CLI functionality: `./Zeno --help`
+7. Format code: `gofmt -w .` 
+8. Run vet: `go vet ./...`
 
 ### Debugging Build Issues
 - **CGO errors**: Ensure C++ compiler (g++) is installed
