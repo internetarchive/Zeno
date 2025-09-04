@@ -126,6 +126,40 @@ After making changes, ALWAYS:
 - **Reactor**: Event processing pipeline
 - **UI**: Terminal user interface components
 
+## Development Best Practices
+
+### Binary and Artifact Management
+- **NEVER commit Zeno binaries** to the repository - they are already excluded in `.gitignore`
+- **Use `.gitignore`** to exclude build artifacts, dependencies, and temporary files
+- **Clean builds**: Remove old binaries before building new ones to avoid confusion
+
+### HTTP Client Usage
+- **ALWAYS use the WARC HTTP client** from the gowarc package for all archival requests
+- **Use `warc.CustomHTTPClient`** (available as `Client` and `ClientWithProxy` in the archiver)
+- **Never use standard `http.Client`** for requests that need to be archived to WARC files
+- **Read HTTP response buffers in full** and **close response bodies** to prevent resource leaks
+- **Example pattern**:
+  ```go
+  resp, err := warcClient.Do(req)
+  if err != nil {
+      return err
+  }
+  defer resp.Body.Close()
+  
+  // Read the full response body
+  body, err := io.ReadAll(resp.Body)
+  if err != nil {
+      return err
+  }
+  // Process the body...
+  ```
+
+### Resource Management
+- **Always close HTTP response bodies** using `defer resp.Body.Close()`
+- **Read buffers completely** to ensure proper connection pooling and resource cleanup
+- **Handle context cancellation** properly in long-running operations
+- **Monitor for goroutine leaks** during development and testing
+
 ## Common Workflows
 
 ### Adding New Features
