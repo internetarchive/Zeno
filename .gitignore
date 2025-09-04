@@ -1,6 +1,7 @@
 jobs/*
 jobs/
 Zeno
+zeno
 *.txt
 *.sh*
 zeno.log
