@@ -171,6 +171,8 @@ github.com/internetarchive/gowarc v0.8.88 h1:rCXYLE0Mv6g++a898w173jH+8J9fDTN2Y8k
 github.com/internetarchive/gowarc v0.8.88/go.mod h1:9z8YSdbtilqkssNrlhq9SDSQP+tVjVrZ1DDGT/ikYH4=
 github.com/internetarchive/gowarc v0.8.89 h1:2HTkdY8T4JFJZAtb7aLWEb8OnEWqlK4o7/JlnYT7+wg=
 github.com/internetarchive/gowarc v0.8.89/go.mod h1:9z8YSdbtilqkssNrlhq9SDSQP+tVjVrZ1DDGT/ikYH4=
+github.com/internetarchive/gowarc v0.8.90 h1:SE5ep+0ew3392iBnIDJ3PXTKkSidEgOrKHCS6aWhpOw=
+github.com/internetarchive/gowarc v0.8.90/go.mod h1:lFZ/XFfzEe40kNAfoxvGNnRgmWn6a3B7iw9pxkYvQEY=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
 github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
@@ -345,6 +347,8 @@ github.com/things-go/go-socks5 v0.0.6/go.mod h1:RF6tRutwNWzISbPfiDEChH/o1aDfRv+c
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
 github.com/ulikunitz/xz v0.5.14 h1:uv/0Bq533iFdnMHZdRBTOlaNMdb1+ZxXIlHDZHIHcvg=
 github.com/ulikunitz/xz v0.5.14/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=
+github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=
+github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=
 github.com/xyproto/randomstring v1.0.5/go.mod h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3iGxZ18UQApw/E=
 github.com/ysmood/fetchup v0.2.3 h1:ulX+SonA0Vma5zUFXtv52Kzip/xe7aj4vqT5AJwQ+ZQ=

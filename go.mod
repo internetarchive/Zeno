@@ -1,6 +1,6 @@
 module github.com/internetarchive/Zeno
 
-go 1.25
+go 1.25.1
 
 require (
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
@@ -22,7 +22,7 @@ require (
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.32.1
 	github.com/internetarchive/gocrawlhq v1.2.33
-	github.com/internetarchive/gowarc v0.8.89
+	github.com/internetarchive/gowarc v0.8.90
 	github.com/ncruces/go-sqlite3 v0.28.0
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/philippgille/gokv/leveldb v0.7.0
@@ -103,6 +103,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/ulikunitz/xz v0.5.14 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
 	github.com/ysmood/got v0.40.0 // indirect
