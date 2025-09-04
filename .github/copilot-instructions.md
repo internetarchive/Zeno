@@ -10,6 +10,7 @@ Always reference these instructions first and fallback to search or bash command
 - **Go 1.25+** is required (specified in go.mod)
 - **CGO is REQUIRED** - this project depends on C++ libraries 
 - **C++ compiler** (g++ or equivalent) is required for building
+- **GCC 12+** is required - GCC 11 and earlier lack C++20 constexpr support needed by dependencies
 - **Linux/amd64** is the primary supported platform, but also builds on:
   - **Linux/arm64** via zig cross-compilation toolchain
   - **Windows/amd64** via zig cross-compilation toolchain
@@ -173,7 +174,7 @@ After making changes, ALWAYS:
 8. Run vet: `go vet ./...`
 
 ### Debugging Build Issues
-- **CGO errors**: Ensure C++ compiler (g++) is installed
+- **CGO errors**: Ensure C++ compiler (g++ 12+) is installed
 - **Missing symbols**: Check that libstdc++ and libgcc are available
 - **Network timeouts**: Expected in sandboxed environments for external tests
 - **Test failures**: Most network-dependent test failures are expected in restricted environments
