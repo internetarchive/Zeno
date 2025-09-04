@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -240,7 +239,7 @@ func InitConfig() error {
 			} else {
 				// Using default config file location
 				// Only report errors for parsing issues, not for file not found
-				if !errors.Is(err, viper.ConfigFileNotFoundError{}) {
+				if _, isNotFoundError := err.(viper.ConfigFileNotFoundError); !isNotFoundError {
 					// Config file exists but has errors (e.g., invalid YAML)
 					initErr = fmt.Errorf("error reading config file: %w", err)
 					return
