@@ -215,9 +215,9 @@ func InitConfig() error {
 		if configFile := viper.GetString("config-file"); configFile != "" {
 			viper.SetConfigFile(configFile)
 		} else {
-			home, homeErr := os.UserHomeDir()
-			if homeErr != nil {
-				fmt.Println(homeErr)
+			home, err := os.UserHomeDir()
+			if err != nil {
+				fmt.Println(err)
 				os.Exit(1)
 			}
 
@@ -231,20 +231,22 @@ func InitConfig() error {
 		viper.SetEnvKeyReplacer(replacer)
 		viper.AutomaticEnv()
 
-		if readErr := viper.ReadInConfig(); readErr != nil {
+		err = viper.ReadInConfig()
+		if err != nil {
 			if configFileProvided {
 				// User explicitly provided a config file, any error should be reported
-				err = fmt.Errorf("error reading config file: %w", readErr)
+				err = fmt.Errorf("error reading config file: %w", err)
 				return
 			} else {
 				// Using default config file location
 				// Only report errors for parsing issues, not for file not found
-				if _, isNotFoundError := readErr.(viper.ConfigFileNotFoundError); !isNotFoundError {
+				if _, isNotFoundError := err.(viper.ConfigFileNotFoundError); !isNotFoundError {
 					// Config file exists but has errors (e.g., invalid YAML)
-					err = fmt.Errorf("error reading config file: %w", readErr)
+					err = fmt.Errorf("error reading config file: %w", err)
 					return
 				}
 				// Config file doesn't exist at default location, which is OK
+				err = nil // Clear the error since file not found is OK for default config
 			}
 		} else {
 			fmt.Println("Using config file:", viper.ConfigFileUsed())
@@ -252,9 +254,8 @@ func InitConfig() error {
 
 		if viper.GetBool("consul-config") && viper.GetString("consul-address") != "" {
 			var consulAddress *url.URL
-			consulAddress, consulErr := url.Parse(viper.GetString("consul-address"))
-			if consulErr != nil {
-				err = consulErr
+			consulAddress, err := url.Parse(viper.GetString("consul-address"))
+			if err != nil {
 				return
 			}
 
@@ -263,7 +264,7 @@ func InitConfig() error {
 			viper.SetConfigType(filepath.Ext(consulFile))
 			viper.SetConfigName(strings.TrimSuffix(consulFile, filepath.Ext(consulFile)))
 
-			if readErr := viper.ReadInConfig(); readErr == nil {
+			if err := viper.ReadInConfig(); err == nil {
 				fmt.Println("Using config file:", viper.ConfigFileUsed())
 			}
 		}
