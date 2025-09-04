@@ -12,7 +12,7 @@ It heavily relies on the [gowarc](https://github.com/internetarchive/gowarc) mod
 The name Zeno comes from Zenodotus (Ζηνόδοτος), a Greek grammarian, literary critic, Homeric scholar,
 and the first librarian of the Library of Alexandria.
 
-## Requirements
+## Requirements for Building
 
 - **Go 1.25+** - As specified in go.mod
 - **GCC 12+** - Required for building C++ dependencies with C++20 constexpr support
