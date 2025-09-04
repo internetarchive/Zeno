@@ -24,6 +24,7 @@ import (
 )
 
 var sourceInterface source.Source
+var hqOutlinks *hq.HQ
 
 /**
  * Channel description:
@@ -109,11 +110,15 @@ func startPipeline() {
 		panic(err)
 	}
 
+	// Used by optional 2nd HQ instance just to gather outlinks to a different project
+	hqOutlinksFinishChan := makeStageChannel(config.Get().WorkersCount)
+	hqOutlinksProduceChan := makeStageChannel(config.Get().WorkersCount)
+
 	// Start the WARC writing queue watcher
 	watchers.StartWatchWARCWritingQueue(1*time.Second, 2*time.Second, 250*time.Millisecond)
 
 	postprocessorOutputChan := makeStageChannel(config.Get().WorkersCount)
-	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan)
+	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan, hqOutlinksProduceChan)
 	if err != nil {
 		logger.Error("error starting postprocessor", "err", err.Error())
 		panic(err)
@@ -139,6 +144,12 @@ func startPipeline() {
 	if err != nil {
 		logger.Error("error starting source", "source", sourceInterface.Name(), "err", err.Error())
 		panic(err)
+	}
+
+	// Optional 2nd HQ instance just to gather outlinks to a different project
+	if config.Get().UseHQ && config.Get().HQOutlinksProject != "" && config.Get().HQOutlinksHopLimit > 0 {
+		hqOutlinks = hq.New(config.Get().HQKey, config.Get().HQSecret, config.Get().HQOutlinksProject, config.Get().HQAddress)
+		hqOutlinks.Start(hqOutlinksFinishChan, hqOutlinksProduceChan)
 	}
 
 	err = finisher.Start(postprocessorOutputChan, finisherFinishChan, finisherProduceChan)
@@ -187,6 +198,10 @@ func stopPipeline() {
 	}
 
 	sourceInterface.Stop()
+
+	if config.Get().UseHQ && config.Get().HQOutlinksProject != "" && config.Get().HQOutlinksHopLimit > 0 {
+		hqOutlinks.Stop()
+	}
 
 	reactor.Stop()
 
