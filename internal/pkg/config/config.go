@@ -205,7 +205,7 @@ func Set(cfg *Config) {
 // Flags -> Env -> Config file -> Consul config
 // Latest has precedence over the rest
 func InitConfig() error {
-	var initErr error
+	var err error
 	once.Do(func() {
 		config = &Config{}
 		config.SetContext(context.Background())
@@ -215,9 +215,9 @@ func InitConfig() error {
 		if configFile := viper.GetString("config-file"); configFile != "" {
 			viper.SetConfigFile(configFile)
 		} else {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				fmt.Println(err)
+			home, homeErr := os.UserHomeDir()
+			if homeErr != nil {
+				fmt.Println(homeErr)
 				os.Exit(1)
 			}
 
@@ -231,17 +231,17 @@ func InitConfig() error {
 		viper.SetEnvKeyReplacer(replacer)
 		viper.AutomaticEnv()
 
-		if err := viper.ReadInConfig(); err != nil {
+		if readErr := viper.ReadInConfig(); readErr != nil {
 			if configFileProvided {
 				// User explicitly provided a config file, any error should be reported
-				initErr = fmt.Errorf("error reading config file: %w", err)
+				err = fmt.Errorf("error reading config file: %w", readErr)
 				return
 			} else {
 				// Using default config file location
 				// Only report errors for parsing issues, not for file not found
-				if _, isNotFoundError := err.(viper.ConfigFileNotFoundError); !isNotFoundError {
+				if _, isNotFoundError := readErr.(viper.ConfigFileNotFoundError); !isNotFoundError {
 					// Config file exists but has errors (e.g., invalid YAML)
-					initErr = fmt.Errorf("error reading config file: %w", err)
+					err = fmt.Errorf("error reading config file: %w", readErr)
 					return
 				}
 				// Config file doesn't exist at default location, which is OK
@@ -252,9 +252,9 @@ func InitConfig() error {
 
 		if viper.GetBool("consul-config") && viper.GetString("consul-address") != "" {
 			var consulAddress *url.URL
-			consulAddress, err := url.Parse(viper.GetString("consul-address"))
-			if err != nil {
-				initErr = err
+			consulAddress, consulErr := url.Parse(viper.GetString("consul-address"))
+			if consulErr != nil {
+				err = consulErr
 				return
 			}
 
@@ -263,7 +263,7 @@ func InitConfig() error {
 			viper.SetConfigType(filepath.Ext(consulFile))
 			viper.SetConfigName(strings.TrimSuffix(consulFile, filepath.Ext(consulFile)))
 
-			if err = viper.ReadInConfig(); err == nil {
+			if readErr := viper.ReadInConfig(); readErr == nil {
 				fmt.Println("Using config file:", viper.ConfigFileUsed())
 			}
 		}
@@ -275,9 +275,9 @@ func InitConfig() error {
 		handleFlagsAliases()
 
 		// Unmarshal the config into the Config struct
-		initErr = viper.Unmarshal(config)
+		err = viper.Unmarshal(config)
 	})
-	return initErr
+	return err
 }
 
 // BindFlags binds the flags to the viper configuration
