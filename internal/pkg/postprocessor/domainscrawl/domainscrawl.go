@@ -33,38 +33,68 @@ var (
 
 // Reset the matcher to its initial state
 func Reset() {
-	globalMatcher.Lock()
-	defer globalMatcher.Unlock()
-
-	globalMatcher.enabled = false
-	globalMatcher.regexes = make([]*regexp.Regexp, 0)
-	globalMatcher.domains = newART()
-	globalMatcher.urls = make([]url.URL, 0)
+	globalMatcher.Reset()
 }
 
 // Enabled returns true if the domainscrawl matcher is enabled
 func Enabled() bool {
-	globalMatcher.RLock()
-	defer globalMatcher.RUnlock()
-
-	return globalMatcher.enabled
+	return globalMatcher.Enabled()
 }
 
 // AddElements takes a slice of strings or files containing patterns, heuristically determines their type, and stores them
 func AddElements(elements []string, files []string) error {
-	globalMatcher.Lock()
-	defer globalMatcher.Unlock()
+	return globalMatcher.AddElements(elements, files)
+}
 
-	globalMatcher.enabled = true
+// Match checks if a given URL matches any of the stored patterns
+func Match(rawURL string) bool {
+	return globalMatcher.Match(rawURL)
+}
+
+// NewMatcher creates a new matchEngine instance for testing or isolated usage
+func NewMatcher() *matchEngine {
+	return &matchEngine{
+		enabled: false,
+		regexes: make([]*regexp.Regexp, 0),
+		domains: newART(),
+		urls:    make([]url.URL, 0),
+	}
+}
+
+// Reset resets the matcher to its initial state
+func (m *matchEngine) Reset() {
+	m.Lock()
+	defer m.Unlock()
+
+	m.enabled = false
+	m.regexes = make([]*regexp.Regexp, 0)
+	m.domains = newART()
+	m.urls = make([]url.URL, 0)
+}
+
+// Enabled returns true if the domainscrawl matcher is enabled
+func (m *matchEngine) Enabled() bool {
+	m.RLock()
+	defer m.RUnlock()
+
+	return m.enabled
+}
+
+// AddElements takes a slice of strings or files containing patterns, heuristically determines their type, and stores them
+func (m *matchEngine) AddElements(elements []string, files []string) error {
+	m.Lock()
+	defer m.Unlock()
+
+	m.enabled = true
 
 	for _, file := range files {
-		file, err := os.Open(file)
+		f, err := os.Open(file)
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer f.Close()
 
-		scanner := bufio.NewScanner(file)
+		scanner := bufio.NewScanner(f)
 
 		for scanner.Scan() {
 			elements = append(elements, scanner.Text())
@@ -80,13 +110,13 @@ func AddElements(elements []string, files []string) error {
 		parsedURL, err := url.Parse(element)
 		if err == nil && parsedURL.Scheme != "" && parsedURL.Host != "" {
 			// If it has a scheme and host, it's a full URL
-			globalMatcher.urls = append(globalMatcher.urls, *parsedURL)
+			m.urls = append(m.urls, *parsedURL)
 			continue
 		}
 
 		// Check if it's a naive domain (e.g., "example.com")
 		if isNaiveDomain(element) {
-			globalMatcher.domains.Insert(element)
+			m.domains.Insert(element)
 			continue
 		}
 
@@ -95,31 +125,31 @@ func AddElements(elements []string, files []string) error {
 		if err != nil {
 			return err
 		}
-		globalMatcher.regexes = append(globalMatcher.regexes, re)
+		m.regexes = append(m.regexes, re)
 	}
 
-	slog.Info("domainscrawl", "enabled", globalMatcher.enabled, "domains", globalMatcher.domains.Size(), "urls", len(globalMatcher.urls), "regexes", len(globalMatcher.regexes))
+	slog.Info("domainscrawl", "enabled", m.enabled, "domains", m.domains.Size(), "urls", len(m.urls), "regexes", len(m.regexes))
 
 	return nil
 }
 
 // Match checks if a given URL matches any of the stored patterns
-func Match(rawURL string) bool {
+func (m *matchEngine) Match(rawURL string) bool {
 	u, err := fasturl.ParseURL(rawURL)
 	if err != nil {
 		return false
 	}
 
-	globalMatcher.RLock()
-	defer globalMatcher.RUnlock()
+	m.RLock()
+	defer m.RUnlock()
 
 	// Check against naive domains, trying an exact match (O(1) lookup, fastest), else do a prefix search for subdomains (O(n) where n is the length of the domain)
-	if globalMatcher.domains.ExactMatch(u.Host) || globalMatcher.domains.PrefixMatch(u.Host) {
+	if m.domains.ExactMatch(u.Host) || m.domains.PrefixMatch(u.Host) {
 		return true
 	}
 
 	// Check against full URLs
-	for _, storedURL := range globalMatcher.urls {
+	for _, storedURL := range m.urls {
 		if storedURL.String() == rawURL {
 			return true
 		}
@@ -131,7 +161,7 @@ func Match(rawURL string) bool {
 	}
 
 	// Check against regex patterns
-	for _, re := range globalMatcher.regexes {
+	for _, re := range m.regexes {
 		if re.MatchString(rawURL) {
 			return true
 		}
