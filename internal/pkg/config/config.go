@@ -211,6 +211,7 @@ func InitConfig() error {
 		config.SetContext(context.Background())
 
 		// Check if a config file is provided via flag
+		configFileProvided := viper.GetString("config-file") != ""
 		if configFile := viper.GetString("config-file"); configFile != "" {
 			viper.SetConfigFile(configFile)
 		} else {
@@ -230,13 +231,30 @@ func InitConfig() error {
 		viper.SetEnvKeyReplacer(replacer)
 		viper.AutomaticEnv()
 
-		if err = viper.ReadInConfig(); err == nil {
+		err = viper.ReadInConfig()
+		if err != nil {
+			if configFileProvided {
+				// User explicitly provided a config file, any error should be reported
+				err = fmt.Errorf("error reading config file: %w", err)
+				return
+			} else {
+				// Using default config file location
+				// Only report errors for parsing issues, not for file not found
+				if _, isNotFoundError := err.(viper.ConfigFileNotFoundError); !isNotFoundError {
+					// Config file exists but has errors (e.g., invalid YAML)
+					err = fmt.Errorf("error reading config file: %w", err)
+					return
+				}
+				// Config file doesn't exist at default location, which is OK
+				err = nil // Clear the error since file not found is OK for default config
+			}
+		} else {
 			fmt.Println("Using config file:", viper.ConfigFileUsed())
 		}
 
 		if viper.GetBool("consul-config") && viper.GetString("consul-address") != "" {
 			var consulAddress *url.URL
-			consulAddress, err = url.Parse(viper.GetString("consul-address"))
+			consulAddress, err := url.Parse(viper.GetString("consul-address"))
 			if err != nil {
 				return
 			}
@@ -246,7 +264,7 @@ func InitConfig() error {
 			viper.SetConfigType(filepath.Ext(consulFile))
 			viper.SetConfigName(strings.TrimSuffix(consulFile, filepath.Ext(consulFile)))
 
-			if err = viper.ReadInConfig(); err == nil {
+			if err := viper.ReadInConfig(); err == nil {
 				fmt.Println("Using config file:", viper.ConfigFileUsed())
 			}
 		}

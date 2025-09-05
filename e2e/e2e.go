@@ -23,7 +23,16 @@ var DialTimeout = 10 * time.Second
 
 func cmdZenoGetURL(urls []string) *cobra.Command {
 	cmd := cmd.Prepare()
-	args := append([]string{"get", "url", "--config-file", "config.toml", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}, urls...)
+	
+	// If config.toml exists in pwd, include it in args
+	var args []string
+	commonArgs := []string{"get", "url", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}
+	if _, err := os.Stat("config.toml"); err == nil {
+		args = append(commonArgs,append([]string{"--config-file", "config.toml"}, urls...)...)
+	} else {
+		args = append(commonArgs, urls...)
+	}
+	
 	fmt.Println("Command arguments:", args)
 	cmd.SetArgs(args)
 	return cmd
