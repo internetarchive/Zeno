@@ -5,6 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
@@ -364,66 +365,76 @@ func TestNoSubscribers(t *testing.T) {
 }
 
 func TestPauseResumeE2E(t *testing.T) {
-	stats.Init()
-	manager = &pauseManager{}
-	var workCounter int32 // Counts the amount of work done.
-	var wg sync.WaitGroup
-	wg.Add(1)
+	synctest.Test(t, func(t *testing.T) {
+		stats.Init()
+		manager = &pauseManager{}
+		var workCounter int32 // Counts the amount of work done.
+		var wg sync.WaitGroup
 
-	ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
 
-	// Start the worker goroutine.
-	go func() {
-		controlChans := Subscribe()
-		defer Unsubscribe(controlChans)
-		defer wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-controlChans.PauseCh:
-				// Attempt to send to ResumeCh; blocks until Resume() reads from it.
-				controlChans.ResumeCh <- struct{}{}
-			default:
-				// Simulate work.
-				atomic.AddInt32(&workCounter, 1)
-				time.Sleep(100 * time.Millisecond)
+		// Start the worker goroutine.
+		wg.Go(func() {
+			controlChans := Subscribe()
+			defer Unsubscribe(controlChans)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-controlChans.PauseCh:
+					// Attempt to send to ResumeCh; blocks until Resume() reads from it.
+					controlChans.ResumeCh <- struct{}{}
+				default:
+					// Simulate work.
+					time.Sleep(100 * time.Millisecond)
+					atomic.AddInt32(&workCounter, 1)
+					t.Log(time.Now(), "Work done:", atomic.LoadInt32(&workCounter))
+				}
 			}
+		})
+
+		// Allow the worker to do some work.
+		time.Sleep(1 * time.Second)
+		synctest.Wait()
+
+		// Pause the system.
+		t.Log("Pausing...")
+		Pause()
+		time.Sleep(500 * time.Millisecond) // Give some time to ensure the worker has paused.
+		synctest.Wait()
+		t.Log("Should be paused now.")
+
+		workAfterPause := atomic.LoadInt32(&workCounter)
+
+		time.Sleep(100 * time.Second)
+		synctest.Wait()
+
+		// Resume the system.
+		workBeforeResume := atomic.LoadInt32(&workCounter)
+		t.Log("Resuming...")
+		Resume()
+
+		// Allow the worker to do more work.
+		time.Sleep(1 * time.Second)
+		synctest.Wait()
+		t.Log("Finalizing...")
+		cancel()
+		wg.Wait()
+		workFinal := atomic.LoadInt32(&workCounter)
+
+		// Calculate the amount of work done during the pause.
+		workDuringPause := workBeforeResume - workAfterPause
+
+		// Check that no work was done during the pause.
+		if workDuringPause != 0 {
+			t.Fatalf("Expected no work during pause, but got %d units of work", workDuringPause)
 		}
-	}()
 
-	// Allow the worker to do some work.
-	time.Sleep(1 * time.Second)
-	workBeforePause := atomic.LoadInt32(&workCounter)
-
-	// Pause the system.
-	Pause()
-	pauseStart := time.Now()
-
-	// Sleep for 1 second to keep the system paused.
-	time.Sleep(1 * time.Second)
-
-	// Resume the system.
-	Resume()
-	pauseDuration := time.Since(pauseStart)
-
-	// Allow the worker to do more work.
-	time.Sleep(1 * time.Second)
-	workAfterResume := atomic.LoadInt32(&workCounter)
-
-	// Calculate the amount of work done during the pause.
-	workDuringPause := workAfterResume - workBeforePause - 10 // Expected 10 units of work after resume.
-
-	// Check that no work was done during the pause.
-	if workDuringPause != 0 {
-		t.Fatalf("Expected no work during pause, but got %d units of work", workDuringPause)
-	}
-
-	// Verify that the pause duration is approximately 1 second.
-	if pauseDuration < 900*time.Millisecond || pauseDuration > 1100*time.Millisecond {
-		t.Fatalf("Expected pause duration around 1 second, but got %v", pauseDuration)
-	}
-
-	cancel()
-	wg.Wait()
+		t.Logf("Work done after pause: %d", workAfterPause)
+		t.Logf("Work done before resume: %d", workBeforeResume)
+		t.Logf("Work done after resume: %d", workFinal)
+		if workFinal < 20 || workFinal > 22 {
+			t.Fatalf("Expected [20, 21, 22] units of all work, but got %d", workFinal)
+		}
+	})
 }
