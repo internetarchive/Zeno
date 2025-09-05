@@ -69,4 +69,8 @@ func getHQCmdFlags(getHQCmd *cobra.Command) {
 	getHQCmd.MarkPersistentFlagRequired("hq-key")
 	getHQCmd.MarkPersistentFlagRequired("hq-secret")
 	getHQCmd.MarkPersistentFlagRequired("hq-project")
+
+	// Optional 2nd HQ project to send outlinks
+	getHQCmd.PersistentFlags().String("hq-outlinks-project", "", "")
+	getHQCmd.PersistentFlags().Int("hq-outlinks-hop-limit", 0, "")
 }

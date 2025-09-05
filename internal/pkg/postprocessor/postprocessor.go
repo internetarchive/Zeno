@@ -14,11 +14,12 @@ import (
 )
 
 type postprocessor struct {
-	wg       sync.WaitGroup
-	ctx      context.Context
-	cancel   context.CancelFunc
-	inputCh  chan *models.Item
-	outputCh chan *models.Item
+	wg                  sync.WaitGroup
+	ctx                 context.Context
+	cancel              context.CancelFunc
+	inputCh             chan *models.Item
+	outputCh            chan *models.Item
+	hqOutlinksProduceCh chan *models.Item
 }
 
 var (
@@ -29,7 +30,7 @@ var (
 
 // This functions starts the preprocessor responsible for preparing
 // the seeds sent by the reactor for captures
-func Start(inputChan, outputChan chan *models.Item) error {
+func Start(inputChan, outputChan, hqOutlinksProduceChan chan *models.Item) error {
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor",
 	})
@@ -37,10 +38,11 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		globalPostprocessor = &postprocessor{
-			ctx:      ctx,
-			cancel:   cancel,
-			inputCh:  inputChan,
-			outputCh: outputChan,
+			ctx:                 ctx,
+			cancel:              cancel,
+			inputCh:             inputChan,
+			outputCh:            outputChan,
+			hqOutlinksProduceCh: hqOutlinksProduceChan,
 		}
 		logger.Debug("initialized")
 		for i := 0; i < config.Get().WorkersCount; i++ {
@@ -100,6 +102,8 @@ func (p *postprocessor) worker(workerID string) {
 					logger.Debug("skipping seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops(), "status", seed.GetStatus())
 				} else {
 					outlinks := postprocess(workerID, seed)
+					outlinks = p.sendToHQOutlinks(outlinks)
+
 					for i := range outlinks {
 						select {
 						case <-p.ctx.Done():
@@ -121,6 +125,26 @@ func (p *postprocessor) worker(workerID string) {
 				}
 			}
 		}
+	}
+}
+
+// If options UseHQ, HQOutlinks & HQOutlinksHopLimit are selected, send outlinks
+// to a different HQ project and don't return them for further processing.
+func (p *postprocessor) sendToHQOutlinks(outlinks []*models.Item) []*models.Item {
+	if config.Get().UseHQ && config.Get().HQOutlinksProject != "" && config.Get().HQOutlinksHopLimit > 0 {
+		var filtered []*models.Item
+		for i := range outlinks {
+			if outlinks[i].GetURL().GetHops() >= config.Get().HQOutlinksHopLimit {
+				logger.Info("sending outlink to HQ", "project", config.Get().HQOutlinksProject, "hop", outlinks[i].GetURL().GetHops())
+				p.hqOutlinksProduceCh <- outlinks[i]
+			} else {
+				logger.Info("keeping outlink in the current project")
+				filtered = append(filtered, outlinks[i])
+			}
+		}
+		return filtered
+	} else {
+		return outlinks
 	}
 }
 

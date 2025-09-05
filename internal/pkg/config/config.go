@@ -94,6 +94,10 @@ type Config struct {
 	DisableAssetsCapture            bool          `mapstructure:"disable-assets-capture"`
 	UseHQ                           bool          // Special field to check if HQ is enabled depending on the command called
 
+	//  Optional 2nd HQ instance just to gather outlinks to a different project
+	HQOutlinksProject  string `mapstructure:"hq-outlinks-project"`
+	HQOutlinksHopLimit int    `mapstructure:"hq-outlinks-hop-limit"`
+
 	// Headless
 	Headless                 bool     `mapstructure:"headless"`
 	HeadlessHeadful          bool     `mapstructure:"headless-headful"`
