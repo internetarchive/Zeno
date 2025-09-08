@@ -74,11 +74,9 @@ func (s *HQ) listenMessages() {
 }
 
 func dispatchMessageByType(msg []byte) (string, error) {
-	type msgType struct {
+	var m struct {
 		Type string `json:"type"`
 	}
-
-	var m msgType
 	var err error
 
 	if err = json.Unmarshal(msg, &m); err != nil {
@@ -97,11 +95,9 @@ func dispatchMessageByType(msg []byte) (string, error) {
 }
 
 func handleSignalMsg(msg []byte) error {
-	type signalMsg struct {
+	var m struct {
 		Signal int `json:"signal"`
 	}
-	var m signalMsg
-
 	if err := json.Unmarshal(msg, &m); err != nil {
 		return err
 	}
@@ -118,7 +114,7 @@ func handleSignalMsg(msg []byte) error {
 }
 
 func handleConfirmedMsg(msg []byte) error {
-	type confirmedMsg struct {
+	var m struct {
 		Type    string `json:"type"`
 		Payload struct {
 			Project    string `json:"project"`
@@ -130,13 +126,7 @@ func handleConfirmedMsg(msg []byte) error {
 			GoVersion  string `json:"goVersion"`
 		} `json:"payload"`
 	}
-	var m confirmedMsg
-
-	if err := json.Unmarshal(msg, &m); err != nil {
-		return err
-	}
-
-	return nil
+	return json.Unmarshal(msg, &m)
 }
 
 func (s *HQ) sendIdentify(logger *log.FieldedLogger) {
