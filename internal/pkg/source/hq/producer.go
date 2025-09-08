@@ -70,6 +70,7 @@ func (s *HQ) producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh c
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "hq.producerReceiver",
 	})
+	logger.Debug("start producerReceiver for", "project", s.HQProject)
 
 	batchSize := getProducerBatchSize()
 	maxWaitTime := 5 * time.Second
@@ -91,6 +92,7 @@ func (s *HQ) producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh c
 				Via:   item.GetSeedVia(),
 				Path:  hopsToPath(item.GetURL().GetHops()),
 			}
+			logger.Debug("Received", "URL", item.GetURL().Raw)
 			batch.URLs = append(batch.URLs, URL)
 			if len(batch.URLs) >= batchSize {
 				logger.Debug("sending batch to dispatcher", "size", len(batch.URLs))
