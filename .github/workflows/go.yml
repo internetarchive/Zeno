@@ -17,7 +17,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
 
@@ -43,7 +43,7 @@ jobs:
         go tool covdata textfmt -i /tmp/e2e_coverage/ -o e2e_coverage.txt
 
     - name: Upload coverage reports to Codecov (unittests)
-      uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00 #v5.5.0
+      uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 #v5.5.1
       continue-on-error: true
       with:
         flags: unittests
@@ -52,7 +52,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage reports to Codecov (e2e tests)
-      uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00 #v5.5.0
+      uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 #v5.5.1
       continue-on-error: true
       with:
         flags: e2etests
@@ -70,7 +70,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
     - uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
