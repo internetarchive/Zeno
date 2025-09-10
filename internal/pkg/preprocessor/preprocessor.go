@@ -138,7 +138,7 @@ func (p *preprocessor) worker(workerID string) {
 				}
 
 				if err := preprocess(workerID, seed); err != nil {
-					panic(fmt.Sprintf("preprocess failed with err: %s" , err.Error()))
+					panic(fmt.Sprintf("preprocess failed with err: %v", err))
 				}
 
 				select {
