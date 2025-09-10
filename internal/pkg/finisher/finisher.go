@@ -2,6 +2,7 @@ package finisher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -94,54 +95,59 @@ func (f *finisher) worker(workerID string) {
 			logger.Debug("received resume event")
 		case seed, ok := <-f.inputCh:
 			if ok {
-				if seed == nil {
-					panic("received nil seed")
-				}
-
-				if !seed.IsSeed() {
-					panic("received non-seed item")
-				}
-
-				logger.Debug("received seed", "seed", seed.GetShortID())
-
-				if err := seed.CheckConsistency(); err != nil {
-					panic(fmt.Sprintf("seed consistency check failed with err: %s, seed id %s, worker id %s", err.Error(), seed.GetShortID(), workerID))
-				}
-
-				// If the seed is fresh, send it to the source
-				if seed.GetStatus() == models.ItemFresh {
-					logger.Debug("fresh seed received", "seed", seed)
-					f.sourceProducedCh <- seed
-					continue
-				}
-
-				// If the seed has fresh children, send it to feedback
-				isComplete := seed.CompleteAndCheck()
-				if !isComplete {
-					logger.Debug("seed has fresh children", "seed", seed.GetShortID())
-					err := reactor.ReceiveFeedback(seed)
-					if err != nil && err != reactor.ErrReactorFrozen {
-						panic(err)
-					}
-					continue
-				}
-
-				// If the seed has no fresh redirection or children, mark it as finished
-				logger.Debug("seed has no fresh redirection or children", "seed", seed.GetShortID())
-				err := reactor.MarkAsFinished(seed)
-				if err != nil {
+				if err := f.handleSeed(seed, workerID, logger); err != nil {
 					panic(err)
 				}
-
-				// Notify the source that the seed has been finished
-				// E.g.: to delete the seed in Crawl HQ
-				if f.sourceFinishedCh != nil {
-					f.sourceFinishedCh <- seed
-				}
-
-				stats.SeedsFinishedIncr()
-				logger.Debug("seed finished", "seed", seed.GetShortID())
 			}
 		}
 	}
+}
+
+func (f *finisher) handleSeed(seed *models.Item, workerID string, logger *log.FieldedLogger) error {
+	if seed == nil {
+		return errors.New("received nil seed")
+	}
+
+	if !seed.IsSeed() {
+		return errors.New("received non-seed item")
+	}
+
+	logger.Debug("received seed", "seed", seed.GetShortID())
+
+	if err := seed.CheckConsistency(); err != nil {
+		return fmt.Errorf("seed consistency check failed with err: for %s: %s", err.Error(), seed.GetShortID())
+	}
+
+	// If the seed is fresh, send it to the source
+	if seed.GetStatus() == models.ItemFresh {
+		logger.Debug("fresh seed received", "seed", seed)
+		f.sourceProducedCh <- seed
+		return nil
+	}
+
+	// If the seed has fresh children, send it to feedback
+	if !seed.CompleteAndCheck() {
+		logger.Debug("seed has fresh children", "seed", seed.GetShortID())
+		if err := reactor.ReceiveFeedback(seed); err != nil && err != reactor.ErrReactorFrozen {
+			return fmt.Errorf("worker %s: feedback failed for %s: %w", workerID, seed.GetShortID(), err)
+		}
+		return nil
+	}
+
+	// Otherwise mark as finished
+	logger.Debug("seed has no fresh redirection or children", "seed", seed.GetShortID())
+	if err := reactor.MarkAsFinished(seed); err != nil {
+		return fmt.Errorf("worker %s: mark as finished failed for %s: %w", workerID, seed.GetShortID(), err)
+	}
+
+	// Notify the source that the seed has been finished
+	// E.g.: to delete the seed in Crawl HQ
+	if f.sourceFinishedCh != nil {
+		f.sourceFinishedCh <- seed
+	}
+
+	stats.SeedsFinishedIncr()
+	logger.Debug("seed finished", "seed", seed.GetShortID())
+
+	return nil
 }
