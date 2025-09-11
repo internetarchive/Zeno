@@ -25,7 +25,6 @@ type HQ struct {
 }
 
 var (
-	once   sync.Once
 	logger *log.FieldedLogger
 )
 
@@ -40,47 +39,34 @@ func New(HQKey, HQSecret, HQProject, HQAddress string) *HQ {
 
 // Start initializes HQ async routines with the given input and output channels.
 func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
-	var done bool
-	var startErr error
-
 	logger = log.NewFieldedLogger(&log.Fields{
 		"component": "hq",
 	})
 
-	once.Do(func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.HQProject, s.HQAddress, "", 5)
-		if err != nil {
-			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
-			cancel()
-			done = true
-			startErr = err
-			return
-		}
-
-		s.wg = sync.WaitGroup{}
-		s.ctx = ctx
-		s.cancel = cancel
-		s.finishCh = finishChan
-		s.produceCh = produceChan
-		s.client = HQclient
-
-		s.wg.Add(4)
-		go s.consumer()
-		go s.producer()
-		go s.finisher()
-		go s.websocket()
-
-		logger.Info("started")
-
-		done = true
-	})
-
-	if !done {
-		return ErrHQAlreadyInitialized
+	ctx, cancel := context.WithCancel(context.Background())
+	HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.HQProject, s.HQAddress, "", 5)
+	if err != nil {
+		logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
+		cancel()
+		return err
 	}
 
-	return startErr
+	s.wg = sync.WaitGroup{}
+	s.ctx = ctx
+	s.cancel = cancel
+	s.finishCh = finishChan
+	s.produceCh = produceChan
+	s.client = HQclient
+
+	s.wg.Add(4)
+	go s.consumer()
+	go s.producer()
+	go s.finisher()
+	go s.websocket()
+
+	logger.Info("started", "project", s.HQProject)
+
+	return nil
 }
 
 // Stop stops the global HQ and waits for all goroutines to finish. Finisher must be stopped first and Reactor must be frozen before stopping HQ.
@@ -95,7 +81,6 @@ func (s *HQ) Stop() {
 			}
 			logger.Debug("reset seed", "id", seed)
 		}
-		once = sync.Once{}
 		logger.Info("stopped")
 	}
 }
