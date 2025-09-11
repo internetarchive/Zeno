@@ -137,7 +137,9 @@ func (p *preprocessor) worker(workerID string) {
 					panic(fmt.Sprintf("preprocessor received seed with status %d, seed id: %s, worker_id %s", seed.GetStatus(), seed.GetShortID(), workerID))
 				}
 
-				preprocess(workerID, seed)
+				if err := preprocess(workerID, seed); err != nil {
+					panic(fmt.Sprintf("preprocess failed with err: %v", err))
+				}
 
 				select {
 				case <-p.ctx.Done():
@@ -150,7 +152,7 @@ func (p *preprocessor) worker(workerID string) {
 	}
 }
 
-func preprocess(workerID string, seed *models.Item) {
+func preprocess(workerID string, seed *models.Item) error {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "preprocessor.preprocess",
 		"worker_id": workerID,
@@ -161,7 +163,7 @@ func preprocess(workerID string, seed *models.Item) {
 
 	items, err := seed.GetNodesAtLevel(operatingDepth)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	for i := range items {
@@ -177,7 +179,7 @@ func preprocess(workerID string, seed *models.Item) {
 			if err != nil {
 				logger.Debug("unable to validate URL", "item_id", items[i].GetShortID(), "url", items[i].GetURL().Raw, "err", err.Error())
 				items[i].SetStatus(models.ItemFailed)
-				return
+				return nil
 			}
 		} else {
 			err := NormalizeURL(items[i].GetURL(), items[i].GetParent().GetURL())
@@ -203,7 +205,7 @@ func preprocess(workerID string, seed *models.Item) {
 				}
 
 				items[i].SetStatus(models.ItemCompleted)
-				return
+				return nil
 			}
 		}
 
@@ -222,7 +224,7 @@ func preprocess(workerID string, seed *models.Item) {
 			}
 
 			items[i].SetStatus(models.ItemCompleted)
-			return
+			return nil
 		}
 
 		// If we are processing assets, then we need to remove childs that are just domains
@@ -240,13 +242,13 @@ func preprocess(workerID string, seed *models.Item) {
 
 	items, err = seed.GetNodesAtLevel(operatingDepth)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if len(items) == 0 {
 		logger.Debug("no more work to do after dedupe")
 		seed.SetStatus(models.ItemCompleted)
-		return
+		return nil
 	}
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
@@ -260,7 +262,7 @@ func preprocess(workerID string, seed *models.Item) {
 	// Recreate the items list after deduplication and seencheck
 	items, err = seed.GetNodesAtLevel(operatingDepth)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// Remove any item that is not fresh from the list
@@ -273,7 +275,7 @@ func preprocess(workerID string, seed *models.Item) {
 	if len(items) == 0 {
 		logger.Debug("no more work to do after seencheck")
 		seed.SetStatus(models.ItemCompleted)
-		return
+		return nil
 	}
 
 	// Finally, we build the requests, applying any site-specific behavior needed
@@ -293,4 +295,5 @@ func preprocess(workerID string, seed *models.Item) {
 		items[i].GetURL().SetRequest(req)
 		items[i].SetStatus(models.ItemPreProcessed)
 	}
+	return nil
 }
