@@ -114,7 +114,7 @@ func addWARCFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("warc-operator", "", "Contact informations of the crawl operator to write in the Warc-Info record in each WARC file.")
 	getCmd.PersistentFlags().String("warc-cdx-dedupe-server", "", "Identify the server to use CDX deduplication. This activates CDX deduplication.")
 	getCmd.PersistentFlags().String("warc-doppelganger-dedupe-server", "", "Identify the server to use doppelganger deduplication. This activates doppelganger deduplication.")
-	getCmd.PersistentFlags().String("warc-digest-algorithm", "blake3", "Digest algorithm to use for WARC records (Block & Payload digests). Possible values are: sha1, sha256, blake3. (note: SHA-1 is cryptographically broken and should not be used due to collision vulnerabilities)")
+	getCmd.PersistentFlags().String("warc-digest-algorithm", "sha256", "Digest algorithm to use for WARC records (Block & Payload digests). Possible values are: sha1, sha256, blake3. (note: SHA-1 is cryptographically broken and should not be used due to collision vulnerabilities)")
 	getCmd.PersistentFlags().Bool("warc-on-disk", false, "Do not use RAM to store payloads when recording traffic to WARCs, everything will happen on disk (usually used to reduce memory usage).")
 	getCmd.PersistentFlags().Int("warc-pool-size", 1, "Number of concurrent WARC files to write.")
 	getCmd.PersistentFlags().Int("warc-queue-size", -1, "Number of WARC records to queue before blocking the workers. Default is the --warc-pool-size.")
