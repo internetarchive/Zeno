@@ -96,7 +96,7 @@ func ReceiveFeedback(item *models.Item) error {
 
 	if !item.IsSeed() {
 		spew.Dump(item)
-		panic("item is not a seed")
+		return models.ErrNotASeed
 	}
 
 	item.SetSource(models.ItemSourceFeedback)
@@ -133,7 +133,7 @@ func ReceiveInsert(item *models.Item) error {
 		logger.Debug("received item", "item", item.GetShortID())
 		if !item.IsSeed() {
 			spew.Dump(item)
-			panic("item is not a seed")
+			return models.ErrNotASeed
 		}
 		if item.GetSource() != models.ItemSourceQueue && item.GetSource() != models.ItemSourceHQ {
 			item.SetSource(models.ItemSourceInsert)
@@ -142,7 +142,7 @@ func ReceiveInsert(item *models.Item) error {
 		if loaded {
 			spew.Dump(loadedItem.(*models.Item))
 			spew.Dump(item)
-			panic("item already present in reactor")
+			return ErrReactorItemPresent
 		}
 
 		globalReactor.input <- item

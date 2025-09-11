@@ -14,6 +14,8 @@ var (
 
 	// ErrFeedbackItemNotPresent is the error returned when an item was sent to the feedback channel but not found in the state table
 	ErrFeedbackItemNotPresent = errors.New("feedback item not present in state table")
+	// ErrReactorItemPresent is the error returned when a received item is already in the state table
+	ErrReactorItemPresent = errors.New("item already present in reactor")
 	// ErrFinisehdItemNotFound is the error returned when an item been marked as finished but not found in the state table
 	ErrFinisehdItemNotFound = errors.New("markAsFinished item not present in state table")
 )
