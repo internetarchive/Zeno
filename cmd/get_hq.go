@@ -72,5 +72,6 @@ func getHQCmdFlags(getHQCmd *cobra.Command) {
 
 	// Optional 2nd HQ project to send outlinks
 	getHQCmd.PersistentFlags().String("hq-outlinks-project", "", "")
+	// Send outlinks with hops>=hq-outlinks-hop-limit to hq-outlinks-project
 	getHQCmd.PersistentFlags().Int("hq-outlinks-hop-limit", 0, "")
 }
