@@ -216,7 +216,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 		{
 			name:     "Item with nil URL",
 			item:     createTestItem("testID", nil),
-			expected: errors.New("url is nil"),
+			expected: ErrItemURLNil,
 		},
 		{
 			name: "Item with empty ID",
@@ -225,7 +225,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 				item.url = &URL{Raw: "http://example.com"}
 				return item
 			}(),
-			expected: errors.New("id is empty"),
+			expected: ErrItemIDEmpty,
 		},
 		{
 			name: "Child item with seedVia",
@@ -237,7 +237,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 				item.seedVia = "seedViaTest"
 				return item
 			}(),
-			expected: errors.New("item is a child but has a seedVia"),
+			expected: ErrItemChildHasSeedVia,
 		},
 		{
 			name: "Item is fresh but has children",
@@ -248,7 +248,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 				createTestItem("child1", root)
 				return root
 			}(),
-			expected: errors.New("item is fresh but has children"),
+			expected: ErrItemFreshHasChildren,
 		},
 		{
 			name: "Item is fresh but parent is not ItemGotChildren or ItemGotRedirected",
@@ -261,7 +261,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 				child.status = ItemFresh
 				return child
 			}(),
-			expected: errors.New("item is not a seed and fresh but parent is not ItemGotChildren or ItemGotRedirected"),
+			expected: ErrItemFreshParentInvalid,
 		},
 		{
 			name: "Item has more than one children but is ItemGotRedirected",
@@ -273,7 +273,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 				createTestItem("child2", root)
 				return root
 			}(),
-			expected: errors.New("item has more than one children but is ItemGotRedirected"),
+			expected: ErrItemRedirectedHasMultipleChildren,
 		},
 		{
 			name: "Item has children but is not ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed",
@@ -284,7 +284,7 @@ func TestItem_CheckConsistency(t *testing.T) {
 				createTestItem("child1", root)
 				return root
 			}(),
-			expected: errors.New("item has children but is not ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed"),
+			expected: ErrItemChildrenStateInvalid,
 		},
 		{
 			name: "Valid seed item",

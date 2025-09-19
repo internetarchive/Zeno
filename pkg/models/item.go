@@ -90,42 +90,42 @@ const (
 // Ideally this function should be called after every mutation of an item object to ensure consistency and throw a panic if consistency is broken
 func (i *Item) CheckConsistency() error {
 	if i == nil {
-		return fmt.Errorf("item is nil")
+		return ErrItemNil
 	}
 
 	// The item should have a URL
 	if i.url == nil {
-		return fmt.Errorf("url is nil")
+		return ErrItemURLNil
 	}
 
 	// The item should have an ID
 	if i.id == "" {
-		return fmt.Errorf("id is empty")
+		return ErrItemIDEmpty
 	}
 
 	// If item is a child, it shouldnt have a seedVia
 	if !i.IsSeed() && i.seedVia != "" {
-		return fmt.Errorf("item is a child but has a seedVia")
+		return ErrItemChildHasSeedVia
 	}
 
 	// If item is fresh, it shouldnt have children
 	if i.status == ItemFresh && len(i.children) > 0 {
-		return fmt.Errorf("item is fresh but has children")
+		return ErrItemFreshHasChildren
 	}
 
 	// If item is fresh, it should either : have a parent with status ItemGotChildren or ItemGotRedirected, or be a seed
 	if i.status == ItemFresh && !i.IsSeed() && i.parent.status != ItemGotChildren && i.parent.status != ItemGotRedirected {
-		return fmt.Errorf("item is not a seed and fresh but parent is not ItemGotChildren or ItemGotRedirected")
+		return ErrItemFreshParentInvalid
 	}
 
 	// If item has more than one children, it should not have status ItemGotRedirected
 	if len(i.children) > 1 && i.status == ItemGotRedirected {
-		return fmt.Errorf("item has more than one children but is ItemGotRedirected")
+		return ErrItemRedirectedHasMultipleChildren
 	}
 
 	// If item has childrens, it should have status ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed
 	if len(i.children) > 0 && i.status != ItemGotChildren && i.status != ItemGotRedirected && i.status != ItemCompleted && i.status != ItemFailed {
-		return fmt.Errorf("item has children but is not ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed")
+		return ErrItemChildrenStateInvalid
 	}
 
 	// Traverse the tree to check for inconsistencies in children
@@ -426,12 +426,16 @@ func (i *Item) Close() {
 
 // Errors definition
 var (
-	// ErrNotASeed is returned when the item is not a seed
-	ErrNotASeed = errors.New("item is not a seed")
-	// ErrFailedAtPreprocessor is returned when the item failed at the preprocessor
-	ErrFailedAtPreprocessor = errors.New("item failed at preprocessor")
-	// ErrFailedAtArchiver is returned when the item failed at the archiver
-	ErrFailedAtArchiver = errors.New("item failed at archiver")
-	// ErrFailedAtPostprocessor is returned when the item failed at the postprocessor
-	ErrFailedAtPostprocessor = errors.New("item failed at postprocessor")
+	ErrNotASeed                          = errors.New("item is not a seed")
+	ErrFailedAtPreprocessor              = errors.New("item failed at preprocessor")
+	ErrFailedAtArchiver                  = errors.New("item failed at archiver")
+	ErrFailedAtPostprocessor             = errors.New("item failed at postprocessor")
+	ErrItemNil                           = errors.New("item is nil")
+	ErrItemURLNil                        = errors.New("url is nil")
+	ErrItemIDEmpty                       = errors.New("id is empty")
+	ErrItemChildHasSeedVia               = errors.New("item is a child but has a seedVia")
+	ErrItemFreshHasChildren              = errors.New("item is fresh but has children")
+	ErrItemFreshParentInvalid            = errors.New("item is not a seed and fresh but parent is not ItemGotChildren or ItemGotRedirected")
+	ErrItemRedirectedHasMultipleChildren = errors.New("item has more than one child but is ItemGotRedirected")
+	ErrItemChildrenStateInvalid          = errors.New("item has children but is not ItemGotChildren, ItemGotRedirected, ItemCompleted or ItemFailed")
 )
