@@ -221,8 +221,7 @@ func InitConfig() error {
 		} else {
 			home, err := os.UserHomeDir()
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+				return
 			}
 
 			viper.AddConfigPath(home)
@@ -357,8 +356,7 @@ func GenerateCrawlConfig() error {
 	}
 
 	if config.DisableIPv4 && config.DisableIPv6 {
-		slog.Error("both IPv4 and IPv6 are disabled, at least one of them must be enabled.")
-		os.Exit(1)
+		return fmt.Errorf("both IPv4 and IPv6 are disabled, at least one of them must be enabled.")
 	} else if config.DisableIPv4 {
 		slog.Info("IPv4 is disabled")
 	} else if config.DisableIPv6 {
