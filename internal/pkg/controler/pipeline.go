@@ -35,31 +35,29 @@ var hqOutlinks *hq.HQ
  * finisherFinishChan: finisher → HQ or LQ. Notify when a seed is finished.
  * finisherProduceChan: HQ or LQ → finisher. Send fresh seeds.
  */
-func startPipeline() {
-	if err := os.MkdirAll(config.Get().JobPath, 0755); err != nil {
-		fmt.Printf("can't create job directory: %s\n", err)
-		os.Exit(1)
-	}
-
-	if err := watchers.CheckDiskUsage(config.Get().JobPath); err != nil {
-		fmt.Printf("can't start Zeno: %s\n", err)
-		os.Exit(1)
-	}
-
+func startPipeline() error {
 	err := log.Start()
 	if err != nil {
 		fmt.Println("error starting logger", "err", err.Error())
-		panic(err)
+		return err
 	}
 
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "controler.StartPipeline",
 	})
+	if err := os.MkdirAll(config.Get().JobPath, 0755); err != nil {
+		logger.Error("can't create job directory", "err", err.Error())
+		return err
+	}
+	if err := watchers.CheckDiskUsage(config.Get().JobPath); err != nil {
+		logger.Error("can't start Zeno", "err", err.Error())
+		return err
+	}
 
 	err = stats.Init()
 	if err != nil {
 		logger.Error("error initializing stats", "err", err.Error())
-		panic(err)
+		return err
 	}
 
 	// Start the disk watcher
@@ -75,7 +73,7 @@ func startPipeline() {
 		err := consul.Register()
 		if err != nil {
 			logger.Error("error registering Zeno in Consul", "err", err.Error())
-			panic(err)
+			return err
 		}
 	}
 
@@ -84,7 +82,7 @@ func startPipeline() {
 	err = reactor.Start(config.Get().WorkersCount, reactorOutputChan)
 	if err != nil {
 		logger.Error("error starting reactor", "err", err.Error())
-		panic(err)
+		return err
 	}
 
 	// If needed, create the seencheck DB (only if not using HQ)
@@ -92,7 +90,7 @@ func startPipeline() {
 		err := seencheck.Start(config.Get().JobPath)
 		if err != nil {
 			logger.Error("unable to start seencheck", "err", err.Error())
-			panic(err)
+			return err
 		}
 	}
 
@@ -100,14 +98,14 @@ func startPipeline() {
 	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting preprocessor", "err", err.Error())
-		panic(err)
+		return err
 	}
 
 	archiverOutputChan := makeStageChannel(config.Get().WorkersCount)
 	err = archiver.Start(preprocessorOutputChan, archiverOutputChan)
 	if err != nil {
 		logger.Error("error starting archiver", "err", err.Error())
-		panic(err)
+		return err
 	}
 
 	// Used by optional 2nd HQ instance just to gather outlinks to a different project
@@ -121,7 +119,7 @@ func startPipeline() {
 	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan, hqOutlinksProduceChan)
 	if err != nil {
 		logger.Error("error starting postprocessor", "err", err.Error())
-		panic(err)
+		return err
 	}
 
 	finisherFinishChan := makeStageChannel(config.Get().WorkersCount)
@@ -143,7 +141,7 @@ func startPipeline() {
 	err = sourceInterface.Start(finisherFinishChan, finisherProduceChan)
 	if err != nil {
 		logger.Error("error starting source", "source", sourceInterface.Name(), "err", err.Error())
-		panic(err)
+		return err
 	}
 
 	// Optional 2nd HQ instance just to gather outlinks to a different project
@@ -155,7 +153,7 @@ func startPipeline() {
 	err = finisher.Start(postprocessorOutputChan, finisherFinishChan, finisherProduceChan)
 	if err != nil {
 		logger.Error("error starting finisher", "err", err.Error())
-		panic(err)
+		return err
 	}
 
 	// Pipe in the reactor the input seeds if any
@@ -163,7 +161,7 @@ func startPipeline() {
 		for _, seed := range config.Get().InputSeeds {
 			parsedURL, err := models.NewURL(seed)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			item := models.NewItem(&parsedURL, "")
@@ -172,10 +170,11 @@ func startPipeline() {
 			err = reactor.ReceiveInsert(item)
 			if err != nil {
 				logger.Error("unable to insert seed", "err", err.Error())
-				panic(err)
+				return err
 			}
 		}
 	}
+	return nil
 }
 
 func stopPipeline() {
