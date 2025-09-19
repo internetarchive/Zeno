@@ -189,7 +189,6 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			"data-src",
 			"data-srcset",
 			"data-lazy-src",
-			"data-srcset",
 			"src",
 			"srcset",
 		}
