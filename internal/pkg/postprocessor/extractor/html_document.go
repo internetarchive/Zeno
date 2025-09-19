@@ -92,6 +92,7 @@ func encodeNonUTF8QueryURLs(urls []*models.URL, enc encoding.Encoding) []*models
 	if enc == nil || enc == encoding.Nop || enc == unicode.UTF8 {
 		return urls
 	}
+	encoder := enc.NewEncoder()
 
 	for _, URL := range urls {
 		parsedURL, err := url.Parse(URL.Raw)
@@ -99,29 +100,33 @@ func encodeNonUTF8QueryURLs(urls []*models.URL, enc encoding.Encoding) []*models
 			htmldocLogger.Warn("unable to parse URL, keeping original URL", "err", err.Error(), "url", URL.Raw)
 			continue
 		}
+		if parsedURL.RawQuery == "" {
+			// nothing to encode
+			continue
+		}
 		// According to the URL spec, we only need to encode the query part.
 		// The path part should be left as utf8, we don't need to encode it.
 		query := parsedURL.Query()
 		newQuery := url.Values{}
 		for key, values := range query {
-			for _, value := range values {
-				var encodedKey, encodedValue string
-				// If the key/value is not valid UTF-8, we do not encode it since it may already be encoded.
-				// If encoding fails, we keep the original key/value.
+			var encodedKey, encodedValue string
+			// If the key/value is not valid UTF-8, we do not encode it since it may already be encoded.
+			// If encoding fails, we keep the original key/value.
 
-				if !utf8.ValidString(key) {
+			if !utf8.ValidString(key) {
+				encodedKey = key
+			} else {
+				encodedKey, err = encoder.String(key)
+				if err != nil {
+					htmldocLogger.Warn("unable to encode query key", "err", err.Error(), "key", key, "url", URL.Raw)
 					encodedKey = key
-				} else {
-					encodedKey, err = enc.NewEncoder().String(key)
-					if err != nil {
-						htmldocLogger.Warn("unable to encode query key", "err", err.Error(), "key", key, "url", URL.Raw)
-						encodedKey = key
-					}
 				}
+			}
+			for _, value := range values {
 				if !utf8.ValidString(value) {
 					encodedValue = value
 				} else {
-					encodedValue, err = enc.NewEncoder().String(value)
+					encodedValue, err = encoder.String(value)
 					if err != nil {
 						htmldocLogger.Warn("unable to encode query value", "err", err.Error(), "value", value, "url", URL.Raw)
 						encodedValue = value
