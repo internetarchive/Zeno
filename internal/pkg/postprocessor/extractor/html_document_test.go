@@ -120,6 +120,12 @@ func Test_encodeNonUTF8QueryURLs(t *testing.T) {
 			wantUrls: []string{"http://example.com/ABC你好?q=测试", "http://example.com/?q=hello"},
 		},
 		{
+			name:     "UTF-8 bad URL passthrough encoding",
+			encName:  "utf-8",
+			urls:     []string{"://bad.com/ABC你好?q=测试", "http://bad.com/?q=hello"},
+			wantUrls: []string{"://bad.com/ABC你好?q=测试", "http://bad.com/?q=hello"},
+		},
+		{
 			name:     "GBK URLs",
 			encName:  "gbk",
 			urls:     []string{"http://example.com/ABC你好?q=测试", "http://example.com/?q=hello"},
