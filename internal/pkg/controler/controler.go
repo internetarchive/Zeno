@@ -3,7 +3,9 @@ package controler
 
 // Start initializes the pipeline.
 func Start() {
-	startPipeline()
+	if err := startPipeline(); err != nil {
+		panic(err)
+	}
 }
 
 // Stop stops the pipeline.
