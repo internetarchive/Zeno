@@ -200,7 +200,7 @@ func (s *HQ) consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <
 // only the first error will be returned.
 func (s *HQ) getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 	if config.Get().HQBatchConcurrency <= 1 {
-		return s.client.Get(context.TODO(), batchSize)
+		return s.client.Get(s.ctx, batchSize)
 	}
 
 	concurrency := config.Get().HQBatchConcurrency
@@ -208,7 +208,7 @@ func (s *HQ) getURLs(batchSize int) ([]gocrawlhq.URL, error) {
 	urlsChan := make(chan []gocrawlhq.URL)
 	var allURLs []gocrawlhq.URL
 
-	g, _ := errgroup.WithContext(context.TODO())
+	g, _ := errgroup.WithContext(s.ctx)
 
 	// Start concurrent fetches
 	for range concurrency {
