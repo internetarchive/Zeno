@@ -1,6 +1,7 @@
 -- name: GetFreshURLs :many
 SELECT * FROM urls
 WHERE status = 'FRESH'
+ORDER BY hops ASC, timestamp ASC
 LIMIT ?;
 
 -- name: ClaimThisURL :exec
