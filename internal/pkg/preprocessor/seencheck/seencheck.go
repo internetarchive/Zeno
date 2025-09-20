@@ -32,13 +32,13 @@ func Close() {
 	globalSeencheck.DB.Close()
 }
 
-func isSeen(hash string) (found bool, value string) {
+func isSeen(hash string) (found bool, value string, err error) {
 	found, err := globalSeencheck.DB.Get(hash, &value)
 	if err != nil {
-		panic(err)
+		return nil, nil, err
 	}
 
-	return found, value
+	return found, value, nil
 }
 
 func seen(hash, value string) {
@@ -77,7 +77,7 @@ func SeencheckItem(item *models.Item) error {
 
 	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	for i := range items {
@@ -95,7 +95,10 @@ func SeencheckItem(item *models.Item) error {
 			URLType = "seed"
 		}
 
-		found, foundType := isSeen(hash)
+		found, foundType, err := isSeen(hash)
+		if err != nil {
+			return err
+		}
 
 		if !found {
 			// First time seen: mark and process

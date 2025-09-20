@@ -255,7 +255,8 @@ func preprocess(workerID string, seed *models.Item) error {
 	if (config.Get().UseHQ || config.Get().UseSeencheck) && GlobalPreprocessor.seencheckerSet {
 		err = GlobalPreprocessor.Seenchecker(seed)
 		if err != nil {
-			logger.Warn("unable to seencheck seed", "err", err.Error())
+			logger.Error("unable to seencheck seed", "err", err.Error())
+			return err
 		}
 	}
 
