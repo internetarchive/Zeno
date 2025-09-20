@@ -51,6 +51,8 @@ func Start(inputChan, outputChan chan *models.Item) error {
 		"component": "archiver",
 	})
 
+	var onceErr error
+
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		globalArchiver = &archiver{
@@ -76,7 +78,10 @@ func Start(inputChan, outputChan chan *models.Item) error {
 		logger.Debug("initialized")
 
 		// Setup WARC writing HTTP clients
-		startWARCWriter()
+		if err := startWARCWriter(); err != nil {
+			onceErr = err
+			return
+		}
 
 		logger.Debug("WARC writer started")
 
@@ -87,6 +92,10 @@ func Start(inputChan, outputChan chan *models.Item) error {
 
 		logger.Info("started")
 	})
+
+	if onceErr != nil {
+		return onceErr
+	}
 
 	if globalArchiver == nil {
 		return ErrArchiverAlreadyInitialized

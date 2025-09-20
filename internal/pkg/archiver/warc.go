@@ -1,7 +1,6 @@
 package archiver
 
 import (
-	"os"
 	"path"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard"
@@ -10,7 +9,7 @@ import (
 	warc "github.com/internetarchive/gowarc"
 )
 
-func startWARCWriter() {
+func startWARCWriter() error {
 	// Configure WARC rotator settings
 	rotatorSettings := warc.NewRotatorSettings()
 	rotatorSettings.Prefix = config.Get().WARCPrefix
@@ -69,7 +68,7 @@ func startWARCWriter() {
 		globalArchiver.ClientWithProxy, err = warc.NewWARCWritingHTTPClient(proxiedWARCSettings)
 		if err != nil {
 			logger.Error("unable to init proxied WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
-			os.Exit(1)
+			return err
 		}
 
 		go func() {
@@ -84,7 +83,7 @@ func startWARCWriter() {
 		globalArchiver.Client, err = warc.NewWARCWritingHTTPClient(WARCSettings)
 		if err != nil {
 			logger.Error("unable to init WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
-			os.Exit(1)
+			return err
 		}
 
 		go func() {
@@ -104,6 +103,7 @@ func startWARCWriter() {
 			globalArchiver.ClientWithProxy.Timeout = config.Get().HTTPTimeout
 		}
 	}
+	return nil
 }
 
 func GetClients() (clients []*warc.CustomHTTPClient) {
