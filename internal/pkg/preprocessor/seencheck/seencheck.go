@@ -33,9 +33,9 @@ func Close() {
 }
 
 func isSeen(hash string) (found bool, value string, err error) {
-	found, err := globalSeencheck.DB.Get(hash, &value)
+	found, err = globalSeencheck.DB.Get(hash, &value)
 	if err != nil {
-		return nil, nil, err
+		return false, "", err
 	}
 
 	return found, value, nil
