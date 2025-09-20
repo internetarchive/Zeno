@@ -43,7 +43,7 @@ func (s *LQ) consumer() {
 	// Wait for shutdown signal
 	for {
 		select {
-		case <-s.ctx.Done():
+		case <-ctx.Done():
 			logger.Debug("received done signal")
 
 			// Cancel the context to stop all goroutines.
@@ -182,7 +182,7 @@ func (s *LQ) consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <
 }
 
 func (s *LQ) getURLs(batchSize int) ([]sqlc_model.Url, error) {
-	return s.client.get(context.TODO(), batchSize)
+	return s.client.get(s.ctx, batchSize)
 }
 
 func ensureAllIDsNotInReactor(URLs []sqlc_model.Url) error {

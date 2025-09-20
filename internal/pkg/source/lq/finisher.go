@@ -185,7 +185,7 @@ func (s *LQ) finisherSender(ctx context.Context, batch *finishBatch, batchUUID s
 	logger.Debug("sending batch to LQ", "size", len(batch.URLs))
 
 	for {
-		err := s.client.delete(context.TODO(), batch.URLs, false)
+		err := s.client.delete(ctx, batch.URLs, false)
 		select {
 		case <-ctx.Done():
 			logger.Debug("closing")

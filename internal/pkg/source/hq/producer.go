@@ -173,7 +173,7 @@ func (s *HQ) producerSender(ctx context.Context, batch *producerBatch, batchUUID
 	logger.Debug("sending batch to HQ", "size", len(batch.URLs))
 
 	for {
-		err := s.client.Add(context.TODO(), batch.URLs, false) // Use bypassSeencheck = false
+		err := s.client.Add(ctx, batch.URLs, false) // Use bypassSeencheck = false
 		select {
 		case <-ctx.Done():
 			logger.Debug("closing")

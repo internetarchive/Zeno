@@ -76,7 +76,7 @@ func (s *HQ) Stop() {
 		s.wg.Wait()
 		seedsToReset := reactor.GetStateTable()
 		for _, seed := range seedsToReset {
-			if err := s.client.ResetURL(context.TODO(), seed); err != nil {
+			if err := s.client.ResetURL(s.ctx, seed); err != nil {
 				logger.Error("error while reseting", "id", seed, "err", err)
 			}
 			logger.Debug("reset seed", "id", seed)
