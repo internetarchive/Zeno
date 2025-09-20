@@ -46,6 +46,7 @@ func addBasicFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().IntP("workers", "w", 1, "Number of concurrent workers to run.")
 	getCmd.PersistentFlags().Int("max-concurrent-assets", 1, "Max number of concurrent assets to fetch PER worker. E.g. if you have 100 workers and this setting at 8, Zeno could do up to 800 concurrent requests at any time.")
 	getCmd.PersistentFlags().Int("max-hops", 0, "Maximum number of hops to execute.")
+	getCmd.PersistentFlags().Int("max-outlinks", 0, "Maximum number of outlinks per seed")
 	getCmd.PersistentFlags().String("cookies", "", "File containing cookies that will be used for requests.")
 	getCmd.PersistentFlags().Bool("disable-seencheck", false, "Disable the (remote or local) seencheck that avoid re-crawling of URIs.")
 	getCmd.PersistentFlags().Bool("api", false, "Enable API")
