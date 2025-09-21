@@ -73,8 +73,6 @@ func (s *LQ) Start(finishChan, produceChan chan *models.Item) error {
 
 func (s *LQ) Stop() {
 	if s != nil {
-		s.cancel()
-		s.wg.Wait()
 		seedsToReset := reactor.GetStateTable()
 		for _, seed := range seedsToReset {
 			if err := s.client.resetURL(s.ctx, seed); err != nil {
@@ -83,6 +81,8 @@ func (s *LQ) Stop() {
 			logger.Debug("reset seed", "id", seed)
 		}
 		once = sync.Once{}
+		s.cancel()
+		s.wg.Wait()
 		logger.Info("stopped")
 	}
 }
