@@ -3,7 +3,9 @@ package lq
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -14,6 +16,8 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/source/lq/sqlc_model"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
+
+var crawlFinishedOnce sync.Once
 
 func (s *LQ) consumer() {
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -73,6 +77,7 @@ func (s *LQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 	})
 
 	r := source.NewFeedEmptyReporter(logger)
+	emptyFetches := 0
 
 	for {
 		// Check for context cancellation
@@ -90,7 +95,12 @@ func (s *LQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 		}
 
 		if len(URLs) == 0 {
+			emptyFetches++
 			time.Sleep(250 * time.Millisecond)
+			// Check if crawl is finished when queue is empty
+			checkIfCrawlFinished(logger, emptyFetches)
+		} else {
+			emptyFetches = 0  // Reset counter when URLs are found
 		}
 
 		r.Report(len(URLs))
@@ -198,4 +208,30 @@ func ensureAllIDsNotInReactor(URLs []sqlc_model.Url) error {
 		}
 	}
 	return nil
+}
+
+// checkIfCrawlFinished checks if the crawl is complete by verifying both:
+// 1. Local queue has no fresh URLs (indicated by empty URLs slice)
+// 2. Reactor has no active work in progress
+// If both conditions are met, it triggers a graceful shutdown.
+func checkIfCrawlFinished(logger *log.FieldedLogger, emptyFetches int) {
+	// Only check after multiple consecutive empty fetches to avoid premature shutdown
+	if emptyFetches < 5 {
+		return
+	}
+
+	// Check if reactor has any active work
+	reactorState := reactor.GetStateTable()
+	if len(reactorState) == 0 {
+		crawlFinishedOnce.Do(func() {
+			logger.Info("crawl finished: no URLs in queue and no active work in reactor, triggering graceful shutdown")
+			// Send SIGTERM to the current process to trigger graceful shutdown
+			pid := os.Getpid()
+			if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+				logger.Error("failed to send SIGTERM signal", "err", err)
+			}
+		})
+	} else {
+		logger.Debug("reactor still has active work", "active_items", len(reactorState))
+	}
 }
