@@ -127,6 +127,12 @@ func GetMapTUI() map[string]any {
 		"WARC data total (GB)":       float64(globalStats.WARCDataTotalBytes.Load()) / 1e9,
 	}
 
+	// Add channel queue sizes
+	channelQueueSizes := GetChannelQueueSizes()
+	for name, size := range channelQueueSizes {
+		result["Queue: "+name] = size
+	}
+
 	// Only show CDX dedupe stats if activated and has data
 	if config.Get().CDXDedupeServer != "" {
 		if dedupeBytes := globalStats.WARCCDXDedupeTotalBytes.Load(); dedupeBytes > 0 {

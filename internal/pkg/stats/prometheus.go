@@ -27,6 +27,9 @@ type prometheusStats struct {
 	warcWritingQueueSize   *prometheus.GaugeVec
 	cfMitigated            *prometheus.GaugeVec
 
+	// Component queue sizes
+	componentQueueSizes *prometheus.GaugeVec
+
 	// Dedup WARC metrics
 	dataTotalBytes               *prometheus.GaugeVec
 	cdxDedupeTotalBytes          *prometheus.GaugeVec
@@ -135,6 +138,10 @@ func newPrometheusStats() *prometheusStats {
 			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "cf_challenge_pages_seen", Help: "Total number of CF challenge pages seen"},
 			[]string{"project", "hostname", "version"},
 		),
+		componentQueueSizes: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "component_queue_size", Help: "Size of component queues in the processing pipeline"},
+			[]string{"project", "hostname", "version", "component"},
+		),
 	}
 }
 
@@ -155,6 +162,7 @@ func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.warcWritingQueueSize)
 	prometheus.MustRegister(globalPromStats.meanWaitOnFeedbackTime)
 	prometheus.MustRegister(globalPromStats.cfMitigated)
+	prometheus.MustRegister(globalPromStats.componentQueueSizes)
 
 	// Register dedup WARC metrics
 	prometheus.MustRegister(globalPromStats.dataTotalBytes)

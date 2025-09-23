@@ -91,6 +91,8 @@ func StartWatchWARCWritingQueue(pauseCheckInterval time.Duration, pauseTimeout t
 			case <-statsTicker.C:
 				s := archiver.GetStats()
 				stats.WarcWritingQueueSizeSet(s.WARCWritingQueueSize)
+				// Update component queue sizes for Prometheus
+				stats.ComponentQueueSizesUpdate()
 				// Update dedup WARC metrics
 				stats.WARCDataTotalBytesSet(s.WARCTotalBytesArchived)
 				stats.WARCCDXDedupeTotalBytesSet(s.CDXDedupeTotalBytes)
