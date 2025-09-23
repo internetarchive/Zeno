@@ -275,3 +275,17 @@ func CFMitigatedIncr() {
 		globalPromStats.cfMitigated.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 	}
 }
+
+//////////////////////////
+// ComponentQueueSizes  //
+//////////////////////////
+
+// ComponentQueueSizesUpdate updates all component queue sizes in Prometheus metrics.
+func ComponentQueueSizesUpdate() {
+	if globalPromStats != nil {
+		channelQueues := GetChannelQueueSizes()
+		for component, size := range channelQueues {
+			globalPromStats.componentQueueSizes.WithLabelValues(config.Get().JobPrometheus, hostname, version, component).Set(float64(size))
+		}
+	}
+}
