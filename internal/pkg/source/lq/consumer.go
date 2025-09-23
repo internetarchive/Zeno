@@ -100,7 +100,7 @@ func (s *LQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 			// Check if crawl is finished when queue is empty
 			checkIfCrawlFinished(logger, emptyFetches)
 		} else {
-			emptyFetches = 0  // Reset counter when URLs are found
+			emptyFetches = 0 // Reset counter when URLs are found
 		}
 
 		r.Report(len(URLs))
