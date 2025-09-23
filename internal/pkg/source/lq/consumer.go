@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -225,10 +224,11 @@ func checkIfCrawlFinished(logger *log.FieldedLogger, emptyFetches int) {
 	if len(reactorState) == 0 {
 		crawlFinishedOnce.Do(func() {
 			logger.Info("crawl finished: no URLs in queue and no active work in reactor, triggering graceful shutdown")
-			// Send SIGTERM to the current process to trigger graceful shutdown
-			pid := os.Getpid()
-			if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
-				logger.Error("failed to send SIGTERM signal", "err", err)
+			// Use platform-specific termination signal
+			if err := sendTerminationSignal(); err != nil {
+				logger.Error("failed to send termination signal", "err", err)
+				// Fallback to os.Exit if signal fails
+				os.Exit(0)
 			}
 		})
 	} else {
