@@ -12,7 +12,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/gabriel-vasile/mimetype v1.4.10
 	github.com/gdamore/tcell/v2 v2.9.0
-	github.com/getsentry/sentry-go v0.35.2
+	github.com/getsentry/sentry-go v0.35.3
 	github.com/go-logfmt/logfmt v0.6.0
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
@@ -20,8 +20,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/grafov/m3u8 v0.12.1
-	github.com/hashicorp/consul/api v1.32.1
-	github.com/internetarchive/gocrawlhq v1.2.33
+	github.com/hashicorp/consul/api v1.32.3
+	github.com/internetarchive/gocrawlhq v1.2.34
 	github.com/internetarchive/gowarc v0.8.90
 	github.com/ncruces/go-sqlite3 v0.29.0
 	github.com/pdfcpu/pdfcpu v0.11.0
@@ -113,7 +113,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
-	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
+	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a // indirect
 	golang.org/x/image v0.27.0 // indirect
 	golang.org/x/mod v0.27.0 // indirect
 	golang.org/x/term v0.35.0 // indirect
