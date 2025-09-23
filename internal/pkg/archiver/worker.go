@@ -225,24 +225,116 @@ func archive(workerID string, seed *models.Item) {
 		client = globalArchiver.Client
 	}
 
+	// Separate main page from assets
+	var mainItems, assetItems []*models.Item
 	for i := range items {
 		if items[i].GetStatus() != models.ItemPreProcessed {
 			logger.Debug("skipping item", "item_id", items[i].GetShortID(), "status", items[i].GetStatus())
 			continue
 		}
 
-		guard <- struct{}{}
+		// Check if this is the main page (depth 0) or an asset
+		if items[i].GetDepth() == 0 {
+			mainItems = append(mainItems, items[i])
+		} else {
+			assetItems = append(assetItems, items[i])
+		}
+	}
 
+	// Archive main pages first
+	for _, item := range mainItems {
+		guard <- struct{}{}
 		wg.Add(1)
 
 		if config.Get().Headless {
-			go headless.ArchiveItem(items[i], &wg, guard, globalBucketManager, client)
+			go headless.ArchiveItem(item, &wg, guard, globalBucketManager, client)
 		} else {
-			go general.ArchiveItem(items[i], &wg, guard, globalBucketManager, client)
+			go general.ArchiveItem(item, &wg, guard, globalBucketManager, client)
 		}
+	}
 
+	// Archive assets with optional timeout
+	if len(assetItems) > 0 {
+		archiveAssetsWithTimeout(workerID, assetItems, &wg, guard, globalBucketManager, client)
 	}
 
 	// Wait for all goroutines to finish
 	wg.Wait()
+}
+
+// archiveAssetsWithTimeout archives assets with optional timeout
+func archiveAssetsWithTimeout(workerID string, assetItems []*models.Item, wg *sync.WaitGroup, guard chan struct{}, bucketManager *ratelimiter.BucketManager, client *warc.CustomHTTPClient) {
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "archiver.archiveAssetsWithTimeout",
+		"worker_id": workerID,
+	})
+
+	cfg := config.Get()
+	
+	// If no timeout is configured, archive all assets normally
+	if cfg.AssetsArchivingTimeout == 0 {
+		for _, item := range assetItems {
+			guard <- struct{}{}
+			wg.Add(1)
+
+			if cfg.Headless {
+				go headless.ArchiveItem(item, wg, guard, bucketManager, client)
+			} else {
+				go general.ArchiveItem(item, wg, guard, bucketManager, client)
+			}
+		}
+		return
+	}
+
+	// Archive assets with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.AssetsArchivingTimeout)
+	defer cancel()
+
+	assetWg := sync.WaitGroup{}
+	archivedCount := 0
+	skippedCount := 0
+
+	logger.Debug("starting assets archiving with timeout", "timeout", cfg.AssetsArchivingTimeout, "total_assets", len(assetItems))
+
+	for _, item := range assetItems {
+		select {
+		case <-ctx.Done():
+			// Timeout reached, skip remaining assets
+			logger.Debug("assets archiving timeout reached", "archived", archivedCount, "skipped", len(assetItems)-archivedCount)
+			skippedCount = len(assetItems) - archivedCount
+			
+			// Set status of remaining items to indicate they were skipped due to timeout
+			for j := archivedCount; j < len(assetItems); j++ {
+				assetItems[j].SetStatus(models.ItemCompleted) // Mark as completed to avoid re-processing
+			}
+			
+			goto waitForCompletion
+		case guard <- struct{}{}:
+			wg.Add(1)
+			assetWg.Add(1)
+			archivedCount++
+
+			if cfg.Headless {
+				go func(item *models.Item) {
+					defer assetWg.Done()
+					headless.ArchiveItem(item, wg, guard, bucketManager, client)
+				}(item)
+			} else {
+				go func(item *models.Item) {
+					defer assetWg.Done()
+					general.ArchiveItem(item, wg, guard, bucketManager, client)
+				}(item)
+			}
+		}
+	}
+
+waitForCompletion:
+	// Wait for all started asset archiving to complete
+	assetWg.Wait()
+	
+	if skippedCount > 0 {
+		logger.Info("assets archiving completed with timeout", "archived", archivedCount, "skipped", skippedCount, "timeout", cfg.AssetsArchivingTimeout)
+	} else {
+		logger.Debug("assets archiving completed within timeout", "archived", archivedCount, "timeout", cfg.AssetsArchivingTimeout)
+	}
 }

@@ -94,6 +94,12 @@ type Config struct {
 	DisableAssetsCapture            bool          `mapstructure:"disable-assets-capture"`
 	UseHQ                           bool          // Special field to check if HQ is enabled depending on the command called
 
+	// Asset filtering options
+	MaxAssets                       int           `mapstructure:"max-assets"`
+	AssetsAllowedFileTypes          []string      `mapstructure:"assets-allowed-file-types"`
+	AssetsDisallowedFileTypes       []string      `mapstructure:"assets-disallowed-file-types"`
+	AssetsArchivingTimeout          time.Duration `mapstructure:"assets-archiving-timeout"`
+
 	//  Optional 2nd HQ instance just to gather outlinks to a different project
 	HQOutlinksProject  string `mapstructure:"hq-outlinks-project"`
 	HQOutlinksHopLimit int    `mapstructure:"hq-outlinks-hop-limit"`
