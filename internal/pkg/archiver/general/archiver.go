@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/connutil"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/deadhosts"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -20,7 +21,7 @@ import (
 	warc "github.com/internetarchive/gowarc"
 )
 
-func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, globalBucketManager *ratelimiter.BucketManager, client *warc.CustomHTTPClient) {
+func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, globalBucketManager *ratelimiter.BucketManager, globalDeadHostManager *deadhosts.Manager, client *warc.CustomHTTPClient) {
 	defer wg.Done()
 	defer func() { <-guard }()
 	defer stats.URLsCrawledIncr()
@@ -54,6 +55,13 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 		logger.Debug("got token from bucket", "elapsed", elapsed)
 	}
 
+	// Check if host is marked as dead
+	if globalDeadHostManager != nil && globalDeadHostManager.IsDeadHost(req.URL.Host) {
+		logger.Info("skipping request to dead host", "host", req.URL.Host)
+		item.SetStatus(models.ItemFailed)
+		return
+	}
+
 	// Don't use the global bucket manager in the retry loop.
 	// Most failed requests won't reach the server anyway, so we don't need to wait for the rate limit.
 	// This prevents workers from being blocked for too long by dead sites, such as host unreachable or DNS errors.
@@ -75,6 +83,11 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 
 		resp, err = client.Do(req)
 		if err != nil {
+			// Record failure for dead host detection
+			if globalDeadHostManager != nil {
+				globalDeadHostManager.RecordFailure(req.URL.Host, err)
+			}
+			
 			if retry < config.Get().MaxRetry {
 				logger.Warn("retrying request", "err", err.Error(), "retry", retry, "sleep_time", retrySleepTime)
 				time.Sleep(retrySleepTime)
@@ -144,6 +157,11 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 		// OK
 		if globalBucketManager != nil {
 			globalBucketManager.OnSuccess(req.URL.Host)
+		}
+		
+		// Record success for dead host detection
+		if globalDeadHostManager != nil {
+			globalDeadHostManager.RecordSuccess(req.URL.Host)
 		}
 
 		stats.MeanHTTPRespTimeAdd(time.Since(getStartTime))

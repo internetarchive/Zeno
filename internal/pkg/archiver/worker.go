@@ -9,6 +9,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/deadhosts"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/general"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/headless"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
@@ -39,10 +40,11 @@ type archiver struct {
 }
 
 var (
-	globalArchiver      *archiver
-	globalBucketManager *ratelimiter.BucketManager
-	once                sync.Once
-	logger              *log.FieldedLogger
+	globalArchiver        *archiver
+	globalBucketManager   *ratelimiter.BucketManager
+	globalDeadHostManager *deadhosts.Manager
+	once                  sync.Once
+	logger                *log.FieldedLogger
 )
 
 // Start initializes the internal archiver structure, start the WARC writer and start routines, should only be called once and returns an error if called more than once
@@ -69,6 +71,17 @@ func Start(inputChan, outputChan chan *models.Item) error {
 				config.Get().RateLimitCleanupFrequency,
 			)
 			logger.Info("bucket manager started")
+		}
+		
+		// Initialize dead hosts manager
+		globalDeadHostManager = deadhosts.NewManager(ctx,
+			config.Get().DeadHostsEnabled,
+			config.Get().DeadHostsMaxFailures,
+			config.Get().DeadHostsRefreshPeriod,
+			config.Get().DeadHostsMaxAge,
+		)
+		if config.Get().DeadHostsEnabled {
+			logger.Info("dead hosts manager started")
 		}
 		if config.Get().Headless {
 			headless.Start()
@@ -142,6 +155,12 @@ func Stop() {
 		logger.Debug("closing bucket manager")
 		globalBucketManager.Close()
 		logger.Info("closed bucket manager")
+	}
+
+	if globalDeadHostManager != nil {
+		logger.Debug("closing dead hosts manager")
+		globalDeadHostManager.Close()
+		logger.Info("closed dead hosts manager")
 	}
 
 	// Cancel config related contexts
@@ -236,9 +255,9 @@ func archive(workerID string, seed *models.Item) {
 		wg.Add(1)
 
 		if config.Get().Headless {
-			go headless.ArchiveItem(items[i], &wg, guard, globalBucketManager, client)
+			go headless.ArchiveItem(items[i], &wg, guard, globalBucketManager, globalDeadHostManager, client)
 		} else {
-			go general.ArchiveItem(items[i], &wg, guard, globalBucketManager, client)
+			go general.ArchiveItem(items[i], &wg, guard, globalBucketManager, globalDeadHostManager, client)
 		}
 
 	}
