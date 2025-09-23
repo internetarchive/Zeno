@@ -224,10 +224,16 @@ func checkIfCrawlFinished(logger *log.FieldedLogger, emptyFetches int) {
 	if len(reactorState) == 0 {
 		crawlFinishedOnce.Do(func() {
 			logger.Info("crawl finished: no URLs in queue and no active work in reactor, triggering graceful shutdown")
-			// Use platform-specific termination signal
-			if err := sendTerminationSignal(); err != nil {
-				logger.Error("failed to send termination signal", "err", err)
-				// Fallback to os.Exit if signal fails
+			// Send interrupt signal to current process - this will be caught by the signal watcher
+			// This is cross-platform and avoids circular imports
+			proc, err := os.FindProcess(os.Getpid())
+			if err != nil {
+				logger.Error("failed to find current process", "err", err)
+				os.Exit(0)
+				return
+			}
+			if err := proc.Signal(os.Interrupt); err != nil {
+				logger.Error("failed to send interrupt signal", "err", err)
 				os.Exit(0)
 			}
 		})
