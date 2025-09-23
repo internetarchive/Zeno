@@ -1,9 +1,21 @@
 package controler
 
-import "github.com/internetarchive/Zeno/pkg/models"
+import (
+	"sync"
+
+	"github.com/internetarchive/Zeno/pkg/models"
+)
+
+// NamedChannel holds a channel with its associated name for monitoring
+type NamedChannel struct {
+	Name    string
+	Channel chan *models.Item
+}
 
 var (
-	stageChannels []chan *models.Item
+	stageChannels      []chan *models.Item
+	namedChannels      []NamedChannel
+	namedChannelsMutex sync.RWMutex
 )
 
 func makeStageChannel(bufferSize ...int) chan *models.Item {
@@ -20,6 +32,32 @@ func makeStageChannel(bufferSize ...int) chan *models.Item {
 	ch := make(chan *models.Item, parsedSize)
 	stageChannels = append(stageChannels, ch)
 	return ch
+}
+
+// makeNamedStageChannel creates a channel with a name for monitoring purposes
+func makeNamedStageChannel(name string, bufferSize ...int) chan *models.Item {
+	ch := makeStageChannel(bufferSize...)
+
+	namedChannelsMutex.Lock()
+	namedChannels = append(namedChannels, NamedChannel{
+		Name:    name,
+		Channel: ch,
+	})
+	namedChannelsMutex.Unlock()
+
+	return ch
+}
+
+// GetChannelQueueSizes returns the current queue sizes for all named channels
+func GetChannelQueueSizes() map[string]int {
+	namedChannelsMutex.RLock()
+	defer namedChannelsMutex.RUnlock()
+
+	queueSizes := make(map[string]int)
+	for _, namedCh := range namedChannels {
+		queueSizes[namedCh.Name] = len(namedCh.Channel)
+	}
+	return queueSizes
 }
 
 func closeStageChannels() {

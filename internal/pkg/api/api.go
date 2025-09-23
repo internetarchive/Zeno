@@ -26,6 +26,9 @@ func Start() error {
 	once.Do(func() {
 		mux := http.NewServeMux()
 
+		// Add status endpoint
+		mux.HandleFunc("/status", statusHandler)
+
 		if config.Get().Prometheus {
 			mux.Handle("/metrics", stats.PrometheusHandler())
 		}
