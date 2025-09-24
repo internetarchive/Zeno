@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -225,12 +225,14 @@ func checkIfCrawlFinished(logger *log.FieldedLogger, emptyFetches int) {
 	if len(reactorState) == 0 {
 		crawlFinishedOnce.Do(func() {
 			logger.Info("crawl finished: no URLs in queue and no active work in reactor, triggering graceful shutdown")
-			// Use a clean exit to avoid race conditions in the signal handler
-			// For e2e tests, we just log the completion without calling os.Exit
+			// Use clean exit to avoid race conditions in signal handler
+			// Use testing.Testing() for more reliable test environment detection
 			go func() {
 				// Give a brief moment for the log message to be written
 				time.Sleep(50 * time.Millisecond)
-				if !isTestEnvironment() {
+				if !testing.Testing() {
+					// In production, exit cleanly
+					// Note: We can't use controler.Stop() due to circular import restrictions
 					os.Exit(0)
 				}
 				// In test environment, just return - the e2e test will detect completion via logs
@@ -241,17 +243,4 @@ func checkIfCrawlFinished(logger *log.FieldedLogger, emptyFetches int) {
 	}
 }
 
-// isTestEnvironment checks if we're running in a test environment
-func isTestEnvironment() bool {
-	// Check if any test flags are present in command line args
-	for _, arg := range os.Args {
-		if arg == "-test.run" || arg == "-test.v" || arg == "-test.timeout" ||
-			arg == "-test.count" || arg == "-test.bench" || 
-			strings.Contains(arg, "-test.") {
-			return true
-		}
-	}
-	// Also check for common test execution patterns
-	execName := os.Args[0]
-	return strings.Contains(execName, ".test") || strings.Contains(execName, "test")
-}
+
