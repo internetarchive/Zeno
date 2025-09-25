@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -225,15 +226,23 @@ func checkIfCrawlFinished(logger *log.FieldedLogger, emptyFetches int) {
 	if len(reactorState) == 0 {
 		crawlFinishedOnce.Do(func() {
 			logger.Info("crawl finished: no URLs in queue and no active work in reactor, triggering graceful shutdown")
-			// Use clean exit to avoid race conditions in signal handler
-			// Use testing.Testing() for more reliable test environment detection
+			// Trigger proper shutdown to ensure files are closed and cleanup is complete
 			go func() {
 				// Give a brief moment for the log message to be written
 				time.Sleep(50 * time.Millisecond)
 				if !testing.Testing() {
-					// In production, exit cleanly
-					// Note: We can't use controler.Stop() due to circular import restrictions
-					os.Exit(0)
+					// In production, send SIGTERM to trigger proper shutdown sequence
+					// This ensures all resources are properly cleaned up
+					proc, err := os.FindProcess(os.Getpid())
+					if err != nil {
+						logger.Error("failed to find current process", "err", err)
+						os.Exit(0)
+						return
+					}
+					if err := proc.Signal(syscall.SIGTERM); err != nil {
+						logger.Error("failed to send SIGTERM signal", "err", err)
+						os.Exit(0)
+					}
 				}
 				// In test environment, just return - the e2e test will detect completion via logs
 			}()
