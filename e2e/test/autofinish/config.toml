@@ -1,0 +1,16 @@
+# Configuration for auto-finish e2e test
+
+# Use maximum number of retries = 1 to fail fast
+max-retry = 1
+
+# Use single worker for deterministic behavior
+workers = 1
+
+# Disable assets capture to simplify the test
+disable-assets-capture = true
+
+# Disable seencheck for this test  
+disable-seencheck = true
+
+# Set job name
+job = "autofinish-test"
