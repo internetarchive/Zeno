@@ -135,10 +135,10 @@ func (p *postprocessor) sendToHQOutlinks(outlinks []*models.Item) []*models.Item
 		var filtered []*models.Item
 		for i := range outlinks {
 			if outlinks[i].GetURL().GetHops() >= config.Get().HQOutlinksHopLimit {
-				logger.Info("sending outlink to HQ", "project", config.Get().HQOutlinksProject, "hop", outlinks[i].GetURL().GetHops())
+				logger.Debug("sending outlink to HQ", "project", config.Get().HQOutlinksProject, "hop", outlinks[i].GetURL().GetHops())
 				p.hqOutlinksProduceCh <- outlinks[i]
 			} else {
-				logger.Info("keeping outlink in the current project")
+				logger.Debug("keeping outlink in the current project")
 				filtered = append(filtered, outlinks[i])
 			}
 		}
