@@ -111,10 +111,10 @@ func addRateLimitFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Duration("rate-limit-cleanup-frequency", time.Duration(5*time.Minute), "How often to run cleanup of stale buckets that are not accessed in the duration.")
 	
 	// Dead hosts detection flags
-	getCmd.PersistentFlags().Bool("dead-hosts-enabled", false, "Enable dead hosts detection to skip hosts that consistently deny connections.")
-	getCmd.PersistentFlags().Int("dead-hosts-max-failures", 5, "Number of connection failures before marking a host as dead.")
+	getCmd.PersistentFlags().Bool("dead-hosts-detection", false, "Enable dead hosts detection to skip hosts that consistently deny connections.")
+	getCmd.PersistentFlags().Int("dead-hosts-max-failures", 15, "Number of connection failures before marking a host as dead.")
 	getCmd.PersistentFlags().Duration("dead-hosts-refresh-period", time.Duration(30*time.Minute), "How often to clean up the dead hosts cache.")
-	getCmd.PersistentFlags().Duration("dead-hosts-max-age", time.Duration(24*time.Hour), "How long to keep a host marked as dead before giving it another chance.")
+	getCmd.PersistentFlags().Duration("dead-hosts-max-age", time.Duration(6*time.Hour), "How long to keep a host marked as dead before giving it another chance.")
 }
 func addWARCFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("warc-prefix", "ZENO", "Prefix to use when naming the WARC files.")

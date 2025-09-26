@@ -2,6 +2,7 @@ package deadhosts
 
 import (
 	"context"
+	"errors"
 	"net"
 	"strings"
 	"sync"
@@ -9,6 +10,8 @@ import (
 )
 
 // Manager tracks hosts that consistently deny connections
+// Uses sync.RWMutex instead of sync.Map because we need complex operations
+// like iterating through all entries for cleanup and age checks
 type Manager struct {
 	mu            sync.RWMutex
 	deadHosts     map[string]*hostInfo
@@ -117,26 +120,39 @@ func isDeadHostError(err error) bool {
 		return false
 	}
 
-	errStr := err.Error()
+	// First try to unwrap and check for specific error types
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
 
+	var opErr *net.OpError
+	if errors.As(err, &opErr) {
+		// Check the underlying error in OpError
+		if opErr.Op == "dial" {
+			return true // Dial errors are usually connection failures
+		}
+		if opErr.Op == "read" && netErr.Timeout() {
+			return true // Read timeouts
+		}
+	}
+
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return true // DNS errors indicate unreachable hosts
+	}
+
+	// Fall back to string checking for cases not covered by error types
+	errStr := err.Error()
+	
 	// Network-level failures that indicate dead hosts
 	if strings.Contains(errStr, "connection refused") ||
 		strings.Contains(errStr, "no such host") ||
 		strings.Contains(errStr, "network is unreachable") ||
 		strings.Contains(errStr, "host is unreachable") ||
-		strings.Contains(errStr, "no route to host") {
-		return true
-	}
-
-	// DNS failures
-	if strings.Contains(errStr, "no such host") ||
-		strings.Contains(errStr, "server misbehaving") ||
-		strings.Contains(errStr, "dns lookup failed") {
-		return true
-	}
-
-	// Timeout errors that might indicate dead hosts
-	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		strings.Contains(errStr, "no route to host") ||
+		strings.Contains(errStr, "dns lookup failed") ||
+		strings.Contains(errStr, "server misbehaving") {
 		return true
 	}
 

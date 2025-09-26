@@ -21,7 +21,14 @@ import (
 	warc "github.com/internetarchive/gowarc"
 )
 
-func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, globalBucketManager *ratelimiter.BucketManager, globalDeadHostManager *deadhosts.Manager, client *warc.CustomHTTPClient) {
+// ArchiverDependencies holds all dependencies needed by the archiver
+type ArchiverDependencies struct {
+	BucketManager    *ratelimiter.BucketManager
+	DeadHostsManager *deadhosts.Manager
+	Client           *warc.CustomHTTPClient
+}
+
+func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, deps *ArchiverDependencies) {
 	defer wg.Done()
 	defer func() { <-guard }()
 	defer stats.URLsCrawledIncr()
@@ -50,13 +57,13 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 	}
 
 	// Wait for the rate limiter if enabled
-	if globalBucketManager != nil {
-		elapsed := globalBucketManager.Wait(req.URL.Host)
+	if deps.BucketManager != nil {
+		elapsed := deps.BucketManager.Wait(req.URL.Host)
 		logger.Debug("got token from bucket", "elapsed", elapsed)
 	}
 
 	// Check if host is marked as dead
-	if globalDeadHostManager != nil && globalDeadHostManager.IsDeadHost(req.URL.Host) {
+	if deps.DeadHostsManager != nil && deps.DeadHostsManager.IsDeadHost(req.URL.Host) {
 		logger.Info("skipping request to dead host", "host", req.URL.Host)
 		item.SetStatus(models.ItemFailed)
 		return
@@ -81,11 +88,11 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 		wrappedConnChan = make(chan *warc.CustomConnection, 1)
 		req = req.WithContext(context.WithValue(req.Context(), "wrappedConn", wrappedConnChan))
 
-		resp, err = client.Do(req)
+		resp, err = deps.Client.Do(req)
 		if err != nil {
-			// Record failure for dead host detection
-			if globalDeadHostManager != nil {
-				globalDeadHostManager.RecordFailure(req.URL.Host, err)
+			// Send error to dead host detection for analysis
+			if deps.DeadHostsManager != nil {
+				deps.DeadHostsManager.RecordFailure(req.URL.Host, err)
 			}
 			
 			if retry < config.Get().MaxRetry {
@@ -103,10 +110,10 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 
 		discarded := false
 		discardReason := ""
-		if client.DiscardHook == nil {
+		if deps.Client.DiscardHook == nil {
 			discardReason = reasoncode.HookNotSet
 		} else {
-			discarded, discardReason = client.DiscardHook(resp)
+			discarded, discardReason = deps.Client.DiscardHook(resp)
 		}
 		isBadStatusCode := resp.StatusCode >= 500 || slices.Contains([]int{408, 425, 429}, resp.StatusCode)
 
@@ -127,8 +134,8 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 		// 	- Discarded challenge pages (Cloudflare, Akamai, etc.)
 		isDiscardedChallengePage := discarded && reasoncode.IsChallengePage(discardReason)
 		if isBadStatusCode || isDiscardedChallengePage {
-			if globalBucketManager != nil {
-				globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
+			if deps.BucketManager != nil {
+				deps.BucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
 			}
 
 			retryReason := "bad response code"
@@ -155,13 +162,13 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 		}
 
 		// OK
-		if globalBucketManager != nil {
-			globalBucketManager.OnSuccess(req.URL.Host)
+		if deps.BucketManager != nil {
+			deps.BucketManager.OnSuccess(req.URL.Host)
 		}
 		
 		// Record success for dead host detection
-		if globalDeadHostManager != nil {
-			globalDeadHostManager.RecordSuccess(req.URL.Host)
+		if deps.DeadHostsManager != nil {
+			deps.DeadHostsManager.RecordSuccess(req.URL.Host)
 		}
 
 		stats.MeanHTTPRespTimeAdd(time.Since(getStartTime))

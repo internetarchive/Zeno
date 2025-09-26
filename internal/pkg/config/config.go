@@ -131,7 +131,7 @@ type Config struct {
 	RateLimitCleanupFrequency time.Duration `mapstructure:"rate-limit-cleanup-frequency"`
 
 	// Dead hosts detection
-	DeadHostsEnabled        bool          `mapstructure:"dead-hosts-enabled"`
+	DeadHostsDetection      bool          `mapstructure:"dead-hosts-detection"`
 	DeadHostsMaxFailures    int           `mapstructure:"dead-hosts-max-failures"`
 	DeadHostsRefreshPeriod  time.Duration `mapstructure:"dead-hosts-refresh-period"`
 	DeadHostsMaxAge         time.Duration `mapstructure:"dead-hosts-max-age"`

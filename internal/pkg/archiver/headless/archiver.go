@@ -88,7 +88,7 @@ func clientDo(client *http.Client, req *http.Request, h *rod.Hijack) (*http.Resp
 	return resp, nil
 }
 
-func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, bucketManager *ratelimiter.BucketManager, deadHostManager *deadhosts.Manager, client *warc.CustomHTTPClient) {
+func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, bucketManager *ratelimiter.BucketManager, deadHostsManager *deadhosts.Manager, client *warc.CustomHTTPClient) {
 	defer wg.Done()
 	defer func() { <-guard }()
 

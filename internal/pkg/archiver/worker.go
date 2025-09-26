@@ -40,11 +40,11 @@ type archiver struct {
 }
 
 var (
-	globalArchiver        *archiver
-	globalBucketManager   *ratelimiter.BucketManager
-	globalDeadHostManager *deadhosts.Manager
-	once                  sync.Once
-	logger                *log.FieldedLogger
+	globalArchiver         *archiver
+	globalBucketManager    *ratelimiter.BucketManager
+	globalDeadHostsManager *deadhosts.Manager
+	once                   sync.Once
+	logger                 *log.FieldedLogger
 )
 
 // Start initializes the internal archiver structure, start the WARC writer and start routines, should only be called once and returns an error if called more than once
@@ -74,13 +74,13 @@ func Start(inputChan, outputChan chan *models.Item) error {
 		}
 		
 		// Initialize dead hosts manager
-		globalDeadHostManager = deadhosts.NewManager(ctx,
-			config.Get().DeadHostsEnabled,
+		globalDeadHostsManager = deadhosts.NewManager(ctx,
+			config.Get().DeadHostsDetection,
 			config.Get().DeadHostsMaxFailures,
 			config.Get().DeadHostsRefreshPeriod,
 			config.Get().DeadHostsMaxAge,
 		)
-		if config.Get().DeadHostsEnabled {
+		if config.Get().DeadHostsDetection {
 			logger.Info("dead hosts manager started")
 		}
 		if config.Get().Headless {
@@ -157,9 +157,9 @@ func Stop() {
 		logger.Info("closed bucket manager")
 	}
 
-	if globalDeadHostManager != nil {
+	if globalDeadHostsManager != nil {
 		logger.Debug("closing dead hosts manager")
-		globalDeadHostManager.Close()
+		globalDeadHostsManager.Close()
 		logger.Info("closed dead hosts manager")
 	}
 
@@ -244,6 +244,13 @@ func archive(workerID string, seed *models.Item) {
 		client = globalArchiver.Client
 	}
 
+	// Create dependencies struct
+	deps := &general.ArchiverDependencies{
+		BucketManager:    globalBucketManager,
+		DeadHostsManager: globalDeadHostsManager,
+		Client:           client,
+	}
+
 	for i := range items {
 		if items[i].GetStatus() != models.ItemPreProcessed {
 			logger.Debug("skipping item", "item_id", items[i].GetShortID(), "status", items[i].GetStatus())
@@ -255,9 +262,9 @@ func archive(workerID string, seed *models.Item) {
 		wg.Add(1)
 
 		if config.Get().Headless {
-			go headless.ArchiveItem(items[i], &wg, guard, globalBucketManager, globalDeadHostManager, client)
+			go headless.ArchiveItem(items[i], &wg, guard, globalBucketManager, globalDeadHostsManager, client)
 		} else {
-			go general.ArchiveItem(items[i], &wg, guard, globalBucketManager, globalDeadHostManager, client)
+			go general.ArchiveItem(items[i], &wg, guard, deps)
 		}
 
 	}
