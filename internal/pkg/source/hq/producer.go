@@ -70,7 +70,6 @@ func (s *HQ) producerReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh c
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "hq.producerReceiver",
 	})
-	logger.Debug("start producerReceiver for", "project", s.HQProject)
 
 	batchSize := getProducerBatchSize()
 	maxWaitTime := 5 * time.Second
