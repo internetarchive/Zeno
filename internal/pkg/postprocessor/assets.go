@@ -2,6 +2,7 @@ package postprocessor
 
 import (
 	"net/url"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -18,7 +19,77 @@ import (
 // It also potentially returns outlinks if the body contains URLs that are not assets.
 func ExtractAssetsOutlinks(item *models.Item) (assets, outlinks []*models.URL, err error) {
 	assets, outlinks, err = Extractors(item)
+	
+	// Apply asset filtering if configured
+	assets = filterAssets(item, assets)
+	
 	return SanitizeAssetsOutlinks(item, assets, outlinks, err)
+}
+
+// filterAssets applies runtime filters to the assets list based on configuration
+func filterAssets(item *models.Item, assets []*models.URL) []*models.URL {
+	cfg := config.Get()
+	
+	// If no filtering is configured, return all assets
+	if cfg.MaxAssets == 0 && len(cfg.AssetsAllowedFileTypes) == 0 && len(cfg.AssetsDisallowedFileTypes) == 0 {
+		return assets
+	}
+	
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "postprocessor.filterAssets",
+		"item":      item.GetShortID(),
+	})
+	
+	var filteredAssets []*models.URL
+	
+	// Filter by file type first
+	for _, asset := range assets {
+		if asset == nil {
+			continue
+		}
+		
+		// Extract file extension from URL
+		u, err := url.Parse(asset.Raw)
+		if err != nil {
+			// If we can't parse the URL, skip filtering by extension and keep the asset
+			filteredAssets = append(filteredAssets, asset)
+			continue
+		}
+		
+		ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(u.Path), "."))
+		
+		// Apply file type filters
+		if len(cfg.AssetsAllowedFileTypes) > 0 {
+			// If allowed types are specified, only include those
+			if slices.Contains(cfg.AssetsAllowedFileTypes, ext) {
+				filteredAssets = append(filteredAssets, asset)
+			} else {
+				logger.Debug("asset filtered by allowed file types", "url", asset.Raw, "extension", ext)
+			}
+		} else if len(cfg.AssetsDisallowedFileTypes) > 0 {
+			// If disallowed types are specified, exclude those
+			if !slices.Contains(cfg.AssetsDisallowedFileTypes, ext) {
+				filteredAssets = append(filteredAssets, asset)
+			} else {
+				logger.Debug("asset filtered by disallowed file types", "url", asset.Raw, "extension", ext)
+			}
+		} else {
+			// No file type filtering
+			filteredAssets = append(filteredAssets, asset)
+		}
+	}
+	
+	// Apply max assets limit
+	if cfg.MaxAssets > 0 && len(filteredAssets) > cfg.MaxAssets {
+		logger.Debug("applying max assets limit", "total_assets", len(filteredAssets), "max_assets", cfg.MaxAssets)
+		filteredAssets = filteredAssets[:cfg.MaxAssets]
+	}
+	
+	if len(filteredAssets) < len(assets) {
+		logger.Debug("assets filtered", "original_count", len(assets), "filtered_count", len(filteredAssets))
+	}
+	
+	return filteredAssets
 }
 
 // Extract assets and outlinks from the body using the appropriate extractor
