@@ -236,12 +236,12 @@ func checkIfCrawlFinished(logger *log.FieldedLogger, emptyFetches int) {
 					proc, err := os.FindProcess(os.Getpid())
 					if err != nil {
 						logger.Error("failed to find current process", "err", err)
-						os.Exit(0)
+						os.Exit(1)
 						return
 					}
 					if err := proc.Signal(syscall.SIGTERM); err != nil {
 						logger.Error("failed to send SIGTERM signal", "err", err)
-						os.Exit(0)
+						os.Exit(1)
 					}
 				}
 				// In test environment, just return - the e2e test will detect completion via logs
