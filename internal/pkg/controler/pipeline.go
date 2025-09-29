@@ -60,6 +60,9 @@ func startPipeline() error {
 		return err
 	}
 
+	// Set the channel queue size getter for stats monitoring
+	stats.SetChannelQueueSizeGetter(GetChannelQueueSizes)
+
 	// Start the disk watcher
 	go watchers.WatchDiskSpace(config.Get().JobPath, 5*time.Second)
 
@@ -78,7 +81,7 @@ func startPipeline() error {
 	}
 
 	// Start the reactor that will receive
-	reactorOutputChan := makeStageChannel(config.Get().WorkersCount)
+	reactorOutputChan := makeNamedStageChannel("reactor_to_preprocessor", config.Get().WorkersCount)
 	err = reactor.Start(config.Get().WorkersCount, reactorOutputChan)
 	if err != nil {
 		logger.Error("error starting reactor", "err", err.Error())
@@ -94,14 +97,14 @@ func startPipeline() error {
 		}
 	}
 
-	preprocessorOutputChan := makeStageChannel(config.Get().WorkersCount)
+	preprocessorOutputChan := makeNamedStageChannel("preprocessor_to_archiver", config.Get().WorkersCount)
 	err = preprocessor.Start(reactorOutputChan, preprocessorOutputChan)
 	if err != nil {
 		logger.Error("error starting preprocessor", "err", err.Error())
 		return err
 	}
 
-	archiverOutputChan := makeStageChannel(config.Get().WorkersCount)
+	archiverOutputChan := makeNamedStageChannel("archiver_to_postprocessor", config.Get().WorkersCount)
 	err = archiver.Start(preprocessorOutputChan, archiverOutputChan)
 	if err != nil {
 		logger.Error("error starting archiver", "err", err.Error())
@@ -109,21 +112,21 @@ func startPipeline() error {
 	}
 
 	// Used by optional 2nd HQ instance just to gather outlinks to a different project
-	hqOutlinksFinishChan := makeStageChannel(config.Get().WorkersCount)
-	hqOutlinksProduceChan := makeStageChannel(config.Get().WorkersCount)
+	hqOutlinksFinishChan := makeNamedStageChannel("hq_outlinks_finish", config.Get().WorkersCount)
+	hqOutlinksProduceChan := makeNamedStageChannel("hq_outlinks_produce", config.Get().WorkersCount)
 
 	// Start the WARC writing queue watcher
 	watchers.StartWatchWARCWritingQueue(1*time.Second, 2*time.Second, 250*time.Millisecond)
 
-	postprocessorOutputChan := makeStageChannel(config.Get().WorkersCount)
+	postprocessorOutputChan := makeNamedStageChannel("postprocessor_to_finisher", config.Get().WorkersCount)
 	err = postprocessor.Start(archiverOutputChan, postprocessorOutputChan, hqOutlinksProduceChan)
 	if err != nil {
 		logger.Error("error starting postprocessor", "err", err.Error())
 		return err
 	}
 
-	finisherFinishChan := makeStageChannel(config.Get().WorkersCount)
-	finisherProduceChan := makeStageChannel(config.Get().WorkersCount)
+	finisherFinishChan := makeNamedStageChannel("finisher_to_source", config.Get().WorkersCount)
+	finisherProduceChan := makeNamedStageChannel("source_to_finisher", config.Get().WorkersCount)
 
 	if config.Get().UseHQ {
 		hqSource := hq.New(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress)
