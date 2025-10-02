@@ -58,5 +58,9 @@ func startSentry() error {
 	if err != nil {
 		return fmt.Errorf("error starting sentry: %w", err)
 	}
+
+	func() {
+		defer sentry.Recover()
+	}()
 	return nil
 }
