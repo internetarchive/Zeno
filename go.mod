@@ -13,7 +13,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.10
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/getsentry/sentry-go v0.35.3
-	github.com/go-logfmt/logfmt v0.6.0
+	github.com/go-logfmt/logfmt v0.6.1
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
 	github.com/gobwas/ws v1.4.0
@@ -23,7 +23,7 @@ require (
 	github.com/hashicorp/consul/api v1.32.4
 	github.com/internetarchive/gocrawlhq v1.2.34
 	github.com/internetarchive/gowarc v0.8.90
-	github.com/ncruces/go-sqlite3 v0.29.0
+	github.com/ncruces/go-sqlite3 v0.29.1
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/plar/go-adaptive-radix-tree/v2 v2.0.3
