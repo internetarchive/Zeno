@@ -62,8 +62,6 @@ func (s *LQ) consumer() {
 			// Close the urlBuffer to signal consumerSenders to finish
 			close(urlBuffer)
 
-			s.wg.Done()
-
 			logger.Debug("closed")
 			return
 		}
