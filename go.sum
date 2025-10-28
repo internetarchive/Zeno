@@ -361,8 +361,8 @@ github.com/ysmood/leakless v0.8.0/go.mod h1:R8iAXPRaG97QJwqxs74RdwzcRHT1SWCGTNqY
 github.com/ysmood/leakless v0.9.0 h1:qxCG5VirSBvmi3uynXFkcnLMzkphdh3xx5FtrORwDCU=
 github.com/ysmood/leakless v0.9.0/go.mod h1:R8iAXPRaG97QJwqxs74RdwzcRHT1SWCGTNqY8q0JvMQ=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-github.com/yzqzss/goada-wasm v1.0.0 h1:AWlPRQq/FexJR555y33cu/vnia0wkZG5N2JKLkptSmE=
-github.com/yzqzss/goada-wasm v1.0.0/go.mod h1:2v4wUwSCCjwhQE4mzjE6MheM9NXL+C7MaPxoS2XJRBc=
+github.com/yzqzss/goada-wasm v1.0.1 h1:Z87AiuNYJi1DoLQKNNswmxv43kb47eopWdKR99Ys7DI=
+github.com/yzqzss/goada-wasm v1.0.1/go.mod h1:2v4wUwSCCjwhQE4mzjE6MheM9NXL+C7MaPxoS2XJRBc=
 github.com/zeebo/assert v1.1.0 h1:hU1L1vLTHsnO8x8c9KAR5GmM5QscxHg5RNU5z5qbUWY=
 github.com/zeebo/assert v1.1.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
 github.com/zeebo/blake3 v0.2.4 h1:KYQPkhpRtcqh0ssGYcKLG1JYvddkEA8QwCM/yBqhaZI=
