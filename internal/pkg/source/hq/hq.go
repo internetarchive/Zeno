@@ -97,7 +97,7 @@ func (s *HQ) Stop() {
 
 		for _, seed := range seedsToReset {
 			if err := s.client.ResetURL(ctx, seed); err != nil {
-				logger.Error("error while reseting", "id", seed, "err", err)
+				logger.Error("error while resetting", "id", seed, "err", err)
 			}
 			logger.Debug("reset seed", "id", seed)
 		}
