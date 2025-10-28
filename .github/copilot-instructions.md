@@ -8,7 +8,7 @@ Always reference these instructions first and fallback to search or bash command
 
 ### Prerequisites and Dependencies
 - **Go 1.25+** is required (specified in go.mod)
-- **CGO is OPTIONAL**, if CGO_ENABLED=0, goada-wasm will be used instead of goada-cgo for URL parsing. you can run `Zeno | grep "Urlparser backend:"` to check which backend is in use.
+- **CGO is OPTIONAL**, if CGO_ENABLED=0, goada-wasm will be used instead of goada-cgo for URL parsing. You can run `Zeno | grep "Urlparser backend:"` to check which backend is in use.
 - **Linux/amd64** is the primary supported platform, but also builds on:
   - **Linux/arm64**
   - **Windows/amd64**
