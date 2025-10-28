@@ -22,11 +22,13 @@ jobs:
         md5sum: FALSE
         sha256sum: TRUE
         asset_name: 'Zeno-linux-amd64'
+        pre_command: 'sudo apt update && sudo apt install -y g++-12 && export CXX=g++-12'
   release-linux-arm64:
     name: release linux/arm64
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
+    - uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
     - uses: NGTmeaty/go-release-action@4bfb8be49bcb1828bfe493449b63c9afc4e0e377 #v2
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -37,11 +39,13 @@ jobs:
         md5sum: FALSE
         sha256sum: TRUE
         asset_name: 'Zeno-linux-arm64'
+        pre_command: 'export CGO_ENABLED=1 && export CC="zig cc -lc -target aarch64-linux-musl" && export CXX="zig c++ -lc -target aarch64-linux-musl"'
   release-windows-amd64:
     name: release windows/amd64
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
+    - uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
     - uses: NGTmeaty/go-release-action@4bfb8be49bcb1828bfe493449b63c9afc4e0e377 #v2
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -52,3 +56,4 @@ jobs:
         md5sum: FALSE
         sha256sum: TRUE
         asset_name: 'Zeno-windows-amd64'
+        pre_command: 'export CGO_ENABLED=1 && export CC="zig cc -lc -target x86_64-windows" && export CXX="zig c++ -lc -target x86_64-windows"'

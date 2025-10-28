@@ -1,3 +1,5 @@
+//go:build !cgo
+
 package preprocessor
 
 import (
@@ -70,4 +72,8 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	adaParse.Free()
 
 	return URL.Parse()
+}
+
+func Backend() string {
+	return "goada-wasm"
 }

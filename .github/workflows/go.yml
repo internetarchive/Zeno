@@ -21,8 +21,10 @@ jobs:
       with:
         go-version-file: 'go.mod'
 
-    - name: Build
-      run: go build -v ./...
+    - name: Build without cgo
+      run: CGO_ENABLED=0 go build -v ./...
+    - name: Build with cgo
+      run: CGO_ENABLED=1 go build -v ./...
 
     - name: Make coverage dirs
       run: mkdir -p /tmp/unit_coverage /tmp/e2e_coverage
@@ -73,8 +75,15 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
-    - name: Build for Windows
-      run: GOOS=windows GOARCH=amd64 go build -v ./...
+    - uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
+    - name: Build for Windows (cgo)
+      run: CC="zig cc -lc -target x86_64-windows" CXX="zig c++ -lc -target x86_64-windows" CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -v ./...
+    
+    - name: Build for Windows (cgo disabled)
+      run: CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -v ./...
 
-    - name: Build for linux/arm64
-      run: GOOS=linux GOARCH=arm64 go build -v ./...
+    - name: Build for linux/arm64 (cgo)
+      run: CGO_ENABLED=1 CC="zig cc -lc -target aarch64-linux-musl" CXX="zig c++ -lc -target aarch64-linux-musl" GOOS=linux GOARCH=arm64 go build -v ./...
+
+    - name: Build for linux/arm64 (cgo disabled)
+      run: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -v ./...

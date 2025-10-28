@@ -12,6 +12,15 @@ It heavily relies on the [gowarc](https://github.com/internetarchive/gowarc) mod
 The name Zeno comes from Zenodotus (Ζηνόδοτος), a Greek grammarian, literary critic, Homeric scholar,
 and the first librarian of the Library of Alexandria.
 
+## Requirements for Building
+- **Go 1.25+** - As specified in go.mod
+- If CGO_ENABLED=1:
+   > **GCC 12+** - Required for building C++ dependencies with C++20 constexpr support for the WHATWG URL parser ([github.com/ada-url/goada](https://github.com/ada-url/goada)).
+- If CGO_ENABLED=0:
+   > No additional requirements, as the CGO-free WebAssembly wrapper of goada ([goada-wasm](https://github.com/yzqzss/goada-wasm/)) will be used. (slower 1x than CGO version on amd64 and arm64, slower **10x or more** on other CPU architectures! Check https://wazero.io/docs/#compiler for details)
+
+Note: GCC 11 and earlier versions do not support the C++20 constexpr features required by the ada-url/goada dependency. On Ubuntu 22 LTS and earlier, you may need to install a newer GCC version or disable CGO.
+
 ## Installation
 
 ```bash
