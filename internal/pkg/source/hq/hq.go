@@ -4,6 +4,7 @@ package hq
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
@@ -89,8 +90,13 @@ func (s *HQ) Stop() {
 		s.cancel()
 		s.wg.Wait()
 		seedsToReset := reactor.GetStateTable()
+
+		// global ctx is canceled already, so create a new ctx for resets
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+
 		for _, seed := range seedsToReset {
-			if err := s.client.ResetURL(s.ctx, seed); err != nil {
+			if err := s.client.ResetURL(ctx, seed); err != nil {
 				logger.Error("error while reseting", "id", seed, "err", err)
 			}
 			logger.Debug("reset seed", "id", seed)
