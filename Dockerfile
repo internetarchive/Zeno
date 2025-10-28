@@ -1,11 +1,8 @@
 # Builder stage
 FROM golang:1.25.3-alpine3.22 AS builder
 
-# Enable CGO and set platform
-ENV CGO_ENABLED=1 GOOS=linux GOARCH=amd64
-
-# Install dependencies for CGO & C++
-RUN apk add --no-cache gcc g++ musl-dev
+# set platform
+ENV GOOS=linux GOARCH=amd64
 
 WORKDIR /app
 
@@ -16,14 +13,14 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build with CGO
+# Build
 RUN go build -o main .
 
 # Final smaller runtime stage
 FROM alpine:3.22
 
-# Install runtime dependencies: C++ standard libs and SSL certs
-RUN apk add --no-cache libstdc++ libgcc ca-certificates
+# Install runtime dependencies: SSL certs
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 

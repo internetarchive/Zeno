@@ -8,13 +8,9 @@ Always reference these instructions first and fallback to search or bash command
 
 ### Prerequisites and Dependencies
 - **Go 1.25+** is required (specified in go.mod)
-- **CGO is REQUIRED** - this project depends on C++ libraries 
-- **C++ compiler** (g++ or equivalent) is required for building
-- **GCC 12+** is required - GCC 11 and earlier lack C++20 constexpr support needed by dependencies
 - **Linux/amd64** is the primary supported platform, but also builds on:
-  - **Linux/arm64** via zig cross-compilation toolchain
-  - **Windows/amd64** via zig cross-compilation toolchain
-- Dependencies: `libstdc++` and `libgcc` runtime libraries
+  - **Linux/arm64**
+  - **Windows/amd64**
 
 ### Build and Test Commands
 - **CRITICAL**: NEVER CANCEL long-running commands. Set timeouts appropriately.
@@ -84,8 +80,8 @@ After making changes, ALWAYS:
 
 ### Testing Scenarios
 - **CLI functionality**: Test `--help` commands and basic argument parsing
-- **Build verification**: Ensure CGO linking works and binary runs
-- **Cross-platform builds**: Project supports Linux, Windows via zig toolchain
+- **Build verification**: Ensure `go build` works and binary runs
+- **Cross-platform builds**: Project supports Linux and Windows
 - **Network tests may fail** in restricted environments (this is expected)
 
 ## Critical Build Information
@@ -101,7 +97,6 @@ After making changes, ALWAYS:
 - **Network-dependent tests fail** in sandbox/restricted environments (expected)
 - **Docker build fails** without internet access to Alpine repositories  
 - **Some files need formatting**: Run `gofmt -w .` if needed
-- **CGO requirement**: Build will fail without C++ compiler and libraries
 
 ## Project Structure
 
@@ -174,15 +169,13 @@ After making changes, ALWAYS:
 8. Run vet: `go vet ./...`
 
 ### Debugging Build Issues
-- **CGO errors**: Ensure C++ compiler (g++ 12+) is installed
-- **Missing symbols**: Check that libstdc++ and libgcc are available
 - **Network timeouts**: Expected in sandboxed environments for external tests
 - **Test failures**: Most network-dependent test failures are expected in restricted environments
 
 ### Cross-Platform Development  
 - **Linux builds**: Standard `go build` (primary platform)
-- **Windows builds**: Use zig toolchain as configured in CI
-- **ARM64 builds**: Use zig toolchain as configured in CI
+- **Windows builds**: Use `GOOS=windows GOARCH=amd64 go build -v ./...`
+- **ARM64 builds**: Use `GOOS=linux GOARCH=arm64 go build -v ./...`
 - See `.github/workflows/build.yml` for exact cross-compilation commands
 
 ## CI/CD Integration
