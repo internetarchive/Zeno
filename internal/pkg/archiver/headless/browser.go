@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"path"
 	"time"
 
@@ -56,7 +55,7 @@ func queryLatestChromiumRevision(offset int) (int, error) {
 	return data[0].Revision, nil
 }
 
-func Start() {
+func Start() error {
 	var l *launcher.Launcher
 	if config.Get().HeadlessUserMode {
 		// In user mode, we use the default launcher
@@ -69,7 +68,7 @@ func Start() {
 		latestRev, err := queryLatestChromiumRevision(-config.Get().HeadlessChromiumRevision)
 		if err != nil {
 			browserLogger.Error("failed to query latest Chromium revision, you can try to specify the revision manually", "err", err)
-			os.Exit(1)
+			return err
 		}
 		browserLogger.Info("using Chromium revision", "revision", latestRev, "offset_from_latest", -config.Get().HeadlessChromiumRevision)
 		config.Get().HeadlessChromiumRevision = latestRev
@@ -93,8 +92,9 @@ func Start() {
 	Launcher = l
 
 	if HeadlessBrowser.MustVersion().ProtocolVersion != "1.3" {
-		panic(fmt.Sprintf("Unsupported DevTools-Protocol version: %s, expected 1.3", HeadlessBrowser.MustVersion().ProtocolVersion))
+		return fmt.Errorf("Unsupported DevTools-Protocol version: %s, expected 1.3", HeadlessBrowser.MustVersion().ProtocolVersion)
 	}
+	return nil
 }
 
 func Close() {
