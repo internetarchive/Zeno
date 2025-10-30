@@ -3,6 +3,7 @@ package lq
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -74,9 +75,13 @@ func (s *LQ) Start(finishChan, produceChan chan *models.Item) error {
 func (s *LQ) Stop() {
 	if s != nil {
 		seedsToReset := reactor.GetStateTable()
+		// global ctx is canceled already, so create a new ctx for resets
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+
 		for _, seed := range seedsToReset {
-			if err := s.client.resetURL(s.ctx, seed); err != nil {
-				logger.Error("error while reseting", "id", seed, "err", err)
+			if err := s.client.resetURL(ctx, seed); err != nil {
+				logger.Error("error while resetting", "id", seed, "err", err)
 			}
 			logger.Debug("reset seed", "id", seed)
 		}
