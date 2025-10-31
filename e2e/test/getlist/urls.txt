@@ -1,0 +1,4 @@
+# Test URL list for e2e test
+https://example.com
+https://example.com/page1
+https://example.com/page2

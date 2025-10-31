@@ -11,14 +11,23 @@ import (
 )
 
 type recordMatcher struct {
-	urlArchived     bool
+	archivedURLs    map[string]bool
 	unexpectedError bool
+}
+
+func newRecordMatcher() *recordMatcher {
+	return &recordMatcher{
+		archivedURLs: make(map[string]bool),
+	}
 }
 
 func (rm *recordMatcher) Match(record map[string]string) {
 	if record["level"] == "INFO" {
 		if strings.Contains(record["msg"], "url archived") {
-			rm.urlArchived = true
+			// Extract URL from the log record
+			if url, ok := record["url"]; ok {
+				rm.archivedURLs[url] = true
+			}
 		}
 	}
 	if record["level"] == "ERROR" {
@@ -27,16 +36,26 @@ func (rm *recordMatcher) Match(record map[string]string) {
 }
 
 func (rm *recordMatcher) Assert(t *testing.T) {
-	if !rm.urlArchived {
-		t.Error("Zeno did not archive the URL from the list")
+	expectedURLs := []string{
+		"https://example.com/",
+		"https://example.com/page1",
+		"https://example.com/page2",
 	}
+
+	for _, expectedURL := range expectedURLs {
+		if !rm.archivedURLs[expectedURL] {
+			t.Errorf("Zeno did not archive expected URL: %s", expectedURL)
+		}
+	}
+
 	if rm.unexpectedError {
 		t.Error("An unexpected error was logged during the test")
 	}
 }
 
 func (rm *recordMatcher) ShouldStop() bool {
-	return rm.urlArchived || rm.unexpectedError
+	// Stop when we've archived all 3 expected URLs or encountered an error
+	return len(rm.archivedURLs) >= 3 || rm.unexpectedError
 }
 
 func TestGetList(t *testing.T) {
@@ -44,7 +63,7 @@ func TestGetList(t *testing.T) {
 	defer os.RemoveAll("jobs")
 
 	shouldStopCh := make(chan struct{})
-	rm := &recordMatcher{}
+	rm := newRecordMatcher()
 	wg := &sync.WaitGroup{}
 
 	wg.Add(2)

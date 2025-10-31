@@ -15,9 +15,9 @@ import (
 )
 
 var getListCmd = &cobra.Command{
-	Use:   "list [FILE...]",
+	Use:   "list [FILE|URL...]",
 	Short: "Archive URLs from text file(s)",
-	Long: `Archive URLs from one or more text files.
+	Long: `Archive URLs from one or more text files or URLs.
 Each file should contain one URL per line.
 Remote files (starting with http:// or https://) are supported.
 Empty lines and lines starting with # are ignored.`,
@@ -117,9 +117,12 @@ func readRemoteURLList(URL string) (urls []string, err error) {
 		return urls, err
 	}
 
-	if config.Get().UserAgent != "" {
-		req.Header.Set("User-Agent", config.Get().UserAgent)
+	// Set user agent, use default if not configured
+	userAgent := config.Get().UserAgent
+	if userAgent == "" {
+		userAgent = "Mozilla/5.0 (compatible; Zeno)"
 	}
+	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
