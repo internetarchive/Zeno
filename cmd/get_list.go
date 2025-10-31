@@ -27,10 +27,6 @@ Empty lines and lines starting with # are ignored.`,
 			return fmt.Errorf("viper config is nil")
 		}
 
-		if len(args) == 0 {
-			return fmt.Errorf("no files provided")
-		}
-
 		return nil
 	},
 	RunE: func(_ *cobra.Command, args []string) error {
