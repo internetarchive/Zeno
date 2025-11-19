@@ -23,6 +23,7 @@ type HQ struct {
 	HQSecret  string
 	HQProject string
 	HQAddress string
+	Timeout   int
 }
 
 var (
@@ -30,12 +31,13 @@ var (
 	logger *log.FieldedLogger
 )
 
-func New(HQKey, HQSecret, HQProject, HQAddress string) *HQ {
+func New(HQKey, HQSecret, HQProject, HQAddress string, timeout int) *HQ {
 	return &HQ{
 		HQKey:     HQKey,
 		HQSecret:  HQSecret,
 		HQProject: HQProject,
 		HQAddress: HQAddress,
+		Timeout:   timeout,
 	}
 }
 
@@ -50,7 +52,7 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
-		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.HQProject, s.HQAddress, "", 5)
+		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.HQProject, s.HQAddress, "", s.Timeout)
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
 			cancel()
