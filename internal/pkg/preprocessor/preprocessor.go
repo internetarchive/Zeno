@@ -265,7 +265,8 @@ func preprocess(workerID string, seed *models.Item) error {
 
 		if err != nil {
 			logger.Error("unable to seencheck seed", "err", err.Error())
-			return err
+			seed.SetStatus(models.ItemFailed)
+			return nil
 		}
 	}
 
