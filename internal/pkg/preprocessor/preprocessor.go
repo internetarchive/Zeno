@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
@@ -253,7 +254,15 @@ func preprocess(workerID string, seed *models.Item) error {
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
 	if (config.Get().UseHQ || config.Get().UseSeencheck) && GlobalPreprocessor.seencheckerSet {
-		err = GlobalPreprocessor.Seenchecker(seed)
+		var err error
+		for i := 0; i < 5; i++ {
+			err = GlobalPreprocessor.Seenchecker(seed)
+			if err == nil {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+
 		if err != nil {
 			logger.Error("unable to seencheck seed", "err", err.Error())
 			return err
