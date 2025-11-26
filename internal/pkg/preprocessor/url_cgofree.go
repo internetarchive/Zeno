@@ -1,11 +1,13 @@
+//go:build !cgo
+
 package preprocessor
 
 import (
 	"net/url"
 	"strings"
 
-	"github.com/ada-url/goada"
 	"github.com/internetarchive/Zeno/pkg/models"
+	goada "github.com/yzqzss/goada-wasm"
 )
 
 // Normalize the URL by removing fragments, attempting to add URL scheme if missing,
@@ -70,4 +72,8 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	adaParse.Free()
 
 	return URL.Parse()
+}
+
+func Backend() string {
+	return "goada-wasm"
 }
