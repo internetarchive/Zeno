@@ -55,10 +55,10 @@ func (s *LQ) Start(finishChan, produceChan chan *models.Item) error {
 		s.produceCh = produceChan
 		s.client = LQclient
 
-		s.wg.Add(3)
-		go s.consumer()
-		go s.producer()
-		go s.finisher()
+		s.wg.Go(s.consumer)
+		s.wg.Go(s.producer)
+		s.wg.Go(s.finisher)
+		s.wg.Go(s.vacuumer)
 
 		logger.Info("started")
 
