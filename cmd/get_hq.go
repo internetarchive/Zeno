@@ -61,6 +61,7 @@ func getHQCmdFlags(getHQCmd *cobra.Command) {
 	getHQCmd.PersistentFlags().String("hq-key", "", "Crawl HQ key.")
 	getHQCmd.PersistentFlags().String("hq-secret", "", "Crawl HQ secret.")
 	getHQCmd.PersistentFlags().String("hq-project", "", "Crawl HQ project.")
+	getHQCmd.PersistentFlags().Int("hq-timeout", 5, "Crawl HQ HTTP Client default timeout")
 	getHQCmd.PersistentFlags().Int("hq-batch-size", 500, "Crawl HQ feeding batch size.")
 	getHQCmd.PersistentFlags().Int("hq-batch-concurrency", 1, "Number of concurrent requests to do to get the --hq-batch-size, if batch size is 300 and batch-concurrency is 10, 30 requests will be done concurrently.")
 	getHQCmd.PersistentFlags().Bool("hq-rate-limiting-send-back", false, "If turned on, the crawler will send back URLs that hit a rate limit to crawl HQ.")
