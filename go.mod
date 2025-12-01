@@ -1,18 +1,18 @@
 module github.com/internetarchive/Zeno
 
-go 1.25.1
+go 1.25.4
 
 require (
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
 	github.com/MatusOllah/slogcolor v1.7.0
-	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/ada-url/goada v1.0.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
-	github.com/gabriel-vasile/mimetype v1.4.10
-	github.com/gdamore/tcell/v2 v2.9.0
-	github.com/getsentry/sentry-go v0.35.3
+	github.com/gabriel-vasile/mimetype v1.4.11
+	github.com/gdamore/tcell/v2 v2.13.1
+	github.com/getsentry/sentry-go v0.40.0
 	github.com/go-logfmt/logfmt v0.6.1
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
@@ -20,26 +20,26 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/grafov/m3u8 v0.12.1
-	github.com/hashicorp/consul/api v1.32.4
+	github.com/hashicorp/consul/api v1.33.0
 	github.com/internetarchive/gocrawlhq v1.2.34
-	github.com/internetarchive/gowarc v0.8.90
-	github.com/ncruces/go-sqlite3 v0.29.1
-	github.com/pdfcpu/pdfcpu v0.11.0
+	github.com/internetarchive/gowarc v0.8.96
+	github.com/ncruces/go-sqlite3 v0.30.2
+	github.com/pdfcpu/pdfcpu v0.11.1
 	github.com/philippgille/gokv/leveldb v0.7.0
-	github.com/plar/go-adaptive-radix-tree/v2 v2.0.3
+	github.com/plar/go-adaptive-radix-tree/v2 v2.0.4
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rivo/tview v0.42.0
-	github.com/samber/slog-multi v1.5.0
+	github.com/samber/slog-multi v1.6.0
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/ysmood/gson v0.7.3
 	go.baoshuo.dev/csslexer v0.1.0
 	go.uber.org/goleak v1.3.0
-	golang.org/x/net v0.44.0
-	golang.org/x/sync v0.17.0
-	golang.org/x/sys v0.36.0
-	golang.org/x/text v0.29.0
+	golang.org/x/net v0.47.0
+	golang.org/x/sync v0.18.0
+	golang.org/x/sys v0.38.0
+	golang.org/x/text v0.31.0
 	mvdan.cc/xurls/v2 v2.6.0
 )
 
@@ -49,7 +49,7 @@ require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cloudflare/circl v1.6.1 // indirect
+	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/dolthub/maphash v0.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gammazero/deque v1.0.0 // indirect
@@ -71,14 +71,14 @@ require (
 	github.com/hhrutter/pkcs7 v0.2.0 // indirect
 	github.com/hhrutter/tiff v1.0.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
-	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
+	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.16 // indirect
+	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/maypok86/otter v1.2.4 // indirect
-	github.com/miekg/dns v1.1.65 // indirect
+	github.com/miekg/dns v1.1.68 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
@@ -90,18 +90,18 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	github.com/refraction-networking/utls v1.7.0 // indirect
+	github.com/refraction-networking/utls v1.8.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
-	github.com/samber/lo v1.51.0 // indirect
+	github.com/samber/lo v1.52.0 // indirect
 	github.com/samber/slog-common v0.19.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
-	github.com/tetratelabs/wazero v1.9.0 // indirect
-	github.com/ulikunitz/xz v0.5.14 // indirect
+	github.com/tetratelabs/wazero v1.10.1 // indirect
+	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
@@ -111,12 +111,12 @@ require (
 	go.baoshuo.dev/cssutil v0.0.2 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a // indirect
-	golang.org/x/image v0.27.0 // indirect
-	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/term v0.35.0 // indirect
-	golang.org/x/tools v0.36.0 // indirect
+	golang.org/x/image v0.32.0 // indirect
+	golang.org/x/mod v0.29.0 // indirect
+	golang.org/x/term v0.37.0 // indirect
+	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
