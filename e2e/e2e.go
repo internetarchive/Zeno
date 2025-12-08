@@ -23,16 +23,16 @@ var DialTimeout = 10 * time.Second
 
 func cmdZenoGetURL(urls []string) *cobra.Command {
 	cmd := cmd.Prepare()
-	
+
 	// If config.toml exists in pwd, include it in args
 	var args []string
 	commonArgs := []string{"get", "url", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}
 	if _, err := os.Stat("config.toml"); err == nil {
-		args = append(commonArgs,append([]string{"--config-file", "config.toml"}, urls...)...)
+		args = append(commonArgs, append([]string{"--config-file", "config.toml"}, urls...)...)
 	} else {
 		args = append(commonArgs, urls...)
 	}
-	
+
 	fmt.Println("Command arguments:", args)
 	cmd.SetArgs(args)
 	return cmd
@@ -71,10 +71,36 @@ func connectThenCopy(t *testing.T, wg *sync.WaitGroup, W *io.PipeWriter) {
 	defer W.Close()
 }
 
+func cmdZenoGetList(files []string) *cobra.Command {
+	cmd := cmd.Prepare()
+
+	// If config.toml exists in pwd, include it in args
+	var args []string
+	commonArgs := []string{"get", "list", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}
+	if _, err := os.Stat("config.toml"); err == nil {
+		args = append(commonArgs, append([]string{"--config-file", "config.toml"}, files...)...)
+	} else {
+		args = append(commonArgs, files...)
+	}
+
+	fmt.Println("Command arguments:", args)
+	cmd.SetArgs(args)
+	return cmd
+}
+
 // ExecuteCmdZenoGetURL executes the Zeno get URL command with the e2e logging, URLs and custom config.toml file
 func ExecuteCmdZenoGetURL(t *testing.T, wg *sync.WaitGroup, urls []string) {
 	defer wg.Done()
 	cmdErr := cmdZenoGetURL(urls).Execute()
+	if cmdErr != nil {
+		t.Errorf("failed to start command: %v", cmdErr)
+	}
+}
+
+// ExecuteCmdZenoGetList executes the Zeno get list command with the e2e logging, file paths and custom config.toml file
+func ExecuteCmdZenoGetList(t *testing.T, wg *sync.WaitGroup, files []string) {
+	defer wg.Done()
+	cmdErr := cmdZenoGetList(files).Execute()
 	if cmdErr != nil {
 		t.Errorf("failed to start command: %v", cmdErr)
 	}
