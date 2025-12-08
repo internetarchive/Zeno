@@ -295,7 +295,7 @@ func TestSitemapXMLOutlinkExtractor(t *testing.T) {
 			want: true,
 		},
 	}
-
+	// XML test for HTML non-xml handling
 	extractor := SitemapXMLOutlinkExtractor{}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
