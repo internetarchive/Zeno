@@ -14,7 +14,7 @@ and the first librarian of the Library of Alexandria.
 
 ## Requirements for Building
 - **Go 1.25+** - As specified in go.mod
-- If CGO_ENABLED=1:
+- If CGO_ENABLED=1 (enabled by default):
    > **GCC 12+** - Required for building C++ dependencies with C++20 constexpr support for the WHATWG URL parser ([github.com/ada-url/goada](https://github.com/ada-url/goada)).
 - If CGO_ENABLED=0:
    > No additional requirements, as the CGO-free WebAssembly wrapper of goada ([goada-wasm](https://github.com/yzqzss/goada-wasm/)) will be used. (1x slower than CGO version on amd64 and arm64, and **10x or more** slower on other CPU architectures! Check https://wazero.io/docs/#compiler for details)
