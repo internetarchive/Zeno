@@ -28,6 +28,7 @@ var outlinkExtractors = []OutlinkExtractor{
 	extractor.HTMLOutlinkExtractor{},
 	extractor.PDFOutlinkExtractor{},
 	reddit.RedditPostAPIOutlinkExtractor{},
+	extractor.EbookOutlinkExtractor{},
 }
 
 func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
