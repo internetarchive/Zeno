@@ -192,6 +192,7 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 		var (
 			req             *http.Request
 			resp            *http.Response
+			err             error
 			feedbackChan    chan struct{}
 			wrappedConnChan chan *warc.CustomConnection
 		)
@@ -327,6 +328,10 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 	logger.Debug("navigating to URL")
 
 	go router.Run()
+
+	// Wait for the router to start to avoid race condition in rod
+	// The race happens between router.Run() initializing events and page.Navigate() triggering events.
+	time.Sleep(100 * time.Millisecond)
 
 	err = page.Navigate(item.GetURL().String())
 	if err != nil {
