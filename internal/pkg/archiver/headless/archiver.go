@@ -221,11 +221,11 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			if !config.Get().WARCWriteAsync {
 				feedbackChan = make(chan struct{}, 1)
 				// Add the feedback channel to the request context
-				req = req.WithContext(context.WithValue(req.Context(), "feedback", feedbackChan))
+				req = req.WithContext(warc.WithFeedbackChannel(req.Context(), feedbackChan))
 			}
 			// Prepare warppedConn channel
 			wrappedConnChan = make(chan *warc.CustomConnection, 1)
-			req = req.WithContext(context.WithValue(req.Context(), "wrappedConn", wrappedConnChan))
+			req = req.WithContext(warc.WithWrappedConnection(req.Context(), wrappedConnChan))
 
 			// Set UA if not in stealth mode
 			if !config.Get().HeadlessStealth {
