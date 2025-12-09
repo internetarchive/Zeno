@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,8 @@ Authors:
   Corentin Barreau <corentin@archive.org>
   Jake LaFountain <jakelf@archive.org>
   Thomas Foubert <thomas@archive.org>
-`,
+
+Urlparser backend: ` + preprocessor.Backend(),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Initialize config here, after cobra has parsed command line flags
 		config.BindFlags(cmd.Flags())
