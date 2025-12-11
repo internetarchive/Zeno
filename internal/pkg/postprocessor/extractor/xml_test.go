@@ -44,16 +44,18 @@ func TestXML(t *testing.T) {
 			hasError: false,
 		},
 		{
-			name: "Valid XML with multiple URLs with whitespace",
-			body: `   \t\n   \t\n  <?xml version="1.0" encoding="UTF-8"?>
-                <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-                    <url>
-                        <loc>https://example.com/page1</loc>
-                    </url>
-                    <url>
-                        <loc>https://example.com/page2</loc>
-                    </url>
-                </urlset> \t\n \t\n `,
+			name:     "Invalid XML content (HTML rejected)",
+			body:     `<html><body>Not XML</body></html>`,
+			expected: []string{},
+			hasError: false,
+		},
+		{
+			name: "Valid XML with multiple URLs with leading whitespace",
+			body: `   \n\t   <?xml version="1.0" encoding="UTF-8"?>
+					<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+						<url><loc>https://example.com/page1</loc></url>
+						<url><loc>https://example.com/page2</loc></url>
+					</urlset>`,
 			expected: []string{
 				"http://www.sitemaps.org/schemas/sitemap/0.9",
 				"https://example.com/page1",
@@ -176,7 +178,8 @@ func TestXML(t *testing.T) {
 
 			assets, outlinks, err := XML(URL)
 
-			URLs := append(assets, outlinks...)
+			URLs := append([]*models.URL{}, assets...)
+			URLs = append(URLs, outlinks...)
 
 			if (err != nil) != tt.hasError {
 				t.Fatalf("XML() error = %v, wantErr %v", err, tt.hasError)
@@ -295,7 +298,7 @@ func TestSitemapXMLOutlinkExtractor(t *testing.T) {
 			want: true,
 		},
 	}
-	// XML test for HTML non-xml handling
+
 	extractor := SitemapXMLOutlinkExtractor{}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -307,7 +310,8 @@ func TestSitemapXMLOutlinkExtractor(t *testing.T) {
 			// We want to simulate an S3 server for these tests.
 			URLObj.SetResponse(&http.Response{
 				Header: http.Header{
-					"Server": []string{"AmazonS3"},
+					"Content-Type": []string{"application/xml"},
+					"Server":       []string{"AmazonS3"},
 				},
 			})
 
