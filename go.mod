@@ -10,8 +10,8 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
-	github.com/gabriel-vasile/mimetype v1.4.11
-	github.com/gdamore/tcell/v2 v2.13.2
+	github.com/gabriel-vasile/mimetype v1.4.12
+	github.com/gdamore/tcell/v2 v2.13.4
 	github.com/getsentry/sentry-go v0.40.0
 	github.com/go-logfmt/logfmt v0.6.1
 	github.com/go-rod/rod v0.116.2
