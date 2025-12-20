@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"net/url"
+	neturl "net/url"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -24,7 +24,13 @@ func (EbookOutlinkExtractor) Support(m Mode) bool {
 
 func (EbookOutlinkExtractor) Match(URL *models.URL) bool {
 	m := URL.GetMIMEType()
-	return m.Is("application/epub+zip") || strings.HasSuffix(strings.ToLower(URL.GetParsed().Path), ".epub")
+	if m != nil && m.Is("application/epub+zip") {
+		return true
+	}
+	if p := URL.GetParsed(); p != nil {
+		return strings.HasSuffix(strings.ToLower(p.Path), ".epub")
+	}
+	return strings.HasSuffix(strings.ToLower(URL.String()), ".epub")
 }
 
 func (EbookOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
@@ -58,6 +64,7 @@ func (EbookOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, e
 		return nil, fmt.Errorf("ebook extractor: open opf %s: %w", opfPath, e)
 	}
 	opfBytes, e := io.ReadAll(opfFile)
+	opfFile.Close()
 	if e != nil {
 		return nil, fmt.Errorf("ebook extractor: read opf %s: %w", opfPath, e)
 	}
@@ -94,18 +101,32 @@ func (EbookOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, e
 		}
 
 		doc, e := goquery.NewDocumentFromReader(r)
+		r.Close()
 		if e != nil {
 			errs = append(errs, fmt.Sprintf("parse html %s: %v", itemPath, e))
 			continue
 		}
 
 		baseParsed := URL.GetParsed()
+		if baseParsed == nil && URL.GetRequest() != nil && URL.GetRequest().URL != nil {
+			baseParsed = URL.GetRequest().URL
+		}
+		if baseParsed == nil {
+			if p, perr := neturl.Parse(URL.Raw); perr == nil {
+				baseParsed = p
+			}
+		}
+		if baseParsed == nil {
+			errs = append(errs, fmt.Sprintf("cannot determine base URL for resolving links in %s", itemPath))
+			continue
+		}
+
 		itemDir := path.Dir(itemPath)
 		baseStr := strings.TrimRight(baseParsed.String(), "/") + "/"
 		if itemDir != "" && itemDir != "." {
 			baseStr = strings.TrimRight(baseStr, "/") + "/" + strings.TrimLeft(itemDir, "/") + "/"
 		}
-		baseURL, _ := url.Parse(baseStr)
+		baseURL, _ := neturl.Parse(baseStr)
 
 		doc.Find("a[href]").Each(func(i int, s *goquery.Selection) {
 			hrefVal, exists := s.Attr("href")
@@ -116,7 +137,7 @@ func (EbookOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, e
 				return
 			}
 
-			parsed, perr := url.Parse(hrefVal)
+			parsed, perr := neturl.Parse(hrefVal)
 			if perr != nil {
 				errs = append(errs, fmt.Sprintf("invalid href %q in %s: %v", hrefVal, itemPath, perr))
 				return
@@ -132,7 +153,6 @@ func (EbookOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, e
 	return outlinks, nil
 }
 
-// Minimal OPF structs
 type opfPackage struct {
 	XMLName  xml.Name    `xml:"package"`
 	Manifest opfManifest `xml:"manifest"`
@@ -157,8 +177,6 @@ type opfSpineItemref struct {
 	IDRef string `xml:"idref,attr"`
 }
 
-// Helpers
-
 func findOPFPath(zr *zip.Reader) (string, error) {
 	const containerPath = "META-INF/container.xml"
 	f, err := openZipFile(zr, containerPath)
@@ -166,6 +184,7 @@ func findOPFPath(zr *zip.Reader) (string, error) {
 		return "", fmt.Errorf("read %s: %w", containerPath, err)
 	}
 	b, err := io.ReadAll(f)
+	f.Close()
 	if err != nil {
 		return "", fmt.Errorf("read %s: %w", containerPath, err)
 	}
@@ -181,7 +200,10 @@ func findOPFPath(zr *zip.Reader) (string, error) {
 
 	var c container
 	if err := xml.Unmarshal(b, &c); err != nil {
-		return "", fmt.Errorf("parse container.xml: %w", err)
+		clean := stripXMLNS(b)
+		if err2 := xml.Unmarshal(clean, &c); err2 != nil {
+			return "", fmt.Errorf("parse container.xml: %v (fallback: %v)", err, err2)
+		}
 	}
 	if len(c.Rootfiles.Files) == 0 {
 		return "", fmt.Errorf("no rootfile in container.xml")
@@ -200,17 +222,6 @@ func findAnyOPF(zr *zip.Reader) (string, error) {
 
 func parseOPF(opfBytes []byte) (*opfPackage, error) {
 	var pkg opfPackage
-	decoder := xml.NewDecoder(bytes.NewReader(opfBytes))
-	for {
-		t, err := decoder.Token()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("xml token error: %w", err)
-		}
-		_ = t
-	}
 	if err := xml.Unmarshal(opfBytes, &pkg); err != nil {
 		clean := stripXMLNS(opfBytes)
 		if err2 := xml.Unmarshal(clean, &pkg); err2 != nil {
