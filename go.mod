@@ -11,7 +11,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
 	github.com/gabriel-vasile/mimetype v1.4.12
-	github.com/gdamore/tcell/v2 v2.13.4
+	github.com/gdamore/tcell/v2 v2.13.5
 	github.com/getsentry/sentry-go v0.40.0
 	github.com/go-logfmt/logfmt v0.6.1
 	github.com/go-rod/rod v0.116.2
@@ -23,7 +23,7 @@ require (
 	github.com/hashicorp/consul/api v1.33.0
 	github.com/internetarchive/gocrawlhq v1.2.34
 	github.com/internetarchive/gowarc v0.8.96
-	github.com/ncruces/go-sqlite3 v0.30.3
+	github.com/ncruces/go-sqlite3 v0.30.4
 	github.com/pdfcpu/pdfcpu v0.11.1
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/plar/go-adaptive-radix-tree/v2 v2.0.4
@@ -101,7 +101,7 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
-	github.com/tetratelabs/wazero v1.10.1 // indirect
+	github.com/tetratelabs/wazero v1.11.0 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
