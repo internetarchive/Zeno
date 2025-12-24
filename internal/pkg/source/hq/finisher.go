@@ -87,6 +87,19 @@ func (s *HQ) finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh c
 			logger.Debug("closed")
 			return
 		case item := <-s.finishCh:
+
+			// Inside finisherReceiver, reset failed seeds so HQ can retry them
+			if item.GetStatus() == models.ItemFailed {
+				logger.Debug(
+					"failed seed detected, resetting status in HQ",
+					"seed", item.GetShortID(),
+				)
+
+				// Reset ONLY the status — HQ seencheck cannot be cleared
+				item.SetStatus(models.ItemFresh)
+
+				continue
+			}
 			logger.Debug("received item", "item", item.GetShortID())
 
 			var value string

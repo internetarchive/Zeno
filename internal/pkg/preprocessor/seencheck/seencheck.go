@@ -74,6 +74,13 @@ func seen(hash, value string) {
 // Different from the HQ seencheck, the local seencheck performs seencheck on top level seeds.
 func SeencheckItem(item *models.Item) error {
 	h := fnv.New64a()
+	// If this is a retry, clear seencheck entries so it can be processed again
+	if item.GetStatus() == models.ItemFresh {
+		err := DeleteItem(item)
+		if err != nil {
+			return err
+		}
+	}
 
 	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
 	if err != nil {
@@ -117,6 +124,36 @@ func SeencheckItem(item *models.Item) error {
 		// All other cases: already seen, skip
 		items[i].SetStatus(models.ItemSeen)
 		h.Reset()
+	}
+
+	return nil
+}
+
+// DeleteItem removes all hashes corresponding to the given item from the seencheck DB.
+// This is used when a seed fails and needs to be retried.
+func DeleteItem(item *models.Item) error {
+	h := fnv.New64a()
+
+	// Get all nodes at the maximum depth
+	items, err := item.GetNodesAtLevel(item.GetMaxDepth())
+	if err != nil {
+		return err
+	}
+
+	for _, it := range items {
+		// Compute the hash for each URL
+		h.Reset()
+		_, err := h.Write([]byte(it.GetURL().String()))
+		if err != nil {
+			return err
+		}
+		hash := strconv.FormatUint(h.Sum64(), 10)
+
+		// Delete the hash from seencheck DB
+		err = globalSeencheck.DB.Delete(hash)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
