@@ -13,6 +13,8 @@ import (
 type recordMatcher struct {
 	archivedURLs    map[string]bool
 	unexpectedError bool
+	expectedURLs    []string
+	mt              sync.Mutex
 }
 
 func newRecordMatcher() *recordMatcher {
@@ -24,25 +26,25 @@ func newRecordMatcher() *recordMatcher {
 func (rm *recordMatcher) Match(record map[string]string) {
 	if record["level"] == "INFO" {
 		if strings.Contains(record["msg"], "url archived") {
-			// Extract URL from the log record
 			if url, ok := record["url"]; ok {
+				rm.mt.Lock()
 				rm.archivedURLs[url] = true
+				rm.mt.Unlock()
 			}
 		}
 	}
 	if record["level"] == "ERROR" {
+		rm.mt.Lock()
 		rm.unexpectedError = true
+		rm.mt.Unlock()
 	}
 }
 
 func (rm *recordMatcher) Assert(t *testing.T) {
-	expectedURLs := []string{
-		"https://example.com/",
-		"https://example.com/page1",
-		"https://example.com/page2",
-	}
+	rm.mt.Lock()
+	defer rm.mt.Unlock()
 
-	for _, expectedURL := range expectedURLs {
+	for _, expectedURL := range rm.expectedURLs {
 		if !rm.archivedURLs[expectedURL] {
 			t.Errorf("Zeno did not archive expected URL: %s", expectedURL)
 		}
@@ -54,8 +56,20 @@ func (rm *recordMatcher) Assert(t *testing.T) {
 }
 
 func (rm *recordMatcher) ShouldStop() bool {
-	// Stop when we've archived all 3 expected URLs or encountered an error
-	return len(rm.archivedURLs) >= 3 || rm.unexpectedError
+	rm.mt.Lock()
+	defer rm.mt.Unlock()
+
+	if rm.unexpectedError {
+		return true
+	}
+
+	for _, urls := range rm.expectedURLs {
+		if !rm.archivedURLs[urls] {
+			return false
+		}
+	}
+
+	return true
 }
 
 func TestGetList(t *testing.T) {
