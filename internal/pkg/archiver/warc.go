@@ -25,6 +25,7 @@ func startWARCWriter() error {
 	if config.Get().Headless {
 		rotatorSettings.WarcinfoContent.Set("zeno-headless", "true")
 	}
+
 	// Configure WARC dedupe settings
 	dedupeOptions := warc.DedupeOptions{LocalDedupe: !config.Get().DisableLocalDedupe, SizeThreshold: config.Get().WARCDedupeSize}
 	if config.Get().CDXDedupeServer != "" {
@@ -60,8 +61,9 @@ func startWARCWriter() error {
 		DigestAlgorithm:  warc.GetDigestFromPrefix(config.Get().WARCDigestAlgorithm),
 	}
 
-	// Instantiate WARC client
 	var err error
+
+	// Proxied client
 	if config.Get().Proxy != "" {
 		proxiedWARCSettings := WARCSettings
 		proxiedWARCSettings.Proxy = config.Get().Proxy
@@ -71,6 +73,9 @@ func startWARCWriter() error {
 			return err
 		}
 
+		// Wrap transport with caching/deduplication
+		globalArchiver.ClientWithProxy.Transport = NewHTTPCacheTransport(globalArchiver.ClientWithProxy.Transport)
+
 		go func() {
 			for err := range globalArchiver.ClientWithProxy.ErrChan {
 				logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
@@ -78,13 +83,16 @@ func startWARCWriter() error {
 		}()
 	}
 
-	// Even if a proxied client has been set, we want to create an non-proxied one
+	// Non-proxied client
 	if config.Get().Proxy == "" {
 		globalArchiver.Client, err = warc.NewWARCWritingHTTPClient(WARCSettings)
 		if err != nil {
 			logger.Error("unable to init WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
 			return err
 		}
+
+		// Wrap transport with caching/deduplication
+		globalArchiver.Client.Transport = NewHTTPCacheTransport(globalArchiver.Client.Transport)
 
 		go func() {
 			for err := range globalArchiver.Client.ErrChan {
@@ -98,22 +106,12 @@ func startWARCWriter() error {
 		if globalArchiver.Client != nil {
 			globalArchiver.Client.Timeout = config.Get().HTTPTimeout
 		}
-
 		if globalArchiver.ClientWithProxy != nil {
 			globalArchiver.ClientWithProxy.Timeout = config.Get().HTTPTimeout
 		}
 	}
+
 	return nil
-}
-
-func GetClients() (clients []*warc.CustomHTTPClient) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			clients = append(clients, c)
-		}
-	}
-
-	return clients
 }
 
 type WARCStats struct {
