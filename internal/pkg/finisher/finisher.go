@@ -49,6 +49,7 @@ func Start(inputChan, sourceFinishedChan, sourceProducedChan chan *models.Item) 
 		}
 		logger.Debug("initialized")
 		for i := 0; i < config.Get().WorkersCount; i++ {
+			stats.FinisherRoutinesIncr()
 			globalFinisher.wg.Add(1)
 			go globalFinisher.worker(strconv.Itoa(i))
 		}
@@ -75,7 +76,11 @@ func Stop() {
 }
 
 func (f *finisher) worker(workerID string) {
-	defer f.wg.Done()
+	defer func() {
+		stats.FinisherRoutinesDecr()
+		f.wg.Done()
+	}()
+
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "finisher.worker",
 		"worker_id": workerID,
