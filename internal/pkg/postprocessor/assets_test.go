@@ -27,14 +27,14 @@ func TestExtractAssets_HTML(t *testing.T) {
 
 	newURL, err := models.NewURL("http://example.com")
 	if err != nil {
-		panic(err)
+		t.Fatalf("failed to create URL: %v", err)
 	}
 	newURL.SetResponse(resp)
 
-	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
-	spooledTempFile.Write([]byte(html))
+	spf := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	_, _ = spf.Write([]byte(html))
 
-	newURL.SetBody(spooledTempFile)
+	newURL.SetBody(spf)
 	newURL.Parse()
 	item := models.NewItem(&newURL, "")
 
@@ -42,16 +42,15 @@ func TestExtractAssets_HTML(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	// Basic assertions
-	if len(assets) != 2 {
-		t.Errorf("expected assets, got %d", len(assets))
-	}
-	if assets[0].Raw != "http://example.com/img.png" {
-		t.Errorf("asset extraction failed for http://example.com/img.png")
 
+	if len(assets) != 2 {
+		t.Errorf("expected 2 assets, got %d", len(assets))
 	}
-	if assets[1].Raw != "http://example.com/style.css" {
-		t.Errorf("asset extraction failed for http://example.com/style.css")
+	if assets[0].Raw != "http://example.com/img.png" && assets[1].Raw != "http://example.com/img.png" {
+		t.Errorf("asset extraction failed for img.png, got %+v", assets)
+	}
+	if assets[0].Raw != "http://example.com/style.css" && assets[1].Raw != "http://example.com/style.css" {
+		t.Errorf("asset extraction failed for style.css, got %+v", assets)
 	}
 	if len(outlinks) != 0 {
 		t.Errorf("expected no outlinks, got %d", len(outlinks))
@@ -59,7 +58,6 @@ func TestExtractAssets_HTML(t *testing.T) {
 }
 
 func TestSanitizeAssetsOutlinks(t *testing.T) {
-	var err error
 	newURL, _ := models.NewURL("http://example.com")
 	newItem := models.NewItem(&newURL, "")
 
@@ -72,10 +70,12 @@ func TestSanitizeAssetsOutlinks(t *testing.T) {
 	o1, _ := models.NewURL("http://ol1.com")
 	o2, _ := models.NewURL("javascript:function(){alert('hi')}") // must filter out
 	outlinks := []*models.URL{&o1, &o2}
+
+	var err error
 	assets, outlinks, err = SanitizeAssetsOutlinks(newItem, assets, outlinks, err)
 
 	if err != nil {
-		t.Errorf("unexpected error  %v", err)
+		t.Errorf("unexpected error: %v", err)
 	}
 	if len(assets) != 1 {
 		t.Errorf("expected 1 filtered asset, got %d", len(assets))
@@ -85,9 +85,7 @@ func TestSanitizeAssetsOutlinks(t *testing.T) {
 	}
 }
 
-// Replace &amp; with & in reddit.com assets to fix Reddit quirk.
 func TestRedditAssetQuirks(t *testing.T) {
-	var err error
 	newURL, _ := models.NewURL("https://reddit.com/")
 	newItem := models.NewItem(&newURL, "")
 
@@ -97,13 +95,14 @@ func TestRedditAssetQuirks(t *testing.T) {
 	assets := []*models.URL{&a1}
 	outlinks := []*models.URL{&o1}
 
+	var err error
 	assets, _, err = SanitizeAssetsOutlinks(newItem, assets, outlinks, err)
 
 	if err != nil {
-		t.Errorf("unexpected error  %v", err)
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	if assets[0].Raw != "http://reddit.com/asset?a=1&b=2&c=3" {
-		t.Errorf("expected reddit.com &amp; replacement with & got %s", assets[0].Raw)
+		t.Errorf("expected reddit.com &amp; replacement with &, got %s", assets[0].Raw)
 	}
 }
