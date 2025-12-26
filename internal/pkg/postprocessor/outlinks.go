@@ -6,7 +6,6 @@ import (
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/truthsocial"
@@ -146,18 +145,4 @@ func filterMaxOutlinks(outlinks []*models.URL) []*models.URL {
 		return outlinks[:limit]
 	}
 	return outlinks
-}
-
-func shouldExtractOutlinks(item *models.Item) bool {
-	// Bypass the hop count if we are domain crawling to ensure we don't miss an outlink from a domain we are interested in
-	if domainscrawl.Enabled() && item.GetURL().GetBody() != nil {
-		return true
-	}
-
-	// Match pure hops count
-	if item.GetURL().GetHops() < config.Get().MaxHops && item.GetURL().GetBody() != nil {
-		return true
-	}
-
-	return false
 }

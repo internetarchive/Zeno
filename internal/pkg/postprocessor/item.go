@@ -10,6 +10,20 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
+func shouldExtractOutlinks(item *models.Item) bool {
+	// Bypass the hop count if we are domain crawling to ensure we don't miss an outlink from a domain we are interested in
+	if domainscrawl.Enabled() && item.GetURL().GetBody() != nil {
+		return true
+	}
+
+	// Match pure hops count
+	if item.GetURL().GetHops() < config.Get().MaxHops && item.GetURL().GetBody() != nil {
+		return true
+	}
+
+	return false
+}
+
 func postprocessItem(item *models.Item) []*models.Item {
 	defer item.Close()
 
@@ -27,75 +41,69 @@ func postprocessItem(item *models.Item) []*models.Item {
 
 	logger.Debug("postprocessing item")
 
-	// Verify if there is any redirection
-	if item.GetURL().GetResponse() != nil && isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
+	// Handle redirections
+	if item.GetURL().GetResponse() != nil &&
+		isStatusCodeRedirect(item.GetURL().GetResponse().StatusCode) {
+
 		logger.Debug("item is a redirection")
 
-		// Check if the current redirections count doesn't exceed the max allowed
 		if item.GetURL().GetRedirects() >= config.Get().MaxRedirect {
 			logger.Warn("max redirects reached")
 			item.SetStatus(models.ItemCompleted)
 			return outlinks
 		}
 
-		// Prepare the new item resulting from the redirection
 		newURL := &models.URL{
 			Raw:       item.GetURL().GetResponse().Header.Get("Location"),
 			Redirects: item.GetURL().GetRedirects() + 1,
 			Hops:      item.GetURL().GetHops(),
 		}
 
-		newChild := models.NewItem(newURL, "")
-		err := item.AddChild(newChild, models.ItemGotRedirected)
-		if err != nil {
-			panic(err)
-		}
+		child := models.NewItem(newURL, "")
+		_ = item.AddChild(child, models.ItemGotRedirected)
 
 		return outlinks
 	}
 
-	// Execute site-specific post-processing
-	// TODO: re-add, but it was causing:
-	// panic: preprocessor received item with status 4
-	// switch {
-	// case facebook.IsFacebookPostURL(item.GetURL()):
-	// 	err := item.AddChild(
-	// 		models.NewItem(
-	// 			facebook.GenerateEmbedURL(item.GetURL()),
-	// 			item.GetURL().String(),
-	// 		), models.ItemGotChildren)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// }
+	// Depth and asset capture checks
+	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 &&
+		!extractor.IsEmbeddedCSS(item) {
 
-	// Return if:
-	// 1. the item [is not an embeded css item] and [is a child has a depth (without redirections) bigger than 2].
-	//    -> we don't want to go too deep but still get the assets of assets (f.ex: m3u8)
-	//    -> CSS @import chains can be very long, the depth control logic for embedded CSS item is in the AddAtImportLinksToItemChild() function separately.
-	// 2. assets capture and domains crawl are disabled
-	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 && !extractor.IsEmbeddedCSS(item) {
-		logger.Debug("item is a child and it's depth (without redirections) is more than 2")
-		item.SetStatus(models.ItemCompleted)
-		return outlinks
-	} else if !domainscrawl.Enabled() && (item.GetDepthWithoutRedirections() == 1 && strings.Contains(item.GetURL().GetMIMEType().String(), "html")) {
-		logger.Debug("HTML got extracted as asset, skipping")
-		item.SetStatus(models.ItemCompleted)
-		return outlinks
-	} else if config.Get().DisableAssetsCapture && !domainscrawl.Enabled() {
-		logger.Debug("assets capture and domains crawl are disabled")
+		logger.Debug("depth exceeded")
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
 	}
 
-	if (item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200) || // standard item
-		(item.GetURL().GetResponse() == nil && item.GetURL().GetBody() != nil) { // headless item
+	if !domainscrawl.Enabled() &&
+		item.GetDepthWithoutRedirections() == 1 &&
+		strings.Contains(item.GetURL().GetMIMEType().String(), "html") {
+
+		logger.Debug("HTML extracted as asset, skipping")
+		item.SetStatus(models.ItemCompleted)
+		return outlinks
+	}
+
+	if config.Get().DisableAssetsCapture && !domainscrawl.Enabled() {
+		logger.Debug("assets disabled")
+		item.SetStatus(models.ItemCompleted)
+		return outlinks
+	}
+
+	// Process successful items
+	if (item.GetURL().GetResponse() != nil &&
+		item.GetURL().GetResponse().StatusCode == 200) ||
+		(item.GetURL().GetResponse() == nil &&
+			item.GetURL().GetBody() != nil) {
+
 		logger.Debug("item is a success")
+
+		doAssets := shouldExtractAssets(item)
+		doOutlinks := shouldExtractOutlinks(item)
 
 		var outlinksFromAssets []*models.URL
 
-		// Extract assets from the page
-		if shouldExtractAssets(item) {
+		// Extract assets
+		if doAssets {
 			var assets []*models.URL
 			var err error
 
@@ -103,63 +111,53 @@ func postprocessItem(item *models.Item) []*models.Item {
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error())
 			} else {
-				for i := range assets {
-					if assets[i] == nil {
-						logger.Warn("nil asset")
+				for _, asset := range assets {
+					if asset == nil {
 						continue
 					}
-
-					newChild := models.NewItem(assets[i], "")
-					err = item.AddChild(newChild, models.ItemGotChildren)
-					if err != nil {
-						panic(err)
-					}
+					child := models.NewItem(asset, "")
+					_ = item.AddChild(child, models.ItemGotChildren)
 				}
-
-				logger.Debug("extracted assets", "count", len(assets))
 			}
 		}
 
-		// Extract outlinks from the page
-		if shouldExtractOutlinks(item) {
+		// Extract outlinks
+		if doOutlinks {
 			newOutlinks, err := extractOutlinks(item)
 			if err != nil {
 				logger.Error("unable to extract outlinks", "err", err.Error())
 			} else {
-				// Append the outlinks found from the assets
 				newOutlinks = append(newOutlinks, outlinksFromAssets...)
 
-				for i := range newOutlinks {
-					if newOutlinks[i] == nil {
-						logger.Warn("nil link")
+				for _, link := range newOutlinks {
+					if link == nil {
 						continue
 					}
 
-					// If domains crawl, and if the host of the new outlinks match the host of its parent
-					// and if its parent is at hop 0, then we need to set the hop count to 0.
-					// TODO: maybe be more flexible than a strict match
-					if domainscrawl.Enabled() && domainscrawl.Match(newOutlinks[i].Raw) {
-						logger.Debug("setting hop count to 0 (domains crawl)", "url", newOutlinks[i].Raw)
-						newOutlinks[i].SetHops(0)
-					} else if domainscrawl.Enabled() && !domainscrawl.Match(newOutlinks[i].Raw) && item.GetURL().GetHops() >= config.Get().MaxHops {
-						logger.Debug("skipping outlink due to hop count", "url", newOutlinks[i].Raw)
+					if domainscrawl.Enabled() &&
+						domainscrawl.Match(link.Raw) {
+						link.SetHops(0)
+					} else if domainscrawl.Enabled() &&
+						!domainscrawl.Match(link.Raw) &&
+						item.GetURL().GetHops() >= config.Get().MaxHops {
 						continue
 					}
 
-					newOutlinkItem := models.NewItem(newOutlinks[i], item.GetURL().String())
-					outlinks = append(outlinks, newOutlinkItem)
+					outlinks = append(
+						outlinks,
+						models.NewItem(link, item.GetURL().String()),
+					)
 				}
-
-				logger.Debug("extracted outlinks", "count", len(newOutlinks))
 			}
 		}
 	}
 
-	// Make sure the goquery document's memory can be freed
 	item.GetURL().SetDocumentCache(nil)
 
-	if !item.HasChildren() && !item.HasRedirection() && item.GetStatus() != models.ItemFailed {
-		logger.Debug("item has no children, setting as completed")
+	if !item.HasChildren() &&
+		!item.HasRedirection() &&
+		item.GetStatus() != models.ItemFailed {
+
 		item.SetStatus(models.ItemCompleted)
 	}
 
