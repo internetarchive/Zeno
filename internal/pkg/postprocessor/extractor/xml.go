@@ -7,10 +7,18 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
 )
+
+// xmlBufioReaderPool pools bufio.Reader instances for XML parsing to reduce allocations when processing many XML documents.
+var xmlBufioReaderPool = sync.Pool{
+	New: func() any {
+		return bufio.NewReader(nil)
+	},
+}
 
 var sitemapMarker = []byte("sitemaps.org/schemas/sitemap/")
 
@@ -98,7 +106,10 @@ func IsSitemapXML(URL *models.URL) bool {
 func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
-	body := bufio.NewReader(URL.GetBody())
+	body := xmlBufioReaderPool.Get().(*bufio.Reader)
+	body.Reset(URL.GetBody())
+	defer xmlBufioReaderPool.Put(body)
+
 
 	// Peek to check if body has any non-whitespace content
 	peek, err := body.Peek(512) // peek up to 512 bytes
