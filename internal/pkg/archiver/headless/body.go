@@ -3,12 +3,21 @@ package headless
 import (
 	"bytes"
 	"net/http"
+	"sync"
 
 	"github.com/go-rod/rod"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/connutil"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	warc "github.com/internetarchive/gowarc"
 )
+
+// headlessBodyBufPool pools bytes.Buffer instances for headless body processing
+// to reduce allocations when processing many responses.
+var headlessBodyBufPool = sync.Pool{
+	New: func() any {
+		return new(bytes.Buffer)
+	},
+}
 
 var bodyLogger = log.NewFieldedLogger(&log.Fields{
 	"component": "archiver.headless.body.process",
@@ -32,12 +41,21 @@ func ProcessBodyHeadless(hijack *rod.Hijack, u *http.Response) ([]byte, error) {
 }
 
 func processBodyHeadless(u *http.Response) ([]byte, error) {
-	// Copy with timeout to the hijack response
-	buffer := new(bytes.Buffer)
+	// Get a buffer from the pool
+	buffer := headlessBodyBufPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+
+	// Copy with timeout to the buffer
 	if err := connutil.CopyWithTimeout(buffer, u.Body); err != nil {
+		headlessBodyBufPool.Put(buffer)
 		bodyLogger.Error("failed to copy response body", "error", err)
 		return nil, err
 	}
 
-	return buffer.Bytes(), nil
+	// Make a copy of the bytes since we're returning the buffer to the pool
+	result := make([]byte, buffer.Len())
+	copy(result, buffer.Bytes())
+	headlessBodyBufPool.Put(buffer)
+
+	return result, nil
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/connutil"
@@ -13,6 +14,13 @@ import (
 	warc "github.com/internetarchive/gowarc"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
+
+// mimeDetectBufPool is a pool of bytes.Buffer used for MIME type detection to avoid allocating a new buffer for each request.
+var mimeDetectBufPool = sync.Pool{
+	New: func() any {
+		return new(bytes.Buffer)
+	},
+}
 
 func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops int, WARCTempDir string, logger *log.FieldedLogger) error {
 	defer u.GetResponse().Body.Close() // Ensure the response body is closed
@@ -41,12 +49,16 @@ func processBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		}
 	}
 
-	buffer := new(bytes.Buffer)
+	// Get a buffer from the pool for MIME type detection
+	buffer := mimeDetectBufPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+
 	// First check HTTP Content-Type and then fallback to mimetype library.
 	if u.GetMIMEType() == nil {
 		// Create a buffer to hold the body (first 3KB) as suggested by mimetype author
 		// https://github.com/gabriel-vasile/mimetype/blob/66e5c005d80684b64f47eeeb15ad439ee6fad667/mimetype.go#L15
 		if err := connutil.CopyWithTimeoutN(buffer, u.GetResponse().Body, 3072); err != nil {
+			mimeDetectBufPool.Put(buffer)
 			return err
 		}
 		u.SetMIMEType(mimetype.Detect(buffer.Bytes()))
@@ -60,6 +72,8 @@ func processBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		// Create a temp file with a 8MB memory buffer
 		spooledBuff := spooledtempfile.NewSpooledTempFile("zeno", WARCTempDir, 8000000, false, -1)
 		_, err := io.Copy(spooledBuff, buffer)
+		// Return buffer to pool after copying its content
+		mimeDetectBufPool.Put(buffer)
 		if err != nil {
 			closeErr := spooledBuff.Close()
 			if closeErr != nil {
