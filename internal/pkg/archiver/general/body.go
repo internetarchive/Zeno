@@ -82,8 +82,6 @@ func processBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 			return err
 		}
 
-		// Return buffer to pool before discarding body
-		mimeDetectBufPool.Put(buffer)
 		// Read the rest of the body into the spooled buffer
 		if err := connutil.CopyWithTimeout(spooledBuff, u.GetResponse().Body); err != nil {
 			closeErr := spooledBuff.Close()
