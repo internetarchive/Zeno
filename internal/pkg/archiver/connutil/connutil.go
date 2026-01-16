@@ -4,12 +4,21 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/contentlength"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	warc "github.com/internetarchive/gowarc"
 )
+
+// copyBufPool is a pool of 4KB byte slices used by CopyWithTimeout to avoid allocating a new buffer for every copy operation.
+var copyBufPool = sync.Pool{
+	New: func() any {
+		buf := make([]byte, 4096)
+		return &buf
+	},
+}
 
 // BodyWithConn is a wrapper around resp.Body that also holds a reference to the warc.CustomConnection
 // This is necessary to reset the read deadline after each read operation
@@ -36,7 +45,10 @@ var ErrFromConn = errors.New("this error is from the connection")
 // CopyWithTimeout copies data and resets the read deadline after each successful read.
 // NOTE: read deadline is handled by warc.CustomConnection in the background automatically
 func CopyWithTimeout(dst io.Writer, src io.Reader) error {
-	buf := make([]byte, 4096)
+	bufPtr := copyBufPool.Get().(*[]byte)
+	buf := *bufPtr
+	defer copyBufPool.Put(bufPtr)
+
 	copied, maxContentLengthMiB := int64(0), config.Get().MaxContentLengthMiB
 	for {
 		n, err := src.Read(buf)

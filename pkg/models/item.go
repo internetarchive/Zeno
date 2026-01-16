@@ -310,7 +310,7 @@ func NewItem(URL *URL, seedVia string) *Item {
 	}
 
 	return &Item{
-		id:      uuid.New().String(),
+		id:      uuid.NewString(),
 		url:     URL,
 		parent:  nil,
 		seedVia: seedVia,
