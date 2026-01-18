@@ -27,11 +27,11 @@ func ProcessBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 	// Retrieve the underlying *warc.CustomConnection if available (In unit tests, this may not be set)
 	var conn *warc.CustomConnection
 	bodyWithConn, ok := u.GetResponse().Body.(*connutil.BodyWithConn)
-	if ok {
+	if ok && bodyWithConn.Conn != nil {
 		conn = bodyWithConn.Conn
 	} else {
 		if logger != nil {
-			logger.Warn("Response body is not a *BodyWithConn, connection may not be closed properly on error")
+			logger.Warn("Response body is not a *BodyWithConn with a valid connection, connection may not be closed properly on error")
 		}
 	}
 
