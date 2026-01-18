@@ -388,6 +388,11 @@ func GenerateCrawlConfig() error {
 		}
 	}
 
+	// In CI/CD, set a low threshold for testing purposes
+	if config.MinSpaceRequired == 0 && os.Getenv("CI") == "true" {
+		config.MinSpaceRequired = 1 // 1 GiB
+	}
+
 	return nil
 }
 
