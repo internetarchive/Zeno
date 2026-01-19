@@ -1,6 +1,6 @@
 module github.com/internetarchive/Zeno
 
-go 1.25.4
+go 1.25.5
 
 require (
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
@@ -12,7 +12,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/gabriel-vasile/mimetype v1.4.12
 	github.com/gdamore/tcell/v2 v2.13.7
-	github.com/getsentry/sentry-go v0.40.0
+	github.com/getsentry/sentry-go v0.41.0
 	github.com/go-logfmt/logfmt v0.6.1
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
@@ -20,7 +20,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/grafov/m3u8 v0.12.1
-	github.com/hashicorp/consul/api v1.33.0
+	github.com/hashicorp/consul/api v1.33.2
 	github.com/internetarchive/gocrawlhq v1.2.34
 	github.com/internetarchive/gowarc v0.8.96
 	github.com/ncruces/go-sqlite3 v0.30.4
@@ -37,7 +37,7 @@ require (
 	github.com/yzqzss/goada-wasm v1.0.1
 	go.baoshuo.dev/csslexer v0.1.0
 	go.uber.org/goleak v1.3.0
-	golang.org/x/net v0.48.0
+	golang.org/x/net v0.49.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.40.0
 	golang.org/x/text v0.33.0
@@ -112,11 +112,11 @@ require (
 	go.baoshuo.dev/cssutil v0.0.2 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a // indirect
 	golang.org/x/image v0.32.0 // indirect
 	golang.org/x/mod v0.31.0 // indirect
-	golang.org/x/term v0.38.0 // indirect
+	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/tools v0.40.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
