@@ -151,7 +151,7 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 
 	resp.Body = &connutil.BodyWithConn{ // Wrap the response body to hold the connection
 		ReadCloser: resp.Body,
-		Conn:       <-wrappedConnChan,
+		Conn:       conn,
 	}
 
 	// Set the response in the URL
