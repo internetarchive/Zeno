@@ -1,4 +1,4 @@
-package hq
+package hqr
 
 import (
 	"testing"

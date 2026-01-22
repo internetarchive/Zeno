@@ -1,5 +1,5 @@
 // Package hq provides a way to interact with the HQv3 API and consumes, produces and mark items as finished asynchronusly.
-package hq
+package hqr
 
 import (
 	"context"
