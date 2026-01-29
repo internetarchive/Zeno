@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
@@ -63,7 +64,24 @@ func (s *HQ) listenMessages() {
 				continue
 			}
 			for _, msg := range msgs {
-				mType, err := dispatchMessageByType(bytes.TrimSpace(msg.Payload))
+				if msg.OpCode == ws.OpPing || msg.OpCode == ws.OpPong {
+					continue
+				}
+
+				if msg.OpCode == ws.OpClose {
+					logger.Warn("received close frame from HQ websocket, reconnecting")
+					conn.Close()
+					s.reconnectWebsocket(log.NewFieldedLogger(&log.Fields{
+						"component": "hq.listenMessages",
+					}))
+					continue
+				}
+				payload := bytes.TrimSpace(msg.Payload)
+				if len(payload) == 0 {
+					continue
+				}
+
+				mType, err := dispatchMessageByType(payload)
 				if err != nil {
 					logger.Error("error dispatching message by type", "msg_type", mType, "err", err)
 					continue
