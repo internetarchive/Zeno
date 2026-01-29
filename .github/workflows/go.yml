@@ -75,7 +75,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
-    - uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v2.2.0
+    - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
 
     - name: Build for Windows
       run: CC="zig cc -lc -target x86_64-windows" CXX="zig c++ -lc -target x86_64-windows" CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -v ./...
