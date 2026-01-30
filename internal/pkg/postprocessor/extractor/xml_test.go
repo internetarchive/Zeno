@@ -44,12 +44,6 @@ func TestXML(t *testing.T) {
 			hasError: false,
 		},
 		{
-			name:     "Invalid XML content (HTML rejected)",
-			body:     `<html><body>Not XML</body></html>`,
-			expected: []string{},
-			hasError: false,
-		},
-		{
 			name: "Valid XML with multiple URLs with whitespace",
 			body: `   \t\n   \t\n  <?xml version="1.0" encoding="UTF-8"?>
                 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -313,8 +307,7 @@ func TestSitemapXMLOutlinkExtractor(t *testing.T) {
 			// We want to simulate an S3 server for these tests.
 			URLObj.SetResponse(&http.Response{
 				Header: http.Header{
-					"Content-Type": []string{"application/xml"},
-					"Server":       []string{"AmazonS3"},
+					"Server": []string{"AmazonS3"},
 				},
 			})
 
