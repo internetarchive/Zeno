@@ -5,9 +5,19 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
+type M3U8Extractor struct{}
+
+func (M3U8Extractor) Match(URL *models.URL) bool {
+	return IsM3U8(URL)
+}
+
+func (M3U8Extractor) Extract(URL *models.URL) (assets []*models.URL, err error) {
+	return M3U8(URL)
+}
+
 func IsM3U8(URL *models.URL) bool {
-	return URL.GetMIMEType() != nil &&
-		URL.GetMIMEType().Is("application/vnd.apple.mpegurl") || URL.GetMIMEType().Is("application/x-mpegURL")
+	mt := URL.GetMIMEType()
+	return mt != nil && (mt.Is("application/vnd.apple.mpegurl") || mt.Is("application/x-mpegURL"))
 }
 
 func M3U8(URL *models.URL) (assets []*models.URL, err error) {
