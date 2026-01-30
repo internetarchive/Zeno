@@ -182,8 +182,7 @@ func TestXML(t *testing.T) {
 
 			assets, outlinks, err := XML(URL)
 
-			URLs := append([]*models.URL{}, assets...)
-			URLs = append(URLs, outlinks...)
+			URLs := append(assets, outlinks...)
 
 			if (err != nil) != tt.hasError {
 				t.Fatalf("XML() error = %v, wantErr %v", err, tt.hasError)
