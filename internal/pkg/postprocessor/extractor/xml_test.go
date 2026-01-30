@@ -50,12 +50,16 @@ func TestXML(t *testing.T) {
 			hasError: false,
 		},
 		{
-			name: "Valid XML with multiple URLs with leading whitespace",
-			body: `   \n\t   <?xml version="1.0" encoding="UTF-8"?>
-					<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-						<url><loc>https://example.com/page1</loc></url>
-						<url><loc>https://example.com/page2</loc></url>
-					</urlset>`,
+			name: "Valid XML with multiple URLs with whitespace",
+			body: `   \t\n   \t\n  <?xml version="1.0" encoding="UTF-8"?>
+                <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+                    <url>
+                        <loc>https://example.com/page1</loc>
+                    </url>
+                    <url>
+                        <loc>https://example.com/page2</loc>
+                    </url>
+                </urlset> \t\n \t\n `,
 			expected: []string{
 				"http://www.sitemaps.org/schemas/sitemap/0.9",
 				"https://example.com/page1",
