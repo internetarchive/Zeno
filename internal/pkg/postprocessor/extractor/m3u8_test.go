@@ -39,7 +39,7 @@ func TestShouldMatchM3U8URL(t *testing.T) {
 			// call match, returns bool
 			matched := M3U8Extractor{}.Match(&url)
 			if matched != c.expected {
-				t.Errorf("M3U8Extractor.Match(%q) = %v, want %v", c.url, matched, c.expected)
+				t.Errorf("M3U8Extractor.Match(%q) = %v, want %v: mimetype=%q", c.url, matched, c.expected, url.GetMIMEType())
 			}
 		})
 	}

@@ -17,6 +17,7 @@ func (M3U8Extractor) Extract(URL *models.URL) (assets []*models.URL, err error) 
 
 func IsM3U8(URL *models.URL) bool {
 	mt := URL.GetMIMEType()
+	// TODO: https://github.com/gabriel-vasile/mimetype/pull/755 remove "application/x-mpegURL" when merged&released
 	return mt != nil && (mt.Is("application/vnd.apple.mpegurl") || mt.Is("application/x-mpegURL"))
 }
 
