@@ -21,6 +21,24 @@ func ExtractAssetsOutlinks(item *models.Item) (assets, outlinks []*models.URL, e
 	return SanitizeAssetsOutlinks(item, assets, outlinks, err)
 }
 
+/*
+Future implementation using interfaces
+
+type AssetExtractor interface {
+	Match(*models.URL) bool
+	Extract(*models.Item) (assets, outlinks []*models.URL, err error)
+}
+
+var assetExtractors = []AssetExtractor{
+	ina.INAExtractor{},
+	truthsocial.TruthsocialExtractor{},
+	extractor.M3U8Extractor{},
+	extractor.JSONExtractor{},
+	extractor.XMLExtractor{},
+	extractor.HTMLAssetsExtractor{},
+}
+*/
+
 // Extract assets and outlinks from the body using the appropriate extractor
 // Order is important, we want to check for more specific things first,
 // as they may trigger more general extractors (e.g. HTML)
