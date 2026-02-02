@@ -11,8 +11,8 @@ func (M3U8Extractor) Match(URL *models.URL) bool {
 	return IsM3U8(URL)
 }
 
-func (M3U8Extractor) Extract(URL *models.URL) (assets []*models.URL, err error) {
-	return M3U8(URL)
+func (M3U8Extractor) Extract(item *models.Item) (assets []*models.URL, err error) {
+	return M3U8(item.GetURL())
 }
 
 func IsM3U8(URL *models.URL) bool {
