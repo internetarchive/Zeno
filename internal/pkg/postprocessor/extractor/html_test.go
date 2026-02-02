@@ -79,7 +79,7 @@ func TestHTMLAssetsAudioVideo(t *testing.T) {
 	item := setupItem(html)
 
 	extractor := HTMLAssetsExtractor{}
-	assets, err := extractor.Extract(item)
+	assets, _, err := extractor.Extract(item)
 	if err != nil {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
@@ -104,7 +104,7 @@ func TestHTMLAssetsAttributes(t *testing.T) {
 	item := setupItem(html)
 
 	extractor := HTMLAssetsExtractor{}
-	assets, err := extractor.Extract(item)
+	assets, _, err := extractor.Extract(item)
 	if err != nil {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
@@ -147,7 +147,7 @@ func TestHTMLAssetsMeta(t *testing.T) {
 	item := setupItem(html)
 
 	extractor := HTMLAssetsExtractor{}
-	assets, err := extractor.Extract(item)
+	assets, _, err := extractor.Extract(item)
 	if err != nil {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
@@ -175,7 +175,7 @@ func TestSrcset(t *testing.T) {
 	</html>`
 	item := setupItem(html)
 	extractor := HTMLAssetsExtractor{}
-	assets, err := extractor.Extract(item)
+	assets, _, err := extractor.Extract(item)
 	if err != nil {
 		t.Errorf("Error extracting HTML assets %s", err)
 	}
@@ -230,7 +230,7 @@ func TestCSS(t *testing.T) {
     </html>`
 	item := setupItem(html)
 	extractor := HTMLAssetsExtractor{}
-	assets, err := extractor.Extract(item)
+	assets, _, err := extractor.Extract(item)
 	if err != nil {
 		t.Errorf("Error extracting HTML assets %s", err)
 	}
@@ -253,7 +253,7 @@ func TestHTMLDataSrc(t *testing.T) {
 	`
 	item := setupItem(html)
 	extractor := HTMLAssetsExtractor{}
-	assets, err := extractor.Extract(item)
+	assets, _, err := extractor.Extract(item)
 	if err != nil {
 		t.Errorf("Error extracting HTML assets %s", err)
 	}

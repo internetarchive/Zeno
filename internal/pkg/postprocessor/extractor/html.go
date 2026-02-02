@@ -20,8 +20,9 @@ func (HTMLAssetsExtractor) Match(URL *models.URL) bool {
 	return IsHTML(URL)
 }
 
-func (HTMLAssetsExtractor) Extract(item *models.Item) (assets []*models.URL, err error) {
-	return HTMLAssets(item)
+func (HTMLAssetsExtractor) Extract(item *models.Item) (assets, outlinks []*models.URL, err error) {
+	assets, err = HTMLAssets(item)
+	return assets, nil, err
 }
 
 var (
