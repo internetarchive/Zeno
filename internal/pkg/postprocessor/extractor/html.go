@@ -14,6 +14,16 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
+type HTMLAssetsExtractor struct{}
+
+func (HTMLAssetsExtractor) Match(URL *models.URL) bool {
+	return IsHTML(URL)
+}
+
+func (HTMLAssetsExtractor) Extract(item *models.Item) (assets []*models.URL, err error) {
+	return HTMLAssets(item)
+}
+
 var (
 	onclickRegex = regexp.MustCompile(`window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]`)
 )
