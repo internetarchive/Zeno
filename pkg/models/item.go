@@ -85,6 +85,23 @@ const (
 	ItemSourceFeedback
 )
 
+func (s ItemSource) String() string {
+	switch s {
+	case ItemSourceInsert:
+		return "Insert"
+	case ItemSourceQueue:
+		return "Queue"
+	case ItemSourceHQ:
+		return "HQ"
+	case ItemSourcePostprocess:
+		return "Postprocess"
+	case ItemSourceFeedback:
+		return "Feedback"
+	default:
+		return "Unknown"
+	}
+}
+
 // CheckConsistency checks if the item is consistent with the constraints of the model
 // Developers should add more constraints as needed
 // Ideally this function should be called after every mutation of an item object to ensure consistency and throw a panic if consistency is broken
