@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/internetarchive/Zeno/internal/pkg/api/handlers"
+	"github.com/internetarchive/Zeno/internal/pkg/api/handlers/frontier"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/stats"
 )
@@ -16,6 +17,7 @@ func registerRoutes(mux *http.ServeMux) {
 	}
 	mux.HandleFunc("GET /pause", handlers.GetPause)
 	mux.HandleFunc("PATCH /pause", handlers.PatchPause)
+	mux.HandleFunc("GET /ws/frontier", frontier.Handler)
 
 	// Other API routes take precedence
 	if dir := config.Get().APIStaticDir; dir != "" {
