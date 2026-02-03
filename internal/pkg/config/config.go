@@ -147,8 +147,9 @@ type Config struct {
 	SentryDSN        string `mapstructure:"sentry-dsn"`
 
 	// API
-	APIPort int  `mapstructure:"api-port"`
-	API     bool `mapstructure:"api"`
+	APIPort      int    `mapstructure:"api-port"`
+	API          bool   `mapstructure:"api"`
+	APIStaticDir string `mapstructure:"api-static-dir"`
 
 	// Prometheus and metrics
 	Prometheus       bool   `mapstructure:"prometheus"`

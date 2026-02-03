@@ -52,6 +52,7 @@ func addBasicFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("disable-seencheck", false, "Disable the (remote or local) seencheck that avoid re-crawling of URIs.")
 	getCmd.PersistentFlags().Bool("api", false, "Enable API")
 	getCmd.PersistentFlags().Int("api-port", 9090, "Port to listen on for the API.")
+	getCmd.PersistentFlags().String("api-static-dir", "static", "Directory which shall be served as static files at /")
 	getCmd.PersistentFlags().Int("max-redirect", 20, "Specifies the maximum number of redirections to follow for a resource.")
 	getCmd.PersistentFlags().Int("max-css-jump", 10, "Specifies the maximum number of CSS @import jumps to follow for a resource.")
 	getCmd.PersistentFlags().Int("max-retry", 5, "Number of retry if error happen when executing HTTP request.")
