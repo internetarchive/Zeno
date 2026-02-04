@@ -26,7 +26,7 @@ func startWARCWriter() error {
 		rotatorSettings.WarcinfoContent.Set("zeno-headless", "true")
 	}
 	// Configure WARC dedupe settings
-	dedupeOptions := warc.DedupeOptions{LocalDedupe: !config.Get().DisableLocalDedupe, SizeThreshold: config.Get().WARCDedupeSize}
+	dedupeOptions := warc.DedupeOptions{LocalDedupe: !config.Get().DisableLocalDedupe, SizeThreshold: config.Get().WARCDedupeSize, DedupeCacheSize: config.Get().WARCDedupeCacheSize}
 	if config.Get().CDXDedupeServer != "" {
 		dedupeOptions.CDXDedupe = true
 		dedupeOptions.CDXURL = config.Get().CDXDedupeServer
