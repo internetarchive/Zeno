@@ -52,6 +52,7 @@ type Config struct {
 	WARCPoolSize                    int           `mapstructure:"warc-pool-size"`
 	WARCQueueSize                   int           `mapstructure:"warc-queue-size"`
 	WARCDedupeSize                  int           `mapstructure:"warc-dedupe-size"`
+	WARCDedupeCacheSize             int           `mapstructure:"warc-dedupe-cache-size"`
 	WARCWriteAsync                  bool          `mapstructure:"async-warc-write"`
 	WARCDiscardStatus               []int         `mapstructure:"warc-discard-status"`
 	WARCDigestAlgorithm             string        `mapstructure:"warc-digest-algorithm"`
