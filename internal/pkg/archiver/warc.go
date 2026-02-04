@@ -33,8 +33,6 @@ func startWARCWriter() error {
 		dedupeOptions.CDXCookie = config.Get().CDXCookie
 	}
 
-	println(dedupeOptions.DedupeCacheSize)
-
 	if config.Get().DoppelgangerDedupeServer != "" {
 		dedupeOptions.DoppelgangerDedupe = true
 		dedupeOptions.DoppelgangerHost = config.Get().DoppelgangerDedupeServer
