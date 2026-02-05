@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
 )
 
 var (
@@ -25,10 +24,8 @@ var (
 func Start() error {
 	once.Do(func() {
 		mux := http.NewServeMux()
-
-		if config.Get().Prometheus {
-			mux.Handle("/metrics", stats.PrometheusHandler())
-		}
+		// Register routes
+		registerRoutes(mux)
 
 		server = &http.Server{
 			Addr:    ":" + strconv.Itoa(config.Get().APIPort),
