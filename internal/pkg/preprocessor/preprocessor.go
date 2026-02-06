@@ -266,6 +266,15 @@ func preprocess(workerID string, seed *models.Item) error {
 		if err != nil {
 			logger.Error("unable to seencheck seed after 5 retries, marking as failed", "err", err.Error())
 			seed.SetStatus(models.ItemFailed)
+			// Mark all remaining fresh items in the tree as failed to maintain
+			// consistency. Without this, fresh children whose parent status was
+			// changed from ItemGotChildren/ItemGotRedirected to ItemFailed would
+			// violate the CheckConsistency constraint.
+			seed.Traverse(func(item *models.Item) {
+				if item.GetStatus() == models.ItemFresh {
+					item.SetStatus(models.ItemFailed)
+				}
+			})
 			return nil
 		}
 	}
