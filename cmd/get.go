@@ -144,6 +144,7 @@ func addLoggingFlags(getCmd *cobra.Command) {
 
 func addProfilingFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("pyroscope-address", "", "Pyroscope server address. Setting this flag will enable profiling.")
+	getCmd.PersistentFlags().Duration("pyroscope-upload-rate", 15*time.Second, "Pyroscope upload/capture rate. Default is 15s.")
 	getCmd.PersistentFlags().String("sentry-dsn", "", "Sentry Data Source Name (URL) allows Sentry to send errors and performance data to a sentry server. Setting this flag will enable the main Sentry agent.")
 }
 

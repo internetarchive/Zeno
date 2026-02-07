@@ -146,8 +146,9 @@ type Config struct {
 	LogFileRotation  string `mapstructure:"log-file-rotation"`
 
 	// Profiling
-	PyroscopeAddress string `mapstructure:"pyroscope-address"`
-	SentryDSN        string `mapstructure:"sentry-dsn"`
+	PyroscopeAddress    string        `mapstructure:"pyroscope-address"`
+	PyroscopeUploadRate time.Duration `mapstructure:"pyroscope-upload-rate"`
+	SentryDSN           string        `mapstructure:"sentry-dsn"`
 
 	// API
 	APIPort int  `mapstructure:"api-port"`
