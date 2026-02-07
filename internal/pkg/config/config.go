@@ -66,6 +66,7 @@ type Config struct {
 	HQTimeout                       int           `mapstructure:"hq-timeout"`
 	HQBatchSize                     int           `mapstructure:"hq-batch-size"`
 	HQBatchConcurrency              int           `mapstructure:"hq-batch-concurrency"`
+	HQSeencheckCacheSize            int           `mapstructure:"hq-seencheck-cache-size"`
 	DisableHTMLTag                  []string      `mapstructure:"disable-html-tag"`
 	ExcludeHosts                    []string      `mapstructure:"exclude-host"`
 	IncludeHosts                    []string      `mapstructure:"include-host"`
