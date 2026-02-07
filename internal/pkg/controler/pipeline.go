@@ -121,7 +121,7 @@ func startPipeline() error {
 	finisherProduceChan := makeStageChannel(config.Get().WorkersCount)
 
 	if config.Get().UseHQ {
-		hqSource := hq.New(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, config.Get().HQTimeout, config.Get().HQSeencheckCacheSize)
+		hqSource := hq.New(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, config.Get().HQTimeout, config.Get().HQSeencheckCacheSize, config.Get().HQGZIPRequests)
 		preprocessor.SetSeenchecker(hqSource.SeencheckItem)
 		sourceInterface = hqSource
 	} else {

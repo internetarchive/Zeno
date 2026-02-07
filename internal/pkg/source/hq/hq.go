@@ -25,6 +25,7 @@ type HQ struct {
 	HQProject      string
 	HQAddress      string
 	Timeout        int
+	GZIPRequests   bool
 	seencheckCache *otter.Cache[string, seencheckCacheEntry]
 }
 
@@ -41,13 +42,14 @@ var (
 	logger *log.FieldedLogger
 )
 
-func New(HQKey, HQSecret, HQProject, HQAddress string, timeout, seencheckCacheSize int) *HQ {
+func New(HQKey, HQSecret, HQProject, HQAddress string, timeout, seencheckCacheSize int, gzipRequests bool) *HQ {
 	h := &HQ{
-		HQKey:     HQKey,
-		HQSecret:  HQSecret,
-		HQProject: HQProject,
-		HQAddress: HQAddress,
-		Timeout:   timeout,
+		HQKey:        HQKey,
+		HQSecret:     HQSecret,
+		HQProject:    HQProject,
+		HQAddress:    HQAddress,
+		Timeout:      timeout,
+		GZIPRequests: gzipRequests,
 	}
 
 	if seencheckCacheSize > 0 {
@@ -72,7 +74,7 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
-		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.HQProject, s.HQAddress, "", s.Timeout)
+		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.HQProject, s.HQAddress, "", s.Timeout, s.GZIPRequests)
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
 			cancel()
