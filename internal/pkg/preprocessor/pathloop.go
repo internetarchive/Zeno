@@ -2,9 +2,12 @@ package preprocessor
 
 import "strings"
 
-// maxRepetitions is the maximum number of times a single path segment or
-// query parameter key=value pair can appear in a URL before it is considered
-// a crawler trap.
+// maxRepetitions is the repetition threshold used to detect crawler traps.
+// A URL is considered a trap when:
+//   - any single path segment or query parameter key=value pair appears
+//     more than maxRepetitions times, OR
+//   - the path has 10+ segments and at least 2 distinct segments each
+//     appear maxRepetitions or more times (the deep-path heuristic).
 const maxRepetitions = 3
 
 // hasPathLoop checks if a URL contains repeating elements that indicate
@@ -13,7 +16,8 @@ const maxRepetitions = 3
 // 2. Query parameter key=value pairs (e.g. ?feature=applinks&feature=applinks&...)
 //
 // Returns true if any single path segment or query parameter pair appears
-// more than maxRepetitions times.
+// more than maxRepetitions times, or if the path is deep (10+ segments)
+// and at least 2 distinct segments each appear maxRepetitions or more times.
 //
 // path is the URL path component (from Pathname()).
 // search is the URL query string (from Search()).
@@ -33,9 +37,10 @@ func hasPathLoop(path, search string) bool {
 		}
 	}
 
-	// In deep paths (10+ segments), flag when multiple different segments each
-	// appear at least maxRepetitions times — this indicates a complex crawler
-	// trap where several segments repeat together.
+	// Deep-path heuristic: in paths with 10+ segments, flag when 2 or more
+	// distinct segments each appear at least maxRepetitions times (>=, not >).
+	// This catches complex traps where several segments repeat together
+	// even if no single segment exceeds maxRepetitions.
 	if nonEmptySegments >= 10 {
 		segmentsAtThreshold := 0
 		for _, count := range counts {
