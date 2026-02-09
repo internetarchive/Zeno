@@ -68,6 +68,22 @@ func TestNormalizeURL(t *testing.T) {
 			wantErr:     true,
 			expectedURL: "",
 		},
+		{
+			name:    "path loop detection - repeated segments",
+			rawURL:  "https://example.com/fonts/fonts/fonts/fonts/file.woff2",
+			wantErr: true,
+		},
+		{
+			name:    "path loop detection - crawler trap pattern",
+			rawURL:  "https://lms.example.com/theme/styles.php/all/DataTables/images/DataTables/fonts/DataTables/fonts/DataTables/images/sort.png",
+			wantErr: true,
+		},
+		{
+			name:        "path with acceptable repetition",
+			rawURL:      "https://example.com/a/b/a/file.css",
+			wantErr:     false,
+			expectedURL: "https://example.com/a/b/a/file.css",
+		},
 	}
 
 	for _, tt := range tests {

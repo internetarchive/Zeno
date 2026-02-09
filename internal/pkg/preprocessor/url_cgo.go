@@ -68,8 +68,16 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 		return ErrUnsupportedHost
 	}
 
-	URL.Raw = adaParse.Href()
+	href := adaParse.Href()
+	pathname := adaParse.Pathname()
+	search := adaParse.Search()
 	adaParse.Free()
+
+	if hasPathLoop(pathname, search) {
+		return ErrPathLoopDetected
+	}
+
+	URL.Raw = href
 
 	return URL.Parse()
 }

@@ -26,7 +26,7 @@ func cmdZenoGetURL(urls []string) *cobra.Command {
 
 	// If config.toml exists in pwd, include it in args
 	var args []string
-	commonArgs := []string{"get", "url", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log", "--disable-ipv6"}
+	commonArgs := []string{"get", "url", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}
 	if _, err := os.Stat("config.toml"); err == nil {
 		args = append(commonArgs, append([]string{"--config-file", "config.toml"}, urls...)...)
 	} else {
@@ -76,7 +76,7 @@ func cmdZenoGetList(files []string) *cobra.Command {
 
 	// If config.toml exists in pwd, include it in args
 	var args []string
-	commonArgs := []string{"get", "list", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log", "--disable-ipv6"}
+	commonArgs := []string{"get", "list", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}
 	if _, err := os.Stat("config.toml"); err == nil {
 		args = append(commonArgs, append([]string{"--config-file", "config.toml"}, files...)...)
 	} else {

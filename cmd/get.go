@@ -73,6 +73,8 @@ func addBasicFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("max-content-length", 0, "Max content length in MB to download for a single resource.")
 	getCmd.PersistentFlags().Float64("min-space-required", 0, "Minimum space required in GB to continue the crawl. Default will be 50GB * (total disk space / 256GB) if total disk space is less than 256GB, else 50GB.")
 	getCmd.PersistentFlags().Bool("strict-regex", false, "If turned on, the xurls `strict` regex setting will be used. Otherwise a looser regex will be used.")
+	getCmd.PersistentFlags().Int("max-segment-repetition", 3, "Maximum number of non-consecutive repetitions of a path segment or query parameter allowed before a URL is flagged as a crawler trap.")
+	getCmd.PersistentFlags().Int("max-segment-repetition-threshold", 2, "In the deep-path heuristic (10+ segments), how many distinct segments must each reach max-segment-repetition before the URL is flagged as a crawler trap.")
 }
 
 func addHeadlessFlags(getCmd *cobra.Command) {
