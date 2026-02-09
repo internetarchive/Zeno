@@ -1,6 +1,10 @@
 package preprocessor
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/internetarchive/Zeno/internal/pkg/config"
+)
 
 // maxRepetitions is the repetition threshold used to detect crawler traps.
 // A URL is considered a trap when:
@@ -8,7 +12,7 @@ import "strings"
 //     more than maxRepetitions times, OR
 //   - the path has 10+ segments and at least 2 distinct segments each
 //     appear maxRepetitions or more times (the deep-path heuristic).
-const maxRepetitions = 3
+var maxRepetitions = config.Get().MaxSegmentReptition
 
 // hasPathLoop checks if a URL contains repeating elements that indicate
 // a crawler trap. It checks both:
