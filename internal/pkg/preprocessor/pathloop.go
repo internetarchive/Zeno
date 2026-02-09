@@ -27,6 +27,9 @@ import (
 func hasPathLoop(path, search string) bool {
 	maxRepetitions := config.Get().MaxSegmentRepetition
 	if maxRepetitions <= 0 {
+		if logger != nil {
+			logger.Info("maxRepetition unset - being reset to 3")
+		}
 		maxRepetitions = 3
 	}
 	// Check path segments
@@ -50,6 +53,9 @@ func hasPathLoop(path, search string) bool {
 	// even if no single segment exceeds maxRepetitions.
 	threshold := config.Get().MaxSegmentRepetitionThreshold
 	if threshold <= 0 {
+		if logger != nil {
+			logger.Info("maxSegmentRepetitionThreshold unset - being reset to 3")
+		}
 		threshold = 2
 	}
 	if nonEmptySegments >= 10 {
