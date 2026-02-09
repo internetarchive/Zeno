@@ -71,7 +71,6 @@ func addBasicFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("exclusion-file-live-reload", false, "If turned on, the exclusion file will be reloaded every X seconds. X is defined by the --exclusion-file-live-reload-interval flag. (60 seconds by default)")
 	getCmd.PersistentFlags().Duration("exclusion-file-live-reload-interval", time.Minute, "Interval at which to reload the exclusion file.")
 	getCmd.PersistentFlags().Int("max-content-length", 0, "Max content length in MB to download for a single resource.")
-	getCmd.PersistentFlags().Int("max-segment-repetition", 3, "Max repetition threshold used to detect crawler traps")
 	getCmd.PersistentFlags().Float64("min-space-required", 0, "Minimum space required in GB to continue the crawl. Default will be 50GB * (total disk space / 256GB) if total disk space is less than 256GB, else 50GB.")
 	getCmd.PersistentFlags().Bool("strict-regex", false, "If turned on, the xurls `strict` regex setting will be used. Otherwise a looser regex will be used.")
 }

@@ -81,7 +81,6 @@ type Config struct {
 	MaxCSSJump                      int           `mapstructure:"max-css-jump"`
 	MaxRetry                        int           `mapstructure:"max-retry"`
 	MaxContentLengthMiB             int           `mapstructure:"max-content-length"`
-	MaxSegmentReptition             int           `mapstructure:"max-segment-repetition"`
 	MaxOutlinks                     int           `mapstructure:"max-outlinks"`
 	HTTPTimeout                     time.Duration `mapstructure:"http-timeout"`
 	ConnReadDeadline                time.Duration `mapstructure:"conn-read-deadline"`
