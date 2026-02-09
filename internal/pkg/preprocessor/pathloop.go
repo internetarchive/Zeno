@@ -1,14 +1,17 @@
 package preprocessor
 
-import "strings"
+import (
+	"strings"
 
-// maxRepetitions is the repetition threshold used to detect crawler traps.
+	"github.com/internetarchive/Zeno/internal/pkg/config"
+)
+
+// maxRepetitions is the default non-consecutive repetition threshold used to detect crawler traps.
 // A URL is considered a trap when:
 //   - any single path segment or query parameter key=value pair appears
 //     more than maxRepetitions times, OR
 //   - the path has 10+ segments and at least 2 distinct segments each
 //     appear maxRepetitions or more times (the deep-path heuristic).
-const maxRepetitions = 3
 
 // hasPathLoop checks if a URL contains repeating elements that indicate
 // a crawler trap. It checks both:
@@ -22,6 +25,10 @@ const maxRepetitions = 3
 // path is the URL path component (from Pathname()).
 // search is the URL query string (from Search()).
 func hasPathLoop(path, search string) bool {
+	maxRepetitions := config.Get().MaxSegmentRepetition
+	if maxRepetitions <= 0 {
+		maxRepetitions = 3
+	}
 	// Check path segments
 	segments := strings.Split(path, "/")
 	counts := make(map[string]int, len(segments))
@@ -37,16 +44,20 @@ func hasPathLoop(path, search string) bool {
 		}
 	}
 
-	// Deep-path heuristic: in paths with 10+ segments, flag when 2 or more
+	// Deep-path heuristic: in paths with 10+ segments, flags when the threshold is exceeded or more
 	// distinct segments each appear at least maxRepetitions times (>=, not >).
 	// This catches complex traps where several segments repeat together
 	// even if no single segment exceeds maxRepetitions.
+	threshold := config.Get().MaxSegmentRepetitionThreshold
+	if threshold <= 0 {
+		threshold = 2
+	}
 	if nonEmptySegments >= 10 {
 		segmentsAtThreshold := 0
 		for _, count := range counts {
 			if count >= maxRepetitions {
 				segmentsAtThreshold++
-				if segmentsAtThreshold >= 2 {
+				if segmentsAtThreshold >= threshold {
 					return true
 				}
 			}

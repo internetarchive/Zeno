@@ -1,8 +1,13 @@
 package preprocessor
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/internetarchive/Zeno/internal/pkg/config"
+)
 
 func TestHasPathLoop(t *testing.T) {
+	config.Set(&config.Config{MaxSegmentRepetition: 3, MaxSegmentRepetitionThreshold: 2})
 	tests := []struct {
 		name   string
 		path   string

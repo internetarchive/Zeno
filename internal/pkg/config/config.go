@@ -93,6 +93,8 @@ type Config struct {
 	StrictRegex                     bool          `mapstructure:"strict-regex"`
 	DisableLocalDedupe              bool          `mapstructure:"disable-local-dedupe"`
 	CertValidation                  bool          `mapstructure:"cert-validation"`
+	MaxSegmentRepetition            int           `mapstructure:"max-segment-repetition"`
+	MaxSegmentRepetitionThreshold   int           `mapstructure:"max-segment-repetition-threshold"`
 	DisableAssetsCapture            bool          `mapstructure:"disable-assets-capture"`
 	UseHQ                           bool          // Special field to check if HQ is enabled depending on the command called
 
