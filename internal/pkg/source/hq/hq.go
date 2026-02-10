@@ -26,6 +26,7 @@ type HQ struct {
 	HQAddress      string
 	Timeout        int
 	GZIPRequests   bool
+	SeencheckURL   string
 	seencheckCache *otter.Cache[string, seencheckCacheEntry]
 }
 
@@ -42,7 +43,7 @@ var (
 	logger *log.FieldedLogger
 )
 
-func New(HQKey, HQSecret, HQProject, HQAddress string, timeout, seencheckCacheSize int, gzipRequests bool) *HQ {
+func New(HQKey, HQSecret, HQProject, HQAddress string, timeout, seencheckCacheSize int, gzipRequests bool, seencheckURL string) *HQ {
 	h := &HQ{
 		HQKey:        HQKey,
 		HQSecret:     HQSecret,
@@ -50,6 +51,7 @@ func New(HQKey, HQSecret, HQProject, HQAddress string, timeout, seencheckCacheSi
 		HQAddress:    HQAddress,
 		Timeout:      timeout,
 		GZIPRequests: gzipRequests,
+		SeencheckURL: seencheckURL,
 	}
 
 	if seencheckCacheSize > 0 {
@@ -89,6 +91,10 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 		s.finishCh = finishChan
 		s.produceCh = produceChan
 		s.client = HQclient
+
+		if s.SeencheckURL != "" {
+			s.client.AltSeencheckURL = s.SeencheckURL
+		}
 
 		s.wg.Add(4)
 		go s.consumer()

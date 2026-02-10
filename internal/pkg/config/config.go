@@ -67,6 +67,7 @@ type Config struct {
 	HQBatchSize                     int           `mapstructure:"hq-batch-size"`
 	HQBatchConcurrency              int           `mapstructure:"hq-batch-concurrency"`
 	HQSeencheckCacheSize            int           `mapstructure:"hq-seencheck-cache-size"`
+	HQSeencheckURL                  string        `mapstructure:"hq-seencheck-url"`
 	HQGZIPRequests                  bool          `mapstructure:"hq-gzip-requests"`
 	DisableHTMLTag                  []string      `mapstructure:"disable-html-tag"`
 	ExcludeHosts                    []string      `mapstructure:"exclude-host"`

@@ -21,7 +21,7 @@ require (
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.33.2
-	github.com/internetarchive/gocrawlhq v1.2.35
+	github.com/internetarchive/gocrawlhq v1.2.36
 	github.com/internetarchive/gowarc v0.8.97
 	github.com/maypok86/otter v1.2.4
 	github.com/ncruces/go-sqlite3 v0.30.5
