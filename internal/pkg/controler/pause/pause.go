@@ -8,25 +8,41 @@ import (
 )
 
 type ControlChans struct {
-	PauseCh  chan struct{}
+	PauseCh  chan string
 	ResumeCh chan struct{}
 }
 
 type pauseManager struct {
 	subscribers sync.Map // Map of *ControlChans to struct{}
 	isPaused    atomic.Bool
+	mu          sync.RWMutex
 	message     string
 }
 
 var manager = &pauseManager{}
 
 // Subscribe returns a ControlChans struct for the subscriber to use.
+// If the system is already paused, the subscriber receives an immediate pause signal.
 func Subscribe() *ControlChans {
 	chans := &ControlChans{
-		PauseCh:  make(chan struct{}, 1), // Buffered to ensure non-blocking sends
-		ResumeCh: make(chan struct{}),    // Unbuffered, will block on send
+		PauseCh:  make(chan string, 1), // Buffered to ensure non-blocking sends
+		ResumeCh: make(chan struct{}),  // Unbuffered, will block on send
 	}
 	manager.subscribers.Store(chans, struct{}{})
+
+	// If already paused, send immediate pause signal to new subscriber
+	if manager.isPaused.Load() {
+		manager.mu.RLock()
+		msg := manager.message
+		manager.mu.RUnlock()
+
+		select {
+		case chans.PauseCh <- msg:
+		default:
+			// Should never happen since we just created the channel
+		}
+	}
+
 	return chans
 }
 
@@ -48,17 +64,20 @@ func Pause(message ...string) {
 		return
 	}
 
-	if len(message) == 0 {
-		message = append(message, "Paused")
+	msg := "Paused"
+	if len(message) > 0 {
+		msg = message[0]
 	}
 
-	manager.message = message[0]
+	manager.mu.Lock()
+	manager.message = msg
+	manager.mu.Unlock()
 
 	manager.subscribers.Range(func(key, _ any) bool {
 		chans := key.(*ControlChans)
-		// Send pause signal (non-blocking since PauseCh is buffered).
+		// Send pause signal with message (non-blocking since PauseCh is buffered).
 		select {
-		case chans.PauseCh <- struct{}{}:
+		case chans.PauseCh <- msg:
 			// Signal sent.
 		default:
 			// PauseCh already has a signal.
@@ -92,7 +111,10 @@ func Resume() {
 	if !swap {
 		return
 	}
+
+	manager.mu.Lock()
 	manager.message = ""
+	manager.mu.Unlock()
 
 	stats.PausedReset()
 }
@@ -102,5 +124,7 @@ func IsPaused() bool {
 }
 
 func GetMessage() string {
+	manager.mu.RLock()
+	defer manager.mu.RUnlock()
 	return manager.message
 }

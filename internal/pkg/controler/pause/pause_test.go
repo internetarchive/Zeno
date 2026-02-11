@@ -438,3 +438,130 @@ func TestPauseResumeE2E(t *testing.T) {
 		}
 	})
 }
+
+func TestSubscribeAfterPause(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// Alice subscribes to the controller, which subsequently paused,
+		// Bob subscribes to the controller after it is already paused.
+		stats.Init()
+		manager = &pauseManager{}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		// Track pause state for each listener
+		var alicePaused atomic.Bool
+		var bobPaused atomic.Bool
+		var aliceResumed atomic.Bool
+		var bobResumed atomic.Bool
+
+		var wg sync.WaitGroup
+
+		// Start Alice
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			controlChans := Subscribe()
+			defer Unsubscribe(controlChans)
+
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-controlChans.PauseCh:
+					t.Log(time.Now(), "Alice paused")
+					alicePaused.Store(true)
+					// Block until resumed
+					controlChans.ResumeCh <- struct{}{}
+					aliceResumed.Store(true)
+					t.Log(time.Now(), "Alice resumed")
+				default:
+					// Do work
+					time.Sleep(50 * time.Millisecond)
+				}
+			}
+		}()
+
+		// Give Alice time to start
+		time.Sleep(200 * time.Millisecond)
+		synctest.Wait()
+
+		// Pause
+		Pause("Test pause")
+
+		// Wait for controller to be paused
+		time.Sleep(200 * time.Millisecond)
+		synctest.Wait()
+
+		if !IsPaused() {
+			t.Fatal("Controller should be paused")
+		}
+		if !alicePaused.Load() {
+			t.Fatal("Alice should be paused")
+		}
+
+		// Now subscribe a second listener AFTER the system is already paused
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			controlChans := Subscribe()
+			defer Unsubscribe(controlChans)
+
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-controlChans.PauseCh:
+					t.Log(time.Now(), "Bob paused")
+					bobPaused.Store(true)
+					// Block until resumed
+					controlChans.ResumeCh <- struct{}{}
+					bobResumed.Store(true)
+					t.Log(time.Now(), "Bob resumed")
+				default:
+					// Do work
+					time.Sleep(50 * time.Millisecond)
+				}
+			}
+		}()
+
+		// Give Bob time to subscribe and check pause state
+		time.Sleep(200 * time.Millisecond)
+		synctest.Wait()
+
+		// Check that Bob is paused
+		if !bobPaused.Load() {
+			t.Fatal("Bob not paused after subscribing to paused controller")
+		}
+		t.Log("Bob is paused")
+
+		// Verify both are paused
+		if !alicePaused.Load() || !bobPaused.Load() {
+			t.Fatal("Both listeners should be paused")
+		}
+		t.Log("Both listeners are paused")
+
+		// Resume the controller
+		Resume()
+
+		// Wait for both listeners to resume
+		time.Sleep(500 * time.Millisecond)
+		synctest.Wait()
+
+		// Check that both listeners have resumed
+		if !aliceResumed.Load() {
+			t.Fatal("Alice should have resumed")
+		}
+		if !bobResumed.Load() {
+			t.Fatal("Bob should have resumed")
+		}
+		if IsPaused() {
+			t.Fatal("System should not be paused")
+		}
+		t.Log("Both listeners resumed ✓")
+
+		// Clean up
+		cancel()
+		wg.Wait()
+	})
+}
