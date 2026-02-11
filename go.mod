@@ -21,8 +21,9 @@ require (
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.33.2
-	github.com/internetarchive/gocrawlhq v1.2.34
+	github.com/internetarchive/gocrawlhq v1.2.36
 	github.com/internetarchive/gowarc v0.8.97
+	github.com/maypok86/otter v1.2.4
 	github.com/ncruces/go-sqlite3 v0.30.5
 	github.com/pdfcpu/pdfcpu v0.11.1
 	github.com/philippgille/gokv/leveldb v0.7.0
@@ -78,7 +79,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
-	github.com/maypok86/otter v1.2.4 // indirect
 	github.com/miekg/dns v1.1.72 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect

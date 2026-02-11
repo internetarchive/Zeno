@@ -19,6 +19,7 @@ type stats struct {
 	FinisherRoutines       *counter
 	Paused                 atomic.Bool
 	HTTPReturnCodes        *rateBucket
+	SeencheckFailures      atomic.Int64
 	MeanHTTPResponseTime   *mean // in ms
 	MeanProcessBodyTime    *mean // in ms
 	MeanWaitOnFeedbackTime *mean // in ms
@@ -120,6 +121,7 @@ func GetMapTUI() map[string]any {
 		"HTTP 4xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("4*")),
 		"HTTP 5xx/s":                 bucketSum(globalStats.HTTPReturnCodes.getFiltered("5*")),
 		"CF Challenge pages seen":    globalStats.cfMitigated.Load(),
+		"Seencheck failures":         globalStats.SeencheckFailures.Load(),
 		"Mean HTTP response time":    globalStats.MeanHTTPResponseTime.get(),
 		"Mean wait on feedback time": globalStats.MeanWaitOnFeedbackTime.get(),
 		"Mean process body time":     globalStats.MeanProcessBodyTime.get(),

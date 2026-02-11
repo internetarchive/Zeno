@@ -10,20 +10,32 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
+	"github.com/maypok86/otter"
 )
 
 type HQ struct {
-	wg        sync.WaitGroup
-	ctx       context.Context
-	cancel    context.CancelFunc
-	finishCh  chan *models.Item
-	produceCh chan *models.Item
-	client    *gocrawlhq.Client
-	HQKey     string
-	HQSecret  string
-	HQProject string
-	HQAddress string
-	Timeout   int
+	wg             sync.WaitGroup
+	ctx            context.Context
+	cancel         context.CancelFunc
+	finishCh       chan *models.Item
+	produceCh      chan *models.Item
+	client         *gocrawlhq.Client
+	HQKey          string
+	HQSecret       string
+	HQProject      string
+	HQAddress      string
+	Timeout        int
+	GZIPRequests   bool
+	SeencheckURL   string
+	seencheckCache *otter.Cache[string, seencheckCacheEntry]
+}
+
+// seencheckCacheEntry stores the seencheck result along with the source type
+// ("asset" or "seed") so that a URL previously checked only as an asset will
+// be re-checked when encountered as a seed.
+type seencheckCacheEntry struct {
+	seen   bool
+	source string
 }
 
 var (
@@ -31,14 +43,26 @@ var (
 	logger *log.FieldedLogger
 )
 
-func New(HQKey, HQSecret, HQProject, HQAddress string, timeout int) *HQ {
-	return &HQ{
-		HQKey:     HQKey,
-		HQSecret:  HQSecret,
-		HQProject: HQProject,
-		HQAddress: HQAddress,
-		Timeout:   timeout,
+func New(HQKey, HQSecret, HQProject, HQAddress string, timeout, seencheckCacheSize int, gzipRequests bool, seencheckURL string) *HQ {
+	h := &HQ{
+		HQKey:        HQKey,
+		HQSecret:     HQSecret,
+		HQProject:    HQProject,
+		HQAddress:    HQAddress,
+		Timeout:      timeout,
+		GZIPRequests: gzipRequests,
+		SeencheckURL: seencheckURL,
 	}
+
+	if seencheckCacheSize > 0 {
+		cache, err := otter.MustBuilder[string, seencheckCacheEntry](seencheckCacheSize).Build()
+		if err != nil {
+			panic("failed to build seencheck cache: " + err.Error())
+		}
+		h.seencheckCache = &cache
+	}
+
+	return h
 }
 
 // Start initializes HQ async routines with the given input and output channels.
@@ -52,7 +76,7 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
-		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.HQProject, s.HQAddress, "", s.Timeout)
+		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.HQProject, s.HQAddress, "", s.Timeout, s.GZIPRequests)
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
 			cancel()
@@ -67,6 +91,10 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 		s.finishCh = finishChan
 		s.produceCh = produceChan
 		s.client = HQclient
+
+		if s.SeencheckURL != "" {
+			s.client.AltSeencheckURL = s.SeencheckURL
+		}
 
 		s.wg.Add(4)
 		go s.consumer()
@@ -104,6 +132,10 @@ func (s *HQ) Stop() {
 			logger.Debug("reset seed", "id", seed)
 		}
 		once = sync.Once{}
+		if s.seencheckCache != nil {
+			s.seencheckCache.Close()
+			time.Sleep(1 * time.Second)
+		}
 		logger.Info("stopped")
 	}
 }

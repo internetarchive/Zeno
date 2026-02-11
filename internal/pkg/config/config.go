@@ -66,6 +66,9 @@ type Config struct {
 	HQTimeout                       int           `mapstructure:"hq-timeout"`
 	HQBatchSize                     int           `mapstructure:"hq-batch-size"`
 	HQBatchConcurrency              int           `mapstructure:"hq-batch-concurrency"`
+	HQSeencheckCacheSize            int           `mapstructure:"hq-seencheck-cache-size"`
+	HQSeencheckURL                  string        `mapstructure:"hq-seencheck-url"`
+	HQGZIPRequests                  bool          `mapstructure:"hq-gzip-requests"`
 	DisableHTMLTag                  []string      `mapstructure:"disable-html-tag"`
 	ExcludeHosts                    []string      `mapstructure:"exclude-host"`
 	IncludeHosts                    []string      `mapstructure:"include-host"`
@@ -146,8 +149,9 @@ type Config struct {
 	LogFileRotation  string `mapstructure:"log-file-rotation"`
 
 	// Profiling
-	PyroscopeAddress string `mapstructure:"pyroscope-address"`
-	SentryDSN        string `mapstructure:"sentry-dsn"`
+	PyroscopeAddress    string        `mapstructure:"pyroscope-address"`
+	PyroscopeUploadRate time.Duration `mapstructure:"pyroscope-upload-rate"`
+	SentryDSN           string        `mapstructure:"sentry-dsn"`
 
 	// API
 	APIPort int  `mapstructure:"api-port"`

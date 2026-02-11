@@ -64,6 +64,9 @@ func getHQCmdFlags(getHQCmd *cobra.Command) {
 	getHQCmd.PersistentFlags().Int("hq-timeout", 5, "Crawl HQ HTTP Client default timeout")
 	getHQCmd.PersistentFlags().Int("hq-batch-size", 500, "Crawl HQ feeding batch size.")
 	getHQCmd.PersistentFlags().Int("hq-batch-concurrency", 1, "Number of concurrent requests to do to get the --hq-batch-size, if batch size is 300 and batch-concurrency is 10, 30 requests will be done concurrently.")
+	getHQCmd.PersistentFlags().Int("hq-seencheck-cache-size", 0, "Size of the local seencheck cache. When > 0, an in-memory otter cache is used to avoid sending duplicate seencheck requests to HQ.")
+	getHQCmd.PersistentFlags().String("hq-seencheck-url", "", "Alternative seencheck URL. When set, seencheck requests are sent to this URL instead of the default HQ seencheck endpoint.")
+	getHQCmd.PersistentFlags().Bool("hq-gzip-requests", false, "If turned on, requests to Crawl HQ will be GZIP compressed.")
 	getHQCmd.PersistentFlags().Bool("hq-rate-limiting-send-back", false, "If turned on, the crawler will send back URLs that hit a rate limit to crawl HQ.")
 
 	getHQCmd.MarkPersistentFlagRequired("hq-address")
