@@ -133,6 +133,12 @@ type Config struct {
 	RateLimitRefillRate       float64       `mapstructure:"rate-limit-refill-rate"`
 	RateLimitCleanupFrequency time.Duration `mapstructure:"rate-limit-cleanup-frequency"`
 
+	// Dead hosts detection
+	DeadHostsDetection      bool          `mapstructure:"dead-hosts-detection"`
+	DeadHostsMaxFailures    int           `mapstructure:"dead-hosts-max-failures"`
+	DeadHostsRefreshPeriod  time.Duration `mapstructure:"dead-hosts-refresh-period"`
+	DeadHostsMaxAge         time.Duration `mapstructure:"dead-hosts-max-age"`
+
 	// Logging
 	NoStdoutLogging  bool   `mapstructure:"no-stdout-log"`
 	NoStderrLogging  bool   `mapstructure:"no-stderr-log"`

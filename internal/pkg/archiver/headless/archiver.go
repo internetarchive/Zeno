@@ -20,6 +20,7 @@ import (
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/connutil"
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/deadhosts"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
@@ -87,7 +88,7 @@ func clientDo(client *http.Client, req *http.Request, h *rod.Hijack) (*http.Resp
 	return resp, nil
 }
 
-func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, bucketManager *ratelimiter.BucketManager, client *warc.CustomHTTPClient) {
+func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, bucketManager *ratelimiter.BucketManager, deadHostsManager *deadhosts.Manager, client *warc.CustomHTTPClient) {
 	defer wg.Done()
 	defer func() { <-guard }()
 
