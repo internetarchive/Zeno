@@ -10,6 +10,16 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
+type JSONExtractor struct{}
+
+func (JSONExtractor) Match(URL *models.URL) bool {
+	return IsJSON(URL)
+}
+
+func (JSONExtractor) Extract(item *models.Item) (assets, outlinks []*models.URL, err error) {
+	return JSON(item.GetURL())
+}
+
 func IsJSON(URL *models.URL) bool {
 	return URL.GetMIMEType() != nil && strings.Contains(URL.GetMIMEType().String(), "json")
 }
