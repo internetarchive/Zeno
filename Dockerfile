@@ -1,5 +1,5 @@
 # Builder stage
-FROM golang:1.25.7-alpine3.22 AS builder
+FROM golang:1.26.0-alpine3.22 AS builder
 
 # Enable CGO and set platform
 ENV CGO_ENABLED=1 GOOS=linux GOARCH=amd64
