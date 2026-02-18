@@ -12,3 +12,4 @@ ZENO-*
 *.log
 .old/
 *.warc.*
+static/

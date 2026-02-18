@@ -187,7 +187,7 @@ func (a *archiver) worker(workerID string) {
 				if seed.GetStatus() != models.ItemPreProcessed && seed.GetStatus() != models.ItemGotRedirected && seed.GetStatus() != models.ItemGotChildren {
 					logger.Debug("skipping seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops(), "status", seed.GetStatus())
 				} else {
-					archive(workerID, seed)
+					archive(workerID, seed, controlChans)
 				}
 
 				select {
@@ -201,7 +201,7 @@ func (a *archiver) worker(workerID string) {
 	}
 }
 
-func archive(workerID string, seed *models.Item) {
+func archive(workerID string, seed *models.Item, controlChans *pause.ControlChans) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "archiver.archive",
 		"worker_id": workerID,
@@ -230,7 +230,12 @@ func archive(workerID string, seed *models.Item) {
 			logger.Debug("skipping item", "item_id", items[i].GetShortID(), "status", items[i].GetStatus())
 			continue
 		}
-
+		if pause.IsPaused() {
+			logger.Debug("paused, waiting for resume", "seed_id", seed.GetShortID(), "item_index", i, "remaining", len(items)-i)
+			<-controlChans.PauseCh
+			controlChans.ResumeCh <- struct{}{}
+			logger.Debug("resumed, continuing", "seed_id", seed.GetShortID(), "item_index", i)
+		}
 		guard <- struct{}{}
 
 		wg.Add(1)
