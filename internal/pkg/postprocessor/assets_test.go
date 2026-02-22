@@ -2,15 +2,20 @@ package postprocessor
 
 import (
 	"bytes"
+	_ "embed"
 	"io"
 	"net/http"
 	"os"
 	"testing"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/testutil"
 	"github.com/internetarchive/Zeno/pkg/models"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
+
+//go:embed testdata/ina_api_response.json
+var inaFixture []byte
 
 func TestExtractAssets_HTML(t *testing.T) {
 	config.Set(&config.Config{})
@@ -55,6 +60,29 @@ func TestExtractAssets_HTML(t *testing.T) {
 	}
 	if len(outlinks) != 0 {
 		t.Errorf("expected no outlinks, got %d", len(outlinks))
+	}
+}
+
+func TestExtractAssets_HydrateItemFixture(t *testing.T) {
+	item := testutil.HydrateItem(t, inaFixture)
+	assets, _, err := ExtractAssetsOutlinks(item)
+	if err != nil {
+		t.Fatalf("extract assets from fixture: %v", err)
+	}
+	// INA API fixture should yield at least resourceUrl, resourceThumbnail, embed URL, uri
+	if len(assets) < 1 {
+		t.Errorf("expected at least one asset from INA fixture, got %d", len(assets))
+	}
+	// Sanity: one of the assets should be the resource URL from the fixture body
+	found := false
+	for _, a := range assets {
+		if a != nil && a.Raw == "https://example.com/video.mp4" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected asset https://example.com/video.mp4 in %v", assets)
 	}
 }
 
