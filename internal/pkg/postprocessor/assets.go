@@ -1,6 +1,7 @@
 package postprocessor
 
 import (
+	"fmt"
 	"net/url"
 	"slices"
 	"strings"
@@ -21,14 +22,14 @@ func ExtractAssetsOutlinks(item *models.Item) (assets, outlinks []*models.URL, e
 	return SanitizeAssetsOutlinks(item, assets, outlinks, err)
 }
 
-/*
-Future implementation using interfaces
-
 type AssetExtractor interface {
 	Match(*models.URL) bool
 	Extract(*models.Item) (assets, outlinks []*models.URL, err error)
 }
 
+// Order matters: site-specific extractors are checked first, then
+// general-purpose ones. The first match wins, so more specific
+// extractors must precede broader ones (e.g. HTML).
 var assetExtractors = []AssetExtractor{
 	ina.INAExtractor{},
 	truthsocial.TruthsocialExtractor{},
@@ -37,64 +38,28 @@ var assetExtractors = []AssetExtractor{
 	extractor.XMLExtractor{},
 	extractor.HTMLAssetsExtractor{},
 }
-*/
 
-// Extract assets and outlinks from the body using the appropriate extractor
-// Order is important, we want to check for more specific things first,
-// as they may trigger more general extractors (e.g. HTML)
-// TODO this should be refactored using interfaces
 func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.Extractors",
 		"item":      item.GetShortID(),
 	})
+	for _, ext := range assetExtractors {
+		// heavy debug log calls, can be ommited when merged
+		logger.Debug("AssetExtractor Match call", "url", item.GetURL())
+		if ext.Match(item.GetURL()) {
+			logger.Debug("matched extractor", "extractor", fmt.Sprintf("%T", ext))
+			assets, outlinks, err = ext.Extract(item)
+			logger.Debug("extraction result", "assets", len(assets), "outlinks", len(outlinks), "err", err)
+			if err != nil {
+				logger.Error("unable to extract assets", "err", err.Error())
+			}
+			return assets, outlinks, err
+		}
+	}
 
-	switch {
-	case ina.IsAPIURL(item.GetURL()):
-		INAAssets, err := ina.ExtractMedias(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract medias from INA", "err", err.Error())
-			return assets, outlinks, err
-		}
-
-		HTMLAssets, err := extractor.HTMLAssets(item)
-		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error())
-			return assets, outlinks, err
-		}
-
-		assets = append(INAAssets, HTMLAssets...)
-	case truthsocial.NeedExtraction(item.GetURL()):
-		assets, outlinks, err = truthsocial.ExtractAssets(item)
-		if err != nil {
-			logger.Error("unable to extract assets from TruthSocial", "err", err.Error())
-			return assets, outlinks, err
-		}
-	case extractor.IsM3U8(item.GetURL()):
-		assets, err = extractor.M3U8(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error())
-			return assets, outlinks, err
-		}
-	case extractor.IsJSON(item.GetURL()):
-		assets, outlinks, err = extractor.JSON(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error())
-			return assets, outlinks, err
-		}
-	case extractor.IsXML(item.GetURL()):
-		assets, outlinks, err = extractor.XML(item.GetURL())
-		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error())
-			return assets, outlinks, err
-		}
-	case extractor.IsHTML(item.GetURL()):
-		assets, err = extractor.HTMLAssets(item)
-		if err != nil {
-			logger.Error("unable to extract assets", "err", err.Error())
-			return assets, outlinks, err
-		}
-	case extractor.IsEmbeddedCSS(item):
+	// Embedded CSS is handled separately see PR discussion
+	if extractor.IsEmbeddedCSS(item) {
 		var atImportLinks []*models.URL
 		assets, atImportLinks, err = extractor.ExtractFromURLCSS(item.GetURL())
 
@@ -106,13 +71,12 @@ func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 			logger.Debug("extracted assets from CSS", logArgs...)
 		}
 		extractor.AddAtImportLinksToItemChild(item, atImportLinks)
-	default:
-		contentType := item.GetURL().GetResponse().Header.Get("Content-Type")
-		logger.Debug("no extractor used for page", "content-type", contentType, "mime", item.GetURL().GetMIMEType().String())
-		return assets, outlinks, nil
+		return assets, outlinks, err
 	}
 
-	return assets, outlinks, err
+	contentType := item.GetURL().GetResponse().Header.Get("Content-Type")
+	logger.Debug("no extractor used for page", "content-type", contentType, "mime", item.GetURL().GetMIMEType().String())
+	return assets, outlinks, nil
 }
 
 func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []*models.URL, err error) ([]*models.URL, []*models.URL, error) {
