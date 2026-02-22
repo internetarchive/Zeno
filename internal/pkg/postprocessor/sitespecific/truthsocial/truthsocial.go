@@ -7,11 +7,21 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
+type TruthsocialExtractor struct{}
+
+func (TruthsocialExtractor) Match(URL *models.URL) bool {
+	return NeedExtraction(URL)
+}
+
+func (TruthsocialExtractor) Extract(item *models.Item) (assets, outlinks []*models.URL, err error) {
+	return ExtractAssets(item)
+}
+
 var (
 	postURLRegex       = regexp.MustCompile(`^https?:\/\/truthsocial\.com\/@[A-Za-z0-9_]+\/posts\/`)
 	postIDRegex        = regexp.MustCompile(`^https?:\/\/truthsocial\.com\/@[A-Za-z0-9_]+\/posts\/(\d+)`)
 	usernameRegex      = regexp.MustCompile(`^https?:\/\/truthsocial\.com\/@([^/]+)`)
-	statusesRegex      = regexp.MustCompile(`^https?:\/\/truthsocial\.com\/api\/v1\/statuses\/\d+$`)
+	statusesRegex      = regexp.MustCompile(`^https?:\/\/truthsocial\.com\/api\/v1\/accounts\/[0-9]+\/statuses(\?.*)?$`) // changed from /api/v1/statuses/<id> to /api/v1/accounts/<id>/statuses?<query_params>.
 	accountLookupRegex = regexp.MustCompile(`^https?:\/\/truthsocial\.com\/api\/v1\/accounts\/lookup\?acct=[a-zA-Z0-9]+$`)
 )
 
