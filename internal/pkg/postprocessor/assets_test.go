@@ -18,7 +18,7 @@ import (
 var inaFixture []byte
 
 func TestExtractAssets_HTML(t *testing.T) {
-	config.Set(&config.Config{})
+	config.InitConfig()
 	config.Get().DisableHTMLTag = []string{} // initialize as empty slice
 
 	// Create a mock response with a minimal HTML body
@@ -64,6 +64,7 @@ func TestExtractAssets_HTML(t *testing.T) {
 }
 
 func TestExtractAssets_HydrateItemFixture(t *testing.T) {
+	config.InitConfig()
 	item := testutil.HydrateItem(t, inaFixture)
 	assets, _, err := ExtractAssetsOutlinks(item)
 	if err != nil {
