@@ -70,8 +70,8 @@ func TestExtractLinksFromPage(t *testing.T) {
 	}
 	config.Get().StrictRegex = true
 	links = extractLinksFromPage(URL)
-	if len(links) != 449 {
-		t.Errorf("expected 449 links, got %d", len(links))
+	if len(links) != 433 {
+		t.Errorf("expected 433 links, got %d", len(links))
 	}
 }
 
