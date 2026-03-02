@@ -17,11 +17,11 @@ var (
 )
 
 func MustStrictHTTPOnly() *regexp.Regexp {
-	LinkRegexStrict, err := xurls.StrictMatchingScheme("(?:https?)://") // Only match URLs with http or https scheme
+	re, err := xurls.StrictMatchingScheme("(?:https?)://") // Only match URLs with http or https scheme
 	if err != nil {
 		panic(err)
 	}
-	return LinkRegexStrict
+	return re
 }
 
 // Helper function to call FindAllStringSubmatch on quotedLinkRegex and return only the capturing group (Quoted URL).
