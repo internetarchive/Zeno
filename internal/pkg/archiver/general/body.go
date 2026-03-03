@@ -47,6 +47,7 @@ func processBody(u *models.URL, disableAssetsCapture, domainsCrawl bool, maxHops
 		if err := connutil.CopyWithTimeout(io.Discard, u.GetResponse().Body); err != nil {
 			return err
 		}
+		return nil
 	}
 
 	// Get a buffer from the pool for MIME type detection
