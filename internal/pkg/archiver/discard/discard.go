@@ -3,6 +3,7 @@ package discard
 import (
 	"net/http"
 
+	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/akamai"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/cloudflare"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/contentlength"
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/warcdiscardstatus"
@@ -27,6 +28,7 @@ func (b *Builder) AddHook(hook warc.DiscardHook) *Builder {
 
 func (b *Builder) AddDefaultHooks() *Builder {
 	b.AddHook(cloudflare.ChallengePageHook)
+	b.AddHook(akamai.ChallengePageHook)
 	if len(config.Get().WARCDiscardStatus) > 0 {
 		b.AddHook(warcdiscardstatus.WARCDiscardStatusHook)
 	}

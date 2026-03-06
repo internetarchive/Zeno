@@ -284,3 +284,12 @@ func CFMitigatedIncr() {
 		globalPromStats.cfMitigated.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 	}
 }
+
+// AkamaiMitigatedIncr increments the AkamaiMitigated counter by 1.
+func AkamaiMitigatedIncr() {
+	globalStats.akamaiMitigated.Add(1)
+
+	if globalPromStats != nil {
+		globalPromStats.akamaiMitigated.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
+	}
+}

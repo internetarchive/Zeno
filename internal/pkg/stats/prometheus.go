@@ -26,6 +26,7 @@ type prometheusStats struct {
 	meanWaitOnFeedbackTime *prometheus.HistogramVec // in ns
 	warcWritingQueueSize   *prometheus.GaugeVec
 	cfMitigated            *prometheus.GaugeVec
+	akamaiMitigated        *prometheus.GaugeVec
 	seencheckFailures      *prometheus.CounterVec
 
 	// Dedup WARC metrics
@@ -136,6 +137,10 @@ func newPrometheusStats() *prometheusStats {
 			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "cf_challenge_pages_seen", Help: "Total number of CF challenge pages seen"},
 			[]string{"project", "hostname", "version"},
 		),
+		akamaiMitigated: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "akamai_challenge_pages_seen", Help: "Total number of Akamai challenge pages seen"},
+			[]string{"project", "hostname", "version"},
+		),
 		seencheckFailures: prometheus.NewCounterVec(
 			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "seencheck_failures", Help: "Total number of seencheck failures"},
 			[]string{"project", "hostname", "version"},
@@ -160,6 +165,7 @@ func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.warcWritingQueueSize)
 	prometheus.MustRegister(globalPromStats.meanWaitOnFeedbackTime)
 	prometheus.MustRegister(globalPromStats.cfMitigated)
+	prometheus.MustRegister(globalPromStats.akamaiMitigated)
 	prometheus.MustRegister(globalPromStats.seencheckFailures)
 
 	// Register dedup WARC metrics
