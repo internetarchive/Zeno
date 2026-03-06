@@ -39,7 +39,7 @@ func Subscribe() *ControlChans {
 		select {
 		case chans.PauseCh <- msg:
 		default:
-			// Should never happen since we just created the channel
+			// Channel already has a pause signal from concurrent Pause() call.
 		}
 	}
 
