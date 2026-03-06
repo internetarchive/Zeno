@@ -22,7 +22,7 @@ require (
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.33.4
 	github.com/internetarchive/gocrawlhq v1.2.36
-	github.com/internetarchive/gowarc v0.8.97
+	github.com/internetarchive/gowarc v0.8.98
 	github.com/maypok86/otter v1.2.4
 	github.com/ncruces/go-sqlite3 v0.30.5
 	github.com/pdfcpu/pdfcpu v0.11.1
@@ -73,7 +73,7 @@ require (
 	github.com/hhrutter/pkcs7 v0.2.0 // indirect
 	github.com/hhrutter/tiff v1.0.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/klauspost/compress v1.18.3 // indirect
+	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
