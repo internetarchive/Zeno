@@ -438,3 +438,105 @@ func TestPauseResumeE2E(t *testing.T) {
 		}
 	})
 }
+
+func TestSubscribeAfterPause(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// Alice subscribes before the pause that Bob subscribes after.
+		// Verifies that new subscribers to an already-paused manager receive an immediate pause signal.
+		stats.Init()
+		manager = &pauseManager{}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		// Synchronization channels
+		aliceSubscribed := make(chan struct{})
+		alicePausedCh := make(chan string, 1)
+		aliceResumedCh := make(chan struct{})
+		bobPausedCh := make(chan string, 1)
+		bobResumedCh := make(chan struct{})
+
+		var wg sync.WaitGroup
+
+		// Start Alice
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			controlChans := Subscribe()
+			defer Unsubscribe(controlChans)
+			aliceSubscribed <- struct{}{}
+
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case msg := <-controlChans.PauseCh:
+					t.Log("Alice paused with message:", msg)
+					alicePausedCh <- msg
+					controlChans.ResumeCh <- struct{}{}
+					aliceResumedCh <- struct{}{}
+					t.Log("Alice resumed")
+				}
+			}
+		}()
+
+		// Wait for Alice to subscribe before pausing
+		<-aliceSubscribed
+
+		// Pause the system
+		Pause("Test pause")
+
+		// Wait for Alice to be paused and verify the message
+		if msg := <-alicePausedCh; msg != "Test pause" {
+			t.Fatalf("Alice: expected pause message %q, got %q", "Test pause", msg)
+		}
+		t.Log("Alice is paused")
+
+		if !IsPaused() {
+			t.Fatal("Controller should be paused")
+		}
+
+		// Subscribe Bob AFTER the system is already paused
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			controlChans := Subscribe()
+			defer Unsubscribe(controlChans)
+
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case msg := <-controlChans.PauseCh:
+					t.Log("Bob paused with message:", msg)
+					bobPausedCh <- msg
+					controlChans.ResumeCh <- struct{}{}
+					bobResumedCh <- struct{}{}
+					t.Log("Bob resumed")
+				}
+			}
+		}()
+
+		// Wait for Bob to be paused and verify the message
+		if msg := <-bobPausedCh; msg != "Test pause" {
+			t.Fatalf("Bob: expected pause message %q, got %q", "Test pause", msg)
+		}
+		t.Log("Bob is paused")
+
+		// Resume the system
+		Resume()
+
+		// Wait for both listeners to resume
+		<-aliceResumedCh
+		<-bobResumedCh
+
+		if IsPaused() {
+			t.Fatal("System should not be paused")
+		}
+		t.Log("Both listeners resumed ✓")
+
+		// Clean up
+		cancel()
+		wg.Wait()
+	})
+}
