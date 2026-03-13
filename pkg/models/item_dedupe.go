@@ -38,10 +38,10 @@ func flattenTree(root *Item) []*Item {
 	var nodes []*Item
 	var traverse func(node *Item)
 	traverse = func(node *Item) {
-		nodes = append(nodes, node)
 		if node == nil {
 			return
 		}
+		nodes = append(nodes, node)
 		for _, child := range node.GetChildren() {
 			traverse(child)
 		}
