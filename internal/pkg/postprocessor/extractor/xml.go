@@ -13,6 +13,16 @@ import (
 	"github.com/internetarchive/Zeno/pkg/models"
 )
 
+type XMLExtractor struct{}
+
+func (XMLExtractor) Match(URL *models.URL) bool {
+	return IsXML(URL)
+}
+
+func (XMLExtractor) Extract(item *models.Item) (assets, outlinks []*models.URL, err error) {
+	return XML(item.GetURL())
+}
+
 // xmlBufioReaderPool pools bufio.Reader instances for XML parsing to reduce allocations when processing many XML documents.
 var xmlBufioReaderPool = sync.Pool{
 	New: func() any {
@@ -109,7 +119,6 @@ func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	body := xmlBufioReaderPool.Get().(*bufio.Reader)
 	body.Reset(URL.GetBody())
 	defer xmlBufioReaderPool.Put(body)
-
 
 	// Peek to check if body has any non-whitespace content
 	peek, err := body.Peek(512) // peek up to 512 bytes
