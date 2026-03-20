@@ -58,62 +58,31 @@ func startWARCWriter() error {
 		IPv6AnyIP:        config.Get().IPv6AnyIP,
 		ConnReadDeadline: config.Get().ConnReadDeadline,
 		DigestAlgorithm:  warc.GetDigestFromPrefix(config.Get().WARCDigestAlgorithm),
+		Proxy:            config.Get().Proxy,
 	}
 
 	// Instantiate WARC client
 	var err error
-	if config.Get().Proxy != "" {
-		proxiedWARCSettings := WARCSettings
-		proxiedWARCSettings.Proxy = config.Get().Proxy
-		globalArchiver.ClientWithProxy, err = warc.NewWARCWritingHTTPClient(proxiedWARCSettings)
-		if err != nil {
-			logger.Error("unable to init proxied WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
-			return err
-		}
 
-		go func() {
-			for err := range globalArchiver.ClientWithProxy.ErrChan {
-				logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
-			}
-		}()
+	// Instantiate WARC client
+	globalArchiver.Client, err = warc.NewWARCWritingHTTPClient(WARCSettings)
+	if err != nil {
+		logger.Error("unable to init WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
+		return err
 	}
 
-	// Even if a proxied client has been set, we want to create an non-proxied one
-	if config.Get().Proxy == "" {
-		globalArchiver.Client, err = warc.NewWARCWritingHTTPClient(WARCSettings)
-		if err != nil {
-			logger.Error("unable to init WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
-			return err
+	go func() {
+		for err := range globalArchiver.Client.ErrChan {
+			logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
 		}
-
-		go func() {
-			for err := range globalArchiver.Client.ErrChan {
-				logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
-			}
-		}()
-	}
+	}()
 
 	// Set the timeouts
 	if config.Get().HTTPTimeout > 0 {
-		if globalArchiver.Client != nil {
-			globalArchiver.Client.Timeout = config.Get().HTTPTimeout
-		}
-
-		if globalArchiver.ClientWithProxy != nil {
-			globalArchiver.ClientWithProxy.Timeout = config.Get().HTTPTimeout
-		}
+		globalArchiver.Client.Timeout = config.Get().HTTPTimeout
 	}
+
 	return nil
-}
-
-func GetClients() (clients []*warc.CustomHTTPClient) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			clients = append(clients, c)
-		}
-	}
-
-	return clients
 }
 
 type WARCStats struct {
@@ -130,28 +99,19 @@ type WARCStats struct {
 func GetStats() WARCStats {
 	var stats WARCStats
 
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			stats.WARCWritingQueueSize += int64(c.WaitGroup.Size())
-			stats.WARCTotalBytesArchived += c.DataTotal.Load()
-			stats.CDXDedupeTotalBytes += c.CDXDedupeTotalBytes.Load()
-			stats.DoppelgangerDedupeTotalBytes += c.DoppelgangerDedupeTotalBytes.Load()
-			stats.LocalDedupeTotalBytes += c.LocalDedupeTotalBytes.Load()
-			stats.CDXDedupeTotal += c.CDXDedupeTotal.Load()
-			stats.DoppelgangerDedupeTotal += c.DoppelgangerDedupeTotal.Load()
-			stats.LocalDedupeTotal += c.LocalDedupeTotal.Load()
-		}
-	}
+	c := globalArchiver.Client
+	stats.WARCWritingQueueSize = int64(c.WaitGroup.Size())
+	stats.WARCTotalBytesArchived = c.DataTotal.Load()
+	stats.CDXDedupeTotalBytes = c.CDXDedupeTotalBytes.Load()
+	stats.DoppelgangerDedupeTotalBytes = c.DoppelgangerDedupeTotalBytes.Load()
+	stats.LocalDedupeTotalBytes = c.LocalDedupeTotalBytes.Load()
+	stats.CDXDedupeTotal = c.CDXDedupeTotal.Load()
+	stats.DoppelgangerDedupeTotal = c.DoppelgangerDedupeTotal.Load()
+	stats.LocalDedupeTotal = c.LocalDedupeTotal.Load()
 	return stats
 }
 
 // This function is used in multiple places so it can't be replaced by GetStats()
 func GetWARCWritingQueueSize() (total int) {
-	for _, c := range []*warc.CustomHTTPClient{globalArchiver.Client, globalArchiver.ClientWithProxy} {
-		if c != nil {
-			total += c.WaitGroup.Size()
-		}
-	}
-
-	return total
+	return globalArchiver.Client.WaitGroup.Size()
 }
