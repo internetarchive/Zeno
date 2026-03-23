@@ -114,8 +114,8 @@ func (p *preprocessor) worker(workerID string) {
 	controlChans := pause.Subscribe()
 	defer pause.Unsubscribe(controlChans)
 
-	stats.PreprocessorRoutinesIncr()
-	defer stats.PreprocessorRoutinesDecr()
+	stats.PreprocessorRoutines.Add(1)
+	defer stats.PreprocessorRoutines.Done()
 
 	for {
 		select {

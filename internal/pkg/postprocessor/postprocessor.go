@@ -72,8 +72,8 @@ func (p *postprocessor) worker(workerID string) {
 		"worker_id": workerID,
 	})
 
-	stats.PostprocessorRoutinesIncr()
-	defer stats.PostprocessorRoutinesDecr()
+	stats.PostprocessorRoutines.Add(1)
+	defer stats.PostprocessorRoutines.Done()
 
 	// Subscribe to the pause controler
 	controlChans := pause.Subscribe()

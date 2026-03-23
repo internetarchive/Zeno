@@ -164,8 +164,8 @@ func (a *archiver) worker(workerID string) {
 	controlChans := pause.Subscribe()
 	defer pause.Unsubscribe(controlChans)
 
-	stats.ArchiverRoutinesIncr()
-	defer stats.ArchiverRoutinesDecr()
+	stats.ArchiverRoutines.Add(1)
+	defer stats.ArchiverRoutines.Done()
 
 	for {
 		select {
