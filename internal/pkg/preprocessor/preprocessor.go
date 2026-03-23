@@ -128,6 +128,7 @@ func (p *preprocessor) worker(workerID string) {
 			logger.Debug("received resume event")
 		case seed, ok := <-p.inputCh:
 			if ok {
+				stats.PreprocessorInTransit.Add(1)
 				logger.Debug("received seed", "seed", seed.GetShortID())
 
 				if err := seed.CheckConsistency(); err != nil {
@@ -144,10 +145,12 @@ func (p *preprocessor) worker(workerID string) {
 
 				select {
 				case <-p.ctx.Done():
+					stats.PreprocessorInTransit.Done()
 					logger.Debug("aborting seed due to stop", "seed", seed.GetShortID())
 					return
 				case p.outputCh <- seed:
 				}
+				stats.PreprocessorInTransit.Done()
 			}
 		}
 	}

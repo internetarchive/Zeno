@@ -90,6 +90,7 @@ func (p *postprocessor) worker(workerID string) {
 			logger.Debug("received resume event")
 		case seed, ok := <-p.inputCh:
 			if ok {
+				stats.PostprocessorInTransit.Add(1)
 				logger.Debug("received seed", "seed", seed.GetShortID())
 
 				if err := seed.CheckConsistency(); err != nil {
@@ -103,6 +104,7 @@ func (p *postprocessor) worker(workerID string) {
 					for i := range outlinks {
 						select {
 						case <-p.ctx.Done():
+							stats.PostprocessorInTransit.Done()
 							logger.Debug("aborting outlink feeding due to stop", "seed", outlinks[i].GetShortID())
 							return
 						case p.outputCh <- outlinks[i]:
@@ -115,10 +117,12 @@ func (p *postprocessor) worker(workerID string) {
 
 				select {
 				case <-p.ctx.Done():
+					stats.PostprocessorInTransit.Done()
 					logger.Debug("aborting seed due to stop", "seed", seed.GetShortID())
 					return
 				case p.outputCh <- seed:
 				}
+				stats.PostprocessorInTransit.Done()
 			}
 		}
 	}
