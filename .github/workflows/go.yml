@@ -45,7 +45,7 @@ jobs:
         go tool covdata textfmt -i /tmp/e2e_coverage/ -o e2e_coverage.txt
 
     - name: Upload coverage reports to Codecov (unittests)
-      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de #v5.5.2
+      uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad #v5.5.3
       continue-on-error: true
       with:
         flags: unittests
@@ -54,7 +54,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage reports to Codecov (e2e tests)
-      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de #v5.5.2
+      uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad #v5.5.3
       continue-on-error: true
       with:
         flags: e2etests
