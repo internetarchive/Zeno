@@ -1,26 +1,26 @@
 module github.com/internetarchive/Zeno
 
-go 1.25.7
+go 1.25.8
 
 require (
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
 	github.com/MatusOllah/slogcolor v1.7.0
 	github.com/PuerkitoBio/goquery v1.12.0
-	github.com/ada-url/goada v1.1.0
+	github.com/ada-url/goada v1.2.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.19.0
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/gdamore/tcell/v2 v2.13.8
-	github.com/getsentry/sentry-go v0.43.0
+	github.com/getsentry/sentry-go v0.44.1
 	github.com/go-logfmt/logfmt v0.6.1
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
 	github.com/gobwas/ws v1.4.0
 	github.com/google/uuid v1.6.0
-	github.com/grafana/pyroscope-go v1.2.7
+	github.com/grafana/pyroscope-go v1.2.8
 	github.com/grafov/m3u8 v0.12.1
-	github.com/hashicorp/consul/api v1.33.4
+	github.com/hashicorp/consul/api v1.33.7
 	github.com/internetarchive/gocrawlhq v1.2.36
 	github.com/internetarchive/gowarc v0.8.98
 	github.com/maypok86/otter v1.2.4
@@ -30,7 +30,7 @@ require (
 	github.com/plar/go-adaptive-radix-tree/v2 v2.0.4
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rivo/tview v0.42.0
-	github.com/samber/slog-multi v1.7.1
+	github.com/samber/slog-multi v1.8.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
@@ -94,8 +94,8 @@ require (
 	github.com/refraction-networking/utls v1.8.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
-	github.com/samber/lo v1.52.0 // indirect
-	github.com/samber/slog-common v0.20.0 // indirect
+	github.com/samber/lo v1.53.0 // indirect
+	github.com/samber/slog-common v0.21.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
@@ -113,7 +113,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.49.0 // indirect
-	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a // indirect
+	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/image v0.32.0 // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/term v0.41.0 // indirect
