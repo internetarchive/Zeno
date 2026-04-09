@@ -71,7 +71,6 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	href := adaParse.Href()
 	pathname := adaParse.Pathname()
 	search := adaParse.Search()
-	adaParse.Free()
 
 	if hasPathLoop(pathname, search) {
 		return ErrPathLoopDetected
