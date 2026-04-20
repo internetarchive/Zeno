@@ -1,6 +1,6 @@
 module github.com/internetarchive/Zeno
 
-go 1.25.8
+go 1.25.9
 
 require (
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
@@ -12,7 +12,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/gdamore/tcell/v2 v2.13.8
-	github.com/getsentry/sentry-go v0.45.0
+	github.com/getsentry/sentry-go v0.45.1
 	github.com/go-logfmt/logfmt v0.6.1
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
@@ -20,7 +20,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.8
 	github.com/grafov/m3u8 v0.12.1
-	github.com/hashicorp/consul/api v1.34.0
+	github.com/hashicorp/consul/api v1.34.1
 	github.com/internetarchive/gocrawlhq v1.2.36
 	github.com/internetarchive/gowarc v0.8.98
 	github.com/maypok86/otter v1.2.4
