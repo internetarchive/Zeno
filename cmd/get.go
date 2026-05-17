@@ -75,6 +75,7 @@ func addBasicFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("strict-regex", false, "If turned on, the xurls `strict` regex setting will be used. Otherwise a looser regex will be used.")
 	getCmd.PersistentFlags().Int("max-segment-repetition", 3, "Maximum number of non-consecutive repetitions of a path segment or query parameter allowed before a URL is flagged as a crawler trap.")
 	getCmd.PersistentFlags().Int("max-segment-repetition-threshold", 2, "In the deep-path heuristic (10+ segments), how many distinct segments must each reach max-segment-repetition before the URL is flagged as a crawler trap.")
+	getCmd.PersistentFlags().Int("max-url-length", 4000, "Maximum URL length in characters. URLs exceeding this limit will be discarded.")
 }
 
 func addHeadlessFlags(getCmd *cobra.Command) {

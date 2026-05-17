@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/pkg/models"
 	goada "github.com/yzqzss/goada-wasm"
 )
@@ -72,6 +73,10 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	pathname := adaParse.Pathname()
 	search := adaParse.Search()
 	adaParse.Free()
+
+	if maxLen := config.Get().MaxURLLength; maxLen > 0 && len(href) > maxLen {
+		return ErrURLTooLong
+	}
 
 	if hasPathLoop(pathname, search) {
 		return ErrPathLoopDetected
