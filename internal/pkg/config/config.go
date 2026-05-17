@@ -122,6 +122,7 @@ type Config struct {
 
 	// Network
 	Proxy         string `mapstructure:"proxy"`
+	DNSServers    []string `mapstructure:"dns-server"`
 	RandomLocalIP bool   `mapstructure:"random-local-ip"`
 	DisableIPv4   bool   `mapstructure:"disable-ipv4"`
 	DisableIPv6   bool   `mapstructure:"disable-ipv6"`

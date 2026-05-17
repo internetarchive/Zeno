@@ -49,6 +49,7 @@ func startWARCWriter() error {
 		DedupeOptions:    dedupeOptions,
 		DecompressBody:   true,
 		DiscardHook:      discardHooksChain,
+		DNSServers:       config.Get().DNSServers,
 		VerifyCerts:      config.Get().CertValidation,
 		TempDir:          config.Get().WARCTempDir,
 		FullOnDisk:       config.Get().WARCOnDisk,

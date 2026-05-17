@@ -7,7 +7,6 @@ import (
 	"path"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/internal/pkg/config"
