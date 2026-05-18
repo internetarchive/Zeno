@@ -25,7 +25,7 @@ require (
 	github.com/internetarchive/gowarc v0.8.98
 	github.com/maypok86/otter v1.2.4
 	github.com/ncruces/go-sqlite3 v0.34.1
-	github.com/pdfcpu/pdfcpu v0.12.0
+	github.com/pdfcpu/pdfcpu v0.12.1
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/plar/go-adaptive-radix-tree/v2 v2.0.4
 	github.com/prometheus/client_golang v1.23.2
