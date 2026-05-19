@@ -73,7 +73,7 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 	pathname := adaParse.Pathname()
 	search := adaParse.Search()
 
-	if maxLen := config.Get().MaxURLLength; maxLen > 0 && len(href) > maxLen {
+	if maxLen := config.Get().MaxURLLength; len(href) > maxLen {
 		return ErrURLTooLong
 	}
 
