@@ -22,7 +22,7 @@ require (
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.34.2
 	github.com/internetarchive/gocrawlhq v1.2.36
-	github.com/internetarchive/gowarc v0.8.98
+	github.com/internetarchive/gowarc v0.8.99
 	github.com/maypok86/otter v1.2.4
 	github.com/ncruces/go-sqlite3 v0.34.1
 	github.com/pdfcpu/pdfcpu v0.12.1
