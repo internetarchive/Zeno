@@ -98,6 +98,7 @@ type Config struct {
 	CertValidation                  bool          `mapstructure:"cert-validation"`
 	MaxSegmentRepetition            int           `mapstructure:"max-segment-repetition"`
 	MaxSegmentRepetitionThreshold   int           `mapstructure:"max-segment-repetition-threshold"`
+	MaxURLLength                    int           `mapstructure:"max-url-length"`
 	DisableAssetsCapture            bool          `mapstructure:"disable-assets-capture"`
 	UseHQ                           bool          // Special field to check if HQ is enabled depending on the command called
 
