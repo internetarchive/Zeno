@@ -102,6 +102,7 @@ func addHeadlessFlags(getCmd *cobra.Command) {
 
 func addNetworkFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("proxy", "", "Proxy to use when requesting pages.")
+	getCmd.PersistentFlags().StringSlice("dns-server", []string{}, "DNS server(s) to use for requests. Can be specified multiple times.")
 	getCmd.PersistentFlags().Bool("random-local-ip", false, "Use random local IP for requests. (will be ignored if a proxy is set)")
 	getCmd.PersistentFlags().Bool("disable-ipv4", false, "Disable IPv4 for requests.")
 	getCmd.PersistentFlags().Bool("disable-ipv6", false, "Disable IPv6 for requests.")
