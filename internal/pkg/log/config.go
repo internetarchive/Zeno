@@ -201,7 +201,7 @@ func (c *logConfig) makeMultiLogger() *slog.Logger {
 		})
 	}
 
-	if config.Get().SentryDSN != "" {
+	if config.Get() != nil && config.Get().SentryDSN != "" {
 		ctx := context.Background()
 		handler := sentryslog.Option{
 			LogLevel:  []slog.Level{slog.LevelWarn, slog.LevelError, sentryslog.LevelFatal},
