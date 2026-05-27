@@ -56,6 +56,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gammazero/deque v1.0.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
+	github.com/getsentry/sentry-go/slog v0.46.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
