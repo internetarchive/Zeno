@@ -3,6 +3,10 @@ package stats
 import (
 	"sync/atomic"
 	"testing"
+
+	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 func TestCounter_Incr(t *testing.T) {
@@ -72,5 +76,95 @@ func TestCounter_Reset(t *testing.T) {
 	c.reset()
 	if atomic.LoadUint64(&c.count) != 0 {
 		t.Errorf("expected count to be 0 after reset, got %d", atomic.LoadUint64(&c.count))
+	}
+}
+
+func TestGaugedCounter_AddDoneValue(t *testing.T) {
+	gc := &GaugedCounter{}
+
+	gc.Add(3)
+	if gc.Value() != 3 {
+		t.Errorf("expected 3, got %d", gc.Value())
+	}
+
+	gc.Done()
+	if gc.Value() != 2 {
+		t.Errorf("expected 2, got %d", gc.Value())
+	}
+
+	gc.Add(5)
+	gc.Done()
+	gc.Done()
+	if gc.Value() != 5 {
+		t.Errorf("expected 5, got %d", gc.Value())
+	}
+}
+
+func TestGaugedCounter_NilPrometheus(t *testing.T) {
+	gc := &GaugedCounter{}
+
+	gc.Add(1)
+	defer gc.Done()
+
+	if gc.Value() != 1 {
+		t.Errorf("expected 1, got %d", gc.Value())
+	}
+}
+
+func TestGaugedCounter_WithPrometheus(t *testing.T) {
+	config.Set(&config.Config{JobPrometheus: "testjob"})
+	hostname = "testhost"
+	version = "v0.0.0-test"
+
+	gauge := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{Name: "test_gauged_counter", Help: "test"},
+		[]string{"project", "hostname", "version"},
+	)
+
+	gc := &GaugedCounter{promGauge: gauge}
+
+	gc.Add(3)
+	if gc.Value() != 3 {
+		t.Errorf("atomic: expected 3, got %d", gc.Value())
+	}
+	promVal := testutil.ToFloat64(gauge.WithLabelValues("testjob", "testhost", "v0.0.0-test"))
+	if promVal != 3 {
+		t.Errorf("prometheus: expected 3, got %f", promVal)
+	}
+
+	gc.Done()
+	gc.Done()
+	gc.Done()
+	if gc.Value() != 0 {
+		t.Errorf("atomic: expected 0, got %d", gc.Value())
+	}
+	promVal = testutil.ToFloat64(gauge.WithLabelValues("testjob", "testhost", "v0.0.0-test"))
+	if promVal != 0 {
+		t.Errorf("prometheus: expected 0, got %f", promVal)
+	}
+}
+
+func TestGaugedCounter_PrometheusBatchAdd(t *testing.T) {
+	config.Set(&config.Config{JobPrometheus: "testjob"})
+	hostname = "testhost"
+	version = "v0.0.0-test"
+
+	gauge := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{Name: "test_gauged_counter_batch", Help: "test"},
+		[]string{"project", "hostname", "version"},
+	)
+
+	gc := &GaugedCounter{promGauge: gauge}
+
+	gc.Add(10)
+	gc.Done()
+	gc.Add(5)
+
+	if gc.Value() != 14 {
+		t.Errorf("atomic: expected 14, got %d", gc.Value())
+	}
+	promVal := testutil.ToFloat64(gauge.WithLabelValues("testjob", "testhost", "v0.0.0-test"))
+	if promVal != 14 {
+		t.Errorf("prometheus: expected 14, got %f", promVal)
 	}
 }

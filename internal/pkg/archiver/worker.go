@@ -164,8 +164,8 @@ func (a *archiver) worker(workerID string) {
 	controlChans := pause.Subscribe()
 	defer pause.Unsubscribe(controlChans)
 
-	stats.ArchiverRoutinesIncr()
-	defer stats.ArchiverRoutinesDecr()
+	stats.ArchiverRoutines.Add(1)
+	defer stats.ArchiverRoutines.Done()
 
 	for {
 		select {
@@ -178,6 +178,7 @@ func (a *archiver) worker(workerID string) {
 			logger.Debug("received resume event")
 		case seed, ok := <-a.inputCh:
 			if ok {
+				stats.ArchiverInTransit.Add(1)
 				logger.Debug("received seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops())
 
 				if err := seed.CheckConsistency(); err != nil {
@@ -192,10 +193,12 @@ func (a *archiver) worker(workerID string) {
 
 				select {
 				case <-a.ctx.Done():
+					stats.ArchiverInTransit.Done()
 					logger.Debug("aborting seed due to stop", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops())
 					return
 				case a.outputCh <- seed:
 				}
+				stats.ArchiverInTransit.Done()
 			}
 		}
 	}
