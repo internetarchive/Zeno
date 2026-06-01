@@ -3,12 +3,12 @@ package discard
 import (
 	"net/http"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/akamai"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/cloudflare"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/contentlength"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/warcdiscardstatus"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard/discarder/akamai"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard/discarder/cloudflare"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard/discarder/contentlength"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard/discarder/warcdiscardstatus"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard/reasoncode"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 	warc "github.com/internetarchive/gowarc"
 )
 

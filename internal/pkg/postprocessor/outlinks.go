@@ -4,14 +4,14 @@ import (
 	"bufio"
 	"strings"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/truthsocial"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/domainscrawl"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/extractor"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/sitespecific/reddit"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/sitespecific/truthsocial"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 type OutlinkExtractor interface {

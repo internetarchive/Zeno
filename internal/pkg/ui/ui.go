@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/internetarchive/Zeno/internal/pkg/controler"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/log/ringbuffer"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/controler"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log/ringbuffer"
 	"github.com/rivo/tview"
 )
 

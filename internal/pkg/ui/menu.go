@@ -2,8 +2,8 @@ package ui
 
 import (
 	"github.com/gdamore/tcell/v2"
-	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/controler/pause"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
 	"github.com/rivo/tview"
 )
 

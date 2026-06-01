@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	generalarchiver "github.com/internetarchive/Zeno/internal/pkg/archiver/general"
-	"github.com/internetarchive/Zeno/pkg/models"
+	generalarchiver "github.com/internetarchive/Zeno/v2/internal/pkg/archiver/general"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 func TestExtractURLsFromHeader(t *testing.T) {

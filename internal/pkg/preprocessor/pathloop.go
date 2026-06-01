@@ -3,7 +3,7 @@ package preprocessor
 import (
 	"strings"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 )
 
 // maxRepetitions is the default non-consecutive repetition threshold used to detect crawler traps.

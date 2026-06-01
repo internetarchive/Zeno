@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/internetarchive/Zeno/cmd"
-	"github.com/internetarchive/Zeno/e2e/log"
+	"github.com/internetarchive/Zeno/v2/cmd"
+	"github.com/internetarchive/Zeno/v2/e2e/log"
 	"github.com/spf13/cobra"
 
-	"github.com/internetarchive/Zeno/internal/pkg/controler"
-	zenolog "github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/controler"
+	zenolog "github.com/internetarchive/Zeno/v2/internal/pkg/log"
 )
 
 var DefaultTimeout = 60 * time.Second

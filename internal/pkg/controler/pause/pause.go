@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/stats"
 )
 
 type ControlChans struct {

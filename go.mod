@@ -1,4 +1,4 @@
-module github.com/internetarchive/Zeno
+module github.com/internetarchive/Zeno/v2
 
 go 1.26
 

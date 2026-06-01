@@ -6,7 +6,7 @@ import (
 
 	"go.uber.org/goleak"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 )
 
 func TestMain(m *testing.M) {
