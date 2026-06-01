@@ -3,9 +3,9 @@ package archiver
 import (
 	"path"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
 	warc "github.com/internetarchive/gowarc"
 )
 

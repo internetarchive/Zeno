@@ -3,7 +3,7 @@ package reasoncode
 import (
 	"slices"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/cloudflare"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard/discarder/cloudflare"
 )
 
 var HookNotSet = "Hook not set"

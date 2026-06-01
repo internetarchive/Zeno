@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/go-rod/rod"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/connutil"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/connutil"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
 	warc "github.com/internetarchive/gowarc"
 )
 

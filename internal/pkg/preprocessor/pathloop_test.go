@@ -3,7 +3,7 @@ package preprocessor
 import (
 	"testing"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 )
 
 func TestHasPathLoop(t *testing.T) {

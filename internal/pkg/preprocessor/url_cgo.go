@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	goada "github.com/ada-url/goada"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 // Normalize the URL by removing fragments, attempting to add URL scheme if missing,

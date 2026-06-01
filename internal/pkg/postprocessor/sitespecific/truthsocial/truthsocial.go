@@ -3,8 +3,8 @@ package truthsocial
 import (
 	"regexp"
 
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/extractor"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 var (

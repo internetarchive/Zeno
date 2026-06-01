@@ -1,6 +1,6 @@
 package reactor
 
-import "github.com/internetarchive/Zeno/pkg/models"
+import "github.com/internetarchive/Zeno/v2/pkg/models"
 
 // GetStateTable returns a slice of all the seeds UUIDs as string in the state table.
 func GetStateTable() []string {

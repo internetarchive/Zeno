@@ -3,7 +3,7 @@ package akamai
 import (
 	"net/http"
 
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/stats"
 )
 
 var ChallengeDetected = "Detected Akamai challenge page"

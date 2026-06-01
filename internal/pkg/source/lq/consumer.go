@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/reactor"
-	"github.com/internetarchive/Zeno/internal/pkg/source"
-	"github.com/internetarchive/Zeno/internal/pkg/source/lq/sqlc_model"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/reactor"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/source"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/source/lq/sqlc_model"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 var crawlFinishedOnce sync.Once

@@ -9,14 +9,14 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/general"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/headless"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/general"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/headless"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/ratelimiter"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/controler/pause"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/stats"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	warc "github.com/internetarchive/gowarc"
 )
 
