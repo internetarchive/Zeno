@@ -3,7 +3,7 @@ package cmd
 import (
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/headless"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/headless"
 	"github.com/spf13/cobra"
 )
 

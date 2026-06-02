@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/domainscrawl"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
 	warc "github.com/internetarchive/gowarc"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"

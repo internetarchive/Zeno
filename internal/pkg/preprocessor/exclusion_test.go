@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 func TestMatchRegexExclusion(t *testing.T) {

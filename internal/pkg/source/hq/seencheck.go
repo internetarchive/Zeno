@@ -1,7 +1,7 @@
 package hq
 
 import (
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 )
 

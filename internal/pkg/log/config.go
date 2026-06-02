@@ -16,8 +16,8 @@ import (
 	"github.com/MatusOllah/slogcolor"
 	"github.com/fatih/color"
 	sentryslog "github.com/getsentry/sentry-go/slog"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/log/ringbuffer"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log/ringbuffer"
 	slogmulti "github.com/samber/slog-multi"
 )
 

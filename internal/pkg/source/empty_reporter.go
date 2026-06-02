@@ -3,7 +3,7 @@ package source
 import (
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
 )
 
 // FeedEmptyReporter logs when the feed is empty for a long time.

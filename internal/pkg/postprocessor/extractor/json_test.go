@@ -9,8 +9,8 @@ import (
 
 	"github.com/ImVexed/fasturl"
 	"github.com/davecgh/go-spew/spew"
-	generalarchiver "github.com/internetarchive/Zeno/internal/pkg/archiver/general"
-	"github.com/internetarchive/Zeno/pkg/models"
+	generalarchiver "github.com/internetarchive/Zeno/v2/internal/pkg/archiver/general"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 func TestJSON(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/internetarchive/Zeno/e2e"
-	"github.com/internetarchive/Zeno/e2e/test/nonutf8encoding"
+	"github.com/internetarchive/Zeno/v2/e2e"
+	"github.com/internetarchive/Zeno/v2/e2e/test/nonutf8encoding"
 )
 
 func TestNonUTF8HTMLMetaCharset(t *testing.T) {

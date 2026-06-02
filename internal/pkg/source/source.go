@@ -1,7 +1,7 @@
 // Package source defines the interface for a data source that can produce items to crawl and accept items that have been crawled.
 package source
 
-import "github.com/internetarchive/Zeno/pkg/models"
+import "github.com/internetarchive/Zeno/v2/pkg/models"
 
 // Source is an interface for a data source that can produce items to crawl and accept items that have been crawled.
 type Source interface {
