@@ -23,9 +23,9 @@ require (
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.34.3
 	github.com/internetarchive/gocrawlhq v1.2.36
-	github.com/internetarchive/gowarc v0.8.99
+	github.com/internetarchive/gowarc v0.8.100
 	github.com/maypok86/otter v1.2.4
-	github.com/ncruces/go-sqlite3 v0.34.3
+	github.com/ncruces/go-sqlite3 v0.34.4
 	github.com/pdfcpu/pdfcpu v0.12.1
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/plar/go-adaptive-radix-tree/v2 v2.0.4
@@ -83,7 +83,7 @@ require (
 	github.com/miekg/dns v1.1.72 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/ncruces/go-sqlite3-wasm/v2 v2.5.35301 // indirect
+	github.com/ncruces/go-sqlite3-wasm/v2 v2.6.35302 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/onsi/gomega v1.34.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
@@ -117,9 +117,9 @@ require (
 	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/image v0.39.0 // indirect
-	golang.org/x/mod v0.35.0 // indirect
+	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/term v0.43.0 // indirect
-	golang.org/x/tools v0.44.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
