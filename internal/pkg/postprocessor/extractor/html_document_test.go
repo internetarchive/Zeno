@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"golang.org/x/text/encoding/htmlindex"
 )
 

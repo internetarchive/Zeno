@@ -15,8 +15,9 @@ import (
 
 	"github.com/MatusOllah/slogcolor"
 	"github.com/fatih/color"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/log/ringbuffer"
+	sentryslog "github.com/getsentry/sentry-go/slog"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log/ringbuffer"
 	slogmulti "github.com/samber/slog-multi"
 )
 
@@ -200,8 +201,16 @@ func (c *logConfig) makeMultiLogger() *slog.Logger {
 		})
 	}
 
-	// Handle Elasticsearch logging configuration
-	// TODO
+	if config.Get() != nil && config.Get().SentryDSN != "" {
+		ctx := context.Background()
+		handler := sentryslog.Option{
+			LogLevel:  []slog.Level{slog.LevelWarn, slog.LevelError, sentryslog.LevelFatal},
+			AddSource: true,
+		}.NewSentryHandler(ctx)
+		baseRouter = baseRouter.Add(handler, func(_ context.Context, r slog.Record) bool {
+			return r.Level >= slog.LevelWarn
+		})
+	}
 
 	return slog.New(baseRouter.Handler())
 }

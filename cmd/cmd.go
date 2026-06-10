@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/preprocessor"
 	"github.com/spf13/cobra"
 )
 

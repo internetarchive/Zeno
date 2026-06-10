@@ -2,7 +2,7 @@ package extractor
 
 import (
 	"github.com/grafov/m3u8"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 func IsM3U8(URL *models.URL) bool {

@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/internetarchive/Zeno/cmd"
-	"github.com/internetarchive/Zeno/e2e/log"
+	"github.com/internetarchive/Zeno/v2/cmd"
+	"github.com/internetarchive/Zeno/v2/e2e/log"
 	"github.com/spf13/cobra"
 
-	"github.com/internetarchive/Zeno/internal/pkg/controler"
-	zenolog "github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/controler"
+	zenolog "github.com/internetarchive/Zeno/v2/internal/pkg/log"
 )
 
 var DefaultTimeout = 60 * time.Second
@@ -26,7 +26,7 @@ func cmdZenoGetURL(urls []string) *cobra.Command {
 
 	// If config.toml exists in pwd, include it in args
 	var args []string
-	commonArgs := []string{"get", "url", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log", "--disable-ipv6"}
+	commonArgs := []string{"get", "url", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}
 	if _, err := os.Stat("config.toml"); err == nil {
 		args = append(commonArgs, append([]string{"--config-file", "config.toml"}, urls...)...)
 	} else {
@@ -76,7 +76,7 @@ func cmdZenoGetList(files []string) *cobra.Command {
 
 	// If config.toml exists in pwd, include it in args
 	var args []string
-	commonArgs := []string{"get", "list", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log", "--disable-ipv6"}
+	commonArgs := []string{"get", "list", "--log-e2e", "--log-e2e-level", "debug", "--no-stdout-log", "--no-stderr-log"}
 	if _, err := os.Stat("config.toml"); err == nil {
 		args = append(commonArgs, append([]string{"--config-file", "config.toml"}, files...)...)
 	} else {

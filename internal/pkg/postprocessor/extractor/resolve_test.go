@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/preprocessor"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 func TestResolveURL(t *testing.T) {

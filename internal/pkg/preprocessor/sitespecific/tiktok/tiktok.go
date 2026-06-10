@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 type TikTokPreprocessor struct{}

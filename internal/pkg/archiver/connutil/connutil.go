@@ -6,9 +6,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/discarder/contentlength"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard/discarder/contentlength"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
 	warc "github.com/internetarchive/gowarc"
 )
 

@@ -3,11 +3,11 @@ package sitespecific
 import (
 	"net/http"
 
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/npr"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/reddit"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/tiktok"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific/truthsocial"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/preprocessor/sitespecific/npr"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/preprocessor/sitespecific/reddit"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/preprocessor/sitespecific/tiktok"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/preprocessor/sitespecific/truthsocial"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 type Preprocessor interface {

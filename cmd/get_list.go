@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/controler"
-	"github.com/internetarchive/Zeno/internal/pkg/ui"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/controler"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/ui"
 	"github.com/spf13/cobra"
 )
 

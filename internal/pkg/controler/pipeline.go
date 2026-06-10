@@ -5,22 +5,22 @@ import (
 	"os"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/api"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/consul"
-	"github.com/internetarchive/Zeno/internal/pkg/controler/watchers"
-	"github.com/internetarchive/Zeno/internal/pkg/finisher"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/seencheck"
-	"github.com/internetarchive/Zeno/internal/pkg/reactor"
-	"github.com/internetarchive/Zeno/internal/pkg/source"
-	"github.com/internetarchive/Zeno/internal/pkg/source/hq"
-	"github.com/internetarchive/Zeno/internal/pkg/source/lq"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/api"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/consul"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/controler/watchers"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/finisher"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/preprocessor"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/preprocessor/seencheck"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/reactor"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/source"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/source/hq"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/source/lq"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/stats"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 var sourceInterface source.Source
@@ -121,7 +121,7 @@ func startPipeline() error {
 	finisherProduceChan := makeStageChannel(config.Get().WorkersCount)
 
 	if config.Get().UseHQ {
-		hqSource := hq.New(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, config.Get().HQTimeout)
+		hqSource := hq.New(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, config.Get().HQTimeout, config.Get().HQSeencheckCacheSize, config.Get().HQGZIPRequests, config.Get().HQSeencheckURL)
 		preprocessor.SetSeenchecker(hqSource.SeencheckItem)
 		sourceInterface = hqSource
 	} else {

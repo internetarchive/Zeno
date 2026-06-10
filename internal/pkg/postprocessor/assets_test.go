@@ -8,9 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/testutil"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
