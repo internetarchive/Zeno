@@ -11,7 +11,8 @@ import (
 	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/sitespecific/ina"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/sitespecific/reddit"
-	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/sitespecific/truthsocial"
+
+	//"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
@@ -32,7 +33,7 @@ type AssetExtractor interface {
 // extractors must precede broader ones (e.g. HTML).
 var assetExtractors = []AssetExtractor{
 	ina.INAExtractor{},
-	truthsocial.TruthsocialExtractor{},
+	//truthsocial.TruthsocialExtractor{},
 	extractor.M3U8Extractor{},
 	extractor.JSONExtractor{},
 	extractor.XMLExtractor{},

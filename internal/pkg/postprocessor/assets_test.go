@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	testutil "github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/testutil"
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
