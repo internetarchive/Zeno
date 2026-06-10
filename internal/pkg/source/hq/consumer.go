@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/reactor"
-	"github.com/internetarchive/Zeno/internal/pkg/source"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/reactor"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/source"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 	"golang.org/x/sync/errgroup"
 )
@@ -44,28 +44,23 @@ func (s *HQ) consumer() {
 	go s.consumerSender(ctx, &wg, urlBuffer)
 
 	// Wait for shutdown signal
-	for {
-		select {
-		case <-s.ctx.Done():
-			logger.Debug("received done signal")
+	<-s.ctx.Done()
+	logger.Debug("received done signal")
 
-			// Cancel the context to stop all goroutines.
-			cancel()
+	// Cancel the context to stop all goroutines.
+	cancel()
 
-			logger.Debug("waiting for goroutines to finish")
+	logger.Debug("waiting for goroutines to finish")
 
-			// Wait for all goroutines to finish
-			wg.Wait()
+	// Wait for all goroutines to finish
+	wg.Wait()
 
-			// Close the urlBuffer to signal consumerSenders to finish
-			close(urlBuffer)
+	// Close the urlBuffer to signal consumerSenders to finish
+	close(urlBuffer)
 
-			s.wg.Done()
+	s.wg.Done()
 
-			logger.Debug("closed")
-			return
-		}
-	}
+	logger.Debug("closed")
 }
 
 func (s *HQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlhq.URL, batchSize int) {
@@ -182,11 +177,9 @@ func (s *HQ) consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <
 			err = reactor.ReceiveInsert(newItem)
 			if err != nil {
 				if err == reactor.ErrReactorFrozen {
-					select {
-					case <-ctx.Done():
-						logger.Debug("closed while sending to frozen reactor")
-						return
-					}
+					<-ctx.Done()
+					logger.Debug("closed while sending to frozen reactor")
+					return
 				}
 				panic(err)
 			}

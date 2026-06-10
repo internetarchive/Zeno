@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/internetarchive/Zeno/e2e"
+	"github.com/internetarchive/Zeno/v2/e2e"
 )
 
 type recordMatcher struct {
@@ -17,7 +17,7 @@ type recordMatcher struct {
 
 func (rm *recordMatcher) Match(record map[string]string) {
 	if record["level"] == "ERROR" {
-		if strings.Contains(record["err"], "no suitable IP address found") {
+		if strings.Contains(record["err"], "failed to resolve DNS") {
 			rm.failedToResolve = true
 		} else {
 			rm.unexpectedError = true

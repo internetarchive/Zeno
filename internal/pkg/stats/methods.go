@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 )
 
 /////////////////////////
@@ -267,11 +267,29 @@ func WARCLocalDedupeTotalSet(value int64) {
 	}
 }
 
+// SeencheckFailuresIncr increments the SeencheckFailures counter by 1.
+func SeencheckFailuresIncr() {
+	globalStats.SeencheckFailures.Add(1)
+
+	if globalPromStats != nil {
+		globalPromStats.seencheckFailures.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
+	}
+}
+
 // CFMitigatedIncr increments the CFMitigated counter by 1.
 func CFMitigatedIncr() {
 	globalStats.cfMitigated.Add(1)
 
 	if globalPromStats != nil {
 		globalPromStats.cfMitigated.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
+	}
+}
+
+// AkamaiMitigatedIncr increments the AkamaiMitigated counter by 1.
+func AkamaiMitigatedIncr() {
+	globalStats.akamaiMitigated.Add(1)
+
+	if globalPromStats != nil {
+		globalPromStats.akamaiMitigated.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
 	}
 }

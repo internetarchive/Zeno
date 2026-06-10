@@ -1,9 +1,11 @@
 package preprocessor
 
 import (
+	"strings"
 	"testing"
 
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 func TestNormalizeURL(t *testing.T) {
@@ -68,7 +70,36 @@ func TestNormalizeURL(t *testing.T) {
 			wantErr:     true,
 			expectedURL: "",
 		},
+		{
+			name:    "path loop detection - repeated segments",
+			rawURL:  "https://example.com/fonts/fonts/fonts/fonts/file.woff2",
+			wantErr: true,
+		},
+		{
+			name:    "path loop detection - crawler trap pattern",
+			rawURL:  "https://lms.example.com/theme/styles.php/all/DataTables/images/DataTables/fonts/DataTables/fonts/DataTables/images/sort.png",
+			wantErr: true,
+		},
+		{
+			name:        "path with acceptable repetition",
+			rawURL:      "https://example.com/a/b/a/file.css",
+			wantErr:     false,
+			expectedURL: "https://example.com/a/b/a/file.css",
+		},
+		{
+			name:    "URL exceeding 4000 characters",
+			rawURL:  "https://example.com/" + strings.Repeat("a", 3985),
+			wantErr: true,
+		},
+		{
+			name:        "URL at exactly 4000 characters",
+			rawURL:      "https://example.com/" + strings.Repeat("a", 3980),
+			wantErr:     false,
+			expectedURL: "https://example.com/" + strings.Repeat("a", 3980),
+		},
 	}
+
+	config.Set(&config.Config{MaxURLLength: 4000, MaxSegmentRepetition: 3, MaxSegmentRepetitionThreshold: 2})
 
 	for _, tt := range tests {
 		// TODO: add support for nil value of parentURL

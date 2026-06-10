@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/ImVexed/fasturl"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/github"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/sitespecific/github"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 type JSONExtractor struct{}

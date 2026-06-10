@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/reactor"
-	"github.com/internetarchive/Zeno/internal/pkg/source"
-	"github.com/internetarchive/Zeno/internal/pkg/source/lq/sqlc_model"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/reactor"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/source"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/source/lq/sqlc_model"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 var crawlFinishedOnce sync.Once
@@ -92,6 +92,14 @@ func (s *LQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 		// Fetch URLs from LQ
 		URLs, err := s.getURLs(batchSize)
 		if err != nil {
+			// If the context was cancelled, the error is likely SQLite being closed (which is expected) and should not be returned as an error.
+			select {
+			case <-ctx.Done():
+				logger.Debug("consumer context closed - dismissing error", "err", err.Error())
+				return
+			default:
+			}
+
 			logger.Error("error fetching URLs from LQ", "err", err.Error(), "func", "lq.consumerFetcher")
 		}
 
@@ -251,5 +259,3 @@ func checkIfCrawlFinished(logger *log.FieldedLogger, emptyFetches int) {
 		logger.Debug("reactor still has active work", "active_items", len(reactorState))
 	}
 }
-
-

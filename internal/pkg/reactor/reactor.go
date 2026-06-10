@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 // reactor struct holds the state and channels for managing seeds processing.

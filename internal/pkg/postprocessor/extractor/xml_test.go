@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	generalarchiver "github.com/internetarchive/Zeno/internal/pkg/archiver/general"
-	"github.com/internetarchive/Zeno/pkg/models"
+	generalarchiver "github.com/internetarchive/Zeno/v2/internal/pkg/archiver/general"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
@@ -147,10 +147,10 @@ func TestXML(t *testing.T) {
 			name: "XML RSS",
 			body: rss2_0XML,
 			expected: func() []string {
-				v := make([]string, 213)
+				v := make([]string, 212)
 				v[0] = "https://blog.archive.org/wp-content/uploads/2023/03/ia-logo-sq-150x150.png"             // image::url
 				v[11] = "https://blog.archive.org/wp-content/uploads/2025/03/Vanishing-Culture-Prelinger-3.png" // <a> href in description::CDATA
-				v[212] = "https://blog.archive.org/2025/02/06/update-on-the-2024-2025-end-of-term-web-archive/feed/"
+				v[211] = "https://blog.archive.org/2025/02/06/update-on-the-2024-2025-end-of-term-web-archive/feed/"
 				return v
 
 			}(),

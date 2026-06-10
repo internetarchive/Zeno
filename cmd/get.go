@@ -3,7 +3,7 @@ package cmd
 import (
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/headless"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/headless"
 	"github.com/spf13/cobra"
 )
 
@@ -73,6 +73,9 @@ func addBasicFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("max-content-length", 0, "Max content length in MB to download for a single resource.")
 	getCmd.PersistentFlags().Float64("min-space-required", 0, "Minimum space required in GB to continue the crawl. Default will be 50GB * (total disk space / 256GB) if total disk space is less than 256GB, else 50GB.")
 	getCmd.PersistentFlags().Bool("strict-regex", false, "If turned on, the xurls `strict` regex setting will be used. Otherwise a looser regex will be used.")
+	getCmd.PersistentFlags().Int("max-segment-repetition", 3, "Maximum number of non-consecutive repetitions of a path segment or query parameter allowed before a URL is flagged as a crawler trap.")
+	getCmd.PersistentFlags().Int("max-segment-repetition-threshold", 2, "In the deep-path heuristic (10+ segments), how many distinct segments must each reach max-segment-repetition before the URL is flagged as a crawler trap.")
+	getCmd.PersistentFlags().Int("max-url-length", 4000, "Maximum URL length in characters. URLs exceeding this limit will be discarded.")
 }
 
 func addHeadlessFlags(getCmd *cobra.Command) {
@@ -99,6 +102,7 @@ func addHeadlessFlags(getCmd *cobra.Command) {
 
 func addNetworkFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("proxy", "", "Proxy to use when requesting pages.")
+	getCmd.PersistentFlags().StringSlice("dns-server", []string{}, "DNS server(s) to use for requests. Can be specified multiple times.")
 	getCmd.PersistentFlags().Bool("random-local-ip", false, "Use random local IP for requests. (will be ignored if a proxy is set)")
 	getCmd.PersistentFlags().Bool("disable-ipv4", false, "Disable IPv4 for requests.")
 	getCmd.PersistentFlags().Bool("disable-ipv6", false, "Disable IPv6 for requests.")
@@ -125,6 +129,7 @@ func addWARCFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Bool("cert-validation", false, "Enables certificate validation on HTTPS requests.")
 	getCmd.PersistentFlags().Bool("disable-assets-capture", false, "Disable assets capture.")
 	getCmd.PersistentFlags().Int("warc-dedupe-size", 1024, "Minimum size to deduplicate WARC records with revisit records.")
+	getCmd.PersistentFlags().Int("warc-dedupe-cache-size", 1000000, "Maximum number of records to store in the local dedupe cache.")
 	getCmd.PersistentFlags().String("warc-cdx-cookie", "", "Pass custom cookie during CDX requests. Example: 'cdx_auth_token=test_value'")
 	getCmd.PersistentFlags().Int("warc-size", 1024, "Size of the WARC files in MB.")
 	getCmd.PersistentFlags().IntSlice("warc-discard-status", []int{429}, "HTTP status codes to discard from WARC files. By default, 429 is always discarded.")
@@ -143,6 +148,7 @@ func addLoggingFlags(getCmd *cobra.Command) {
 
 func addProfilingFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("pyroscope-address", "", "Pyroscope server address. Setting this flag will enable profiling.")
+	getCmd.PersistentFlags().Duration("pyroscope-upload-rate", 15*time.Second, "Pyroscope upload/capture rate. Default is 15s.")
 	getCmd.PersistentFlags().String("sentry-dsn", "", "Sentry Data Source Name (URL) allows Sentry to send errors and performance data to a sentry server. Setting this flag will enable the main Sentry agent.")
 }
 
