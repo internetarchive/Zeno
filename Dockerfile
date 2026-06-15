@@ -20,7 +20,7 @@ COPY . .
 RUN go build -o main .
 
 # Final smaller runtime stage
-FROM alpine:3.23
+FROM alpine:3.24
 
 # Install runtime dependencies: C++ standard libs and SSL certs
 RUN apk add --no-cache libstdc++ libgcc ca-certificates
