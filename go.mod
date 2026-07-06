@@ -19,7 +19,7 @@ require (
 	github.com/go-rod/stealth v0.4.9
 	github.com/gobwas/ws v1.4.0
 	github.com/google/uuid v1.6.0
-	github.com/grafana/pyroscope-go v1.3.1
+	github.com/grafana/pyroscope-go v1.4.0
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.34.3
 	github.com/internetarchive/gocrawlhq v1.2.36
