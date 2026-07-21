@@ -59,8 +59,10 @@ func (tb *tokenBucket) Wait() {
 			tb.mu.Unlock()
 			return
 		}
-		tb.mu.Unlock()
-		time.Sleep(50 * time.Millisecond) // adjust as needed
+		waitDuration := time.Duration(float64(time.Second) / tb.refillRate)
+        tb.mu.Unlock()
+        time.Sleep(waitDuration)
+        tb.mu.Lock()
 	}
 }
 
