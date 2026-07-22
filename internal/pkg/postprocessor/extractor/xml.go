@@ -27,7 +27,8 @@ var sitemapMarker = []byte("sitemaps.org/schemas/sitemap/")
 func IsXML(URL *models.URL) bool {
 	return URL.GetMIMEType() != nil &&
 		strings.Contains(URL.GetMIMEType().String(), "xml") &&
-		!IsSitemapXML(URL) && !URL.GetMIMEType().Is("image/svg+xml")
+		!IsSitemapXML(URL) && !URL.GetMIMEType().Is("image/svg+xml") &&
+		!strings.Contains(URL.GetMIMEType().String(), "html")
 }
 
 func IsSitemapXML(URL *models.URL) bool {
