@@ -39,28 +39,23 @@ func (s *HQ) producer() {
 	go s.producerDispatcher(ctx, &wg, batchCh)
 
 	// Wait for the context to be canceled.
-	for {
-		select {
-		case <-s.ctx.Done():
-			logger.Debug("received done signal")
+	<-s.ctx.Done()
+	logger.Debug("received done signal")
 
-			// Cancel the context to stop all goroutines.
-			cancel()
+	// Cancel the context to stop all goroutines.
+	cancel()
 
-			logger.Debug("waiting for goroutines to finish")
+	logger.Debug("waiting for goroutines to finish")
 
-			// Wait for the producer and dispatcher to finish.
-			wg.Wait()
+	// Wait for the producer and dispatcher to finish.
+	wg.Wait()
 
-			// Close the batch channel to signal the dispatcher to finish.
-			close(batchCh)
+	// Close the batch channel to signal the dispatcher to finish.
+	close(batchCh)
 
-			s.wg.Done()
+	s.wg.Done()
 
-			logger.Debug("closed")
-			return
-		}
-	}
+	logger.Debug("closed")
 }
 
 // producerReceiver reads URLs from produceCh, accumulates them into batches, and sends the batches to batchCh.
