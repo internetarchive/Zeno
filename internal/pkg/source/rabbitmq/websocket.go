@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/gobwas/ws/wsutil"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
 	"github.com/internetarchive/gocrawlhq"
 )
 
