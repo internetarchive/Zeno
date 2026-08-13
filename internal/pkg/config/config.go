@@ -59,16 +59,6 @@ type Config struct {
 	CDXDedupeServer                 string        `mapstructure:"warc-cdx-dedupe-server"`
 	CDXCookie                       string        `mapstructure:"warc-cdx-cookie"`
 	DoppelgangerDedupeServer        string        `mapstructure:"warc-doppelganger-dedupe-server"`
-	HQAddress                       string        `mapstructure:"hq-address"`
-	HQKey                           string        `mapstructure:"hq-key"`
-	HQSecret                        string        `mapstructure:"hq-secret"`
-	HQProject                       string        `mapstructure:"hq-project"`
-	HQTimeout                       int           `mapstructure:"hq-timeout"`
-	HQBatchSize                     int           `mapstructure:"hq-batch-size"`
-	HQBatchConcurrency              int           `mapstructure:"hq-batch-concurrency"`
-	HQSeencheckCacheSize            int           `mapstructure:"hq-seencheck-cache-size"`
-	HQSeencheckURL                  string        `mapstructure:"hq-seencheck-url"`
-	HQGZIPRequests                  bool          `mapstructure:"hq-gzip-requests"`
 	DisableHTMLTag                  []string      `mapstructure:"disable-html-tag"`
 	ExcludeHosts                    []string      `mapstructure:"exclude-host"`
 	IncludeHosts                    []string      `mapstructure:"include-host"`
@@ -100,7 +90,25 @@ type Config struct {
 	MaxSegmentRepetitionThreshold   int           `mapstructure:"max-segment-repetition-threshold"`
 	MaxURLLength                    int           `mapstructure:"max-url-length"`
 	DisableAssetsCapture            bool          `mapstructure:"disable-assets-capture"`
-	UseHQ                           bool          // Special field to check if HQ is enabled depending on the command called
+
+	// CrawlHQ v3
+	HQAddress            string `mapstructure:"hq-address"`
+	HQKey                string `mapstructure:"hq-key"`
+	HQSecret             string `mapstructure:"hq-secret"`
+	HQProject            string `mapstructure:"hq-project"`
+	HQTimeout            int    `mapstructure:"hq-timeout"`
+	HQBatchSize          int    `mapstructure:"hq-batch-size"`
+	HQBatchConcurrency   int    `mapstructure:"hq-batch-concurrency"`
+	HQSeencheckCacheSize int    `mapstructure:"hq-seencheck-cache-size"`
+	HQSeencheckURL       string `mapstructure:"hq-seencheck-url"`
+	HQGZIPRequests       bool   `mapstructure:"hq-gzip-requests"`
+	UseHQ                bool   // Special field to check if HQv3 is enabled depending on the command called
+
+	// CrawlHQ v4
+	HQ4ProjectUUID string `mapstructure:"hq4-project-uuid"`
+	HQ4RoutingKey  string `mapstructure:"hq4-routing-key"`
+	HQ4RabbitAddr  string `maptructure:"hq4-rabbit-addr"`
+	UseHQ4         bool   // Special field to check if HQv4 is enabled depending on the command called
 
 	// Headless
 	Headless                 bool     `mapstructure:"headless"`
@@ -122,12 +130,12 @@ type Config struct {
 	HeadlessBehaviorTimeout time.Duration `mapstructure:"headless-behavior-timeout"`
 
 	// Network
-	Proxy         string `mapstructure:"proxy"`
+	Proxy         string   `mapstructure:"proxy"`
 	DNSServers    []string `mapstructure:"dns-server"`
-	RandomLocalIP bool   `mapstructure:"random-local-ip"`
-	DisableIPv4   bool   `mapstructure:"disable-ipv4"`
-	DisableIPv6   bool   `mapstructure:"disable-ipv6"`
-	IPv6AnyIP     bool   `mapstructure:"ipv6-anyip"`
+	RandomLocalIP bool     `mapstructure:"random-local-ip"`
+	DisableIPv4   bool     `mapstructure:"disable-ipv4"`
+	DisableIPv6   bool     `mapstructure:"disable-ipv6"`
+	IPv6AnyIP     bool     `mapstructure:"ipv6-anyip"`
 
 	// Rate limiting
 	DisableRateLimit          bool          `mapstructure:"disable-rate-limit"`
@@ -302,9 +310,12 @@ func BindFlags(flagSet *pflag.FlagSet) {
 func GenerateCrawlConfig() error {
 	// If the job name isn't specified, we generate a random name
 	if config.Job == "" {
-		if config.HQProject != "" {
+		switch {
+		case config.HQProject != "":
 			config.Job = config.HQProject
-		} else {
+		case config.HQ4ProjectUUID != "":
+			config.Job = config.HQ4ProjectUUID
+		default:
 			UUID, err := uuid.NewUUID()
 			if err != nil {
 				slog.Error("cmd/utils.go:InitCrawlWithCMD():uuid.NewUUID()", "error", err)

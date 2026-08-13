@@ -56,7 +56,7 @@ var getHQCmd = &cobra.Command{
 }
 
 func getHQCmdFlags(getHQCmd *cobra.Command) {
-	// Crawl HQ flags
+	// Crawl HQ flags for HQv3
 	getHQCmd.PersistentFlags().String("hq-address", "", "Crawl HQ address.")
 	getHQCmd.PersistentFlags().String("hq-key", "", "Crawl HQ key.")
 	getHQCmd.PersistentFlags().String("hq-secret", "", "Crawl HQ secret.")

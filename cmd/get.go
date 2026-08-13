@@ -20,10 +20,12 @@ func getCMDs() *cobra.Command {
 
 	getCMDsFlags(getCmd)
 	getHQCmdFlags(getHQCmd)
+	getHQ4CmdFlags(getHQ4Cmd)
 
 	getCmd.AddCommand(getURLCmd)
 	getCmd.AddCommand(getListCmd)
 	getCmd.AddCommand(getHQCmd)
+	getCmd.AddCommand(getHQ4Cmd)
 
 	return getCmd
 }
