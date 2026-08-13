@@ -20,9 +20,12 @@ type HQ struct {
 	finishCh       chan *models.Item
 	produceCh      chan *models.Item
 	client         *gocrawlhq.Client
+	rabbit         *SourceRabbit
+	rabbitAddr     string
+	routingKey     string
 	HQKey          string
 	HQSecret       string
-	HQProject      string
+	projectUUID    string
 	HQAddress      string
 	Timeout        int
 	GZIPRequests   bool
@@ -43,11 +46,14 @@ var (
 	logger *log.FieldedLogger
 )
 
-func New(HQKey, HQSecret, HQProject, HQAddress string, timeout, seencheckCacheSize int, gzipRequests bool, seencheckURL string) *HQ {
+func New(HQKey, HQSecret, projectUUID, HQAddress string, timeout, seencheckCacheSize int, gzipRequests bool, seencheckURL, rabbitAddr, routingKey string) *HQ {
+
 	h := &HQ{
+		rabbitAddr:   rabbitAddr,
+		routingKey:   routingKey,
 		HQKey:        HQKey,
 		HQSecret:     HQSecret,
-		HQProject:    HQProject,
+		projectUUID:  projectUUID,
 		HQAddress:    HQAddress,
 		Timeout:      timeout,
 		GZIPRequests: gzipRequests,
@@ -76,7 +82,7 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
-		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.HQProject, s.HQAddress, "", s.Timeout, s.GZIPRequests)
+		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.projectUUID, s.HQAddress, "", s.Timeout, s.GZIPRequests)
 		if err != nil {
 			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
 			cancel()
@@ -85,6 +91,7 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 			return
 		}
 
+		s.rabbit = NewSourceRabbit(s.rabbitAddr, s.projectUUID, s.routingKey)
 		s.wg = sync.WaitGroup{}
 		s.ctx = ctx
 		s.cancel = cancel

@@ -19,6 +19,7 @@ import (
 	"github.com/internetarchive/Zeno/v2/internal/pkg/source"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/source/hq"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/source/lq"
+	hqr "github.com/internetarchive/Zeno/v2/internal/pkg/source/rabbitmq"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
@@ -120,11 +121,16 @@ func startPipeline() error {
 	finisherFinishChan := makeStageChannel(config.Get().WorkersCount)
 	finisherProduceChan := makeStageChannel(config.Get().WorkersCount)
 
-	if config.Get().UseHQ {
+	switch {
+	case config.Get().UseHQ:
 		hqSource := hq.New(config.Get().HQKey, config.Get().HQSecret, config.Get().HQProject, config.Get().HQAddress, config.Get().HQTimeout, config.Get().HQSeencheckCacheSize, config.Get().HQGZIPRequests, config.Get().HQSeencheckURL)
 		preprocessor.SetSeenchecker(hqSource.SeencheckItem)
 		sourceInterface = hqSource
-	} else {
+	case config.Get().UseHQ4:
+		hqSource := hqr.New(config.Get().HQKey, config.Get().HQ4ProjectUUID, config.Get().HQSecret, config.Get().HQAddress, config.Get().HQTimeout, config.Get().HQSeencheckCacheSize, config.Get().HQGZIPRequests, config.Get().HQSeencheckURL, config.Get().HQ4RabbitAddr, config.Get().HQ4RoutingKey)
+		preprocessor.SetSeenchecker(hqSource.SeencheckItem)
+		sourceInterface = hqSource
+	default:
 		lqSource := lq.New()
 		if config.Get().UseSeencheck {
 			preprocessor.SetSeenchecker(seencheck.SeencheckItem)
