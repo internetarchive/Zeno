@@ -17,7 +17,7 @@ const (
 	maxRetryLimit  = 10
 )
 
-type PublisherRabbit struct {
+type SourceRabbit struct {
 	connection *amqp.Connection
 	// async channel for initializing project-associated channels
 	RCIncoming      chan RabbitChannel
@@ -51,16 +51,16 @@ type RabbitQueue struct {
 
 // New creates a new consumer state instance, and automatically
 // attempts to connect to the server.
-func NewPublisherRabbit(addr, projectUUID, routingKey string) *PublisherRabbit {
+func NewSourceRabbit(addr, projectUUID, routingKey string) *SourceRabbit {
 	rc := NewRabbitChannel(projectUUID, routingKey)
-	pub := PublisherRabbit{
+	src := SourceRabbit{
 		RCIncoming:      make(chan RabbitChannel),
 		rc:              &rc,
 		done:            make(chan bool),
 		connectionReady: &atomic.Bool{},
 	}
-	go pub.handleReconnect(addr)
-	return &pub
+	go src.handleReconnect(addr)
+	return &src
 }
 
 func NewRabbitChannel(projectUUID, routingKey string) RabbitChannel {
@@ -77,24 +77,24 @@ func NewRabbitChannel(projectUUID, routingKey string) RabbitChannel {
 	}
 }
 
-func (pub *PublisherRabbit) handleReconnect(addr string) {
+func (src *SourceRabbit) handleReconnect(addr string) {
 	for {
-		pub.connectionReady.Store(false)
+		src.connectionReady.Store(false)
 		// establish a connection
-		_, err := pub.connect(addr)
+		_, err := src.connect(addr)
 
 		if err != nil {
 			slog.Error("unable to connect to rabbitmq server", "err", err.Error())
 
 			select {
-			case <-pub.done:
+			case <-src.done:
 				return
 			case <-time.After(reconnectDelay):
 			}
 			continue
 		}
 
-		if done := pub.handleProjectChannelInit(); done {
+		if done := src.handleProjectChannelInit(); done {
 			break
 		}
 
@@ -102,57 +102,57 @@ func (pub *PublisherRabbit) handleReconnect(addr string) {
 }
 
 // connect will create a new AMQP connection
-func (pub *PublisherRabbit) connect(addr string) (*amqp.Connection, error) {
+func (src *SourceRabbit) connect(addr string) (*amqp.Connection, error) {
 	conn, err := amqp.Dial(addr)
 	if err != nil {
 		return nil, err
 	}
 
-	pub.changeConnection(conn)
+	src.changeConnection(conn)
 	slog.Info("RabbitMQ server connection successful!")
 	return conn, nil
 }
 
 // changeConnection takes a new connection to the queue,
 // and updates the close listener to reflect this.
-func (pub *PublisherRabbit) changeConnection(connection *amqp.Connection) {
-	pub.connection = connection
-	pub.notifyConnClose = make(chan *amqp.Error, 1)
-	pub.connection.NotifyClose(pub.notifyConnClose)
-	pub.connectionReady.Store(true)
+func (src *SourceRabbit) changeConnection(connection *amqp.Connection) {
+	src.connection = connection
+	src.notifyConnClose = make(chan *amqp.Error, 1)
+	src.connection.NotifyClose(src.notifyConnClose)
+	src.connectionReady.Store(true)
 }
 
-func (pub *PublisherRabbit) handleProjectChannelInit() (done bool) {
+func (src *SourceRabbit) handleProjectChannelInit() (done bool) {
 	// receieve from ChanChan and create a channel
 	// loop thru RabbitQueue slice and configure queue + exchange
 	for {
-		if !pub.connectionReady.Load() {
+		if !src.connectionReady.Load() {
 			slog.Error("need connection to initialize channels")
 		}
 
-		pub.handleProjectReconnect()
+		src.handleProjectReconnect()
 
 		select {
-		case <-pub.done:
+		case <-src.done:
 			return true
-		case <-pub.notifyConnClose:
+		case <-src.notifyConnClose:
 			slog.Error("Connection closed. Reconnecting...")
 			return false
-		case <-pub.rc.notifyChanClose:
+		case <-src.rc.notifyChanClose:
 			slog.Error("Channel closed. Reconnecting...")
 		}
 	}
 }
 
-func (pub *PublisherRabbit) handleProjectReconnect() {
-	pub.rc.channelReady.Store(false)
+func (src *SourceRabbit) handleProjectReconnect() {
+	src.rc.channelReady.Store(false)
 	numberOfAttempts := 0
 	for {
-		err := pub.initProject()
+		err := src.initProject()
 		if err != nil {
 			numberOfAttempts++
 			if numberOfAttempts >= maxRetryLimit {
-				pub.rc.notifyInitSuccess <- errors.New("failed to initialize project channel, exceeded maxRetryLimit")
+				src.rc.notifyInitSuccess <- errors.New("failed to initialize project channel, exceeded maxRetryLimit")
 			}
 			slog.Error("error initializing project channel. Trying again in "+strconv.FormatFloat(reInitDelay.Seconds(), 'f', -1, 64)+" seconds", "err", err.Error())
 			<-time.After(reInitDelay)
@@ -163,30 +163,30 @@ func (pub *PublisherRabbit) handleProjectReconnect() {
 	}
 }
 
-func (pub *PublisherRabbit) initProject() (err error) {
-	pub.rc.channel, err = pub.handleChannel()
+func (src *SourceRabbit) initProject() (err error) {
+	src.rc.channel, err = src.handleChannel()
 
 	if err != nil {
 		slog.Error("error creating channel", "err", err)
 		return err
 	}
 
-	pub.rc.queue.queueReady.Store(false)
-	err = pub.configureProjectExchange(pub.rc.channel, pub.rc.queue)
+	src.rc.queue.queueReady.Store(false)
+	err = src.configureProjectExchange(src.rc.channel, src.rc.queue)
 	if err != nil {
 		slog.Error("error configuring exchange", "err", err)
 		return err
 	}
-	err = pub.configureQueue(pub.rc.channel, pub.rc.queue)
+	err = src.configureQueue(src.rc.channel, src.rc.queue)
 	if err != nil {
 		slog.Error("error configuring queue", "err", err)
 		return err
 	}
 
-	pub.rc.queue.queueReady.Store(true)
+	src.rc.queue.queueReady.Store(true)
 
-	pub.rc.changeChannel(pub.rc.channel)
-	pub.rc.notifyInitSuccess <- nil
+	src.rc.changeChannel(src.rc.channel)
+	src.rc.notifyInitSuccess <- nil
 
 	return nil
 }
@@ -198,8 +198,8 @@ func (rc *RabbitChannel) changeChannel(channel *amqp.Channel) {
 	rc.channelReady.Store(true)
 }
 
-func (pub *PublisherRabbit) handleChannel() (ch *amqp.Channel, err error) {
-	ch, err = pub.connection.Channel()
+func (src *SourceRabbit) handleChannel() (ch *amqp.Channel, err error) {
+	ch, err = src.connection.Channel()
 	// TODO: defer ch.Close() in main logic loop
 
 	if err != nil {
@@ -218,7 +218,7 @@ func (pub *PublisherRabbit) handleChannel() (ch *amqp.Channel, err error) {
 	return
 }
 
-func (pub *PublisherRabbit) configureProjectExchange(ch *amqp.Channel, q RabbitQueue) (err error) {
+func (src *SourceRabbit) configureProjectExchange(ch *amqp.Channel, q RabbitQueue) (err error) {
 	err = ch.ExchangeDeclare(
 		q.exchangeName,
 		"topic",
@@ -232,7 +232,7 @@ func (pub *PublisherRabbit) configureProjectExchange(ch *amqp.Channel, q RabbitQ
 	return
 }
 
-func (pub *PublisherRabbit) configureQueue(ch *amqp.Channel, q RabbitQueue) (err error) {
+func (src *SourceRabbit) configureQueue(ch *amqp.Channel, q RabbitQueue) (err error) {
 	_, err = ch.QueueDeclare(
 		q.queueName,
 		true,
