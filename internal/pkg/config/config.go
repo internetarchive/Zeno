@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/domainscrawl"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
 	warc "github.com/internetarchive/gowarc"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -52,6 +52,7 @@ type Config struct {
 	WARCPoolSize                    int           `mapstructure:"warc-pool-size"`
 	WARCQueueSize                   int           `mapstructure:"warc-queue-size"`
 	WARCDedupeSize                  int           `mapstructure:"warc-dedupe-size"`
+	WARCDedupeCacheSize             int           `mapstructure:"warc-dedupe-cache-size"`
 	WARCWriteAsync                  bool          `mapstructure:"async-warc-write"`
 	WARCDiscardStatus               []int         `mapstructure:"warc-discard-status"`
 	WARCDigestAlgorithm             string        `mapstructure:"warc-digest-algorithm"`
@@ -65,6 +66,9 @@ type Config struct {
 	HQTimeout                       int           `mapstructure:"hq-timeout"`
 	HQBatchSize                     int           `mapstructure:"hq-batch-size"`
 	HQBatchConcurrency              int           `mapstructure:"hq-batch-concurrency"`
+	HQSeencheckCacheSize            int           `mapstructure:"hq-seencheck-cache-size"`
+	HQSeencheckURL                  string        `mapstructure:"hq-seencheck-url"`
+	HQGZIPRequests                  bool          `mapstructure:"hq-gzip-requests"`
 	DisableHTMLTag                  []string      `mapstructure:"disable-html-tag"`
 	ExcludeHosts                    []string      `mapstructure:"exclude-host"`
 	IncludeHosts                    []string      `mapstructure:"include-host"`
@@ -92,6 +96,9 @@ type Config struct {
 	StrictRegex                     bool          `mapstructure:"strict-regex"`
 	DisableLocalDedupe              bool          `mapstructure:"disable-local-dedupe"`
 	CertValidation                  bool          `mapstructure:"cert-validation"`
+	MaxSegmentRepetition            int           `mapstructure:"max-segment-repetition"`
+	MaxSegmentRepetitionThreshold   int           `mapstructure:"max-segment-repetition-threshold"`
+	MaxURLLength                    int           `mapstructure:"max-url-length"`
 	DisableAssetsCapture            bool          `mapstructure:"disable-assets-capture"`
 	UseHQ                           bool          // Special field to check if HQ is enabled depending on the command called
 
@@ -116,6 +123,7 @@ type Config struct {
 
 	// Network
 	Proxy         string `mapstructure:"proxy"`
+	DNSServers    []string `mapstructure:"dns-server"`
 	RandomLocalIP bool   `mapstructure:"random-local-ip"`
 	DisableIPv4   bool   `mapstructure:"disable-ipv4"`
 	DisableIPv6   bool   `mapstructure:"disable-ipv6"`
@@ -143,8 +151,9 @@ type Config struct {
 	LogFileRotation  string `mapstructure:"log-file-rotation"`
 
 	// Profiling
-	PyroscopeAddress string `mapstructure:"pyroscope-address"`
-	SentryDSN        string `mapstructure:"sentry-dsn"`
+	PyroscopeAddress    string        `mapstructure:"pyroscope-address"`
+	PyroscopeUploadRate time.Duration `mapstructure:"pyroscope-upload-rate"`
+	SentryDSN           string        `mapstructure:"sentry-dsn"`
 
 	// API
 	APIPort int  `mapstructure:"api-port"`

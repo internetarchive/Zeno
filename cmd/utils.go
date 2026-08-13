@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"time"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/grafana/pyroscope-go"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
 )
 
 func startPyroscope() error {
@@ -29,7 +28,7 @@ func startPyroscope() error {
 		ServerAddress:   cfg.PyroscopeAddress,
 		Logger:          nil,
 		Tags:            map[string]string{"hostname": hostname, "job": cfg.Job, "version": Version.Version, "goVersion": Version.GoVersion, "uuid": uuid.New().String()[:5]},
-		UploadRate:      15 * time.Second,
+		UploadRate:      cfg.PyroscopeUploadRate,
 		ProfileTypes: []pyroscope.ProfileType{
 			pyroscope.ProfileCPU,
 			pyroscope.ProfileAllocObjects,

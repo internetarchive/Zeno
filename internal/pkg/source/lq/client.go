@@ -7,11 +7,10 @@ import (
 	"path"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
 
 	"github.com/google/uuid"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/source/lq/sqlc_model"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/source/lq/sqlc_model"
 )
 
 type lqClient struct {

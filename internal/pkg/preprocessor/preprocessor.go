@@ -17,14 +17,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/controler/pause"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/log/dumper"
-	"github.com/internetarchive/Zeno/internal/pkg/preprocessor/sitespecific"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/controler/pause"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log/dumper"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/preprocessor/sitespecific"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/stats"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 type preprocessor struct {
@@ -264,8 +264,19 @@ func preprocess(workerID string, seed *models.Item) error {
 		}
 
 		if err != nil {
-			logger.Error("unable to seencheck seed", "err", err.Error())
-			return err
+			logger.Error("unable to seencheck seed after 5 retries, marking as failed", "err", err.Error())
+			stats.SeencheckFailuresIncr()
+			seed.SetStatus(models.ItemFailed)
+			// Mark all remaining fresh items in the tree as failed to maintain
+			// consistency. Without this, fresh children whose parent status was
+			// changed from ItemGotChildren/ItemGotRedirected to ItemFailed would
+			// violate the CheckConsistency constraint.
+			seed.Traverse(func(item *models.Item) {
+				if item.GetStatus() == models.ItemFresh {
+					item.SetStatus(models.ItemFailed)
+				}
+			})
+			return nil
 		}
 	}
 

@@ -14,10 +14,10 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v7
       with:
         go-version-file: 'go.mod'
 
@@ -45,7 +45,7 @@ jobs:
         go tool covdata textfmt -i /tmp/e2e_coverage/ -o e2e_coverage.txt
 
     - name: Upload coverage reports to Codecov (unittests)
-      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de #v5.5.2
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f #v7.0.0
       continue-on-error: true
       with:
         flags: unittests
@@ -54,7 +54,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage reports to Codecov (e2e tests)
-      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de #v5.5.2
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f #v7.0.0
       continue-on-error: true
       with:
         flags: e2etests
@@ -69,13 +69,13 @@ jobs:
   cross-build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v7
       with:
         go-version-file: 'go.mod'
-    - uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v2.2.0
+    - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
 
     - name: Build for Windows
       run: CC="zig cc -lc -target x86_64-windows" CXX="zig c++ -lc -target x86_64-windows" CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -v ./...

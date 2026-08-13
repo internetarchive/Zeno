@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/connutil"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard/reasoncode"
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/ratelimiter"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/domainscrawl"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/connutil"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard/reasoncode"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/ratelimiter"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/domainscrawl"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/stats"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	warc "github.com/internetarchive/gowarc"
 )
 

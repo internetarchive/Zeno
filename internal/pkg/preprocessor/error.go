@@ -9,4 +9,8 @@ var (
 	ErrUnsupportedScheme = errors.New("URL scheme is unsupported")
 	// ErrUnsupportedHost is the error returned when the host of a URL is unsupported
 	ErrUnsupportedHost = errors.New("unsupported host")
+	// ErrPathLoopDetected is the error returned when a URL path contains repeating segments indicating a crawler trap
+	ErrPathLoopDetected = errors.New("URL path or query loop detected")
+	// ErrURLTooLong is the error returned when a URL exceeds the maximum allowed length
+	ErrURLTooLong = errors.New("URL exceeds maximum allowed length")
 )

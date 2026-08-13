@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 // Azure Blob Storage

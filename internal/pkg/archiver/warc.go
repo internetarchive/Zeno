@@ -3,9 +3,9 @@ package archiver
 import (
 	"path"
 
-	"github.com/internetarchive/Zeno/internal/pkg/archiver/discard"
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
 	warc "github.com/internetarchive/gowarc"
 )
 
@@ -26,7 +26,7 @@ func startWARCWriter() error {
 		rotatorSettings.WarcinfoContent.Set("zeno-headless", "true")
 	}
 	// Configure WARC dedupe settings
-	dedupeOptions := warc.DedupeOptions{LocalDedupe: !config.Get().DisableLocalDedupe, SizeThreshold: config.Get().WARCDedupeSize}
+	dedupeOptions := warc.DedupeOptions{LocalDedupe: !config.Get().DisableLocalDedupe, SizeThreshold: config.Get().WARCDedupeSize, DedupeCacheSize: config.Get().WARCDedupeCacheSize}
 	if config.Get().CDXDedupeServer != "" {
 		dedupeOptions.CDXDedupe = true
 		dedupeOptions.CDXURL = config.Get().CDXDedupeServer
@@ -49,6 +49,7 @@ func startWARCWriter() error {
 		DedupeOptions:    dedupeOptions,
 		DecompressBody:   true,
 		DiscardHook:      discardHooksChain,
+		DNSServers:       config.Get().DNSServers,
 		VerifyCerts:      config.Get().CertValidation,
 		TempDir:          config.Get().WARCTempDir,
 		FullOnDisk:       config.Get().WARCOnDisk,

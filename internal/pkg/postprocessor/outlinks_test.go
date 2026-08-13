@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/utils"
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
@@ -70,8 +70,8 @@ func TestExtractLinksFromPage(t *testing.T) {
 	}
 	config.Get().StrictRegex = true
 	links = extractLinksFromPage(URL)
-	if len(links) != 449 {
-		t.Errorf("expected 449 links, got %d", len(links))
+	if len(links) != 433 {
+		t.Errorf("expected 433 links, got %d", len(links))
 	}
 }
 

@@ -6,7 +6,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	goada "github.com/yzqzss/goada-wasm"
 )
 
@@ -68,8 +69,20 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 		return ErrUnsupportedHost
 	}
 
-	URL.Raw = adaParse.Href()
+	href := adaParse.Href()
+	pathname := adaParse.Pathname()
+	search := adaParse.Search()
 	adaParse.Free()
+
+	if maxLen := config.Get().MaxURLLength; len(href) > maxLen {
+		return ErrURLTooLong
+	}
+
+	if hasPathLoop(pathname, search) {
+		return ErrPathLoopDetected
+	}
+
+	URL.Raw = href
 
 	return URL.Parse()
 }

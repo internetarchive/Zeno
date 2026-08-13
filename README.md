@@ -24,7 +24,7 @@ Note: GCC 11 and earlier versions do not support the C++20 constexpr features re
 ## Installation
 
 ```bash
-go install github.com/internetarchive/Zeno@latest
+go install github.com/internetarchive/Zeno/v2@latest
 ```
 
 or utilize our pre-built [release binaries here](https://github.com/internetarchive/Zeno/releases), but do note that we are mainly focused on linux/amd64 support at this time.

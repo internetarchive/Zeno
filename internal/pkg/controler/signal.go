@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/internetarchive/Zeno/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
 )
 
 var signalWatcherCtx, signalWatcherCancel = context.WithCancel(context.Background())

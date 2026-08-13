@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	generalarchiver "github.com/internetarchive/Zeno/internal/pkg/archiver/general"
-	"github.com/internetarchive/Zeno/pkg/models"
+	generalarchiver "github.com/internetarchive/Zeno/v2/internal/pkg/archiver/general"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
 //go:embed testdata/InternetArchiveDeveloperPortal.pdf

@@ -1,6 +1,6 @@
 package controler
 
-import "github.com/internetarchive/Zeno/pkg/models"
+import "github.com/internetarchive/Zeno/v2/pkg/models"
 
 var (
 	stageChannels []chan *models.Item

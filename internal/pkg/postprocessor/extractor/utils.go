@@ -5,16 +5,24 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/internetarchive/Zeno/pkg/models"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"mvdan.cc/xurls/v2"
 )
 
 var (
-	LinkRegexStrict = xurls.Strict()
+	LinkRegexStrict = MustStrictHTTPOnly()
 	LinkRegex       = regexp.MustCompile(`(?i)https?://[^<>'",\s/]+\.[^<>'",\s/]+(?:/[^<>'",\s]*)?`) // Adapted from heritrix3's UriUtils (Apache License 2.0)
 	quotedLinkRegex = regexp.MustCompile(`['"](https?://[^'"]+)['"]`)
 	AssetsRegex     = `(?i)\b(?:src|href)=["']([^"']+\.(?:css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot))["']`
 )
+
+func MustStrictHTTPOnly() *regexp.Regexp {
+	re, err := xurls.StrictMatchingScheme("(?:https?)://") // Only match URLs with http or https scheme
+	if err != nil {
+		panic(err)
+	}
+	return re
+}
 
 // Helper function to call FindAllStringSubmatch on quotedLinkRegex and return only the capturing group (Quoted URL).
 func QuotedLinkRegexFindAll(s string) []string {

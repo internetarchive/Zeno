@@ -3,7 +3,7 @@ package contentlength
 import (
 	"net/http"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 )
 
 var ContentLengthExceeded = "Response content-length exceeds configured limit"

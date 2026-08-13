@@ -6,12 +6,13 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/config"
-	"github.com/internetarchive/Zeno/internal/pkg/stats"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/stats"
 )
 
 var (
@@ -24,15 +25,14 @@ var (
 // Start begins serving HTTP requests in a separate goroutine.
 func Start() error {
 	once.Do(func() {
-		mux := http.NewServeMux()
 
 		if config.Get().Prometheus {
-			mux.Handle("/metrics", stats.PrometheusHandler())
+			http.DefaultServeMux.Handle("/metrics", stats.PrometheusHandler())
 		}
 
 		server = &http.Server{
 			Addr:    ":" + strconv.Itoa(config.Get().APIPort),
-			Handler: mux,
+			Handler: http.DefaultServeMux, // includes registers pprof handlers
 		}
 
 		go func() {

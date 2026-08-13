@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/internetarchive/Zeno/internal/pkg/log"
-	"github.com/internetarchive/Zeno/internal/pkg/source/lq/sqlc_model"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/source/lq/sqlc_model"
 )
 
 // producerBatch represents a batch of URLs to be added to LQ.

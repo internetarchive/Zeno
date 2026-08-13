@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/internetarchive/Zeno/e2e"
+	"github.com/internetarchive/Zeno/v2/e2e"
 )
 
 type recordMatcher struct {
