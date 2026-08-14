@@ -29,6 +29,12 @@ type prometheusStats struct {
 	akamaiMitigated        *prometheus.GaugeVec
 	seencheckFailures      *prometheus.CounterVec
 
+	// In-transit item flow metrics
+	preprocessorInTransit  *prometheus.GaugeVec
+	archiverInTransit      *prometheus.GaugeVec
+	postprocessorInTransit *prometheus.GaugeVec
+	finisherInTransit      *prometheus.GaugeVec
+
 	// Dedup WARC metrics
 	dataTotalBytes               *prometheus.GaugeVec
 	cdxDedupeTotalBytes          *prometheus.GaugeVec
@@ -145,6 +151,22 @@ func newPrometheusStats() *prometheusStats {
 			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "seencheck_failures", Help: "Total number of seencheck failures"},
 			[]string{"project", "hostname", "version"},
 		),
+		preprocessorInTransit: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "preprocessor_in_transit", Help: "Number of items currently being processed by the preprocessor"},
+			[]string{"project", "hostname", "version"},
+		),
+		archiverInTransit: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "archiver_in_transit", Help: "Number of items currently being processed by the archiver"},
+			[]string{"project", "hostname", "version"},
+		),
+		postprocessorInTransit: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "postprocessor_in_transit", Help: "Number of items currently being processed by the postprocessor"},
+			[]string{"project", "hostname", "version"},
+		),
+		finisherInTransit: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "finisher_in_transit", Help: "Number of items currently being processed by the finisher"},
+			[]string{"project", "hostname", "version"},
+		),
 	}
 }
 
@@ -167,6 +189,12 @@ func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.cfMitigated)
 	prometheus.MustRegister(globalPromStats.akamaiMitigated)
 	prometheus.MustRegister(globalPromStats.seencheckFailures)
+
+	// Register in-transit item flow metrics
+	prometheus.MustRegister(globalPromStats.preprocessorInTransit)
+	prometheus.MustRegister(globalPromStats.archiverInTransit)
+	prometheus.MustRegister(globalPromStats.postprocessorInTransit)
+	prometheus.MustRegister(globalPromStats.finisherInTransit)
 
 	// Register dedup WARC metrics
 	prometheus.MustRegister(globalPromStats.dataTotalBytes)

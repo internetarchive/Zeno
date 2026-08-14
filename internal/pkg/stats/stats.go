@@ -13,10 +13,6 @@ import (
 type stats struct {
 	URLsCrawled            *rate
 	SeedsFinished          *rate
-	PreprocessorRoutines   *counter
-	ArchiverRoutines       *counter
-	PostprocessorRoutines  *counter
-	FinisherRoutines       *counter
 	Paused                 atomic.Bool
 	HTTPReturnCodes        *rateBucket
 	SeencheckFailures      atomic.Int64
@@ -42,6 +38,16 @@ var (
 	doOnce          sync.Once
 	hostname        string
 	version         string
+
+	PreprocessorRoutines  *GaugedCounter
+	ArchiverRoutines      *GaugedCounter
+	PostprocessorRoutines *GaugedCounter
+	FinisherRoutines      *GaugedCounter
+
+	PreprocessorInTransit  *GaugedCounter
+	ArchiverInTransit      *GaugedCounter
+	PostprocessorInTransit *GaugedCounter
+	FinisherInTransit      *GaugedCounter
 )
 
 func Init() error {
@@ -52,15 +58,21 @@ func Init() error {
 		globalStats = &stats{
 			URLsCrawled:            &rate{},
 			SeedsFinished:          &rate{},
-			PreprocessorRoutines:   &counter{},
-			ArchiverRoutines:       &counter{},
-			PostprocessorRoutines:  &counter{},
-			FinisherRoutines:       &counter{},
 			HTTPReturnCodes:        newRateBucket(),
 			MeanHTTPResponseTime:   &mean{},
 			MeanProcessBodyTime:    &mean{},
 			MeanWaitOnFeedbackTime: &mean{},
 		}
+
+		PreprocessorRoutines = &GaugedCounter{}
+		ArchiverRoutines = &GaugedCounter{}
+		PostprocessorRoutines = &GaugedCounter{}
+		FinisherRoutines = &GaugedCounter{}
+
+		PreprocessorInTransit = &GaugedCounter{}
+		ArchiverInTransit = &GaugedCounter{}
+		PostprocessorInTransit = &GaugedCounter{}
+		FinisherInTransit = &GaugedCounter{}
 
 		if config.Get() != nil && config.Get().Prometheus {
 			globalPromStats = newPrometheusStats()
@@ -74,6 +86,17 @@ func Init() error {
 			// Get Zeno version
 			versionStruct := utils.GetVersion()
 			version = versionStruct.Version
+
+			// Wire prometheus gauges into the counters
+			PreprocessorRoutines.promGauge = globalPromStats.preprocessorRoutines
+			ArchiverRoutines.promGauge = globalPromStats.archiverRoutines
+			PostprocessorRoutines.promGauge = globalPromStats.postprocessorRoutines
+			FinisherRoutines.promGauge = globalPromStats.finisherRoutines
+
+			PreprocessorInTransit.promGauge = globalPromStats.preprocessorInTransit
+			ArchiverInTransit.promGauge = globalPromStats.archiverInTransit
+			PostprocessorInTransit.promGauge = globalPromStats.postprocessorInTransit
+			FinisherInTransit.promGauge = globalPromStats.finisherInTransit
 
 			registerPrometheusMetrics()
 		}
@@ -95,10 +118,14 @@ func Init() error {
 func Reset() {
 	globalStats.URLsCrawled.reset()
 	globalStats.SeedsFinished.reset()
-	globalStats.PreprocessorRoutines.reset()
-	globalStats.ArchiverRoutines.reset()
-	globalStats.PostprocessorRoutines.reset()
-	globalStats.FinisherRoutines.reset()
+	PreprocessorRoutines.reset()
+	ArchiverRoutines.reset()
+	PostprocessorRoutines.reset()
+	FinisherRoutines.reset()
+	PreprocessorInTransit.reset()
+	ArchiverInTransit.reset()
+	PostprocessorInTransit.reset()
+	FinisherInTransit.reset()
 	globalStats.HTTPReturnCodes.resetAll()
 	globalStats.MeanHTTPResponseTime.reset()
 	globalStats.MeanProcessBodyTime.reset()
@@ -112,10 +139,14 @@ func GetMapTUI() map[string]any {
 		"URL/s":                       globalStats.URLsCrawled.get(),
 		"Total URL crawled":           globalStats.URLsCrawled.getTotal(),
 		"Finished seeds":              globalStats.SeedsFinished.getTotal(),
-		"Preprocessor routines":       globalStats.PreprocessorRoutines.get(),
-		"Archiver routines":           globalStats.ArchiverRoutines.get(),
-		"Postprocessor routines":      globalStats.PostprocessorRoutines.get(),
-		"Finisher routines":           globalStats.FinisherRoutines.get(),
+		"Preprocessor routines":       PreprocessorRoutines.Value(),
+		"Archiver routines":           ArchiverRoutines.Value(),
+		"Postprocessor routines":      PostprocessorRoutines.Value(),
+		"Finisher routines":           FinisherRoutines.Value(),
+		"Preprocessor in-transit":     PreprocessorInTransit.Value(),
+		"Archiver in-transit":         ArchiverInTransit.Value(),
+		"Postprocessor in-transit":    PostprocessorInTransit.Value(),
+		"Finisher in-transit":         FinisherInTransit.Value(),
 		"Is paused?":                  globalStats.Paused.Load(),
 		"HTTP 2xx/s":                  bucketSum(globalStats.HTTPReturnCodes.getFiltered("2*")),
 		"HTTP 3xx/s":                  bucketSum(globalStats.HTTPReturnCodes.getFiltered("3*")),
