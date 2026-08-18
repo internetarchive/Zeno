@@ -34,8 +34,7 @@ type archiver struct {
 	inputCh  chan *models.Item
 	outputCh chan *models.Item
 
-	Client          *warc.CustomHTTPClient
-	ClientWithProxy *warc.CustomHTTPClient
+	Client *warc.CustomHTTPClient
 }
 
 var (
@@ -122,14 +121,11 @@ func Stop() {
 				}
 			}
 		}()
+
 		globalArchiver.Client.WaitGroup.Wait()
-		stopLocalWatcher <- struct{}{}
 		logger.Debug("WARC writing finished")
+		stopLocalWatcher <- struct{}{}
 		globalArchiver.Client.Close()
-		if globalArchiver.ClientWithProxy != nil {
-			globalArchiver.ClientWithProxy.WaitGroup.Wait()
-			globalArchiver.ClientWithProxy.Close()
-		}
 
 		logger.Info("stopped")
 	}
@@ -218,13 +214,6 @@ func archive(workerID string, seed *models.Item) {
 		panic(err)
 	}
 
-	var client *warc.CustomHTTPClient
-	if config.Get().Proxy != "" {
-		client = globalArchiver.ClientWithProxy
-	} else {
-		client = globalArchiver.Client
-	}
-
 	for i := range items {
 		if items[i].GetStatus() != models.ItemPreProcessed {
 			logger.Debug("skipping item", "item_id", items[i].GetShortID(), "status", items[i].GetStatus())
@@ -236,9 +225,9 @@ func archive(workerID string, seed *models.Item) {
 		wg.Add(1)
 
 		if config.Get().Headless {
-			go headless.ArchiveItem(items[i], &wg, guard, globalBucketManager, client)
+			go headless.ArchiveItem(items[i], &wg, guard, globalBucketManager, globalArchiver.Client)
 		} else {
-			go general.ArchiveItem(items[i], &wg, guard, globalBucketManager, client)
+			go general.ArchiveItem(items[i], &wg, guard, globalBucketManager, globalArchiver.Client)
 		}
 
 	}
