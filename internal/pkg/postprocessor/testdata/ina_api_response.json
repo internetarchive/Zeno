@@ -1,0 +1,8 @@
+{
+  "url": "https://apipartner.ina.fr/assets/CAF94008902",
+  "status_code": 200,
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": "{\"id\":\"CAF94008902\",\"resourceUrl\":\"https://example.com/video.mp4\",\"resourceThumbnail\":\"https://example.com/thumb.jpg\",\"embedUrl\":\"/player/embed/CAF94008902\",\"uri\":\"https://example.com/uri\"}"
+}

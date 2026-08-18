@@ -1,0 +1,52 @@
+{
+    "id": "CPF86631442",
+    "title": "Indicatif  RTF",
+    "description": "Logo RTF du 4 février 1959 au 27 juin 1964. La musique est de Jean-Baptiste Lully \u0022Fanfare pour le Carrousel Royal\u0022.",
+    "dateOfBroadcast": "1959-02-04T18:12:11+00:00",
+    "type": "video",
+    "duration": 42,
+    "categories": [],
+    "credits": [
+        {
+            "@context": {
+                "@vocab": "http:\/\/apipartner.ina.fr\/docs.jsonld#",
+                "hydra": "http:\/\/www.w3.org\/ns\/hydra\/core#",
+                "name": "AssetElement\/name",
+                "value": "AssetElement\/value",
+                "attributes": "AssetElement\/attributes"
+            },
+            "@type": "AssetElement",
+            "@id": "\/.well-known\/genid\/14ddfbe4c295f9682ecd",
+            "name": "credit",
+            "value": "Radiodiffusion Télévision Française",
+            "attributes": [
+                {
+                    "@context": {
+                        "@vocab": "http:\/\/apipartner.ina.fr\/docs.jsonld#",
+                        "hydra": "http:\/\/www.w3.org\/ns\/hydra\/core#",
+                        "key": "AssetElementAttribute\/key",
+                        "value": "AssetElementAttribute\/value"
+                    },
+                    "@type": "AssetElementAttribute",
+                    "@id": "\/.well-known\/genid\/e6a182965f5ec9215e0a",
+                    "key": "role",
+                    "value": "producer"
+                }
+            ]
+        }
+    ],
+    "restrictions": [],
+    "resourceUrl": "https:\/\/media-hub.ina.fr\/video\/TCTrhfFxdPsK05aEtOQZo21h9bs5knovVz3UlDlUiWugpJXwPaH2M5LEPFcMBUv2sxqpql3WsZx9UAKUZlxACWSXWW3DfDyGEPc2GrizPOCYemJ1BALeMMoG1HdyQ9G6flO2sauFpJQI1a8zkeUNWw==\/sl_iv\/2m+jStBk7YTkGuubVRRfcQ==\/sl_hm\/yu3+FJDLtzlrVZB7d60TIwYkjEOIRNk6NipAM252ri57pvRHRORKX58Bs1grMqCqTRrx81t936vdZ62TX+jXAA==\/sl_e\/1771006331",
+    "resourceThumbnail": "https:\/\/cdn-hub.ina.fr\/notice\/690x517\/09b\/CPF86631442.jpeg",
+    "restrictedBroadcastCountries": [],
+    "embedUrl": "\/embed\/CPF86631442?pid=1c81c809cbc94b3472083f3c416c7f6e3c36a7fc\u0026sign=c9cb04647e70ee3baaede8e4017131e827bcb496",
+    "allowEmbed": true,
+    "ratio": "4_3",
+    "collectionTitle": "",
+    "isOnline": true,
+    "allowAds": true,
+    "typeMedia": "video",
+    "hideLogo": false,
+    "uri": "https:\/\/www.ina.fr\/video\/CPF86631442",
+    "advertisingAsset": false
+}
