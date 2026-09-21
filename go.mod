@@ -8,7 +8,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/ada-url/goada v1.2.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/dustin/go-humanize v1.0.1
+	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
 	github.com/gabriel-vasile/mimetype v1.4.15
 	github.com/gdamore/tcell/v2 v2.13.10
@@ -25,7 +25,7 @@ require (
 	github.com/internetarchive/gocrawlhq v1.2.36
 	github.com/internetarchive/gowarc v0.8.102
 	github.com/maypok86/otter v1.2.4
-	github.com/ncruces/go-sqlite3 v0.35.4
+	github.com/ncruces/go-sqlite3 v0.35.5
 	github.com/pdfcpu/pdfcpu v0.15.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/plar/go-adaptive-radix-tree/v2 v2.0.4
@@ -82,7 +82,7 @@ require (
 	github.com/miekg/dns v1.1.73 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/ncruces/go-sqlite3-wasm/v5 v5.0.35304 // indirect
+	github.com/ncruces/go-sqlite3-wasm/v6 v6.2.35304 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/onsi/gomega v1.34.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
