@@ -1,4 +1,4 @@
-package hqr
+package hq4
 
 import (
 	"github.com/internetarchive/Zeno/v2/pkg/models"
