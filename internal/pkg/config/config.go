@@ -107,7 +107,7 @@ type Config struct {
 	// CrawlHQ v4
 	HQ4ProjectUUID string `mapstructure:"hq4-project-uuid"`
 	HQ4RoutingKey  string `mapstructure:"hq4-routing-key"`
-	HQ4RabbitAddr  string `maptructure:"hq4-rabbit-addr"`
+	HQ4RabbitAddr  string `mapstructure:"hq4-rabbit-addr"`
 	UseHQ4         bool   // Special field to check if HQv4 is enabled depending on the command called
 
 	// Headless

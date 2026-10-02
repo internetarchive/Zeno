@@ -1,4 +1,5 @@
-// Package hq provides a way to interact with the HQv3 API and consumes, produces and mark items as finished asynchronusly.
+// Package hq4 consumes seeds from RabbitMQ queues which HQ publishes to, and acks them once finished.
+// Outlinks and seencheck go through the HQ API, which HQv4 kept compatible with HQv3.
 package hq4
 
 import (
@@ -6,21 +7,27 @@ import (
 	"sync"
 	"time"
 
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
-	"github.com/internetarchive/Zeno/v2/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
 	"github.com/maypok86/otter"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type HQ struct {
-	wg             sync.WaitGroup
-	ctx            context.Context
-	cancel         context.CancelFunc
-	finishCh       chan *models.Item
-	produceCh      chan *models.Item
-	client         *gocrawlhq.Client
-	rabbit         *SourceRabbit
+	wg        sync.WaitGroup
+	ctx       context.Context
+	cancel    context.CancelFunc
+	finishCh  chan *models.Item
+	produceCh chan *models.Item
+	client    *gocrawlhq.Client
+	rabbit    *SourceRabbit
+	// deliveries of the seeds in the reactor, by item ID, acked once finished by map
+	pending   map[string]amqp.Delivery
+	pendingMu sync.Mutex
+	// onFatal stops Zeno when the source can't continue
+	onFatal        func()
 	rabbitAddr     string
 	routingKey     string
 	HQKey          string
@@ -46,9 +53,10 @@ var (
 	logger *log.FieldedLogger
 )
 
-func New(HQKey, HQSecret, projectUUID, HQAddress string, timeout, seencheckCacheSize int, gzipRequests bool, seencheckURL, rabbitAddr, routingKey string) *HQ {
+func New(HQKey, HQSecret, projectUUID, HQAddress string, timeout, seencheckCacheSize int, gzipRequests bool, seencheckURL, rabbitAddr, routingKey string, onFatal func()) *HQ {
 
 	h := &HQ{
+		onFatal:      onFatal,
 		rabbitAddr:   rabbitAddr,
 		routingKey:   routingKey,
 		HQKey:        HQKey,
@@ -81,17 +89,32 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 	})
 
 	once.Do(func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.projectUUID, s.HQAddress, "", s.Timeout, s.GZIPRequests)
+		done = true
+
+		rabbit, err := NewSourceRabbit(s.rabbitAddr, s.projectUUID, s.routingKey, config.Get().HQBatchSize, s.onFatal)
 		if err != nil {
-			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
-			cancel()
-			done = true
+			logger.Error("error configuring rabbit consumer", "err", err.Error(), "func", "hq.Start")
 			startErr = err
 			return
 		}
 
-		s.rabbit = NewSourceRabbit(s.rabbitAddr, s.projectUUID, s.routingKey)
+		HQclient, err := gocrawlhq.Init(s.HQKey, s.HQSecret, s.projectUUID, s.HQAddress, "", s.Timeout, s.GZIPRequests)
+		if err != nil {
+			logger.Error("error initializing crawl HQ client", "err", err.Error(), "func", "hq.Start")
+			startErr = err
+			return
+		}
+
+		if err := rabbit.Start(); err != nil {
+			logger.Error("error connecting to rabbit", "err", err.Error(), "func", "hq.Start")
+			(*HQclient.WebsocketConn).Close()
+			startErr = err
+			return
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		s.rabbit = rabbit
+		s.pending = make(map[string]amqp.Delivery)
 		s.wg = sync.WaitGroup{}
 		s.ctx = ctx
 		s.cancel = cancel
@@ -110,8 +133,6 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 		go s.websocket()
 
 		logger.Info("started")
-
-		done = true
 	})
 
 	if !done {
@@ -123,21 +144,13 @@ func (s *HQ) Start(finishChan, produceChan chan *models.Item) error {
 
 // Stop stops the global HQ and waits for all goroutines to finish. Finisher must be stopped first and Reactor must be frozen before stopping HQ.
 func (s *HQ) Stop() {
-	if s != nil {
+	if s != nil && s.cancel != nil {
 		s.cancel()
 		s.wg.Wait()
-		seedsToReset := reactor.GetStateTable()
 
-		// global ctx is canceled already, so create a new ctx for resets
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
+		logger.Info("closing rabbit connection, unfinished seeds will be requeued by rabbit", "unfinished", s.pendingCount())
+		s.rabbit.Stop()
 
-		for _, seed := range seedsToReset {
-			if err := s.client.ResetURL(ctx, seed); err != nil {
-				logger.Error("error while resetting", "id", seed, "err", err)
-			}
-			logger.Debug("reset seed", "id", seed)
-		}
 		once = sync.Once{}
 		if s.seencheckCache != nil {
 			s.seencheckCache.Close()
@@ -149,5 +162,5 @@ func (s *HQ) Stop() {
 
 // Name returns the name of the source, used for logging and identification.
 func (s *HQ) Name() string {
-	return "hq"
+	return "hq4"
 }

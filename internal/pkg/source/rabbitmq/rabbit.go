@@ -1,213 +1,243 @@
 package hq4
 
 import (
+	"context"
 	"errors"
-	"log/slog"
-	"strconv"
-	"sync/atomic"
+	"fmt"
+	"sync"
 	"time"
 
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 const (
-	reconnectDelay = 5 * time.Second
-	reInitDelay    = 2 * time.Second
-	resendDelay    = 5 * time.Second
-	maxRetryLimit  = 10
+	// decides how long startup and shutdown can take if the broker is unreachable
+	dialTimeout  = 10 * time.Second
+	closeTimeout = 5 * time.Second
+
+	// routing keys that HQ publishes with
+	routingKeySeed     = "seed"
+	routingKeyOutlinks = "outlinks"
 )
 
+// SourceRabbit consumes a queue that hq publishes to.
 type SourceRabbit struct {
-	connection *amqp.Connection
-	// async channel for initializing project-associated channels
-	RCIncoming      chan RabbitChannel
-	rc              *RabbitChannel
-	done            chan bool
+	addr        string
+	prefetch    int
+	consumerTag string
+	rc          *RabbitChannel
+	// called once the consumer is lost which stops Zeno safely
+	onDisconnect func()
+
+	deliveries      chan amqp.Delivery
+	connection      *amqp.Connection
 	notifyConnClose chan *amqp.Error
-	// TODO: write tests to validate connection failure states
-	connectionReady *atomic.Bool
+	ctx             context.Context
+	cancel          context.CancelFunc
+	wg              sync.WaitGroup
 }
 
 // Client struct for managing rabbit channels
-// TODO: Does this need to be thread-safe?
 type RabbitChannel struct {
-	projectUUID       string
-	queue             RabbitQueue
-	channel           *amqp.Channel
-	notifyChanClose   chan *amqp.Error
-	notifyConfirm     chan amqp.Confirmation
-	channelReady      *atomic.Bool
-	notifyInitSuccess chan error
+	projectUUID string
+	queues      []RabbitQueue
+	// specifies which queue Zeno will consume frmo
+	consumeQueue    RabbitQueue
+	channel         *amqp.Channel
+	notifyChanClose chan *amqp.Error
 }
 
 // Client struct for managing queue metadata
-// TODO: Does this need to be thread-safe?
 type RabbitQueue struct {
-	queueReady   *atomic.Bool
 	queueName    string
 	exchangeName string
 	routingKey   string
 }
 
-// New creates a new consumer state instance, and automatically
-// attempts to connect to the server.
-func NewSourceRabbit(addr, projectUUID, routingKey string) *SourceRabbit {
-	rc := NewRabbitChannel(projectUUID, routingKey)
-	src := SourceRabbit{
-		RCIncoming:      make(chan RabbitChannel),
-		rc:              &rc,
-		done:            make(chan bool),
-		connectionReady: &atomic.Bool{},
-	}
-	go src.handleReconnect(addr)
-	return &src
-}
-
-func NewRabbitChannel(projectUUID, routingKey string) RabbitChannel {
-	return RabbitChannel{
-		projectUUID: projectUUID,
-		queue: RabbitQueue{
-			queueReady:   &atomic.Bool{},
-			queueName:    projectUUID,
-			exchangeName: projectUUID,
-			routingKey:   routingKey,
-		},
-		channelReady:      &atomic.Bool{},
-		notifyInitSuccess: make(chan error),
-	}
-}
-
-func (src *SourceRabbit) handleReconnect(addr string) {
-	for {
-		src.connectionReady.Store(false)
-		// establish a connection
-		_, err := src.connect(addr)
-
-		if err != nil {
-			slog.Error("unable to connect to rabbitmq server", "err", err.Error())
-
-			select {
-			case <-src.done:
-				return
-			case <-time.After(reconnectDelay):
-			}
-			continue
-		}
-
-		if done := src.handleProjectChannelInit(); done {
-			break
-		}
-
-	}
-}
-
-// connect will create a new AMQP connection
-func (src *SourceRabbit) connect(addr string) (*amqp.Connection, error) {
-	conn, err := amqp.Dial(addr)
+func NewSourceRabbit(addr, projectUUID, routingKey string, prefetch int, onDisconnect func()) (*SourceRabbit, error) {
+	rc, err := NewRabbitChannel(projectUUID, routingKey)
 	if err != nil {
 		return nil, err
 	}
 
-	src.changeConnection(conn)
-	slog.Info("RabbitMQ server connection successful!")
-	return conn, nil
+	if prefetch <= 0 {
+		return nil, fmt.Errorf("rabbitmq prefetch must be positive, got %d", prefetch)
+	}
+
+	return &SourceRabbit{
+		addr:         addr,
+		prefetch:     prefetch,
+		consumerTag:  "zeno-" + utils.GetHostname(),
+		rc:           rc,
+		onDisconnect: onDisconnect,
+		deliveries:   make(chan amqp.Delivery),
+	}, nil
 }
 
-// changeConnection takes a new connection to the queue,
-// and updates the close listener to reflect this.
-func (src *SourceRabbit) changeConnection(connection *amqp.Connection) {
-	src.connection = connection
-	src.notifyConnClose = make(chan *amqp.Error, 1)
-	src.connection.NotifyClose(src.notifyConnClose)
-	src.connectionReady.Store(true)
-}
+// Mirrors how HQ declares a project in rabbitmq
+func NewRabbitChannel(projectUUID, routingKey string) (*RabbitChannel, error) {
+	rc := &RabbitChannel{
+		projectUUID: projectUUID,
+		queues: []RabbitQueue{
+			{
+				queueName:    projectUUID,
+				exchangeName: projectUUID,
+				routingKey:   routingKeySeed,
+			},
+			{
+				queueName:    projectUUID + "-outlinks",
+				exchangeName: projectUUID,
+				routingKey:   routingKeyOutlinks,
+			},
+		},
+	}
 
-func (src *SourceRabbit) handleProjectChannelInit() (done bool) {
-	// receieve from ChanChan and create a channel
-	// loop thru RabbitQueue slice and configure queue + exchange
-	for {
-		if !src.connectionReady.Load() {
-			slog.Error("need connection to initialize channels")
-		}
-
-		src.handleProjectReconnect()
-
-		select {
-		case <-src.done:
-			return true
-		case <-src.notifyConnClose:
-			slog.Error("Connection closed. Reconnecting...")
-			return false
-		case <-src.rc.notifyChanClose:
-			slog.Error("Channel closed. Reconnecting...")
+	for _, q := range rc.queues {
+		if q.routingKey == routingKey {
+			rc.consumeQueue = q
+			return rc, nil
 		}
 	}
+
+	return nil, fmt.Errorf("unknown routing key %q, must be %q or %q", routingKey, routingKeySeed, routingKeyOutlinks)
 }
 
-func (src *SourceRabbit) handleProjectReconnect() {
-	src.rc.channelReady.Store(false)
-	numberOfAttempts := 0
-	for {
-		err := src.initProject()
-		if err != nil {
-			numberOfAttempts++
-			if numberOfAttempts >= maxRetryLimit {
-				src.rc.notifyInitSuccess <- errors.New("failed to initialize project channel, exceeded maxRetryLimit")
-			}
-			slog.Error("error initializing project channel. Trying again in "+strconv.FormatFloat(reInitDelay.Seconds(), 'f', -1, 64)+" seconds", "err", err.Error())
-			<-time.After(reInitDelay)
-		} else {
-			// channel created successfully
-			break
-		}
-	}
-}
-
-func (src *SourceRabbit) initProject() (err error) {
-	src.rc.channel, err = src.handleChannel()
-
+// Starts the connection to rabbitmq and consuming the project.
+func (src *SourceRabbit) Start() error {
+	msgs, err := src.setup()
 	if err != nil {
-		slog.Error("error creating channel", "err", err)
+		src.close()
 		return err
 	}
 
-	src.rc.queue.queueReady.Store(false)
-	err = src.configureProjectExchange(src.rc.channel, src.rc.queue)
-	if err != nil {
-		slog.Error("error configuring exchange", "err", err)
-		return err
-	}
-	err = src.configureQueue(src.rc.channel, src.rc.queue)
-	if err != nil {
-		slog.Error("error configuring queue", "err", err)
-		return err
-	}
-
-	src.rc.queue.queueReady.Store(true)
-
-	src.rc.changeChannel(src.rc.channel)
-	src.rc.notifyInitSuccess <- nil
+	src.ctx, src.cancel = context.WithCancel(context.Background())
+	src.wg.Add(1)
+	go src.run(msgs)
 
 	return nil
 }
 
-func (rc *RabbitChannel) changeChannel(channel *amqp.Channel) {
-	rc.channel = channel
-	rc.notifyChanClose = make(chan *amqp.Error, 1)
-	rc.channel.NotifyClose(rc.notifyChanClose)
-	rc.channelReady.Store(true)
+func (src *SourceRabbit) Stop() {
+	if src.cancel == nil {
+		return
+	}
+	src.cancel()
+	src.wg.Wait()
+}
+
+func (src *SourceRabbit) Deliveries() <-chan amqp.Delivery {
+	return src.deliveries
+}
+
+func (src *SourceRabbit) run(msgs <-chan amqp.Delivery) {
+	defer src.wg.Done()
+	defer close(src.deliveries)
+	defer src.close()
+
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "hq4.rabbit",
+	})
+
+	logger.Info("consuming from rabbitmq", "queue", src.rc.consumeQueue.queueName, "prefetch", src.prefetch)
+
+	for {
+		select {
+		case <-src.ctx.Done():
+			return
+		case msg, ok := <-msgs:
+			if !ok {
+				// if the channel is closed, drops, or otherwise breaks, we should need to shutdown.
+				logger.Error("rabbitmq stopped delivering, shutting Zeno down", "queue", src.rc.consumeQueue.queueName, "err", src.closeReason())
+				src.onDisconnect()
+				return
+			}
+
+			select {
+			case <-src.ctx.Done():
+				// if context is closed, this will be requeued by rabbit.
+				return
+			case src.deliveries <- msg:
+			}
+		}
+	}
+}
+
+// closeReason gathers the reason why rabbit closed.
+func (src *SourceRabbit) closeReason() error {
+	for _, notify := range []chan *amqp.Error{src.notifyConnClose, src.rc.notifyChanClose} {
+		select {
+		case amqpErr, ok := <-notify:
+			if ok && amqpErr != nil {
+				return amqpErr
+			}
+		default:
+		}
+	}
+	return errors.New("consumer cancelled by the broker")
+}
+
+// setup opens the connection and channel and starts consuming.
+func (src *SourceRabbit) setup() (<-chan amqp.Delivery, error) {
+	conn, err := amqp.DialConfig(src.addr, amqp.Config{
+		Dial: amqp.DefaultDial(dialTimeout),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error connecting to rabbit: %w", err)
+	}
+
+	src.connection = conn
+	src.notifyConnClose = conn.NotifyClose(make(chan *amqp.Error, 1))
+
+	ch, err := src.handleChannel()
+	if err != nil {
+		return nil, fmt.Errorf("error creating channel: %w", err)
+	}
+	src.rc.channel = ch
+	src.rc.notifyChanClose = ch.NotifyClose(make(chan *amqp.Error, 1))
+
+	for _, queue := range src.rc.queues {
+		if err := src.configureProjectExchange(ch, queue); err != nil {
+			return nil, fmt.Errorf("error configuring exchange %s: %w", queue.exchangeName, err)
+		}
+		if err := src.configureQueue(ch, queue); err != nil {
+			return nil, fmt.Errorf("error configuring queue %s: %w", queue.queueName, err)
+		}
+	}
+
+	msgs, err := ch.Consume(
+		src.rc.consumeQueue.queueName,
+		src.consumerTag,
+		false, // auto-ack: acked by the finisher once the seed is crawled
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error consuming queue %s: %w", src.rc.consumeQueue.queueName, err)
+	}
+
+	return msgs, nil
+}
+
+func (src *SourceRabbit) close() {
+	if src.connection != nil && !src.connection.IsClosed() {
+		// closing the connection closes its channel as well
+		src.connection.CloseDeadline(time.Now().Add(closeTimeout))
+	}
 }
 
 func (src *SourceRabbit) handleChannel() (ch *amqp.Channel, err error) {
 	ch, err = src.connection.Channel()
-	// TODO: defer ch.Close() in main logic loop
-
 	if err != nil {
 		return
 	}
 
+	// Caps the unacked deliveries, i.e. seeds being crawled plus those waiting for the reactor
 	err = ch.Qos(
-		1000,
+		src.prefetch,
 		0,
 		false,
 	)
@@ -241,7 +271,6 @@ func (src *SourceRabbit) configureQueue(ch *amqp.Channel, q RabbitQueue) (err er
 		false,
 		amqp.Table{
 			amqp.QueueTypeArg: amqp.QueueTypeQuorum,
-			// "x-delivery-limit": 20,
 		},
 	)
 	if err != nil {
@@ -255,11 +284,6 @@ func (src *SourceRabbit) configureQueue(ch *amqp.Channel, q RabbitQueue) (err er
 		false,
 		nil,
 	)
-	if err != nil {
-		return
-	}
-
-	q.queueReady.Store(true)
 
 	return
 }

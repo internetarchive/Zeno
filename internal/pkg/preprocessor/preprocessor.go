@@ -253,7 +253,7 @@ func preprocess(workerID string, seed *models.Item) error {
 	}
 
 	// If the item is a redirection or an asset, we need to seencheck it if needed
-	if (config.Get().UseHQ || config.Get().UseSeencheck) && GlobalPreprocessor.seencheckerSet {
+	if (config.Get().UseHQ || config.Get().UseHQ4 || config.Get().UseSeencheck) && GlobalPreprocessor.seencheckerSet {
 		var err error
 		for i := 0; i < 5; i++ {
 			err = GlobalPreprocessor.Seenchecker(seed)

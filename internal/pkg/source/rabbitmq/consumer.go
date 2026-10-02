@@ -1,260 +1,149 @@
 package hq4
 
 import (
-	"context"
+	"encoding/json"
 	"errors"
-	"fmt"
-	"sync"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/reactor"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/source"
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/internetarchive/gocrawlhq"
-	"golang.org/x/sync/errgroup"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+var errMissingID = errors.New("message has no ID")
+
+// consumer reads the deliveries from RabbitMQ and sends them to the reactor.
 func (s *HQ) consumer() {
-	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "hq.consumer",
-	})
-
-	// Create a context to manage goroutines
-	ctx, cancel := context.WithCancel(s.ctx)
-	defer cancel()
-
-	// Set the batch size for fetching URLs
-	batchSize := config.Get().HQBatchSize
-
-	// Create a fixed-size buffer (channel) for URLs
-	urlBuffer := make(chan *gocrawlhq.URL, batchSize)
-
-	// WaitGroup to wait for goroutines to finish on shutdown
-	var wg sync.WaitGroup
-
-	// Start the consumerFetcher goroutine(s)
-	wg.Add(1)
-	go s.consumerFetcher(ctx, &wg, urlBuffer, batchSize)
-
-	// Start the consumerSender goroutine(s)
-	wg.Add(1)
-	go s.consumerSender(ctx, &wg, urlBuffer)
-
-	// Wait for shutdown signal
-	<-s.ctx.Done()
-	logger.Debug("received done signal")
-
-	// Cancel the context to stop all goroutines.
-	cancel()
-
-	logger.Debug("waiting for goroutines to finish")
-
-	// Wait for all goroutines to finish
-	wg.Wait()
-
-	// Close the urlBuffer to signal consumerSenders to finish
-	close(urlBuffer)
-
-	s.wg.Done()
-
-	logger.Debug("closed")
-}
-
-func (s *HQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer chan<- *gocrawlhq.URL, batchSize int) {
-	defer wg.Done()
+	defer s.wg.Done()
 
 	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "hq.consumerFetcher",
+		"component": "rabbitmq.consumer",
 	})
 
 	r := source.NewFeedEmptyReporter(logger)
+	idleTicker := time.NewTicker(500 * time.Millisecond)
+	defer idleTicker.Stop()
+
+	deliveries := s.rabbit.Deliveries()
 
 	for {
-		// Check for context cancellation
 		select {
-		case <-ctx.Done():
-			logger.Debug("closed")
+		case <-s.ctx.Done():
+			logger.Debug("channel closed")
 			return
-		default:
-		}
-
-		// Fetch URLs from HQ
-		URLs, err := s.getURLs(batchSize)
-		if err != nil {
-			logger.Error("error fetching URLs from CrawlHQ", "err", err.Error(), "func", "hq.consumerFetcher")
-		}
-
-		if len(URLs) == 0 {
-			time.Sleep(500 * time.Millisecond)
-		}
-
-		r.Report(len(URLs))
-
-		err = ensureAllURLsUnique(URLs)
-		if err != nil {
-			spew.Dump(URLs)
-			panic(err)
-		}
-
-		err = ensureAllIDsNotInReactor(URLs)
-		if err != nil {
-			spew.Dump(URLs)
-			panic(err)
-		}
-
-		// Enqueue URLs into the buffer
-		for i := range URLs {
-			select {
-			case <-ctx.Done():
-				logger.Debug("closed")
+		case <-idleTicker.C:
+			r.Report(0)
+		case delivery, ok := <-deliveries:
+			if !ok {
+				// the rabbit source already requested the shutdown and the channel is closed or stopped.
+				<-s.ctx.Done()
+				logger.Debug("closed after RabbitMQ disconnected")
 				return
-			case urlBuffer <- &gocrawlhq.URL{
-				ID:        URLs[i].ID,
-				Value:     URLs[i].Value,
-				Via:       URLs[i].Via,
-				Host:      URLs[i].Host,
-				Path:      URLs[i].Path,
-				Type:      URLs[i].Type,
-				Crawler:   URLs[i].Crawler,
-				Status:    URLs[i].Status,
-				LiftOff:   URLs[i].LiftOff,
-				Timestamp: URLs[i].Timestamp,
-			}: //Deep copy of the URL to ensure pointer alisaing does not cause issues
 			}
-		}
+			r.Report(1)
+			idleTicker.Reset(500 * time.Millisecond)
 
-		// Empty the URL slice
-		URLs = nil
-	}
-}
-
-func (s *HQ) consumerSender(ctx context.Context, wg *sync.WaitGroup, urlBuffer <-chan *gocrawlhq.URL) {
-	defer wg.Done()
-
-	logger := log.NewFieldedLogger(&log.Fields{
-		"component": "hq.consumerSender",
-	})
-
-	var previousURLReceived *gocrawlhq.URL
-
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Debug("closed")
-			return
-		case URL := <-urlBuffer:
-			// Debug check to troubleshoot a problem where the same seed is received twice by the reactor
-			if previousURLReceived != nil && previousURLReceived.ID == URL.ID {
-				spew.Dump(previousURLReceived)
-				spew.Dump(URL)
-				panic("same seed received twice by hq.consumerSender")
-			}
-			urlCopy := *URL
-			previousURLReceived = &urlCopy
-
-			var discard bool
-			// Process the URL and create a new Item
-			parsedURL, err := models.NewURL(URL.Value)
-			if err != nil {
-				discard = true
-			}
-			parsedURL.SetHops(pathToHops(URL.Path))
-			newItem := models.NewItemWithID(URL.ID, &parsedURL, URL.Via)
-			newItem.SetSource(models.ItemSourceHQ)
-
-			if discard {
-				logger.Debug("parsing failed, sending the item to finisher", "url", URL.Value)
-				s.finishCh <- newItem
-				break
-			}
-
-			logger.Debug("sending new item to reactor", "item", newItem.GetShortID())
-
-			// Send the new Item to the reactor
-			err = reactor.ReceiveInsert(newItem)
-			if err != nil {
-				if err == reactor.ErrReactorFrozen {
-					<-ctx.Done()
-					logger.Debug("closed while sending to frozen reactor")
-					return
-				}
-				panic(err)
+			if done := s.consumeDelivery(logger, delivery); done {
+				<-s.ctx.Done()
+				logger.Debug("channel ran into an error while sending to reactor")
+				return
 			}
 		}
 	}
 }
 
-// getURLs fetch URLs from CrawlHQ with optional concurrency.
-//
-// If HQBatchConcurrency > 1, all URLs fetched will be returned (EVEN IF some requests fail) but
-// only the first error will be returned.
-func (s *HQ) getURLs(batchSize int) ([]gocrawlhq.URL, error) {
-	if config.Get().HQBatchConcurrency <= 1 {
-		return s.client.Get(s.ctx, batchSize)
+// consumeDelivery sends the delivery's URL to the reactor
+func (s *HQ) consumeDelivery(logger *log.FieldedLogger, delivery amqp.Delivery) (frozen bool) {
+	URL, err := decodeDelivery(delivery)
+	if err != nil {
+		logger.Error("discarding invalid message", "err", err, "body", string(delivery.Body))
+		ackOrLog(logger, delivery.Reject(false), URL.ID)
+		return false
 	}
 
-	concurrency := config.Get().HQBatchConcurrency
-	subBatchSize := batchSize / concurrency
-	urlsChan := make(chan []gocrawlhq.URL)
-	var allURLs []gocrawlhq.URL
-
-	g, _ := errgroup.WithContext(s.ctx)
-
-	// Start concurrent fetches
-	for range concurrency {
-		g.Go(func() error {
-			// Here we use a new context instead of errorgroup context:
-			// We don't want to cancel other fetches if one fails, that may
-			// lead to dropping URLs fetched midway through HTTP.
-			URLs, err := s.client.Get(context.TODO(), subBatchSize)
-			if err != nil {
-				return err
-			}
-			urlsChan <- URLs
-			return nil
-		})
+	// ID _could_ be duplicated without seencheck. track will return false if a duplicate is spotted.
+	if !s.track(URL.ID, delivery) {
+		logger.Debug("discarding duplicate seed", "id", URL.ID, "url", URL.Value)
+		ackOrLog(logger, delivery.Ack(false), URL.ID)
+		return false
 	}
 
-	go func() {
-		g.Wait()
-		close(urlsChan)
-	}()
+	parsedURL, err := models.NewURL(URL.Value)
+	if err != nil {
+		logger.Debug("URL parsing failed. untracking and failing URL", "url", URL.Value, "err", err)
+		s.untrack(URL.ID)
+		ackOrLog(logger, delivery.Ack(false), URL.ID)
+		return false
+	}
 
-	// Collect URLs from all fetches
-	for URLs := range urlsChan {
-		if len(URLs) != 0 {
-			allURLs = append(allURLs, URLs...)
+	parsedURL.SetHops(pathToHops(URL.Path))
+
+	// Create new ID from the delivery struct
+	newItem := models.NewItemWithID(URL.ID, &parsedURL, URL.Via)
+	newItem.SetSource(models.ItemSourceHQ)
+
+	logger.Debug("sending newly created item to reactor", "item", newItem.GetShortID())
+
+	err = reactor.ReceiveInsert(newItem)
+	if err != nil {
+		// errors here are fatal and likely should be left unacked.
+		s.untrack(URL.ID)
+		if err == reactor.ErrReactorFrozen {
+			return true
 		}
+
+		// errors are incredibly unlikely and should be investigated.
+		panic(err)
 	}
 
-	return allURLs, g.Wait()
+	return false
 }
 
-func ensureAllURLsUnique(URLs []gocrawlhq.URL) error {
-	seen := make(map[string]struct{})
-	for _, URL := range URLs {
-		if _, ok := seen[URL.ID]; ok {
-			return errors.New("duplicate URL ID found")
-		}
-		seen[URL.ID] = struct{}{}
+func decodeDelivery(delivery amqp.Delivery) (URL gocrawlhq.URL, err error) {
+	if err = json.Unmarshal(delivery.Body, &URL); err != nil {
+		return URL, err
 	}
-	return nil
+	if URL.ID == "" {
+		return URL, errMissingID
+	}
+	return URL, nil
 }
 
-func ensureAllIDsNotInReactor(URLs []gocrawlhq.URL) error {
-	reactorIDs := reactor.GetStateTable()
-	reactorIDMap := make(map[string]struct{})
-	for i := range reactorIDs {
-		reactorIDMap[reactorIDs[i]] = struct{}{}
-	}
+// track records the delivery struct into s.pending to ack once the seed is crawled
+func (s *HQ) track(ID string, delivery amqp.Delivery) bool {
+	s.pendingMu.Lock()
+	defer s.pendingMu.Unlock()
 
-	for i := range URLs {
-		if _, ok := reactorIDMap[URLs[i].ID]; ok {
-			return fmt.Errorf("URL ID %s found in reactor", URLs[i].ID)
-		}
+	if _, inFlight := s.pending[ID]; inFlight {
+		return false
 	}
-	return nil
+	s.pending[ID] = delivery
+	return true
+}
+
+// untrack removes ID from map and returns the delivery struct
+func (s *HQ) untrack(ID string) (amqp.Delivery, bool) {
+	s.pendingMu.Lock()
+	defer s.pendingMu.Unlock()
+
+	delivery, ok := s.pending[ID]
+	delete(s.pending, ID)
+	return delivery, ok
+}
+
+func (s *HQ) pendingCount() int {
+	s.pendingMu.Lock()
+	defer s.pendingMu.Unlock()
+
+	return len(s.pending)
+}
+
+func ackOrLog(logger *log.FieldedLogger, err error, ID string) {
+	if err != nil {
+		// the channel is not accessible to ack the message. this will be requeued by rabbit. :/
+		logger.Error("unable to settle RabbitMQ delivery", "id", ID, "err", err)
+	}
 }

@@ -86,7 +86,7 @@ func startPipeline() error {
 	}
 
 	// If needed, create the seencheck DB (only if not using HQ)
-	if config.Get().UseSeencheck && !config.Get().UseHQ {
+	if config.Get().UseSeencheck && !config.Get().UseHQ && !config.Get().UseHQ4 {
 		err := seencheck.Start(config.Get().JobPath)
 		if err != nil {
 			logger.Error("unable to start seencheck", "err", err.Error())
@@ -127,7 +127,7 @@ func startPipeline() error {
 		preprocessor.SetSeenchecker(hqSource.SeencheckItem)
 		sourceInterface = hqSource
 	case config.Get().UseHQ4:
-		hqSource := hq4.New(config.Get().HQKey, config.Get().HQ4ProjectUUID, config.Get().HQSecret, config.Get().HQAddress, config.Get().HQTimeout, config.Get().HQSeencheckCacheSize, config.Get().HQGZIPRequests, config.Get().HQSeencheckURL, config.Get().HQ4RabbitAddr, config.Get().HQ4RoutingKey)
+		hqSource := hq4.New(config.Get().HQKey, config.Get().HQSecret, config.Get().HQ4ProjectUUID, config.Get().HQAddress, config.Get().HQTimeout, config.Get().HQSeencheckCacheSize, config.Get().HQGZIPRequests, config.Get().HQSeencheckURL, config.Get().HQ4RabbitAddr, config.Get().HQ4RoutingKey, requestStop)
 		preprocessor.SetSeenchecker(hqSource.SeencheckItem)
 		sourceInterface = hqSource
 	default:
@@ -187,7 +187,7 @@ func stopPipeline() {
 	postprocessor.Stop()
 	finisher.Stop()
 
-	if config.Get().UseSeencheck && !config.Get().UseHQ {
+	if config.Get().UseSeencheck && !config.Get().UseHQ && !config.Get().UseHQ4 {
 		seencheck.Close()
 	}
 
