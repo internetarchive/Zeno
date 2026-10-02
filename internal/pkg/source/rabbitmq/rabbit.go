@@ -43,7 +43,7 @@ type SourceRabbit struct {
 type RabbitChannel struct {
 	projectUUID string
 	queues      []RabbitQueue
-	// specifies which queue Zeno will consume frmo
+	// specifies which queue Zeno will consume from
 	consumeQueue    RabbitQueue
 	channel         *amqp.Channel
 	notifyChanClose chan *amqp.Error
