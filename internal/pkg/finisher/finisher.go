@@ -95,9 +95,11 @@ func (f *finisher) worker(workerID string) {
 			logger.Debug("received resume event")
 		case seed, ok := <-f.inputCh:
 			if ok {
+				stats.FinisherInTransit.Add(1)
 				if err := f.handleSeed(seed, workerID, logger); err != nil {
 					panic(err)
 				}
+				stats.FinisherInTransit.Done()
 			}
 		}
 	}
