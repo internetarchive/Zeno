@@ -59,8 +59,14 @@ func (tb *tokenBucket) Wait() {
 			tb.mu.Unlock()
 			return
 		}
+
+		// Calculate exact time until next token is available
+		// instead of busy-waiting with an arbitrary sleep duration.
+		tokensNeeded := 1.0 - tb.tokens
+		waitDuration := time.Duration(tokensNeeded / tb.refillRate * float64(time.Second))
 		tb.mu.Unlock()
-		time.Sleep(50 * time.Millisecond) // adjust as needed
+
+		time.Sleep(waitDuration)
 	}
 }
 
