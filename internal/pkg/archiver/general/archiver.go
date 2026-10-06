@@ -19,6 +19,9 @@ import (
 	warc "github.com/internetarchive/gowarc"
 )
 
+// botBlockMaxRetry caps retries of bot block pages, as they rarely clear up on their own.
+const botBlockMaxRetry = 1
+
 func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, globalBucketManager *ratelimiter.BucketManager, client *warc.CustomHTTPClient) {
 	defer wg.Done()
 	defer func() { <-guard }()
@@ -96,6 +99,15 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 		}
 		isBadStatusCode := resp.StatusCode >= 500 || slices.Contains([]int{408, 425, 429}, resp.StatusCode)
 
+		// The hook also runs in gowarc, so bot blocks are only counted here to avoid double counting.
+		botBlockService, isBotBlocked := "", false
+		if discarded {
+			botBlockService, isBotBlocked = reasoncode.BotBlockService(discardReason)
+			if isBotBlocked {
+				stats.BotBlockIncr(botBlockService)
+			}
+		}
+
 		if discarded {
 			resp.Body.Close()              // First, close the body, to stop downloading data anymore.
 			io.Copy(io.Discard, resp.Body) // Then, consume the buffer.
@@ -110,19 +122,20 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 
 		// Retries on:
 		// 	- 5XX, 408, 425 and 429
-		// 	- Discarded challenge pages (Cloudflare, Akamai, etc.)
-		isDiscardedChallengePage := discarded && reasoncode.IsChallengePage(discardReason)
-		if isBadStatusCode || isDiscardedChallengePage {
+		// 	- Discarded bot block pages (Cloudflare, Akamai, etc.), at most botBlockMaxRetry times
+		if isBadStatusCode || isBotBlocked {
 			if globalBucketManager != nil {
 				globalBucketManager.AdjustOnFailure(req.URL.Host, resp.StatusCode)
 			}
 
 			retryReason := "bad response code"
-			if isDiscardedChallengePage {
+			maxRetry := config.Get().MaxRetry
+			if isBotBlocked {
 				retryReason = discardReason
+				maxRetry = min(maxRetry, botBlockMaxRetry)
 			}
 
-			if retry < config.Get().MaxRetry {
+			if retry < maxRetry {
 				logger.Warn("retrying", "reason", retryReason, "retry", retry, "sleep_time", retrySleepTime, "status_code", resp.StatusCode, "url", req.URL)
 				time.Sleep(retrySleepTime)
 				continue
