@@ -56,7 +56,7 @@ var getURLCmd = &cobra.Command{
 				return fmt.Errorf("error starting TUI: %w", err)
 			}
 		} else {
-			controler.WatchSignals()
+			controler.WatchSignals(controler.Stop)
 		}
 		return nil
 	},

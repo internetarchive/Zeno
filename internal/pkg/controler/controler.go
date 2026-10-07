@@ -1,6 +1,8 @@
 // Package controler provides a way to start and stop the pipeline.
 package controler
 
+import "sync"
+
 // Start initializes the pipeline.
 func Start() {
 	if err := startPipeline(); err != nil {
@@ -8,8 +10,13 @@ func Start() {
 	}
 }
 
-// Stop stops the pipeline.
+var stopOnce sync.Once
+
+// Stop stops the pipeline. Only the first call has any effect; later calls
+// are no-ops.
 func Stop() {
-	stopPipeline()
-	closeStageChannels()
+	stopOnce.Do(func() {
+		stopPipeline()
+		closeStageChannels()
+	})
 }

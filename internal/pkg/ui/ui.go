@@ -34,9 +34,10 @@ type UI struct {
 	screenHeight int // Terminal height (updated on each draw)
 
 	// sync primitives
-	wg     sync.WaitGroup
-	ctx    context.Context
-	cancel context.CancelFunc
+	wg       sync.WaitGroup
+	ctx      context.Context
+	cancel   context.CancelFunc
+	stopOnce sync.Once
 }
 
 // New creates and configures the UI. It does not start it yet.
@@ -145,12 +146,22 @@ func (ui *UI) Start() error {
 	go ui.readLogsLoop()
 	go ui.pauseMonitor()
 
+	// OS signals (docker stop, the local queue's self-SIGTERM) and shutdown
+	// requests from the source must tear down the TUI along with the pipeline.
+	go controler.WatchSignals(ui.stop)
+
 	// Run tview (blocking).
 	return ui.app.Run()
 }
 
-// stop is called from Ctrl+C or Stop button: stops pipeline + TUI.
+// stop is called from Ctrl+C, the Stop button, or the signal watcher: stops
+// pipeline + TUI. Ctrl+C spawns a goroutine on every keypress, so only the
+// first call has any effect; later calls are no-ops.
 func (ui *UI) stop() {
+	ui.stopOnce.Do(ui.doStop)
+}
+
+func (ui *UI) doStop() {
 	// Show a "Stopping..." modal
 	stoppingModal := tview.NewModal().SetText("Stopping...")
 	ui.pages.AddPage("stoppingModal", stoppingModal, true, true)
