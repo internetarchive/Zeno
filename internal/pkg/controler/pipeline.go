@@ -3,6 +3,7 @@ package controler
 import (
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/api"
@@ -151,8 +152,13 @@ func startPipeline() error {
 		return err
 	}
 
-	// Pipe in the reactor the input seeds if any
+	// Pipe in the reactor the input seeds if any. Parse them up front so an
+	// invalid seed still fails startup, then insert them in the background:
+	// each insert blocks on the reactor's token pool, so on a large seed list
+	// this would otherwise keep Start() from returning (and the signal watcher
+	// from running) for most of the crawl.
 	if len(config.Get().InputSeeds) > 0 {
+		items := make([]*models.Item, 0, len(config.Get().InputSeeds))
 		for _, seed := range config.Get().InputSeeds {
 			parsedURL, err := models.NewURL(seed)
 			if err != nil {
@@ -161,15 +167,39 @@ func startPipeline() error {
 
 			item := models.NewItem(&parsedURL, "")
 			item.SetSource(models.ItemSourceQueue)
-
-			err = reactor.ReceiveInsert(item)
-			if err != nil {
-				logger.Error("unable to insert seed", "err", err.Error())
-				return err
-			}
+			items = append(items, item)
 		}
+
+		seedingWG.Add(1)
+		go insertSeeds(items)
 	}
 	return nil
+}
+
+// seedingWG tracks the insertSeeds goroutine so stopPipeline can wait for it
+// before stopping the reactor.
+var seedingWG sync.WaitGroup
+
+// insertSeeds feeds the input seeds into the reactor until they are all in or
+// the reactor is frozen for shutdown.
+func insertSeeds(items []*models.Item) {
+	defer seedingWG.Done()
+
+	logger := log.NewFieldedLogger(&log.Fields{
+		"component": "controler.insertSeeds",
+	})
+
+	for _, item := range items {
+		err := reactor.ReceiveInsert(item)
+		switch err {
+		case nil:
+		case reactor.ErrReactorFrozen, reactor.ErrReactorShuttingDown, reactor.ErrReactorNotInitialized:
+			logger.Debug("reactor stopping, aborting seed insertion")
+			return
+		default:
+			logger.Error("unable to insert seed", "err", err.Error(), "url", item.GetURL().String())
+		}
+	}
 }
 
 func stopPipeline() {
@@ -181,6 +211,10 @@ func stopPipeline() {
 	watchers.StopWARCWritingQueueWatcher()
 
 	reactor.Freeze()
+
+	// The seed insertion goroutine exits promptly once the reactor is frozen;
+	// wait for it so it can't touch the reactor after reactor.Stop().
+	seedingWG.Wait()
 
 	preprocessor.Stop()
 	archiver.Stop()

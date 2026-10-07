@@ -35,13 +35,13 @@ func (rm *recordMatcher) Match(record map[string]string) {
 	}
 }
 
-func (rm *recordMatcher) Assert(t *testing.T) {
-	expectedURLs := []string{
-		"https://example.com/",
-		"https://example.com/page1",
-		"https://example.com/page2",
-	}
+var expectedURLs = []string{
+	"https://example.com/",
+	"https://example.com/page1",
+	"https://example.com/page2",
+}
 
+func (rm *recordMatcher) Assert(t *testing.T) {
 	for _, expectedURL := range expectedURLs {
 		if !rm.archivedURLs[expectedURL] {
 			t.Errorf("Zeno did not archive expected URL: %s", expectedURL)
@@ -54,8 +54,18 @@ func (rm *recordMatcher) Assert(t *testing.T) {
 }
 
 func (rm *recordMatcher) ShouldStop() bool {
-	// Stop when we've archived all 3 expected URLs or encountered an error
-	return len(rm.archivedURLs) >= 3 || rm.unexpectedError
+	// Stop when we've archived all expected URLs or encountered an error.
+	// Assets (e.g. example.com/s.js) are archived too, so counting archived
+	// URLs is not enough.
+	if rm.unexpectedError {
+		return true
+	}
+	for _, expectedURL := range expectedURLs {
+		if !rm.archivedURLs[expectedURL] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestGetList(t *testing.T) {

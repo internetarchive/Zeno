@@ -23,8 +23,9 @@ func requestStop() {
 	}
 }
 
-// WatchSignals listens for OS signals and handles them gracefully
-func WatchSignals() {
+// WatchSignals listens for OS signals and shutdown requests, then calls stop
+// to shut Zeno down gracefully. A second signal forces an immediate exit.
+func WatchSignals(stop func()) {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "controler.signalWatcher",
 	})
@@ -47,5 +48,5 @@ func WatchSignals() {
 		os.Exit(1)
 	}()
 
-	Stop()
+	stop()
 }
