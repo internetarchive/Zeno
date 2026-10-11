@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -29,7 +30,7 @@ func (ObjectStorageOutlinkExtractor) Match(URL *models.URL) bool {
 }
 
 // ObjectStorage decides which helper to call based on the object storage server
-func (ObjectStorageOutlinkExtractor) Extract(URL *models.URL) ([]*models.URL, error) {
+func (ObjectStorageOutlinkExtractor) Extract(_ context.Context, URL *models.URL) ([]*models.URL, error) {
 	defer URL.RewindBody()
 
 	server := URL.GetResponse().Header.Get("Server")

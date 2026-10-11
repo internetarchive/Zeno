@@ -39,7 +39,7 @@ func TestAzure(t *testing.T) {
 		URLObj := buildTestObjectStorageURLObj("http://example.com/devstoreaccount1/zeno?restype=container&comp=list&maxresults=1", xmlBody, http.Header{"Server": []string{"Windows-Azure-Blob/1.0"}})
 		outlinks, err := azure(URLObj)
 		extractor := ObjectStorageOutlinkExtractor{}
-		outlinks2, err2 := extractor.Extract(URLObj) // indirectly call, for coverage testing
+		outlinks2, err2 := extractor.Extract(t.Context(), URLObj) // indirectly call, for coverage testing
 		if err != nil || err2 != nil {
 			t.Fatalf("azure() returned unexpected error: %v, err2: %v", err, err2)
 		}

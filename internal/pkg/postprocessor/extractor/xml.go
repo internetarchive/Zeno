@@ -3,6 +3,7 @@ package extractor
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/xml"
 	"errors"
 	"io"
@@ -181,7 +182,7 @@ func (SitemapXMLOutlinkExtractor) Match(URL *models.URL) bool {
 	return IsSitemapXML(URL)
 }
 
-func (SitemapXMLOutlinkExtractor) Extract(URL *models.URL) ([]*models.URL, error) {
+func (SitemapXMLOutlinkExtractor) Extract(_ context.Context, URL *models.URL) ([]*models.URL, error) {
 	assets, outlinks, err := XML(URL)
 	if err != nil {
 		return outlinks, err

@@ -19,14 +19,14 @@ require (
 	github.com/go-rod/stealth v0.4.9
 	github.com/gobwas/ws v1.4.0
 	github.com/google/uuid v1.6.0
-	github.com/grafana/pyroscope-go v1.4.2
+	github.com/grafana/pyroscope-go v1.4.3
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.34.5
 	github.com/internetarchive/gocrawlhq v1.2.36
 	github.com/internetarchive/gowarc v0.8.102
 	github.com/maypok86/otter v1.2.4
-	github.com/ncruces/go-sqlite3 v0.35.5
-	github.com/pdfcpu/pdfcpu v0.15.0
+	github.com/ncruces/go-sqlite3 v0.35.6
+	github.com/pdfcpu/pdfcpu v0.16.0
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/plar/go-adaptive-radix-tree/v2 v2.0.4
 	github.com/prometheus/client_golang v1.24.1
@@ -78,11 +78,11 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
-	github.com/mattn/go-runewidth v0.0.27 // indirect
+	github.com/mattn/go-runewidth v0.0.30 // indirect
 	github.com/miekg/dns v1.1.73 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/ncruces/go-sqlite3-wasm/v6 v6.2.35304 // indirect
+	github.com/ncruces/go-sqlite3-wasm/v6 v6.3.35304 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/onsi/gomega v1.34.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
@@ -113,7 +113,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
-	golang.org/x/image v0.44.0 // indirect
+	golang.org/x/image v0.46.0 // indirect
 	golang.org/x/term v0.46.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )

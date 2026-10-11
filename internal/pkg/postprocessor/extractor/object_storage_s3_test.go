@@ -23,7 +23,7 @@ func TestS3Compatible(t *testing.T) {
 
 		URLObj := buildTestObjectStorageURLObj("https://example.com/?someparam=1", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
-		outlinks2, err2 := extractor.Extract(URLObj) // indirectly call, for coverage testing
+		outlinks2, err2 := extractor.Extract(t.Context(), URLObj) // indirectly call, for coverage testing
 		if err != nil || err2 != nil {
 			t.Fatalf("S3() returned unexpected error: %v, err2: %v", err, err2)
 		}
@@ -55,7 +55,7 @@ func TestS3Compatible(t *testing.T) {
 
 		URLObj := buildTestObjectStorageURLObj("https://example.com/?list-type=2", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
-		outlinks2, err2 := extractor.Extract(URLObj) // indirectly call, for coverage testing
+		outlinks2, err2 := extractor.Extract(t.Context(), URLObj) // indirectly call, for coverage testing
 		if err != nil || err2 != nil {
 			t.Fatalf("s3Compatible() returned unexpected error: %v, err2: %v", err, err2)
 		}
@@ -78,7 +78,7 @@ func TestS3Compatible(t *testing.T) {
 
 		URLObj := buildTestObjectStorageURLObj("https://example.com/?list-type=2", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
-		outlinks2, err2 := extractor.Extract(URLObj) // indirectly call, for coverage testing
+		outlinks2, err2 := extractor.Extract(t.Context(), URLObj) // indirectly call, for coverage testing
 		if err == nil || err2 == nil {
 			t.Fatalf("expected error for invalid XML, got none")
 		}

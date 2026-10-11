@@ -1,6 +1,7 @@
 package postprocessor
 
 import (
+	"context"
 	"strings"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
@@ -10,7 +11,7 @@ import (
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
-func postprocessItem(item *models.Item) []*models.Item {
+func postprocessItem(ctx context.Context, item *models.Item) []*models.Item {
 	defer item.Close()
 
 	logger := log.NewFieldedLogger(&log.Fields{
@@ -122,7 +123,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 
 		// Extract outlinks from the page
 		if shouldExtractOutlinks(item) {
-			newOutlinks, err := extractOutlinks(item)
+			newOutlinks, err := extractOutlinks(ctx, item)
 			if err != nil {
 				logger.Error("unable to extract outlinks", "err", err.Error())
 			} else {

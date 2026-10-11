@@ -73,7 +73,7 @@ func TestObjectStorage(t *testing.T) {
 
 		URLObj := buildTestObjectStorageURLObj("https://example.com/", xmlBody, http.Header{"Server": []string{"NotAnOSS"}})
 		extractor := ObjectStorageOutlinkExtractor{}
-		_, err := extractor.Extract(URLObj)
+		_, err := extractor.Extract(t.Context(), URLObj)
 
 		if err == nil {
 			t.Fatalf("expected error for unknown object storage server, got none")

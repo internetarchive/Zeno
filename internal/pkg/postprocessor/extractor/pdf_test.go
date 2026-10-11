@@ -36,7 +36,7 @@ func TestPDF(t *testing.T) {
 
 	start := time.Now()
 	extractor := PDFOutlinkExtractor{}
-	outlinks, err := extractor.Extract(URL)
+	outlinks, err := extractor.Extract(t.Context(), URL)
 	if err != nil {
 		t.Error(err)
 		return
@@ -66,7 +66,7 @@ func TestCorruptPDF(t *testing.T) {
 	}
 
 	extractor := PDFOutlinkExtractor{}
-	outlinks, err := extractor.Extract(URL)
+	outlinks, err := extractor.Extract(t.Context(), URL)
 	if err == nil {
 		t.Error("Corrupt PDF must raise an error")
 	}

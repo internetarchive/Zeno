@@ -1,6 +1,7 @@
 package truthsocial
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -56,7 +57,7 @@ func (TruthsocialAccountOutlinkExtractor) Match(URL *models.URL) bool {
 	return usernameRegex.MatchString(URL.String())
 }
 
-func (TruthsocialAccountOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
+func (TruthsocialAccountOutlinkExtractor) Extract(_ context.Context, URL *models.URL) (outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
 	decoder := json.NewDecoder(URL.GetBody())
@@ -91,7 +92,7 @@ func (TruthsocialAccountLookupOutlinkExtractor) Match(URL *models.URL) bool {
 	return accountLookupRegex.MatchString(URL.String())
 }
 
-func (TruthsocialAccountLookupOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
+func (TruthsocialAccountLookupOutlinkExtractor) Extract(_ context.Context, URL *models.URL) (outlinks []*models.URL, err error) {
 	// Get the username from the URL
 	username := usernameRegex.FindStringSubmatch(URL.String())
 	if len(username) != 2 {

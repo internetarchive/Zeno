@@ -56,7 +56,7 @@ func TestHTMLOutlinks(t *testing.T) {
 	URL := setupURL(html)
 
 	extractor := HTMLOutlinkExtractor{}
-	outlinks, err := extractor.Extract(URL)
+	outlinks, err := extractor.Extract(t.Context(), URL)
 	if err != nil {
 		t.Errorf("Error extracting HTML outlinks %s", err)
 	}
@@ -198,7 +198,7 @@ func TestUpperCase(t *testing.T) {
     </HTML>`
 	URL := setupURL(html)
 	extractor := HTMLOutlinkExtractor{}
-	outlinks, err := extractor.Extract(URL)
+	outlinks, err := extractor.Extract(t.Context(), URL)
 	if err != nil {
 		t.Errorf("Error extracting HTML outlinks %s", err)
 	}
