@@ -99,7 +99,7 @@ func (p *postprocessor) worker(workerID string) {
 				if seed.GetStatus() != models.ItemArchived && seed.GetStatus() != models.ItemGotRedirected && seed.GetStatus() != models.ItemGotChildren {
 					logger.Debug("skipping seed", "seed", seed.GetShortID(), "depth", seed.GetDepth(), "hops", seed.GetURL().GetHops(), "status", seed.GetStatus())
 				} else {
-					outlinks := postprocess(workerID, seed)
+					outlinks := postprocess(p.ctx, workerID, seed)
 					for i := range outlinks {
 						select {
 						case <-p.ctx.Done():
@@ -124,7 +124,7 @@ func (p *postprocessor) worker(workerID string) {
 	}
 }
 
-func postprocess(workerID string, seed *models.Item) []*models.Item {
+func postprocess(ctx context.Context, workerID string, seed *models.Item) []*models.Item {
 	logger := log.NewFieldedLogger(&log.Fields{
 		"component": "postprocessor.postprocess",
 		"worker_id": workerID,
@@ -139,7 +139,7 @@ func postprocess(workerID string, seed *models.Item) []*models.Item {
 	}
 
 	for i := range childs {
-		seedOutlinks := postprocessItem(childs[i])
+		seedOutlinks := postprocessItem(ctx, childs[i])
 		outlinks = append(outlinks, seedOutlinks...)
 	}
 

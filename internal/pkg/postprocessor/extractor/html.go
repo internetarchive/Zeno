@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"context"
 	"encoding/json"
 	"regexp"
 	"slices"
@@ -32,7 +33,7 @@ func (HTMLOutlinkExtractor) Match(URL *models.URL) bool {
 	return IsHTML(URL)
 }
 
-func (HTMLOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
+func (HTMLOutlinkExtractor) Extract(_ context.Context, URL *models.URL) (outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
 	logger := log.NewFieldedLogger(&log.Fields{
