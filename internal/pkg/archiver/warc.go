@@ -79,20 +79,18 @@ func startWARCWriter() error {
 		}()
 	}
 
-	// Even if a proxied client has been set, we want to create an non-proxied one
-	if config.Get().Proxy == "" {
-		globalArchiver.Client, err = warc.NewWARCWritingHTTPClient(WARCSettings)
-		if err != nil {
-			logger.Error("unable to init WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
-			return err
-		}
-
-		go func() {
-			for err := range globalArchiver.Client.ErrChan {
-				logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
-			}
-		}()
+	// Even if a proxied client has been set, we want to create a non-proxied one
+	globalArchiver.Client, err = warc.NewWARCWritingHTTPClient(WARCSettings)
+	if err != nil {
+		logger.Error("unable to init WARC HTTP client", "err", err.Error(), "func", "archiver.startWARCWriter")
+		return err
 	}
+
+	go func() {
+		for err := range globalArchiver.Client.ErrChan {
+			logger.Error("WARC writer error", "err", err.Err.Error(), "func", err.Func)
+		}
+	}()
 
 	// Set the timeouts
 	if config.Get().HTTPTimeout > 0 {
