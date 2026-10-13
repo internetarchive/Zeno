@@ -122,12 +122,18 @@ func Stop() {
 				}
 			}
 		}()
-		globalArchiver.Client.WaitGroup.Wait()
-		stopLocalWatcher <- struct{}{}
-		logger.Debug("WARC writing finished")
-		globalArchiver.Client.Close()
+		if globalArchiver.Client != nil {
+			globalArchiver.Client.WaitGroup.Wait()
+		}
 		if globalArchiver.ClientWithProxy != nil {
 			globalArchiver.ClientWithProxy.WaitGroup.Wait()
+		}
+		stopLocalWatcher <- struct{}{}
+		logger.Debug("WARC writing finished")
+		if globalArchiver.Client != nil {
+			globalArchiver.Client.Close()
+		}
+		if globalArchiver.ClientWithProxy != nil {
 			globalArchiver.ClientWithProxy.Close()
 		}
 
