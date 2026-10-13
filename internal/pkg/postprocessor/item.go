@@ -91,7 +91,6 @@ func postprocessItem(ctx context.Context, item *models.Item) []*models.Item {
 
 	if (item.GetURL().GetResponse() != nil && item.GetURL().GetResponse().StatusCode == 200) || // standard item
 		(item.GetURL().GetResponse() == nil && item.GetURL().GetBody() != nil) { // headless item
-		logger.Debug("item is a success")
 
 		var outlinksFromAssets []*models.URL
 
