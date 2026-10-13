@@ -1,0 +1,18 @@
+{
+  "url": "https://www.leagueoflegends.com/_next/static/css/112495035b880485.css",
+  "status_code": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "age": "3167",
+    "cache-control": "public,max-age=31536000,immutable",
+    "cache-status": "\"Netlify Edge\"; hit; ttl=31532834",
+    "content-type": "text/css; charset=UTF-8",
+    "date": "Tue, 13 Oct 2026 14:27:20 GMT",
+    "etag": "\"a61c223c396bc1ae18eee53ca38ff3ea-ssl\"",
+    "server": "Netlify",
+    "strict-transport-security": "max-age=31536000",
+    "x-nf-request-id": "01M4TTJA2VGTG33M9GF2EH4ASR",
+    "content-length": "94"
+  },
+  "body": "#riotbar-header>div{margin-top:80px!important}\n/*# sourceMappingURL=112495035b880485.css.map*/"
+}
