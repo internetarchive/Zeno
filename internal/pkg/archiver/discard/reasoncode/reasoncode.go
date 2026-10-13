@@ -1,19 +1,15 @@
 package reasoncode
 
 import (
-	"slices"
-
-	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard/discarder/cloudflare"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/discard/discarder/botblock"
 )
 
 var HookNotSet = "Hook not set"
 var EmptyHookChain = "HookChain is empty"
 var AllPassed = "All hooks passed, no need to discard"
 
-// IsChallengePage checks if the response is a challenge page.
-func IsChallengePage(reason string) bool {
-	reasons := []string{
-		cloudflare.ChallengeDetected,
-	}
-	return slices.Contains(reasons, reason)
+// BotBlockService returns the bot-blocking service (Cloudflare, Akamai, etc.)
+// that caused the discard, if any.
+func BotBlockService(reason string) (string, bool) {
+	return botblock.Service(reason)
 }
