@@ -23,10 +23,10 @@ require (
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.34.5
 	github.com/internetarchive/gocrawlhq v1.2.36
-	github.com/internetarchive/gowarc v0.8.102
+	github.com/internetarchive/gowarc v0.8.103
 	github.com/maypok86/otter v1.2.4
 	github.com/ncruces/go-sqlite3 v0.35.6
-	github.com/pdfcpu/pdfcpu v0.16.1
+	github.com/pdfcpu/pdfcpu v0.16.2
 	github.com/philippgille/gokv/leveldb v0.7.0
 	github.com/plar/go-adaptive-radix-tree/v2 v2.0.4
 	github.com/prometheus/client_golang v1.25.0
@@ -102,8 +102,9 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
-	github.com/ulikunitz/xz v0.5.16 // indirect
+	github.com/ulikunitz/xz v0.5.17 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
 	github.com/ysmood/got v0.40.0 // indirect
