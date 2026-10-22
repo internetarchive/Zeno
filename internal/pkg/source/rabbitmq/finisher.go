@@ -42,6 +42,10 @@ func (s *HQ) ackFinished(logger *log.FieldedLogger, item *models.Item) {
 		return
 	}
 
-	// use delivery struct we got to ack message to rabbit
-	ackOrLog(logger, delivery.Ack(false), item.GetID())
+	// use delivery struct we got to ack (or reject) message to rabbit
+	if item.GetStatus() == models.ItemFailed {
+		ackOrLog(logger, delivery.Reject(true), item.GetID())
+	} else {
+		ackOrLog(logger, delivery.Ack(false), item.GetID())
+	}
 }
