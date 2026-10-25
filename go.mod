@@ -1,6 +1,6 @@
 module github.com/internetarchive/Zeno/v2
 
-go 1.26.7
+go 1.27
 
 require (
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
@@ -23,7 +23,7 @@ require (
 	github.com/grafov/m3u8 v0.12.1
 	github.com/hashicorp/consul/api v1.34.5
 	github.com/internetarchive/gocrawlhq v1.2.36
-	github.com/internetarchive/gowarc v0.8.103
+	github.com/internetarchive/gowarc v0.8.105
 	github.com/maypok86/otter v1.2.4
 	github.com/ncruces/go-sqlite3 v0.35.6
 	github.com/pdfcpu/pdfcpu v0.16.2
@@ -47,7 +47,6 @@ require (
 )
 
 require (
-	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/andybalholm/cascadia v1.3.4 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -73,7 +72,7 @@ require (
 	github.com/hashicorp/serf v0.10.4 // indirect
 	github.com/hhrutter/tiff v1.0.7 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/klauspost/compress v1.20.1 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
@@ -81,6 +80,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.30 // indirect
 	github.com/miekg/dns v1.1.73 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/molecule-man/go-brrr v1.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/go-sqlite3-wasm/v6 v6.3.35304 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
@@ -91,7 +91,7 @@ require (
 	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/common v0.72.0 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect
-	github.com/refraction-networking/utls v1.8.2 // indirect
+	github.com/refraction-networking/utls v1.8.3-0.20261006222701-ff1b50fbbe9a // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/samber/lo v1.53.0 // indirect
