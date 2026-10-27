@@ -1,8 +1,12 @@
 package postprocessor
 
 import (
+	"context"
 	_ "embed"
+	"io"
+	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
@@ -93,6 +97,76 @@ func TestExtractLinksFromPageWithLongLines(t *testing.T) {
 	if len(links) != 72 {
 		t.Errorf("expected 72 links, got %d", len(links))
 	}
+}
+
+func newSitemapTestItem(t *testing.T, rawURL, body, contentType string, hops int) *models.Item {
+	t.Helper()
+
+	newURL, err := models.NewURL(rawURL)
+	if err != nil {
+		t.Fatalf("failed to create URL: %v", err)
+	}
+
+	resp := &http.Response{
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(body)),
+		StatusCode: 200,
+	}
+	resp.Header.Set("Content-Type", contentType)
+	newURL.SetResponse(resp)
+
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile.Write([]byte(body))
+	t.Cleanup(func() { spooledTempFile.Close() })
+	newURL.SetBody(spooledTempFile)
+	newURL.SetHops(hops)
+
+	return models.NewItem(&newURL, "")
+}
+
+func setTestConfig(t *testing.T, cfg *config.Config) {
+	t.Helper()
+
+	previous := config.Get()
+	config.Set(cfg)
+	t.Cleanup(func() { config.Set(previous) })
+}
+
+func TestExtractOutlinksSitemapServedAsText(t *testing.T) {
+	setTestConfig(t, &config.Config{})
+
+	sitemap := `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+	<url><loc>https://example.com/article</loc></url>
+</urlset>`
+
+	for _, contentType := range []string{"text/xml", "application/xml"} {
+		item := newSitemapTestItem(t, "https://example.com/sitemap.xml", sitemap, contentType, 0)
+
+		outlinks, err := extractOutlinks(context.Background(), item)
+		if err != nil {
+			t.Fatalf("extractOutlinks() failed: %v", err)
+		}
+
+		if len(outlinks) != 1 || outlinks[0].Raw != "https://example.com/article" {
+			t.Errorf("%s: expected only https://example.com/article, got %v", contentType, rawOutlinks(outlinks))
+		}
+		for _, outlink := range outlinks {
+			if outlink.GetHops() != 1 {
+				t.Errorf("%s: expected %s at hop 1, got %d", contentType, outlink.Raw, outlink.GetHops())
+			}
+		}
+	}
+}
+
+func rawOutlinks(outlinks []*models.URL) []string {
+	var raws []string
+	for _, outlink := range outlinks {
+		raws = append(raws, outlink.Raw)
+	}
+	return raws
 }
 
 func BenchmarkExtractLinksFromPageRelax(b *testing.B) {

@@ -276,6 +276,15 @@ func SeencheckFailuresIncr() {
 	}
 }
 
+// SitemapEntriesFilteredAdd adds value to the SitemapEntriesFiltered counter.
+func SitemapEntriesFilteredAdd(value int64) {
+	globalStats.SitemapEntriesFiltered.Add(value)
+
+	if globalPromStats != nil {
+		globalPromStats.sitemapEntriesFiltered.WithLabelValues(config.Get().JobPrometheus, hostname, version).Add(float64(value))
+	}
+}
+
 // CFMitigatedIncr increments the CFMitigated counter by 1.
 func CFMitigatedIncr() {
 	globalStats.cfMitigated.Add(1)

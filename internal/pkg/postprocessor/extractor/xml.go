@@ -9,7 +9,10 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/stats"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
@@ -183,13 +186,15 @@ func (SitemapXMLOutlinkExtractor) Match(URL *models.URL) bool {
 }
 
 func (SitemapXMLOutlinkExtractor) Extract(_ context.Context, URL *models.URL) ([]*models.URL, error) {
-	assets, outlinks, err := XML(URL)
-	if err != nil {
-		return outlinks, err
+	var maxAge time.Duration
+	if config.Get() != nil {
+		maxAge = config.Get().SitemapMaxAge
 	}
 
-	// Here we don't care about the difference between assets and outlinks,
-	// we just want to extract all the URLs from the sitemap
-	outlinks = append(outlinks, assets...)
-	return outlinks, nil
+	outlinks, dropped, err := extractSitemapOutlinks(URL, maxAge, time.Now())
+	if dropped > 0 {
+		stats.SitemapEntriesFilteredAdd(int64(dropped))
+	}
+
+	return outlinks, err
 }

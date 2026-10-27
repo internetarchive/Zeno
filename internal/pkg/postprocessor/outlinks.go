@@ -56,6 +56,7 @@ func extractOutlinks(ctx context.Context, item *models.Item) (outlinks []*models
 	}
 
 	// Run specific extractors
+	var isSitemap bool
 	for _, p := range outlinkExtractors {
 		if !p.Support(mode) {
 			continue
@@ -63,6 +64,7 @@ func extractOutlinks(ctx context.Context, item *models.Item) (outlinks []*models
 
 		if p.Match(item.GetURL()) {
 			outlinks, err = p.Extract(ctx, item.GetURL())
+			_, isSitemap = p.(extractor.SitemapXMLOutlinkExtractor)
 			break
 		}
 	}
@@ -78,8 +80,10 @@ func extractOutlinks(ctx context.Context, item *models.Item) (outlinks []*models
 		outlinks = append(outlinks, linksFromLinkHeader...)
 	}
 
-	// If the page is a text/* content type, extract links from the body (aggressively)
-	if strings.Contains(contentType, "text/") {
+	// If the page is a text/* content type, extract links from the body (aggressively).
+	// Sitemaps (often served as text/xml) are skipped: their URLs are already extracted,
+	// and the scan would bring back schema URLs and entries dropped by --sitemap-max-age.
+	if strings.Contains(contentType, "text/") && !isSitemap {
 		outlinks = append(outlinks, extractLinksFromPage(item.GetURL())...)
 	}
 

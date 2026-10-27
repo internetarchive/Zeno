@@ -28,6 +28,7 @@ type prometheusStats struct {
 	cfMitigated            *prometheus.GaugeVec
 	akamaiMitigated        *prometheus.GaugeVec
 	seencheckFailures      *prometheus.CounterVec
+	sitemapEntriesFiltered *prometheus.CounterVec
 
 	// Dedup WARC metrics
 	dataTotalBytes               *prometheus.GaugeVec
@@ -145,6 +146,10 @@ func newPrometheusStats() *prometheusStats {
 			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "seencheck_failures", Help: "Total number of seencheck failures"},
 			[]string{"project", "hostname", "version"},
 		),
+		sitemapEntriesFiltered: prometheus.NewCounterVec(
+			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "sitemap_entries_filtered", Help: "Total number of sitemap entries skipped because they are older than --sitemap-max-age"},
+			[]string{"project", "hostname", "version"},
+		),
 	}
 }
 
@@ -167,6 +172,7 @@ func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.cfMitigated)
 	prometheus.MustRegister(globalPromStats.akamaiMitigated)
 	prometheus.MustRegister(globalPromStats.seencheckFailures)
+	prometheus.MustRegister(globalPromStats.sitemapEntriesFiltered)
 
 	// Register dedup WARC metrics
 	prometheus.MustRegister(globalPromStats.dataTotalBytes)
