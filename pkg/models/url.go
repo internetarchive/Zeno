@@ -174,7 +174,7 @@ func URLToString(URL *url.URL) string {
 		// Do nothing. We don't want to encode the URL for signature purposes. :(
 		break
 	default:
-		URL.RawQuery = encodeQuery(URL.Query())
+		URL.RawQuery = encodeQuery(URL.RawQuery)
 	}
 
 	URL.Host, err = idna.ToASCII(URL.Host)
@@ -199,31 +199,62 @@ func URLToString(URL *url.URL) string {
 	return URL.String()
 }
 
-// Encode encodes the values into “URL encoded” form
-// from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=1002
-// REASON: it has been modified to not sort
-func encodeQuery(v url.Values) string {
-	if len(v) == 0 {
-		return ""
+// QueryPair is a single unescaped key/value pair of a URL query.
+type QueryPair struct {
+	Key   string
+	Value string
+}
+
+// SplitQuery parses a raw query into its unescaped key/value pairs, in the order they appear.
+// It drops the same malformed pairs as url.ParseQuery, but has no limit on the number of pairs.
+// from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=956
+// REASON: url.Values is a map, so it can't keep the order of the pairs
+func SplitQuery(rawQuery string) []QueryPair {
+	if rawQuery == "" {
+		return nil
 	}
 
-	var buf strings.Builder
+	pairs := make([]QueryPair, 0, strings.Count(rawQuery, "&")+1)
 
-	first := true
-
-	for k, vs := range v {
-		keyEscaped := url.QueryEscape(k)
-		for _, v := range vs {
-			if !first {
-				buf.WriteByte('&')
-			}
-
-			first = false
-
-			buf.WriteString(keyEscaped)
-			buf.WriteByte('=')
-			buf.WriteString(url.QueryEscape(v))
+	for rawQuery != "" {
+		var pair string
+		pair, rawQuery, _ = strings.Cut(rawQuery, "&")
+		if strings.Contains(pair, ";") || pair == "" {
+			continue
 		}
+
+		key, value, _ := strings.Cut(pair, "=")
+		key, err := url.QueryUnescape(key)
+		if err != nil {
+			continue
+		}
+		value, err = url.QueryUnescape(value)
+		if err != nil {
+			continue
+		}
+
+		pairs = append(pairs, QueryPair{Key: key, Value: value})
+	}
+
+	return pairs
+}
+
+// Encode encodes the values into “URL encoded” form
+// from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=1002
+// REASON: it has been modified to keep the original order of the pairs instead of sorting them,
+// the order must be stable so that the same URL always gives the same string (seencheck, dedupe)
+func encodeQuery(rawQuery string) string {
+	var buf strings.Builder
+	buf.Grow(len(rawQuery))
+
+	for _, pair := range SplitQuery(rawQuery) {
+		if buf.Len() > 0 {
+			buf.WriteByte('&')
+		}
+
+		buf.WriteString(url.QueryEscape(pair.Key))
+		buf.WriteByte('=')
+		buf.WriteString(url.QueryEscape(pair.Value))
 	}
 
 	return buf.String()

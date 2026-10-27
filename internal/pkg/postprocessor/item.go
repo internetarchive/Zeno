@@ -2,6 +2,7 @@ package postprocessor
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
@@ -104,6 +105,18 @@ func postprocessItem(ctx context.Context, item *models.Item) []*models.Item {
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error())
 			} else {
+				// Domains crawl skips the depth check above so that deep items still give outlinks,
+				// but their own assets are not captured: a page that is its own asset would loop forever.
+				if domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 && !extractor.IsEmbeddedCSS(item) {
+					logger.Debug("item is a child and its depth (without redirections) is more than 2, not capturing its assets")
+					assets = nil
+
+					// <style> @import links are added as children during the extraction itself
+					for _, child := range slices.Clone(item.GetChildren()) {
+						item.RemoveChild(child)
+					}
+				}
+
 				for i := range assets {
 					if assets[i] == nil {
 						logger.Warn("nil asset")

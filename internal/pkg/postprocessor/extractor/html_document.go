@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/url"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
@@ -106,9 +107,10 @@ func encodeNonUTF8QueryURLs(urls []*models.URL, enc encoding.Encoding) []*models
 		}
 		// According to the URL spec, we only need to encode the query part.
 		// The path part should be left as utf8, we don't need to encode it.
-		query := parsedURL.Query()
-		newQuery := url.Values{}
-		for key, values := range query {
+		// Keep the original order of the pairs, so that the same URL always gives the same string.
+		var newQuery strings.Builder
+		for _, pair := range models.SplitQuery(parsedURL.RawQuery) {
+			key, value := pair.Key, pair.Value
 			var encodedKey, encodedValue string
 			// If the key/value is not valid UTF-8, we do not encode it since it may already be encoded.
 			// If encoding fails, we keep the original key/value.
@@ -122,21 +124,25 @@ func encodeNonUTF8QueryURLs(urls []*models.URL, enc encoding.Encoding) []*models
 					encodedKey = key
 				}
 			}
-			for _, value := range values {
-				if !utf8.ValidString(value) {
+			if !utf8.ValidString(value) {
+				encodedValue = value
+			} else {
+				encodedValue, err = encoder.String(value)
+				if err != nil {
+					htmldocLogger.Warn("unable to encode query value", "err", err.Error(), "value", value, "url", URL.Raw)
 					encodedValue = value
-				} else {
-					encodedValue, err = encoder.String(value)
-					if err != nil {
-						htmldocLogger.Warn("unable to encode query value", "err", err.Error(), "value", value, "url", URL.Raw)
-						encodedValue = value
-					}
 				}
-				newQuery.Add(encodedKey, encodedValue)
 			}
+
+			if newQuery.Len() > 0 {
+				newQuery.WriteByte('&')
+			}
+			newQuery.WriteString(url.QueryEscape(encodedKey))
+			newQuery.WriteByte('=')
+			newQuery.WriteString(url.QueryEscape(encodedValue))
 		}
 
-		newQueryEncoded := newQuery.Encode()
+		newQueryEncoded := newQuery.String()
 		htmldocLogger.Debug("encoded URL query", "raw_url", URL.Raw, "enc", enc, "raw_query", parsedURL.RawQuery, "new_query", newQueryEncoded)
 
 		parsedURL.RawQuery = newQueryEncoded

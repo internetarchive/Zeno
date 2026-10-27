@@ -6,6 +6,37 @@ import (
 	"testing"
 )
 
+func TestURLToStringKeepsQueryOrder(t *testing.T) {
+	raw := "https://example.com/doc.html?ZyActionD=ZyDocument&Client=EPA&Index=2011+Thru+2015%7C1995+Thru+1999&Query=600R05032&ImageQuality=r85g16/x150y150g16/i500&ZyEntry=1&SeekPage=b"
+	expected := "https://example.com/doc.html?ZyActionD=ZyDocument&Client=EPA&Index=2011+Thru+2015%7C1995+Thru+1999&Query=600R05032&ImageQuality=r85g16%2Fx150y150g16%2Fi500&ZyEntry=1&SeekPage=b"
+
+	// Map iteration order is random, so check several times
+	for range 20 {
+		u, err := NewURL(raw)
+		if err != nil {
+			t.Fatalf("error parsing URL: %v", err)
+		}
+
+		if actual := u.String(); actual != expected {
+			t.Fatalf("Expected %s, got %s", expected, actual)
+		}
+	}
+}
+
+func TestSplitQuery(t *testing.T) {
+	expected := []QueryPair{{"b", "2"}, {"a", "1 2"}, {"b", "3"}, {"c", ""}}
+	actual := SplitQuery("b=2&a=1+2&&b=3&c&bad=%zz&semi=1;2")
+
+	if len(actual) != len(expected) {
+		t.Fatalf("Expected %v, got %v", expected, actual)
+	}
+	for i := range expected {
+		if actual[i] != expected[i] {
+			t.Fatalf("Expected %v, got %v", expected, actual)
+		}
+	}
+}
+
 func TestURLToStringPunycode(t *testing.T) {
 	u, err := NewURL("https://xn----8sbddjhbicfsohgbg1aeo.xn--p1ia/pic/file/map_of_sarlat.pdf")
 	if err != nil {
