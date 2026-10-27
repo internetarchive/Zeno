@@ -66,6 +66,7 @@ func (q *Queries) DoneURL(ctx context.Context, id string) error {
 const getFreshURLs = `-- name: GetFreshURLs :many
 SELECT id, value, via, hops, status, timestamp FROM urls
 WHERE status = 'FRESH'
+ORDER BY hops ASC, timestamp ASC
 LIMIT ?
 `
 

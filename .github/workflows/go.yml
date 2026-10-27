@@ -66,6 +66,21 @@ jobs:
       run: go test -c -o tests && for test in $(go test -list . | grep -E "^(Test|Example)"); do ./tests -test.run "^$test\$" &>/dev/null && echo -e "$test passed\n" || echo -e "$test failed\n"; done
 
 
+  sqlc-diff:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Go
+      uses: actions/setup-go@v7
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Check generated sqlc code is up to date
+      # Keep the version in sync with the header of internal/pkg/source/lq/sqlc_model/*.go
+      run: go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.28.0 diff
+
+
   cross-build:
     runs-on: ubuntu-latest
     steps:

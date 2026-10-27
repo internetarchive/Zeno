@@ -8,4 +8,4 @@ CREATE TABLE IF NOT EXISTS urls (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS urls_value ON urls (value); -- for deduplication
 CREATE INDEX IF NOT EXISTS urls_status ON urls (status); -- for queueing
-CREATE INDEX IF NOT EXISTS urls_hops_timestamp ON urls (hops ASC, timestamp ASC); -- for sorting by crawl depth and time
+CREATE INDEX IF NOT EXISTS urls_status_hops_timestamp ON urls (status, hops ASC, timestamp ASC); -- for dequeueing FRESH URLs by crawl depth and time without a sort
