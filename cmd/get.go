@@ -49,6 +49,7 @@ func addBasicFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("max-hops", 0, "Maximum number of hops to execute.")
 	getCmd.PersistentFlags().Int("max-outlinks", 0, "Maximum number of outlinks per seed")
 	getCmd.PersistentFlags().Duration("sitemap-max-age", 0, "If set, sitemap entries (child sitemaps and URLs) whose lastmod/publication date is older than this duration are skipped. Entries without a parseable date are kept. 0 disables filtering.")
+	getCmd.PersistentFlags().Bool("sitemap-index-same-hop", false, "If turned on, sitemaps listed in a sitemap index are queued at the same hop as the index instead of hop+1, so nested sitemaps can be followed with a low --max-hops.")
 	getCmd.PersistentFlags().String("cookies", "", "File containing cookies that will be used for requests.")
 	getCmd.PersistentFlags().Bool("disable-seencheck", false, "Disable the (remote or local) seencheck that avoid re-crawling of URIs.")
 	getCmd.PersistentFlags().Bool("api", false, "Enable API")

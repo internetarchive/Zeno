@@ -161,6 +161,132 @@ func TestExtractOutlinksSitemapServedAsText(t *testing.T) {
 	}
 }
 
+func TestExtractOutlinksSitemapIndexHops(t *testing.T) {
+	yoastIndex := `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<sitemap><loc>https://example.com/post-sitemap.xml</loc><lastmod>2026-10-26T10:00:00+00:00</lastmod></sitemap>
+	<sitemap><loc>https://example.com/page-sitemap.xml</loc></sitemap>
+</sitemapindex>`
+
+	crossHostIndex := `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<sitemap><loc>https://www.example.com/news-sitemap.xml</loc></sitemap>
+	<sitemap><loc>https://cdn.example.net/sitemap.xml</loc></sitemap>
+	<sitemap><loc>https://example.com.evil.org/sitemap.xml</loc></sitemap>
+</sitemapindex>`
+
+	urlset := `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<url><loc>https://example.com/2026/10/26/article/</loc></url>
+	<url><loc>https://example.com/nested-sitemap.xml</loc></url>
+</urlset>`
+
+	tests := []struct {
+		name        string
+		url         string
+		body        string
+		hops        int
+		sameHop     bool
+		expectedHop map[string]int
+	}{
+		{
+			name:    "Yoast index, flag on, children keep the index's hop",
+			url:     "https://example.com/sitemap_index.xml",
+			body:    yoastIndex,
+			hops:    0,
+			sameHop: true,
+			expectedHop: map[string]int{
+				"https://example.com/post-sitemap.xml": 0,
+				"https://example.com/page-sitemap.xml": 0,
+			},
+		},
+		{
+			name:    "Nested index at hop 2, flag on",
+			url:     "https://example.com/sitemap_index.xml",
+			body:    yoastIndex,
+			hops:    2,
+			sameHop: true,
+			expectedHop: map[string]int{
+				"https://example.com/post-sitemap.xml": 2,
+				"https://example.com/page-sitemap.xml": 2,
+			},
+		},
+		{
+			name:    "Yoast index, flag off, regression",
+			url:     "https://example.com/sitemap_index.xml",
+			body:    yoastIndex,
+			hops:    0,
+			sameHop: false,
+			expectedHop: map[string]int{
+				"https://example.com/post-sitemap.xml": 1,
+				"https://example.com/page-sitemap.xml": 1,
+			},
+		},
+		{
+			name:    "Index on www host, children on other hosts get hop+1",
+			url:     "https://www.example.com/sitemap_index.xml",
+			body:    crossHostIndex,
+			hops:    0,
+			sameHop: true,
+			expectedHop: map[string]int{
+				"https://www.example.com/news-sitemap.xml": 0,
+				"https://cdn.example.net/sitemap.xml":      1,
+				"https://example.com.evil.org/sitemap.xml": 1,
+			},
+		},
+		{
+			name:    "Index without www, child with www keeps the hop",
+			url:     "https://EXAMPLE.com/sitemap_index.xml",
+			body:    crossHostIndex,
+			hops:    1,
+			sameHop: true,
+			expectedHop: map[string]int{
+				"https://www.example.com/news-sitemap.xml": 1,
+				"https://cdn.example.net/sitemap.xml":      2,
+				"https://example.com.evil.org/sitemap.xml": 2,
+			},
+		},
+		{
+			name:    "Urlset, flag on, entries get hop+1",
+			url:     "https://example.com/post-sitemap.xml",
+			body:    urlset,
+			hops:    0,
+			sameHop: true,
+			expectedHop: map[string]int{
+				"https://example.com/2026/10/26/article/": 1,
+				"https://example.com/nested-sitemap.xml":  1,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setTestConfig(t, &config.Config{SitemapIndexSameHop: tt.sameHop})
+
+			item := newSitemapTestItem(t, tt.url, tt.body, "application/xml", tt.hops)
+
+			outlinks, err := extractOutlinks(context.Background(), item)
+			if err != nil {
+				t.Fatalf("extractOutlinks() failed: %v", err)
+			}
+
+			if len(outlinks) != len(tt.expectedHop) {
+				t.Fatalf("expected %d outlinks, got %v", len(tt.expectedHop), rawOutlinks(outlinks))
+			}
+			for _, outlink := range outlinks {
+				expected, ok := tt.expectedHop[outlink.Raw]
+				if !ok {
+					t.Errorf("unexpected outlink %s", outlink.Raw)
+					continue
+				}
+				if outlink.GetHops() != expected {
+					t.Errorf("%s: expected hop %d, got %d", outlink.Raw, expected, outlink.GetHops())
+				}
+			}
+		})
+	}
+}
+
 func rawOutlinks(outlinks []*models.URL) []string {
 	var raws []string
 	for _, outlink := range outlinks {

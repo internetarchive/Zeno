@@ -86,6 +86,7 @@ type Config struct {
 	MaxContentLengthMiB             int           `mapstructure:"max-content-length"`
 	MaxOutlinks                     int           `mapstructure:"max-outlinks"`
 	SitemapMaxAge                   time.Duration `mapstructure:"sitemap-max-age"`
+	SitemapIndexSameHop             bool          `mapstructure:"sitemap-index-same-hop"`
 	HTTPTimeout                     time.Duration `mapstructure:"http-timeout"`
 	ConnReadDeadline                time.Duration `mapstructure:"conn-read-deadline"`
 	CrawlTimeLimit                  int           `mapstructure:"crawl-time-limit"`

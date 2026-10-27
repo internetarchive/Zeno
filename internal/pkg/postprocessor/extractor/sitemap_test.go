@@ -344,6 +344,35 @@ func TestExtractSitemapOutlinksNoFilteringRegression(t *testing.T) {
 	}
 }
 
+func TestExtractSitemapOutlinksMarksIndexChildren(t *testing.T) {
+	tests := []struct {
+		name          string
+		body          string
+		expectedChild bool
+	}{
+		{"Sitemap index children are marked", sitemapIndexMixedLastmod, true},
+		{"Urlset entries and media are not marked", urlsetMixedLastmod, false},
+		{"Google News entries are not marked", googleNewsSitemap, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			outlinks, _, err := extractSitemapOutlinks(newSitemapTestURL(t, tt.body), 0, sitemapTestNow)
+			if err != nil {
+				t.Fatalf("extractSitemapOutlinks() failed: %v", err)
+			}
+			if len(outlinks) == 0 {
+				t.Fatal("expected outlinks")
+			}
+			for _, outlink := range outlinks {
+				if outlink.IsSitemapIndexChild() != tt.expectedChild {
+					t.Errorf("%s: expected IsSitemapIndexChild() = %v", outlink.Raw, tt.expectedChild)
+				}
+			}
+		})
+	}
+}
+
 func TestParseSitemapRoot(t *testing.T) {
 	tests := []struct {
 		body    string

@@ -1,0 +1,5 @@
+workers = 1
+max-hops = 1  # Articles listed in nested sitemaps must be reached at hop 1
+sitemap-index-same-hop = true
+sitemap-max-age = "72h"
+log-level = "debug"

@@ -3,6 +3,7 @@ package postprocessor
 import (
 	"bufio"
 	"context"
+	"net/url"
 	"strings"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
@@ -90,12 +91,36 @@ func extractOutlinks(ctx context.Context, item *models.Item) (outlinks []*models
 	outlinks = filterURLsByProtocol(outlinks)
 	outlinks = filterMaxOutlinks(outlinks)
 
-	// Set the hops level to the item's level + 1
+	// Set the hops level to the item's level + 1, except for the sitemaps listed
+	// in a sitemap index on the same host that stay at the index's level
 	for _, outlink := range outlinks {
+		if config.Get().SitemapIndexSameHop && outlink.IsSitemapIndexChild() && isSameHostIgnoringWWW(item.GetURL(), outlink) {
+			logger.Debug("keeping hop count of sitemap index child", "url", outlink.Raw, "hops", item.GetURL().GetHops())
+			outlink.SetHops(item.GetURL().GetHops())
+			continue
+		}
+
 		outlink.SetHops(item.GetURL().GetHops() + 1)
 	}
 
 	return outlinks, nil
+}
+
+// isSameHostIgnoringWWW reports whether both URLs have the same host, ignoring a leading "www.".
+func isSameHostIgnoringWWW(a, b *models.URL) bool {
+	hostname := func(u *models.URL) string {
+		parsed := u.GetParsed()
+		if parsed == nil {
+			var err error
+			if parsed, err = url.Parse(u.Raw); err != nil {
+				return ""
+			}
+		}
+		return strings.TrimPrefix(strings.ToLower(parsed.Hostname()), "www.")
+	}
+
+	hostA := hostname(a)
+	return hostA != "" && hostA == hostname(b)
 }
 
 const minLinkLength = len("http://a.b")

@@ -169,7 +169,8 @@ func parseSitemap(r io.Reader) (*sitemapDocument, error) {
 }
 
 // extractSitemapOutlinks returns the URLs listed in a sitemap or a sitemap
-// index: every entry's <loc> and the media URLs attached to it. When maxAge is
+// index: every entry's <loc> and the media URLs attached to it. The <loc>s of a
+// sitemap index are marked with SetSitemapIndexChild. When maxAge is
 // positive, entries dated before now-maxAge are dropped along with their media.
 // Entries without a parseable date are always kept.
 //
@@ -197,7 +198,9 @@ func extractSitemapOutlinks(URL *models.URL, maxAge time.Duration, now time.Time
 		}
 
 		if entry.loc != "" {
-			outlinks = append(outlinks, &models.URL{Raw: entry.loc})
+			outlink := &models.URL{Raw: entry.loc}
+			outlink.SetSitemapIndexChild(doc.isIndex())
+			outlinks = append(outlinks, outlink)
 		}
 		for _, media := range entry.media {
 			outlinks = append(outlinks, &models.URL{Raw: media})
