@@ -136,6 +136,8 @@ type Config struct {
 	RateLimitCapacity         float64       `mapstructure:"rate-limit-capacity"`
 	RateLimitRefillRate       float64       `mapstructure:"rate-limit-refill-rate"`
 	RateLimitCleanupFrequency time.Duration `mapstructure:"rate-limit-cleanup-frequency"`
+	MaxInflightPerHost        int           `mapstructure:"max-inflight-per-host"`
+	DeferRateLimitedHosts     bool          `mapstructure:"defer-rate-limited-hosts"`
 
 	// Logging
 	NoStdoutLogging  bool   `mapstructure:"no-stdout-log"`

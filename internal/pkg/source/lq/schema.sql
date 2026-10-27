@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS urls (
     via TEXT DEFAULT '' NOT NULL,
     hops INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'FRESH' CHECK (status IN ('FRESH', 'CLAIMED', 'DONE')),
-    timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    host TEXT DEFAULT '' NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS urls_value ON urls (value); -- for deduplication
 CREATE INDEX IF NOT EXISTS urls_status ON urls (status); -- for queueing

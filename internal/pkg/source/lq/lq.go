@@ -18,6 +18,7 @@ type LQ struct {
 	finishCh  chan *models.Item
 	produceCh chan *models.Item
 	client    *lqClient
+	hosts     *hostTracker
 }
 
 var (
@@ -54,6 +55,7 @@ func (s *LQ) Start(finishChan, produceChan chan *models.Item) error {
 		s.finishCh = finishChan
 		s.produceCh = produceChan
 		s.client = LQclient
+		s.hosts = newHostTracker()
 
 		s.wg.Add(3)
 		go s.consumer()

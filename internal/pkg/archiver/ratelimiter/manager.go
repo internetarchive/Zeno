@@ -100,6 +100,18 @@ func (bm *BucketManager) Wait(host string) time.Duration {
 	return time.Since(start)
 }
 
+// Delay returns how long Wait would currently block for the given host,
+// without taking a token. A host without a bucket has no delay.
+func (bm *BucketManager) Delay(host string) time.Duration {
+	bm.mu.Lock()
+	mb, ok := bm.buckets[host]
+	bm.mu.Unlock()
+	if !ok {
+		return 0
+	}
+	return mb.bucket.delay()
+}
+
 // AdjustOnFailure applies failure adjustments for the given host's bucket.
 func (bm *BucketManager) AdjustOnFailure(host string, statusCode int) {
 	mb := bm.getBucket(host)

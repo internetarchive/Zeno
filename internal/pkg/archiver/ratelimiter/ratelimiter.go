@@ -64,6 +64,24 @@ func (tb *tokenBucket) Wait() {
 	}
 }
 
+// delay returns how long Wait would currently block, without taking a token.
+func (tb *tokenBucket) delay() time.Duration {
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+
+	tb.refill()
+	if tb.tokens >= 1 {
+		return 0
+	}
+
+	var penalty time.Duration
+	if now := tb.nowFunc(); now.Before(tb.penaltyUntil) {
+		penalty = tb.penaltyUntil.Sub(now)
+	}
+
+	return penalty + time.Duration((1-tb.tokens)/tb.refillRate*float64(time.Second))
+}
+
 // refill adds tokens to the bucket based on the time elapsed.
 func (tb *tokenBucket) refill() {
 	now := tb.nowFunc()

@@ -90,7 +90,16 @@ func (s *LQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 		}
 
 		// Fetch URLs from LQ
-		URLs, err := s.getURLs(batchSize)
+		var (
+			URLs        []sqlc_model.Url
+			onlyBlocked bool
+			err         error
+		)
+		if balancingEnabled() {
+			URLs, onlyBlocked, err = s.getBalancedURLs(batchSize)
+		} else {
+			URLs, err = s.getURLs(batchSize)
+		}
 		if err != nil {
 			// If the context was cancelled, the error is likely SQLite being closed (which is expected) and should not be returned as an error.
 			select {
@@ -103,7 +112,10 @@ func (s *LQ) consumerFetcher(ctx context.Context, wg *sync.WaitGroup, urlBuffer 
 			logger.Error("error fetching URLs from LQ", "err", err.Error(), "func", "lq.consumerFetcher")
 		}
 
-		if len(URLs) == 0 {
+		if len(URLs) == 0 && onlyBlocked {
+			// The queue isn't empty, but every host in it is blocked: wait for hosts to free up
+			time.Sleep(250 * time.Millisecond)
+		} else if len(URLs) == 0 {
 			emptyFetches++
 			time.Sleep(250 * time.Millisecond)
 			// Check if crawl is finished when queue is empty

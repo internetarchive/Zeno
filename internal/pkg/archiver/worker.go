@@ -104,6 +104,15 @@ func Start(inputChan, outputChan chan *models.Item) error {
 	return nil
 }
 
+// HostDelay returns how long a request to the given host (as in URL.Host)
+// would currently wait for the rate limiter. It is 0 when rate limiting is disabled.
+func HostDelay(host string) time.Duration {
+	if globalBucketManager == nil {
+		return 0
+	}
+	return globalBucketManager.Delay(host)
+}
+
 // Stop stops the archiver routines and the WARC writer
 func Stop() {
 	if globalArchiver != nil {

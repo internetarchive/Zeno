@@ -92,6 +92,8 @@ func (s *LQ) finisherReceiver(ctx context.Context, wg *sync.WaitGroup, batchCh c
 		case item := <-s.finishCh:
 			logger.Debug("received item", "item", item.GetShortID())
 
+			s.hosts.done(item.GetID())
+
 			var value string
 			// If preprocessing failed, there will be nil values here
 			if item.GetURL() != nil && item.GetURL().GetParsed() != nil {
