@@ -67,7 +67,8 @@ func TestExtractAssets_SelfReferenceWithQuery(t *testing.T) {
 	}
 }
 
-// In a domains crawl, items deeper than 2 still give outlinks but their assets are not captured.
+// In a domains crawl, all items still give outlinks, but like in a normal crawl the assets of
+// HTML pages found as assets and of items deeper than 2 are not captured.
 func TestPostprocessItem_DomainsCrawlAssetDepth(t *testing.T) {
 	config.Set(&config.Config{})
 	config.Get().DisableHTMLTag = []string{}
@@ -81,21 +82,26 @@ func TestPostprocessItem_DomainsCrawlAssetDepth(t *testing.T) {
 	defer domainscrawl.Reset()
 
 	html := `<html><head><link href="style.css"><style>@import url("imported.css");</style></head><body><a href="http://example.com/next">next</a></body></html>`
+	json := `{"image": "http://example.com/a.png", "page": "http://example.com/next"}`
 
 	tests := []struct {
 		name         string
 		depth        int
+		contentType  string
+		body         string
 		wantChildren bool
 	}{
-		{name: "depth 2 captures assets", depth: 2, wantChildren: true},
-		{name: "depth 3 does not capture assets", depth: 3, wantChildren: false},
+		{name: "HTML seed captures assets", depth: 0, contentType: "text/html", body: html, wantChildren: true},
+		{name: "HTML found as asset does not capture assets", depth: 1, contentType: "text/html", body: html, wantChildren: false},
+		{name: "JSON at depth 2 captures assets", depth: 2, contentType: "application/json", body: json, wantChildren: true},
+		{name: "JSON at depth 3 does not capture assets", depth: 3, contentType: "application/json", body: json, wantChildren: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			item := models.NewItem(newArchivedHTMLURL(t, "http://example.com/0", "text/html", html), "")
 			for i := 1; i <= tt.depth; i++ {
-				child := models.NewItem(newArchivedHTMLURL(t, "http://example.com/"+string(rune('0'+i)), "text/html", html), "")
+				child := models.NewItem(newArchivedHTMLURL(t, "http://example.com/"+string(rune('0'+i)), tt.contentType, tt.body), "")
 				if err := item.AddChild(child, models.ItemGotChildren); err != nil {
 					t.Fatalf("unable to add child: %v", err)
 				}
@@ -117,5 +123,28 @@ func TestPostprocessItem_DomainsCrawlAssetDepth(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// --max-outlinks also applies to the outlinks found while extracting assets (e.g. from a JSON document).
+func TestPostprocessItem_MaxOutlinksWithAssetsOutlinks(t *testing.T) {
+	config.Set(&config.Config{})
+	config.Get().MaxHops = 1
+	config.Get().MaxOutlinks = 1
+	// Other tests rely on the default limits
+	t.Cleanup(func() {
+		config.Get().MaxHops = 0
+		config.Get().MaxOutlinks = 0
+	})
+
+	json := `{"a": "http://example.com/page1", "b": "http://example.com/page2", "c": "http://example.com/page3"}`
+
+	item := models.NewItem(newArchivedHTMLURL(t, "http://example.com/data.json", "application/json", json), "")
+	item.SetStatus(models.ItemArchived)
+
+	outlinks := postprocessItem(context.Background(), item)
+
+	if len(outlinks) != 1 {
+		t.Errorf("expected 1 outlink with --max-outlinks 1, got %d", len(outlinks))
 	}
 }

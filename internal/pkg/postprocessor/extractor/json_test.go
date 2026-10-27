@@ -153,6 +153,8 @@ func TestIsValidURL(t *testing.T) {
 		{"Empty String", "", false},
 		{"A Word", "Days", false},
 		{"Hostname with query", "example.com?query=param", true},
+		{"URL in query", "https://example.com/checkout?returnUrl=https://example.org/page", true},
+		{"Text with URL in it", "see https://example.com/checkout?returnUrl=https://example.org/page", false},
 	}
 
 	for _, tt := range tests {

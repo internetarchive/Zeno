@@ -26,7 +26,9 @@ func ExtractAssets(item *models.Item) (assets, outlinks []*models.URL, err error
 			return assets, outlinks, err
 		}
 
-		JSONAssets, outlinks, err := extractor.JSON(item.GetURL())
+		// Not := so that the outlinks are returned
+		var JSONAssets []*models.URL
+		JSONAssets, outlinks, err = extractor.JSON(item.GetURL())
 		if err != nil {
 			return assets, outlinks, err
 		}

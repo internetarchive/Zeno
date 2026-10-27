@@ -107,42 +107,7 @@ func encodeNonUTF8QueryURLs(urls []*models.URL, enc encoding.Encoding) []*models
 		}
 		// According to the URL spec, we only need to encode the query part.
 		// The path part should be left as utf8, we don't need to encode it.
-		// Keep the original order of the pairs, so that the same URL always gives the same string.
-		var newQuery strings.Builder
-		for _, pair := range models.SplitQuery(parsedURL.RawQuery) {
-			key, value := pair.Key, pair.Value
-			var encodedKey, encodedValue string
-			// If the key/value is not valid UTF-8, we do not encode it since it may already be encoded.
-			// If encoding fails, we keep the original key/value.
-
-			if !utf8.ValidString(key) {
-				encodedKey = key
-			} else {
-				encodedKey, err = encoder.String(key)
-				if err != nil {
-					htmldocLogger.Warn("unable to encode query key", "err", err.Error(), "key", key, "url", URL.Raw)
-					encodedKey = key
-				}
-			}
-			if !utf8.ValidString(value) {
-				encodedValue = value
-			} else {
-				encodedValue, err = encoder.String(value)
-				if err != nil {
-					htmldocLogger.Warn("unable to encode query value", "err", err.Error(), "value", value, "url", URL.Raw)
-					encodedValue = value
-				}
-			}
-
-			if newQuery.Len() > 0 {
-				newQuery.WriteByte('&')
-			}
-			newQuery.WriteString(url.QueryEscape(encodedKey))
-			newQuery.WriteByte('=')
-			newQuery.WriteString(url.QueryEscape(encodedValue))
-		}
-
-		newQueryEncoded := newQuery.String()
+		newQueryEncoded := encodeQueryCharacters(parsedURL.RawQuery, encoder, URL.Raw)
 		htmldocLogger.Debug("encoded URL query", "raw_url", URL.Raw, "enc", enc, "raw_query", parsedURL.RawQuery, "new_query", newQueryEncoded)
 
 		parsedURL.RawQuery = newQueryEncoded
@@ -150,4 +115,44 @@ func encodeNonUTF8QueryURLs(urls []*models.URL, enc encoding.Encoding) []*models
 	}
 
 	return urls
+}
+
+// encodeQueryCharacters encodes the literal non-ASCII characters of a raw query with the document's encoder, like browsers do.
+// Everything else, including the already percent-encoded sequences and the order of the parameters, is kept as is.
+func encodeQueryCharacters(rawQuery string, encoder *encoding.Encoder, rawURL string) string {
+	var buf strings.Builder
+
+	for rawQuery != "" {
+		// Keep the ASCII part as is
+		start := strings.IndexFunc(rawQuery, func(r rune) bool { return r >= utf8.RuneSelf })
+		if start == -1 {
+			buf.WriteString(rawQuery)
+			break
+		}
+		buf.WriteString(rawQuery[:start])
+		rawQuery = rawQuery[start:]
+
+		end := strings.IndexFunc(rawQuery, func(r rune) bool { return r < utf8.RuneSelf })
+		if end == -1 {
+			end = len(rawQuery)
+		}
+		characters := rawQuery[:end]
+		rawQuery = rawQuery[end:]
+
+		// If the characters are not valid UTF-8, we do not encode them since they may already be encoded.
+		// If encoding fails, we keep the original characters.
+		encoded := characters
+		if utf8.ValidString(characters) {
+			var err error
+			encoded, err = encoder.String(characters)
+			if err != nil {
+				htmldocLogger.Warn("unable to encode query characters", "err", err.Error(), "characters", characters, "url", rawURL)
+				encoded = characters
+			}
+		}
+
+		buf.WriteString(url.QueryEscape(encoded))
+	}
+
+	return buf.String()
 }

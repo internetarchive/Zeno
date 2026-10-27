@@ -23,9 +23,21 @@ func TestURLToStringKeepsQueryOrder(t *testing.T) {
 	}
 }
 
+func TestURLToStringKeepsKeysWithoutValue(t *testing.T) {
+	u, err := NewURL("https://example.com/image.png?-i+-r+85+D%3A%5CTIFF%5CA.TIF&flag&empty=&a=1")
+	if err != nil {
+		t.Fatalf("error parsing URL: %v", err)
+	}
+
+	expected := "https://example.com/image.png?-i+-r+85+D%3A%5CTIFF%5CA.TIF&flag&empty=&a=1"
+	if actual := u.String(); actual != expected {
+		t.Fatalf("Expected %s, got %s", expected, actual)
+	}
+}
+
 func TestSplitQuery(t *testing.T) {
-	expected := []QueryPair{{"b", "2"}, {"a", "1 2"}, {"b", "3"}, {"c", ""}}
-	actual := SplitQuery("b=2&a=1+2&&b=3&c&bad=%zz&semi=1;2")
+	expected := []queryPair{{"b", "2", true}, {"a", "1 2", true}, {"b", "3", true}, {"c", "", false}, {"d", "", true}}
+	actual := splitQuery("b=2&a=1+2&&b=3&c&d=&bad=%zz&semi=1;2")
 
 	if len(actual) != len(expected) {
 		t.Fatalf("Expected %v, got %v", expected, actual)

@@ -199,22 +199,23 @@ func URLToString(URL *url.URL) string {
 	return URL.String()
 }
 
-// QueryPair is a single unescaped key/value pair of a URL query.
-type QueryPair struct {
-	Key   string
-	Value string
+// queryPair is a single unescaped key/value pair of a URL query.
+type queryPair struct {
+	Key      string
+	Value    string
+	HasValue bool // false for a key without "=", e.g. "flag" in "?flag&a=1"
 }
 
-// SplitQuery parses a raw query into its unescaped key/value pairs, in the order they appear.
+// splitQuery parses a raw query into its unescaped key/value pairs, in the order they appear.
 // It drops the same malformed pairs as url.ParseQuery, but has no limit on the number of pairs.
 // from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=956
 // REASON: url.Values is a map, so it can't keep the order of the pairs
-func SplitQuery(rawQuery string) []QueryPair {
+func splitQuery(rawQuery string) []queryPair {
 	if rawQuery == "" {
 		return nil
 	}
 
-	pairs := make([]QueryPair, 0, strings.Count(rawQuery, "&")+1)
+	pairs := make([]queryPair, 0, strings.Count(rawQuery, "&")+1)
 
 	for rawQuery != "" {
 		var pair string
@@ -223,7 +224,7 @@ func SplitQuery(rawQuery string) []QueryPair {
 			continue
 		}
 
-		key, value, _ := strings.Cut(pair, "=")
+		key, value, hasValue := strings.Cut(pair, "=")
 		key, err := url.QueryUnescape(key)
 		if err != nil {
 			continue
@@ -233,7 +234,7 @@ func SplitQuery(rawQuery string) []QueryPair {
 			continue
 		}
 
-		pairs = append(pairs, QueryPair{Key: key, Value: value})
+		pairs = append(pairs, queryPair{Key: key, Value: value, HasValue: hasValue})
 	}
 
 	return pairs
@@ -242,19 +243,23 @@ func SplitQuery(rawQuery string) []QueryPair {
 // Encode encodes the values into “URL encoded” form
 // from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=1002
 // REASON: it has been modified to keep the original order of the pairs instead of sorting them,
-// the order must be stable so that the same URL always gives the same string (seencheck, dedupe)
+// the order must be stable so that the same URL always gives the same string (seencheck, dedupe),
+// and to keep the keys without "=" as they are, so that we request the URL the page links to
+// ("?flag" and not "?flag=")
 func encodeQuery(rawQuery string) string {
 	var buf strings.Builder
 	buf.Grow(len(rawQuery))
 
-	for _, pair := range SplitQuery(rawQuery) {
+	for _, pair := range splitQuery(rawQuery) {
 		if buf.Len() > 0 {
 			buf.WriteByte('&')
 		}
 
 		buf.WriteString(url.QueryEscape(pair.Key))
-		buf.WriteByte('=')
-		buf.WriteString(url.QueryEscape(pair.Value))
+		if pair.HasValue {
+			buf.WriteByte('=')
+			buf.WriteString(url.QueryEscape(pair.Value))
+		}
 	}
 
 	return buf.String()

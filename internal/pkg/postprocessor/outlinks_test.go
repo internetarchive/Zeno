@@ -42,6 +42,7 @@ func TestFilterMaxOutlinks(t *testing.T) {
 
 	// set limit = 1
 	config.Get().MaxOutlinks = 1
+	t.Cleanup(func() { config.Get().MaxOutlinks = 0 })
 	outlinks3 := filterMaxOutlinks(outlinks)
 	if len(outlinks3) != 1 {
 		t.Errorf("expected 1 outlink, got %d", len(outlinks3))

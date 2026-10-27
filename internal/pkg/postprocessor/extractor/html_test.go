@@ -120,6 +120,9 @@ func TestHTMLAssetsMeta(t *testing.T) {
 			<!-- ignore because of rel="alternate" -->
 			<link rel="alternate" href="http://ex.com/styles/styles.7f7c9ce840c7e527.css">
 			<link foo="123" bar="456">
+			<!-- ignore because resource hints are not resources -->
+			<link rel="preconnect" href="https://hint1.com">
+			<link rel="DNS-Prefetch preconnect" href="https://hint2.com">
 			<meta href="https://a1.com">
 			<meta content="something">
 			<meta http-equiv="Refresh" content="0; url=https://refr1.com">
@@ -128,6 +131,14 @@ func TestHTMLAssetsMeta(t *testing.T) {
 			<meta http-equiv="refresh" content="5">
 			<meta http-equiv="Refresh" content="0; url='https://quote.tld/1'">
 			<meta http-equiv='Refresh' content='0; url=  "https://quote.tld/2" '>
+			<!-- ignore because it is text that contains links, not a URL -->
+			<meta name="description" content="Some text. https://text.tld/1
+https://text.tld/2">
+			<!-- the whole URL, not the url= parameter of its query -->
+			<meta property="og:image" content="https://img.tld/resize?url=https://img.tld/a.jpg">
+			<meta http-equiv=" refresh " content="0; url=https://refr3.com">
+			<meta property="og:image" content="https://img.tld/a|b.jpg">
+			<meta property="og:url" content="https://img.tld/page_(1)">
 		</head>
 		<body>
 			experiment
@@ -141,6 +152,10 @@ func TestHTMLAssetsMeta(t *testing.T) {
 		"https://refr2.com",
 		"https://quote.tld/1",
 		"https://quote.tld/2",
+		"https://img.tld/resize?url=https://img.tld/a.jpg",
+		"https://refr3.com",
+		"https://img.tld/a%7Cb.jpg",
+		"https://img.tld/page_(1)",
 	}
 	item := setupItem(html)
 
@@ -148,8 +163,8 @@ func TestHTMLAssetsMeta(t *testing.T) {
 	if err != nil {
 		t.Errorf("HTMLAssets error = %v", err)
 	}
-	if len(assets) != 7 {
-		t.Errorf("We couldn't extract all meta & link assets. Received %d, expected 5", len(assets))
+	if len(assets) != len(urlsExpected) {
+		t.Fatalf("We couldn't extract all meta & link assets. Received %d, expected %d", len(assets), len(urlsExpected))
 	}
 	for i, asset := range assets {
 		if asset.Raw != urlsExpected[i] {
@@ -276,5 +291,46 @@ func TestHTMLBackgroundAttribute(t *testing.T) {
 	}
 	if len(assets) != 3 {
 		t.Errorf("We couldn't extract all [background] attribute assets. Received %d, expected 3", len(assets))
+	}
+}
+
+// URLs in <script> tags are captured as assets, except schema.org vocabulary.
+func TestHTMLAssetsScriptSchemaOrg(t *testing.T) {
+	html := `
+	<html>
+		<head>
+			<script type="application/ld+json">{
+				"@context": "https://schema.org",
+				"@type": "DiscussionForumPosting",
+				"url": "https://social.tld/profile/a/post/1",
+				"interactionStatistic": [{"interactionType": "https://schema.org/LikeAction"}],
+				"sharedContent": {"image": {"url": "https://cdn.social.tld/img/abc123"}}
+			}</script>
+			<script>var vocabulary = "http://schema.org/Person"; fetch("https://api.social.tld/v1/feed")</script>
+		</head>
+		<body></body>
+	</html>`
+
+	assets, err := HTMLAssets(setupItem(html))
+	if err != nil {
+		t.Fatalf("HTMLAssets error = %v", err)
+	}
+
+	assetSet := make(map[string]bool)
+	for _, asset := range assets {
+		assetSet[asset.Raw] = true
+		if strings.Contains(asset.Raw, "schema.org") {
+			t.Errorf("expected schema.org vocabulary to be ignored, got %s", asset.Raw)
+		}
+	}
+
+	for _, expected := range []string{
+		"https://social.tld/profile/a/post/1",
+		"https://cdn.social.tld/img/abc123",
+		"https://api.social.tld/v1/feed",
+	} {
+		if !assetSet[expected] {
+			t.Errorf("expected asset %s, got assets %v", expected, assetSet)
+		}
 	}
 }
