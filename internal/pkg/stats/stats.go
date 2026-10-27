@@ -20,6 +20,7 @@ type stats struct {
 	Paused                 atomic.Bool
 	HTTPReturnCodes        *rateBucket
 	SeencheckFailures      atomic.Int64
+	SitemapEntriesFiltered atomic.Int64
 	MeanHTTPResponseTime   *mean // in ms
 	MeanProcessBodyTime    *mean // in ms
 	MeanWaitOnFeedbackTime *mean // in ms
@@ -124,6 +125,7 @@ func GetMapTUI() map[string]any {
 		"CF Challenge pages seen":     globalStats.cfMitigated.Load(),
 		"Akamai Challenge pages seen": globalStats.akamaiMitigated.Load(),
 		"Seencheck failures":          globalStats.SeencheckFailures.Load(),
+		"Sitemap entries filtered":    globalStats.SitemapEntriesFiltered.Load(),
 		"Mean HTTP response time":     globalStats.MeanHTTPResponseTime.get(),
 		"Mean wait on feedback time":  globalStats.MeanWaitOnFeedbackTime.get(),
 		"Mean process body time":      globalStats.MeanProcessBodyTime.get(),
