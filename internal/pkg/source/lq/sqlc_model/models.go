@@ -11,4 +11,5 @@ type Url struct {
 	Hops      int64
 	Status    string
 	Timestamp int64
+	Host      string
 }

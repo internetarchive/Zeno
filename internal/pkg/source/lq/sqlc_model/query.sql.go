@@ -7,11 +7,12 @@ package sqlc_model
 
 import (
 	"context"
+	"strings"
 )
 
 const addURL = `-- name: AddURL :exec
-INSERT INTO urls (id, value, via, hops)
-VALUES (?, ?, ?, ?)
+INSERT INTO urls (id, value, via, hops, host)
+VALUES (?, ?, ?, ?, ?)
 `
 
 type AddURLParams struct {
@@ -19,6 +20,7 @@ type AddURLParams struct {
 	Value string
 	Via   string
 	Hops  int64
+	Host  string
 }
 
 func (q *Queries) AddURL(ctx context.Context, arg AddURLParams) error {
@@ -27,6 +29,7 @@ func (q *Queries) AddURL(ctx context.Context, arg AddURLParams) error {
 		arg.Value,
 		arg.Via,
 		arg.Hops,
+		arg.Host,
 	)
 	return err
 }
@@ -64,7 +67,7 @@ func (q *Queries) DoneURL(ctx context.Context, id string) error {
 }
 
 const getFreshURLs = `-- name: GetFreshURLs :many
-SELECT id, value, via, hops, status, timestamp FROM urls
+SELECT id, value, via, hops, status, timestamp, host FROM urls
 WHERE status = 'FRESH'
 ORDER BY hops ASC, timestamp ASC
 LIMIT ?
@@ -86,6 +89,61 @@ func (q *Queries) GetFreshURLs(ctx context.Context, limit int64) ([]Url, error) 
 			&i.Hops,
 			&i.Status,
 			&i.Timestamp,
+			&i.Host,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getFreshURLsExcludingHosts = `-- name: GetFreshURLsExcludingHosts :many
+SELECT id, value, via, hops, status, timestamp, host FROM urls
+WHERE status = 'FRESH' AND host NOT IN (/*SLICE:hosts*/?)
+ORDER BY hops ASC, timestamp ASC
+LIMIT ?
+`
+
+type GetFreshURLsExcludingHostsParams struct {
+	Hosts []string
+	Limit int64
+}
+
+func (q *Queries) GetFreshURLsExcludingHosts(ctx context.Context, arg GetFreshURLsExcludingHostsParams) ([]Url, error) {
+	query := getFreshURLsExcludingHosts
+	var queryParams []interface{}
+	if len(arg.Hosts) > 0 {
+		for _, v := range arg.Hosts {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:hosts*/?", strings.Repeat(",?", len(arg.Hosts))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:hosts*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Url
+	for rows.Next() {
+		var i Url
+		if err := rows.Scan(
+			&i.ID,
+			&i.Value,
+			&i.Via,
+			&i.Hops,
+			&i.Status,
+			&i.Timestamp,
+			&i.Host,
 		); err != nil {
 			return nil, err
 		}
