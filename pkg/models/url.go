@@ -28,6 +28,8 @@ type URL struct {
 	Hops      int // This determines the number of hops this item is the result of, a hop is a "jump" from 1 page to another page
 	Redirects int
 
+	sitemapIndexChild bool // The URL is a <sitemap><loc> of a sitemap index, see --sitemap-index-same-hop
+
 	stringCache string
 	once        sync.Once
 
@@ -145,6 +147,16 @@ func (u *URL) SetHops(hops int) {
 
 func (u *URL) GetHops() int {
 	return u.Hops
+}
+
+// SetSitemapIndexChild marks the URL as a sitemap listed in a sitemap index.
+func (u *URL) SetSitemapIndexChild(isChild bool) {
+	u.sitemapIndexChild = isChild
+}
+
+// IsSitemapIndexChild reports whether the URL is a sitemap listed in a sitemap index.
+func (u *URL) IsSitemapIndexChild() bool {
+	return u.sitemapIndexChild
 }
 
 func (u *URL) String() string {
