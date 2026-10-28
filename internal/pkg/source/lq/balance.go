@@ -3,16 +3,12 @@ package lq
 import (
 	"net/url"
 	"sync"
-	"time"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/archiver/ratelimiter"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/source/lq/sqlc_model"
 )
-
-// rateLimitedHostDelay is the rate limiter wait above which a host is considered
-// rate limited (e.g. in a 429 penalty) rather than just paced.
-const rateLimitedHostDelay = time.Second
 
 // hostTracker counts the URLs dispatched by the LQ that are still in flight, per host.
 type hostTracker struct {
@@ -104,7 +100,7 @@ func (s *LQ) getBalancedURLs(batchSize int) ([]sqlc_model.Url, bool, error) {
 
 		if claimed {
 			inBatch[host]++
-		} else if deferRateLimited && archiver.HostDelay(host) > rateLimitedHostDelay {
+		} else if deferRateLimited && archiver.HostDelay(host) > ratelimiter.RateLimitedDelay {
 			return true
 		}
 

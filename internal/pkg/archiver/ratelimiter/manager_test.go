@@ -256,3 +256,30 @@ func TestConcurrentSameHost(t *testing.T) {
 		t.Errorf("expected exactly 1 bucket for host %s, got %d", host, bucketCount)
 	}
 }
+
+func TestRateLimited(t *testing.T) {
+	ctx := context.Background()
+	bm := NewBucketManager(ctx, 10, 10, 5, 1*time.Second)
+	defer bm.Close()
+
+	host := "example.com"
+	if bm.RateLimited(host) {
+		t.Errorf("expected a host without a bucket not to be rate limited")
+	}
+
+	// Paced, not rate limited: the bucket is empty but refills in well under a second.
+	for range 10 {
+		bm.Wait(host)
+	}
+	if bm.RateLimited(host) {
+		t.Errorf("expected an empty bucket refilling at 5/s not to be rate limited, delay %v", bm.Delay(host))
+	}
+
+	bm.AdjustOnFailure(host, 429)
+	if !bm.RateLimited(host) {
+		t.Errorf("expected a host in a 429 penalty to be rate limited, delay %v", bm.Delay(host))
+	}
+	if bm.RateLimited("other.com") {
+		t.Errorf("expected another host not to be rate limited")
+	}
+}

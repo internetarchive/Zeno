@@ -47,6 +47,17 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 		panic("request is nil")
 	}
 
+	// With --defer-rate-limited-hosts, assets of a rate-limited host are skipped
+	// rather than queued up behind its penalty, where they would hold a worker and
+	// keep the penalty going when the host answers them with 429s again.
+	deferRateLimited := globalBucketManager != nil && config.Get().DeferRateLimitedHosts
+	isAsset := item.GetDepthWithoutRedirections() > 0
+	if deferRateLimited && isAsset && globalBucketManager.RateLimited(req.URL.Host) {
+		logger.Warn("skipping asset, host is rate limited")
+		item.SetStatus(models.ItemFailed)
+		return
+	}
+
 	// Wait for the rate limiter if enabled
 	if globalBucketManager != nil {
 		elapsed := globalBucketManager.Wait(req.URL.Host)
@@ -56,6 +67,7 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 	// Don't use the global bucket manager in the retry loop.
 	// Most failed requests won't reach the server anyway, so we don't need to wait for the rate limit.
 	// This prevents workers from being blocked for too long by dead sites, such as host unreachable or DNS errors.
+	// The exception is --defer-rate-limited-hosts after a failure that put the host in a penalty, see below.
 	for retry := 0; retry <= config.Get().MaxRetry; retry++ {
 		// This is unused unless there is an error
 		retrySleepTime := time.Second * time.Duration(retry*2)
@@ -120,6 +132,21 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 			retryReason := "bad response code"
 			if isDiscardedChallengePage {
 				retryReason = discardReason
+			}
+
+			// With --defer-rate-limited-hosts, don't retry straight into the penalty the
+			// failure just set: give up on assets, and wait out the penalty for pages.
+			if retry < config.Get().MaxRetry && deferRateLimited && globalBucketManager.RateLimited(req.URL.Host) {
+				if isAsset {
+					logger.Warn("giving up on asset, host is rate limited", "reason", retryReason, "status_code", resp.StatusCode, "url", req.URL)
+					item.SetStatus(models.ItemFailed)
+					return
+				}
+
+				logger.Warn("retrying after rate limit penalty", "reason", retryReason, "retry", retry, "status_code", resp.StatusCode, "url", req.URL)
+				elapsed := globalBucketManager.Wait(req.URL.Host)
+				logger.Debug("got token from bucket", "elapsed", elapsed)
+				continue
 			}
 
 			if retry < config.Get().MaxRetry {
