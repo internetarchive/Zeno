@@ -74,17 +74,15 @@ func postprocessItem(ctx context.Context, item *models.Item) []*models.Item {
 	// 1. the item [is not an embeded css item] and [is a child has a depth (without redirections) bigger than 2].
 	//    -> we don't want to go too deep but still get the assets of assets (f.ex: m3u8)
 	//    -> CSS @import chains can be very long, the depth control logic for embedded CSS item is in the AddAtImportLinksToItemChild() function separately.
-	// 2. assets capture and domains crawl are disabled
+	// 2. the item is HTML that was extracted as an asset
+	//
+	// --disable-assets-capture is handled by shouldExtractAssets, so outlinks are still extracted.
 	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 && !extractor.IsEmbeddedCSS(item) {
 		logger.Debug("item is a child and it's depth (without redirections) is more than 2")
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
 	} else if !domainscrawl.Enabled() && (item.GetDepthWithoutRedirections() == 1 && strings.Contains(item.GetURL().GetMIMEType().String(), "html")) {
 		logger.Debug("HTML got extracted as asset, skipping")
-		item.SetStatus(models.ItemCompleted)
-		return outlinks
-	} else if config.Get().DisableAssetsCapture && !domainscrawl.Enabled() {
-		logger.Debug("assets capture and domains crawl are disabled")
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
 	}
