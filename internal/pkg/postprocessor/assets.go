@@ -114,7 +114,7 @@ func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []
 
 		// Case 2: asset is a duplicate of the item's URL
 		itemURL := item.GetURL()
-		if itemURL != nil && asset.Raw == itemURL.String() {
+		if itemURL != nil && isItemURL(asset, itemURL) {
 			logger.Debug("removing asset that is a duplicate of the item URL", "asset", asset.Raw)
 			assets = slices.Delete(assets, i, i+1)
 			continue // same: skip increment to check the next item now at index i
@@ -125,6 +125,7 @@ func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []
 			unescaped, err := url.QueryUnescape(strings.ReplaceAll(asset.Raw, "amp;", ""))
 			if err != nil {
 				logger.Warn("reddit url unescapable", "item", item.GetShortID(), "asset", asset.Raw)
+				i++
 				continue
 			}
 			assets[i] = &models.URL{
@@ -150,6 +151,62 @@ func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []
 	}
 
 	return assets, outlinks, nil
+}
+
+// isItemURL reports whether the asset is the item's own URL (e.g. <link href="#">), once the asset
+// is encoded like the item URL and without its fragment
+func isItemURL(asset, itemURL *models.URL) bool {
+	if asset.Raw == itemURL.String() {
+		return true
+	}
+
+	itemParsed := itemURL.GetParsed()
+	if itemParsed == nil {
+		return false
+	}
+
+	// A URL that isn't absolute, or whose path ends differently, can't give the same string.
+	// Checking it on the raw asset avoids parsing and encoding most assets.
+	segment, absolute := lastPathSegment(asset.Raw)
+	if !absolute {
+		return false
+	}
+	if strings.Contains(segment, "%") {
+		var err error
+		if segment, err = url.PathUnescape(segment); err != nil {
+			return false // url.Parse would fail too
+		}
+	}
+	if segment != itemParsed.Path[strings.LastIndexByte(itemParsed.Path, '/')+1:] {
+		return false
+	}
+
+	parsed, err := url.Parse(asset.Raw)
+	if err != nil {
+		return false
+	}
+	parsed.Fragment, parsed.RawFragment = "", ""
+
+	return models.URLToString(parsed) == itemURL.String()
+}
+
+// lastPathSegment returns what follows the last "/" in the path of a raw URL ("" if it has no path),
+// and false if the URL isn't absolute
+func lastPathSegment(rawURL string) (string, bool) {
+	if i := strings.IndexAny(rawURL, "?#"); i != -1 {
+		rawURL = rawURL[:i]
+	}
+
+	_, afterScheme, found := strings.Cut(rawURL, "://")
+	if !found {
+		return "", false
+	}
+
+	if !strings.Contains(afterScheme, "/") {
+		return "", true
+	}
+
+	return afterScheme[strings.LastIndexByte(afterScheme, '/')+1:], true
 }
 
 // 1. If Zeno is running in headless mode, we don't extract assets

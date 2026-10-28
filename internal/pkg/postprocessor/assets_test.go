@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 	"github.com/internetarchive/Zeno/v2/pkg/models"
@@ -82,6 +83,104 @@ func TestSanitizeAssetsOutlinks(t *testing.T) {
 	}
 	if len(outlinks) != 1 {
 		t.Errorf("expected 1 filtered outlink, got %d", len(outlinks))
+	}
+}
+
+// The item's own URL is removed from its assets however it is written in the page.
+func TestSanitizeAssetsOutlinks_ItemURLWrittenDifferently(t *testing.T) {
+	newURL, _ := models.NewURL("http://example.com/doc.html?b=x/y&a=1")
+	newItem := models.NewItem(&newURL, "")
+
+	a1, _ := models.NewURL("http://example.com/doc.html?b=x/y&a=1#top")
+	a2, _ := models.NewURL("http://example.com/doc.html?b=x%2Fy&a=1")
+	a3, _ := models.NewURL("http://example.com/doc.html?a=1&b=x/y") // another order is another URL
+	a4, _ := models.NewURL("http://example.com/img.png")
+
+	assets, _, err := SanitizeAssetsOutlinks(newItem, []*models.URL{&a1, &a2, &a3, &a4}, nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
+
+	if len(assets) != 2 || assets[0] != &a3 || assets[1] != &a4 {
+		var raws []string
+		for _, asset := range assets {
+			raws = append(raws, asset.Raw)
+		}
+		t.Errorf("expected only %s and %s as assets, got %v", a3.Raw, a4.Raw, raws)
+	}
+
+	encodedURL, _ := models.NewURL("http://example.com/caf%C3%A9.html")
+	encodedItem := models.NewItem(&encodedURL, "")
+	e1, _ := models.NewURL("http://example.com/caf%C3%A9.html#top")
+	e2, _ := models.NewURL("http://example.com/caf%C3%A8.html")
+
+	assets, _, err = SanitizeAssetsOutlinks(encodedItem, []*models.URL{&e1, &e2}, nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
+	if len(assets) != 1 || assets[0] != &e2 {
+		t.Errorf("expected only %s as asset, got %d assets", e2.Raw, len(assets))
+	}
+
+	rootURL, _ := models.NewURL("http://example.com")
+	rootItem := models.NewItem(&rootURL, "")
+	r1, _ := models.NewURL("http://example.com#top")
+	r2, _ := models.NewURL("http://example.com/")
+
+	assets, _, err = SanitizeAssetsOutlinks(rootItem, []*models.URL{&r1, &r2}, nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
+	if len(assets) != 1 || assets[0] != &r2 {
+		t.Errorf("expected only %s as asset, got %d assets", r2.Raw, len(assets))
+	}
+}
+
+func TestLastPathSegment(t *testing.T) {
+	tests := []struct {
+		rawURL  string
+		segment string
+		ok      bool
+	}{
+		{"http://example.com/dir/doc.html?a=/b#c/d", "doc.html", true},
+		{"http://example.com/dir/", "", true},
+		{"http://example.com/", "", true},
+		{"http://example.com", "", true},
+		{"http://example.com?a=/b", "", true},
+		{"//example.com/doc.html", "", false},
+		{"mw-data:TemplateStyles:r1156832818", "", false},
+		{"page.html?u=http://example.com/a", "", false},
+	}
+
+	for _, tt := range tests {
+		segment, ok := lastPathSegment(tt.rawURL)
+		if segment != tt.segment || ok != tt.ok {
+			t.Errorf("lastPathSegment(%q) = %q, %v; want %q, %v", tt.rawURL, segment, ok, tt.segment, tt.ok)
+		}
+	}
+}
+
+// A reddit.com asset that can't be unescaped is kept as is, it used to loop forever.
+func TestRedditAssetUnescapable(t *testing.T) {
+	newURL, _ := models.NewURL("https://reddit.com/")
+	newItem := models.NewItem(&newURL, "")
+
+	a1, _ := models.NewURL("http://reddit.com/asset?q=100%")
+	a2, _ := models.NewURL("http://reddit.com/asset?a=1&amp;b=2")
+
+	done := make(chan []*models.URL)
+	go func() {
+		assets, _, _ := SanitizeAssetsOutlinks(newItem, []*models.URL{&a1, &a2}, nil, nil)
+		done <- assets
+	}()
+
+	select {
+	case assets := <-done:
+		if len(assets) != 2 || assets[0].Raw != "http://reddit.com/asset?q=100%" || assets[1].Raw != "http://reddit.com/asset?a=1&b=2" {
+			t.Errorf("unexpected assets %v and %v", assets[0].Raw, assets[1].Raw)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("SanitizeAssetsOutlinks did not return")
 	}
 }
 

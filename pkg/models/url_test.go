@@ -35,8 +35,41 @@ func TestURLToStringKeepsKeysWithoutValue(t *testing.T) {
 	}
 }
 
+// Pairs that can't be unescaped are kept, only the bytes that can't appear in a query are escaped,
+// and encoding the result again gives the same URL.
+func TestURLToStringKeepsMalformedPairs(t *testing.T) {
+	tests := []struct {
+		raw      string
+		expected string
+	}{
+		{"http://example.com/a?a=1;b=2&c=3", "http://example.com/a?a=1;b=2&c=3"},
+		{"http://example.com/a?q=100%&c=3", "http://example.com/a?q=100%&c=3"},
+		{"http://example.com/a?q=100%", "http://example.com/a?q=100%"},
+		{"http://example.com/a?bad=%zz", "http://example.com/a?bad=%zz"},
+		{"http://example.com/a?q=a b;c é&d=a b", "http://example.com/a?q=a%20b;c%20%C3%A9&d=a+b"},
+	}
+
+	for _, tt := range tests {
+		u, err := NewURL(tt.raw)
+		if err != nil {
+			t.Fatalf("error parsing URL: %v", err)
+		}
+		if actual := u.String(); actual != tt.expected {
+			t.Errorf("Expected %s, got %s", tt.expected, actual)
+		}
+
+		again, err := NewURL(u.String())
+		if err != nil {
+			t.Fatalf("error parsing URL: %v", err)
+		}
+		if actual := again.String(); actual != tt.expected {
+			t.Errorf("Expected %s when encoding again, got %s", tt.expected, actual)
+		}
+	}
+}
+
 func TestSplitQuery(t *testing.T) {
-	expected := []queryPair{{"b", "2", true}, {"a", "1 2", true}, {"b", "3", true}, {"c", "", false}, {"d", "", true}}
+	expected := []queryPair{{"b", "2", true, ""}, {"a", "1 2", true, ""}, {"b", "3", true, ""}, {"c", "", false, ""}, {"d", "", true, ""}, {Raw: "bad=%zz"}, {Raw: "semi=1;2"}}
 	actual := splitQuery("b=2&a=1+2&&b=3&c&d=&bad=%zz&semi=1;2")
 
 	if len(actual) != len(expected) {
