@@ -112,6 +112,16 @@ func (bm *BucketManager) Delay(host string) time.Duration {
 	return mb.bucket.delay()
 }
 
+// RateLimitedDelay is the wait above which a host is considered rate limited
+// (e.g. in a 429 penalty) rather than just paced.
+const RateLimitedDelay = time.Second
+
+// RateLimited reports whether Wait would currently block for longer than
+// RateLimitedDelay for the given host.
+func (bm *BucketManager) RateLimited(host string) bool {
+	return bm.Delay(host) > RateLimitedDelay
+}
+
 // AdjustOnFailure applies failure adjustments for the given host's bucket.
 func (bm *BucketManager) AdjustOnFailure(host string, statusCode int) {
 	mb := bm.getBucket(host)
