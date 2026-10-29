@@ -165,19 +165,19 @@ func isItemURL(asset, itemURL *models.URL) bool {
 		return false
 	}
 
-	// A URL that isn't absolute, or whose path ends differently, can't give the same string.
+	// A URL that isn't absolute, or whose unescaped path is different, can't give the same string.
 	// Checking it on the raw asset avoids parsing and encoding most assets.
-	segment, absolute := lastPathSegment(asset.Raw)
+	path, absolute := rawPath(asset.Raw)
 	if !absolute {
 		return false
 	}
-	if strings.Contains(segment, "%") {
+	if strings.Contains(path, "%") {
 		var err error
-		if segment, err = url.PathUnescape(segment); err != nil {
+		if path, err = url.PathUnescape(path); err != nil {
 			return false // url.Parse would fail too
 		}
 	}
-	if segment != itemParsed.Path[strings.LastIndexByte(itemParsed.Path, '/')+1:] {
+	if path != itemParsed.Path {
 		return false
 	}
 
@@ -190,9 +190,9 @@ func isItemURL(asset, itemURL *models.URL) bool {
 	return models.URLToString(parsed) == itemURL.String()
 }
 
-// lastPathSegment returns what follows the last "/" in the path of a raw URL ("" if it has no path),
+// rawPath returns the path of a raw URL as it is written ("" if it has no path),
 // and false if the URL isn't absolute
-func lastPathSegment(rawURL string) (string, bool) {
+func rawPath(rawURL string) (string, bool) {
 	if i := strings.IndexAny(rawURL, "?#"); i != -1 {
 		rawURL = rawURL[:i]
 	}
@@ -202,11 +202,10 @@ func lastPathSegment(rawURL string) (string, bool) {
 		return "", false
 	}
 
-	if !strings.Contains(afterScheme, "/") {
-		return "", true
+	if i := strings.IndexByte(afterScheme, '/'); i != -1 {
+		return afterScheme[i:], true
 	}
-
-	return afterScheme[strings.LastIndexByte(afterScheme, '/')+1:], true
+	return "", true
 }
 
 // 1. If Zeno is running in headless mode, we don't extract assets

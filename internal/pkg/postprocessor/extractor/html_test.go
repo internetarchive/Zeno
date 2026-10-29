@@ -123,6 +123,8 @@ func TestHTMLAssetsMeta(t *testing.T) {
 			<!-- ignore because resource hints are not resources -->
 			<link rel="preconnect" href="https://hint1.com">
 			<link rel="DNS-Prefetch preconnect" href="https://hint2.com">
+			<!-- a stylesheet that is also a resource hint -->
+			<link rel="preconnect stylesheet" href="https://hint3.com/main.css">
 			<meta href="https://a1.com">
 			<meta content="something">
 			<meta http-equiv="Refresh" content="0; url=https://refr1.com">
@@ -139,6 +141,11 @@ https://text.tld/2">
 			<meta http-equiv=" refresh " content="0; url=https://refr3.com">
 			<meta property="og:image" content="https://img.tld/a|b.jpg">
 			<meta property="og:url" content="https://img.tld/page_(1)">
+			<!-- a URL with a space -->
+			<meta property="og:image" content=" https://img.tld/my photo.jpg ">
+			<!-- ignore because it is a description that starts with a link -->
+			<meta name="description" content="https://text.tld/3 is a link
+in a description">
 		</head>
 		<body>
 			experiment
@@ -146,6 +153,7 @@ https://text.tld/2">
 	</html>`
 	urlsExpected := []string{
 		"http://ex.com/styles/styles.7f7c9ce840c7e527.css",
+		"https://hint3.com/main.css",
 		"https://a1.com",
 		"https://refr1.com",
 		"http://UPPER.COM/PAGE2.HTML",
@@ -156,6 +164,7 @@ https://text.tld/2">
 		"https://refr3.com",
 		"https://img.tld/a%7Cb.jpg",
 		"https://img.tld/page_(1)",
+		"https://img.tld/my%20photo.jpg",
 	}
 	item := setupItem(html)
 

@@ -329,11 +329,8 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 					return
 				}
 			}
-			// Resource hints only name an origin to connect to, not a resource
-			for rel := range strings.FieldsSeq(strings.ToLower(i.AttrOr("rel", ""))) {
-				if rel == "preconnect" || rel == "dns-prefetch" {
-					return
-				}
+			if isResourceHintOnly(i.AttrOr("rel", "")) {
+				return
 			}
 			link, exists := i.Attr("href")
 			if exists {
@@ -448,11 +445,29 @@ func extractURLFromContent(content string, isRefresh bool) (string, bool) {
 		}
 	}
 
+	// A URL can contain spaces ("https://example.com/my photo.jpg"), so the content only has to start
+	// with a URL, on one line. A description that contains a link starts with text.
 	content = strings.TrimSpace(content)
-	if !strings.ContainsAny(content, " \t\r\n") && LinkRegexStrict.MatchString(content) {
+	if len(content) < 4 || !strings.EqualFold(content[:4], "http") || strings.ContainsAny(content, "\r\n") {
+		return "", false
+	}
+	if loc := LinkRegexStrict.FindStringIndex(content); loc != nil && loc[0] == 0 {
 		return content, true
 	}
 	return "", false
+}
+
+// isResourceHintOnly reports whether a <link rel> only has resource hints, which name an origin to
+// connect to and not a resource. rel="preconnect stylesheet" is still a stylesheet.
+func isResourceHintOnly(rel string) bool {
+	hint := false
+	for token := range strings.FieldsSeq(strings.ToLower(rel)) {
+		if token != "preconnect" && token != "dns-prefetch" {
+			return false
+		}
+		hint = true
+	}
+	return hint
 }
 
 // appendScriptURLs appends the URLs found in a <script> to the raw assets, except schema.org vocabulary

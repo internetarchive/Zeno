@@ -122,6 +122,20 @@ func TestSanitizeAssetsOutlinks_ItemURLWrittenDifferently(t *testing.T) {
 		t.Errorf("expected only %s as asset, got %d assets", e2.Raw, len(assets))
 	}
 
+	// An encoded slash is not a path separator
+	slashURL, _ := models.NewURL("https://example.com/files/a%2Fb.html")
+	slashItem := models.NewItem(&slashURL, "")
+	s1, _ := models.NewURL("https://example.com/files/a%2Fb.html#top")
+	s2, _ := models.NewURL("https://example.com/files/a/b.html")
+
+	assets, _, err = SanitizeAssetsOutlinks(slashItem, []*models.URL{&s1, &s2}, nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
+	if len(assets) != 1 || assets[0] != &s2 {
+		t.Errorf("expected only %s as asset, got %d assets", s2.Raw, len(assets))
+	}
+
 	rootURL, _ := models.NewURL("http://example.com")
 	rootItem := models.NewItem(&rootURL, "")
 	r1, _ := models.NewURL("http://example.com#top")
@@ -136,15 +150,15 @@ func TestSanitizeAssetsOutlinks_ItemURLWrittenDifferently(t *testing.T) {
 	}
 }
 
-func TestLastPathSegment(t *testing.T) {
+func TestRawPath(t *testing.T) {
 	tests := []struct {
-		rawURL  string
-		segment string
-		ok      bool
+		rawURL string
+		path   string
+		ok     bool
 	}{
-		{"http://example.com/dir/doc.html?a=/b#c/d", "doc.html", true},
-		{"http://example.com/dir/", "", true},
-		{"http://example.com/", "", true},
+		{"http://example.com/dir/doc.html?a=/b#c/d", "/dir/doc.html", true},
+		{"http://example.com/files/a%2Fb.html#top", "/files/a%2Fb.html", true},
+		{"http://example.com/", "/", true},
 		{"http://example.com", "", true},
 		{"http://example.com?a=/b", "", true},
 		{"//example.com/doc.html", "", false},
@@ -153,9 +167,9 @@ func TestLastPathSegment(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		segment, ok := lastPathSegment(tt.rawURL)
-		if segment != tt.segment || ok != tt.ok {
-			t.Errorf("lastPathSegment(%q) = %q, %v; want %q, %v", tt.rawURL, segment, ok, tt.segment, tt.ok)
+		path, ok := rawPath(tt.rawURL)
+		if path != tt.path || ok != tt.ok {
+			t.Errorf("rawPath(%q) = %q, %v; want %q, %v", tt.rawURL, path, ok, tt.path, tt.ok)
 		}
 	}
 }
