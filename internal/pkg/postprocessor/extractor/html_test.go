@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 
@@ -12,7 +11,9 @@ import (
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 )
 
-func setupURL(html string) *models.URL {
+func setupURL(t *testing.T, html string) *models.URL {
+	t.Helper()
+
 	resp := &http.Response{
 		Body:   io.NopCloser(bytes.NewBufferString(html)),
 		Header: make(http.Header),
@@ -24,14 +25,16 @@ func setupURL(html string) *models.URL {
 		panic(err)
 	}
 	newURL.SetResponse(resp)
-	if err := generalarchiver.ProcessBody(&newURL, false, false, 0, os.TempDir(), nil); err != nil {
+	if err := generalarchiver.ProcessBody(&newURL, false, false, 0, t.TempDir(), nil); err != nil {
 		panic(err)
 	}
 	return &newURL
 }
 
-func setupItem(html string) *models.Item {
-	newURL := setupURL(html)
+func setupItem(t *testing.T, html string) *models.Item {
+	t.Helper()
+
+	newURL := setupURL(t, html)
 	return models.NewItem(newURL, "")
 }
 
@@ -53,7 +56,7 @@ func TestHTMLOutlinks(t *testing.T) {
 			</map>
 		</body>
 	</html>`
-	URL := setupURL(html)
+	URL := setupURL(t, html)
 
 	extractor := HTMLOutlinkExtractor{}
 	outlinks, err := extractor.Extract(t.Context(), URL)
@@ -76,7 +79,7 @@ func TestHTMLAssetsAudioVideo(t *testing.T) {
 			<embed type="video/mp4" src="/videos/flower.mp4" width="250" height="200" />
 		</body>
 	</html>`
-	item := setupItem(html)
+	item := setupItem(t, html)
 
 	assets, err := HTMLAssets(item)
 	if err != nil {
@@ -100,7 +103,7 @@ func TestHTMLAssetsAttributes(t *testing.T) {
 			</div>
 		</body>
 	</html>`
-	item := setupItem(html)
+	item := setupItem(t, html)
 
 	assets, err := HTMLAssets(item)
 	if err != nil {
@@ -166,7 +169,7 @@ in a description">
 		"https://img.tld/page_(1)",
 		"https://img.tld/my%20photo.jpg",
 	}
-	item := setupItem(html)
+	item := setupItem(t, html)
 
 	assets, err := HTMLAssets(item)
 	if err != nil {
@@ -194,7 +197,7 @@ func TestSrcset(t *testing.T) {
 		</picture>
 		</body>
 	</html>`
-	item := setupItem(html)
+	item := setupItem(t, html)
 	assets, err := HTMLAssets(item)
 	if err != nil {
 		t.Errorf("Error extracting HTML assets %s", err)
@@ -220,7 +223,7 @@ func TestUpperCase(t *testing.T) {
 	   <A HREF="https://a.com/a.html">text</A>
 	   </BODY>
     </HTML>`
-	URL := setupURL(html)
+	URL := setupURL(t, html)
 	extractor := HTMLOutlinkExtractor{}
 	outlinks, err := extractor.Extract(t.Context(), URL)
 	if err != nil {
@@ -248,7 +251,7 @@ func TestCSS(t *testing.T) {
 	  <div style="background: url(http://n.ua/img/bg.png);">
 	</body>
     </html>`
-	item := setupItem(html)
+	item := setupItem(t, html)
 	assets, err := HTMLAssets(item)
 	if err != nil {
 		t.Errorf("Error extracting HTML assets %s", err)
@@ -270,7 +273,7 @@ func TestHTMLDataSrc(t *testing.T) {
 
 </html>
 	`
-	item := setupItem(html)
+	item := setupItem(t, html)
 	assets, err := HTMLAssets(item)
 	if err != nil {
 		t.Errorf("Error extracting HTML assets %s", err)
@@ -292,7 +295,7 @@ func TestHTMLBackgroundAttribute(t *testing.T) {
 			</table>
 		</body>
 	</html>`
-	item := setupItem(html)
+	item := setupItem(t, html)
 
 	assets, err := HTMLAssets(item)
 	if err != nil {
@@ -320,7 +323,7 @@ func TestHTMLAssetsScriptSchemaOrg(t *testing.T) {
 		<body></body>
 	</html>`
 
-	assets, err := HTMLAssets(setupItem(html))
+	assets, err := HTMLAssets(setupItem(t, html))
 	if err != nil {
 		t.Fatalf("HTMLAssets error = %v", err)
 	}

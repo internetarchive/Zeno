@@ -1,7 +1,6 @@
 package truthsocial
 
 import (
-	"os"
 	"testing"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
@@ -19,7 +18,7 @@ func TestExtractAssetsStatusesOutlinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error parsing URL: %v", err)
 	}
-	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", t.TempDir(), 2048, false, -1)
 	spooledTempFile.Write([]byte(body))
 	newURL.SetBody(spooledTempFile)
 

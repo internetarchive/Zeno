@@ -21,7 +21,7 @@ func TestS3Compatible(t *testing.T) {
 	<IsTruncated>false</IsTruncated>
 </ListBucketResult>`
 
-		URLObj := buildTestObjectStorageURLObj("https://example.com/?someparam=1", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
+		URLObj := buildTestObjectStorageURLObj(t, "https://example.com/?someparam=1", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
 		outlinks2, err2 := extractor.Extract(t.Context(), URLObj) // indirectly call, for coverage testing
 		if err != nil || err2 != nil {
@@ -53,7 +53,7 @@ func TestS3Compatible(t *testing.T) {
     </CommonPrefixes>
 </ListBucketResult>`
 
-		URLObj := buildTestObjectStorageURLObj("https://example.com/?list-type=2", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
+		URLObj := buildTestObjectStorageURLObj(t, "https://example.com/?list-type=2", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
 		outlinks2, err2 := extractor.Extract(t.Context(), URLObj) // indirectly call, for coverage testing
 		if err != nil || err2 != nil {
@@ -76,7 +76,7 @@ func TestS3Compatible(t *testing.T) {
 	t.Run("Invalid XML => error", func(t *testing.T) {
 		xmlBody := `<ListBucketResult><BadTag`
 
-		URLObj := buildTestObjectStorageURLObj("https://example.com/?list-type=2", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
+		URLObj := buildTestObjectStorageURLObj(t, "https://example.com/?list-type=2", xmlBody, http.Header{"Server": []string{"AmazonS3"}})
 		outlinks, err := s3Compatible(URLObj)
 		outlinks2, err2 := extractor.Extract(t.Context(), URLObj) // indirectly call, for coverage testing
 		if err == nil || err2 == nil {

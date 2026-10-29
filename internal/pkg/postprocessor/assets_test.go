@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -32,7 +31,7 @@ func TestExtractAssets_HTML(t *testing.T) {
 	}
 	newURL.SetResponse(resp)
 
-	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", t.TempDir(), 2048, false, -1)
 	spooledTempFile.Write([]byte(html))
 
 	newURL.SetBody(spooledTempFile)

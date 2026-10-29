@@ -3,14 +3,15 @@ package extractor
 import (
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
 
-func buildTestObjectStorageURLObj(selfURL, xmlBody string, respHeader http.Header) *models.URL {
+func buildTestObjectStorageURLObj(t *testing.T, selfURL, xmlBody string, respHeader http.Header) *models.URL {
+	t.Helper()
+
 	urlURL, err := url.Parse(selfURL)
 	if err != nil {
 		panic(err)
@@ -23,7 +24,7 @@ func buildTestObjectStorageURLObj(selfURL, xmlBody string, respHeader http.Heade
 		Header: respHeader,
 	})
 
-	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", t.TempDir(), 2048, false, -1)
 	spooledTempFile.Write([]byte(xmlBody))
 
 	URL.SetBody(spooledTempFile)
@@ -71,7 +72,7 @@ func TestObjectStorage(t *testing.T) {
 	t.Run("Unknown object storage server", func(t *testing.T) {
 		xmlBody := `<Placeholder>XML</Placeholder>`
 
-		URLObj := buildTestObjectStorageURLObj("https://example.com/", xmlBody, http.Header{"Server": []string{"NotAnOSS"}})
+		URLObj := buildTestObjectStorageURLObj(t, "https://example.com/", xmlBody, http.Header{"Server": []string{"NotAnOSS"}})
 		extractor := ObjectStorageOutlinkExtractor{}
 		_, err := extractor.Extract(t.Context(), URLObj)
 

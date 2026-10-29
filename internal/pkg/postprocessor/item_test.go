@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
@@ -31,7 +30,7 @@ func newArchivedHTMLURL(t *testing.T, rawURL, contentType, html string) *models.
 	}
 	newURL.SetResponse(resp)
 
-	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", t.TempDir(), 2048, false, -1)
 	spooledTempFile.Write([]byte(html))
 	newURL.SetBody(spooledTempFile)
 
