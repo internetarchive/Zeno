@@ -137,6 +137,18 @@ func Test_encodeNonUTF8QueryURLs(t *testing.T) {
 			urls:     []string{"http://example.com/ABCまんが?q=アニメ", "http://example.com/?q=hello"},
 			wantUrls: []string{"http://example.com/ABC%E3%81%BE%E3%82%93%E3%81%8C?q=%83A%83j%83%81", "http://example.com/?q=hello"},
 		},
+		{
+			name:     "windows-1252 URLs keep query order",
+			encName:  "windows-1252",
+			urls:     []string{"http://example.com/?z=1&q=café&a=2&z=3"},
+			wantUrls: []string{"http://example.com/?z=1&q=caf%E9&a=2&z=3"},
+		},
+		{
+			name:     "windows-1252 URLs keep already encoded characters",
+			encName:  "windows-1252",
+			urls:     []string{"http://example.com/?q=caf%C3%A9&r=café&s=a+b%2Fc"},
+			wantUrls: []string{"http://example.com/?q=caf%C3%A9&r=caf%E9&s=a+b%2Fc"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

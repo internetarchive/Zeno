@@ -280,7 +280,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 					if err != nil {
 						logger.Debug("unable to extract URLs from JSON in script tag", "error", err)
 					} else {
-						rawAssets = append(rawAssets, URLsFromJSON...)
+						rawAssets = appendScriptURLs(rawAssets, URLsFromJSON...)
 					}
 				}
 			}
@@ -304,7 +304,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 							logger.Debug("unable to escape URL from JSON in script tag", "error", err)
 							continue
 						}
-						rawAssets = append(rawAssets, scriptLink)
+						rawAssets = appendScriptURLs(rawAssets, scriptLink)
 					}
 				}
 			}
@@ -315,7 +315,7 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 				if err != nil {
 					logger.Debug("unable to extract URLs from JSON in script tag", "error", err)
 				} else {
-					rawAssets = append(rawAssets, assetsFromScriptContent...)
+					rawAssets = appendScriptURLs(rawAssets, assetsFromScriptContent...)
 				}
 			}
 		})
@@ -328,6 +328,9 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 				if i.AttrOr("rel", "") == "alternate" {
 					return
 				}
+			}
+			if isResourceHintOnly(i.AttrOr("rel", "")) {
+				return
 			}
 			link, exists := i.Attr("href")
 			if exists {
@@ -345,7 +348,8 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 			}
 			content, exists := i.Attr("content")
 			if exists {
-				link, exists := extractURLFromContent(content)
+				isRefresh := strings.EqualFold(strings.TrimSpace(i.AttrOr("http-equiv", "")), "refresh")
+				link, exists := extractURLFromContent(content, isRefresh)
 				if exists {
 					rawAssets = append(rawAssets, link)
 				}
@@ -431,13 +435,57 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 var contentURLRegex = regexp.MustCompile(`(?i)\burl\s*=\s*(\S+)`)
 
 // Must support: "0; url=https://refr1.com", "http://other.com" and be case insensitive
-func extractURLFromContent(content string) (string, bool) {
-	matches := contentURLRegex.FindStringSubmatch(content)
-	if len(matches) > 1 {
-		return strings.Trim(matches[1], `"'`), true
+// The url= part is only looked for in refresh tags, other contents must be a URL alone
+// (e.g. a description that contains a link is not a URL).
+func extractURLFromContent(content string, isRefresh bool) (string, bool) {
+	if isRefresh {
+		matches := contentURLRegex.FindStringSubmatch(content)
+		if len(matches) > 1 {
+			return strings.Trim(matches[1], `"'`), true
+		}
 	}
-	if LinkRegexStrict.MatchString(content) {
+
+	// A URL can contain spaces ("https://example.com/my photo.jpg"), so the content only has to start
+	// with a URL, on one line. A description that contains a link starts with text.
+	content = strings.TrimSpace(content)
+	if len(content) < 4 || !strings.EqualFold(content[:4], "http") || strings.ContainsAny(content, "\r\n") {
+		return "", false
+	}
+	if loc := LinkRegexStrict.FindStringIndex(content); loc != nil && loc[0] == 0 {
 		return content, true
 	}
 	return "", false
+}
+
+// isResourceHintOnly reports whether a <link rel> only has resource hints, which name an origin to
+// connect to and not a resource. rel="preconnect stylesheet" is still a stylesheet.
+func isResourceHintOnly(rel string) bool {
+	hint := false
+	for token := range strings.FieldsSeq(strings.ToLower(rel)) {
+		if token != "preconnect" && token != "dns-prefetch" {
+			return false
+		}
+		hint = true
+	}
+	return hint
+}
+
+// appendScriptURLs appends the URLs found in a <script> to the raw assets, except schema.org vocabulary
+// (JSON-LD "@context", "interactionType"...), which identifies types and is not a resource of the page.
+func appendScriptURLs(rawAssets []string, URLs ...string) []string {
+	for _, URL := range URLs {
+		if !isSchemaOrgVocabulary(URL) {
+			rawAssets = append(rawAssets, URL)
+		}
+	}
+	return rawAssets
+}
+
+func isSchemaOrgVocabulary(URL string) bool {
+	for _, prefix := range []string{"https://schema.org", "http://schema.org"} {
+		if URL == prefix || strings.HasPrefix(URL, prefix+"/") {
+			return true
+		}
+	}
+	return false
 }

@@ -2,9 +2,104 @@ package models
 
 import (
 	"net/http"
+	"runtime"
+	"strings"
 	"sync"
 	"testing"
 )
+
+func TestURLToStringKeepsQueryOrder(t *testing.T) {
+	raw := "https://example.com/doc.html?ZyActionD=ZyDocument&Client=EPA&Index=2011+Thru+2015%7C1995+Thru+1999&Query=600R05032&ImageQuality=r85g16/x150y150g16/i500&ZyEntry=1&SeekPage=b"
+	expected := "https://example.com/doc.html?ZyActionD=ZyDocument&Client=EPA&Index=2011+Thru+2015%7C1995+Thru+1999&Query=600R05032&ImageQuality=r85g16%2Fx150y150g16%2Fi500&ZyEntry=1&SeekPage=b"
+
+	// Map iteration order is random, so check several times
+	for range 20 {
+		u, err := NewURL(raw)
+		if err != nil {
+			t.Fatalf("error parsing URL: %v", err)
+		}
+
+		if actual := u.String(); actual != expected {
+			t.Fatalf("Expected %s, got %s", expected, actual)
+		}
+	}
+}
+
+func TestURLToStringKeepsKeysWithoutValue(t *testing.T) {
+	u, err := NewURL("https://example.com/image.png?-i+-r+85+D%3A%5CTIFF%5CA.TIF&flag&empty=&a=1")
+	if err != nil {
+		t.Fatalf("error parsing URL: %v", err)
+	}
+
+	expected := "https://example.com/image.png?-i+-r+85+D%3A%5CTIFF%5CA.TIF&flag&empty=&a=1"
+	if actual := u.String(); actual != expected {
+		t.Fatalf("Expected %s, got %s", expected, actual)
+	}
+}
+
+// Pairs that can't be unescaped are kept, only the bytes that can't appear in a query are escaped,
+// and encoding the result again gives the same URL.
+func TestURLToStringKeepsMalformedPairs(t *testing.T) {
+	tests := []struct {
+		raw      string
+		expected string
+	}{
+		{"http://example.com/a?a=1;b=2&c=3", "http://example.com/a?a=1;b=2&c=3"},
+		{"http://example.com/a?q=100%&c=3", "http://example.com/a?q=100%&c=3"},
+		{"http://example.com/a?q=100%", "http://example.com/a?q=100%"},
+		{"http://example.com/a?bad=%zz", "http://example.com/a?bad=%zz"},
+		{"http://example.com/a?q=a b;c é&d=a b", "http://example.com/a?q=a%20b;c%20%C3%A9&d=a+b"},
+	}
+
+	for _, tt := range tests {
+		u, err := NewURL(tt.raw)
+		if err != nil {
+			t.Fatalf("error parsing URL: %v", err)
+		}
+		if actual := u.String(); actual != tt.expected {
+			t.Errorf("Expected %s, got %s", tt.expected, actual)
+		}
+
+		again, err := NewURL(u.String())
+		if err != nil {
+			t.Fatalf("error parsing URL: %v", err)
+		}
+		if actual := again.String(); actual != tt.expected {
+			t.Errorf("Expected %s when encoding again, got %s", tt.expected, actual)
+		}
+	}
+}
+
+// A long query of empty pairs must not allocate memory for pairs it drops.
+func TestEncodeQueryEmptyPairs(t *testing.T) {
+	rawQuery := strings.Repeat("&", 1<<20)
+
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	encoded := encodeQuery(rawQuery)
+	runtime.ReadMemStats(&after)
+
+	if encoded != "" {
+		t.Errorf("Expected an empty query, got %d bytes", len(encoded))
+	}
+	if allocated := after.TotalAlloc - before.TotalAlloc; allocated > 4<<20 {
+		t.Errorf("Expected less than 4 MiB allocated for a 1 MiB query, got %d MiB", allocated>>20)
+	}
+}
+
+func TestSplitQuery(t *testing.T) {
+	expected := []queryPair{{"b", "2", true, ""}, {"a", "1 2", true, ""}, {"b", "3", true, ""}, {"c", "", false, ""}, {"d", "", true, ""}, {Raw: "bad=%zz"}, {Raw: "semi=1;2"}}
+	actual := splitQuery("b=2&a=1+2&&b=3&c&d=&bad=%zz&semi=1;2")
+
+	if len(actual) != len(expected) {
+		t.Fatalf("Expected %v, got %v", expected, actual)
+	}
+	for i := range expected {
+		if actual[i] != expected[i] {
+			t.Fatalf("Expected %v, got %v", expected, actual)
+		}
+	}
+}
 
 func TestURLToStringPunycode(t *testing.T) {
 	u, err := NewURL("https://xn----8sbddjhbicfsohgbg1aeo.xn--p1ia/pic/file/map_of_sarlat.pdf")

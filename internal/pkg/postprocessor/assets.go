@@ -114,7 +114,7 @@ func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []
 
 		// Case 2: asset is a duplicate of the item's URL
 		itemURL := item.GetURL()
-		if itemURL != nil && asset.Raw == itemURL.String() {
+		if itemURL != nil && isItemURL(asset, itemURL) {
 			logger.Debug("removing asset that is a duplicate of the item URL", "asset", asset.Raw)
 			assets = slices.Delete(assets, i, i+1)
 			continue // same: skip increment to check the next item now at index i
@@ -125,6 +125,7 @@ func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []
 			unescaped, err := url.QueryUnescape(strings.ReplaceAll(asset.Raw, "amp;", ""))
 			if err != nil {
 				logger.Warn("reddit url unescapable", "item", item.GetShortID(), "asset", asset.Raw)
+				i++
 				continue
 			}
 			assets[i] = &models.URL{
@@ -150,6 +151,61 @@ func SanitizeAssetsOutlinks(item *models.Item, assets []*models.URL, outlinks []
 	}
 
 	return assets, outlinks, nil
+}
+
+// isItemURL reports whether the asset is the item's own URL (e.g. <link href="#">), once the asset
+// is encoded like the item URL and without its fragment
+func isItemURL(asset, itemURL *models.URL) bool {
+	if asset.Raw == itemURL.String() {
+		return true
+	}
+
+	itemParsed := itemURL.GetParsed()
+	if itemParsed == nil {
+		return false
+	}
+
+	// A URL that isn't absolute, or whose unescaped path is different, can't give the same string.
+	// Checking it on the raw asset avoids parsing and encoding most assets.
+	path, absolute := rawPath(asset.Raw)
+	if !absolute {
+		return false
+	}
+	if strings.Contains(path, "%") {
+		var err error
+		if path, err = url.PathUnescape(path); err != nil {
+			return false // url.Parse would fail too
+		}
+	}
+	if path != itemParsed.Path {
+		return false
+	}
+
+	parsed, err := url.Parse(asset.Raw)
+	if err != nil {
+		return false
+	}
+	parsed.Fragment, parsed.RawFragment = "", ""
+
+	return models.URLToString(parsed) == itemURL.String()
+}
+
+// rawPath returns the path of a raw URL as it is written ("" if it has no path),
+// and false if the URL isn't absolute
+func rawPath(rawURL string) (string, bool) {
+	if i := strings.IndexAny(rawURL, "?#"); i != -1 {
+		rawURL = rawURL[:i]
+	}
+
+	_, afterScheme, found := strings.Cut(rawURL, "://")
+	if !found {
+		return "", false
+	}
+
+	if i := strings.IndexByte(afterScheme, '/'); i != -1 {
+		return afterScheme[i:], true
+	}
+	return "", true
 }
 
 // 1. If Zeno is running in headless mode, we don't extract assets
