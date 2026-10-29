@@ -109,7 +109,7 @@ func postprocessItem(ctx context.Context, item *models.Item) []*models.Item {
 				// but like in a normal crawl their own assets are not captured: pages found as assets (e.g. through
 				// <link> or <meta>) would otherwise capture other pages as assets, without any limit.
 				depth := item.GetDepthWithoutRedirections()
-				if domainscrawl.Enabled() && !extractor.IsEmbeddedCSS(item) && (depth > 2 || (depth >= 1 && extractor.IsHTML(item.GetURL()))) {
+				if domainscrawl.Enabled() && !extractor.IsEmbeddedCSS(item) && (depth > 2 || (depth == 1 && extractor.IsHTML(item.GetURL()))) {
 					logger.Debug("item is a child deeper than 2 or an HTML page found as an asset, not capturing its assets", "depth", depth)
 					assets = nil
 

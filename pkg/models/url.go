@@ -216,7 +216,9 @@ func splitQuery(rawQuery string) []queryPair {
 		return nil
 	}
 
-	pairs := make([]queryPair, 0, strings.Count(rawQuery, "&")+1)
+	// Sized for usual queries, but not from the number of "&" alone: empty pairs ("&&&&...") are dropped,
+	// so a long query of them would allocate a lot for nothing
+	pairs := make([]queryPair, 0, min(strings.Count(rawQuery, "&")+1, 16))
 
 	for rawQuery != "" {
 		var pair string

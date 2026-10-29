@@ -93,6 +93,8 @@ func TestPostprocessItem_DomainsCrawlAssetDepth(t *testing.T) {
 	}{
 		{name: "HTML seed captures assets", depth: 0, contentType: "text/html", body: html, wantChildren: true},
 		{name: "HTML found as asset does not capture assets", depth: 1, contentType: "text/html", body: html, wantChildren: false},
+		{name: "HTML at depth 2 captures assets", depth: 2, contentType: "text/html", body: html, wantChildren: true},
+		{name: "HTML at depth 3 does not capture assets", depth: 3, contentType: "text/html", body: html, wantChildren: false},
 		{name: "JSON at depth 2 captures assets", depth: 2, contentType: "application/json", body: json, wantChildren: true},
 		{name: "JSON at depth 3 does not capture assets", depth: 3, contentType: "application/json", body: json, wantChildren: false},
 	}

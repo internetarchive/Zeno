@@ -2,6 +2,8 @@ package models
 
 import (
 	"net/http"
+	"runtime"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -65,6 +67,23 @@ func TestURLToStringKeepsMalformedPairs(t *testing.T) {
 		if actual := again.String(); actual != tt.expected {
 			t.Errorf("Expected %s when encoding again, got %s", tt.expected, actual)
 		}
+	}
+}
+
+// A long query of empty pairs must not allocate memory for pairs it drops.
+func TestEncodeQueryEmptyPairs(t *testing.T) {
+	rawQuery := strings.Repeat("&", 1<<20)
+
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	encoded := encodeQuery(rawQuery)
+	runtime.ReadMemStats(&after)
+
+	if encoded != "" {
+		t.Errorf("Expected an empty query, got %d bytes", len(encoded))
+	}
+	if allocated := after.TotalAlloc - before.TotalAlloc; allocated > 4<<20 {
+		t.Errorf("Expected less than 4 MiB allocated for a 1 MiB query, got %d MiB", allocated>>20)
 	}
 }
 
