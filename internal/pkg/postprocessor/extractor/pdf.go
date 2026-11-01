@@ -1,6 +1,8 @@
 package extractor
 
 import (
+	"context"
+
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 
 	pdfapi "github.com/pdfcpu/pdfcpu/pkg/api"
@@ -23,10 +25,10 @@ func (PDFOutlinkExtractor) Match(URL *models.URL) bool {
 	return URL.GetMIMEType().Is("application/pdf")
 }
 
-func (PDFOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
+func (PDFOutlinkExtractor) Extract(ctx context.Context, URL *models.URL) (outlinks []*models.URL, err error) {
 	defer URL.RewindBody()
 
-	annots, err := pdfapi.Annotations(URL.GetBody(), nil, nil)
+	annots, err := pdfapi.Annotations(ctx, URL.GetBody(), nil, nil)
 	if err != nil {
 		return nil, err
 	}

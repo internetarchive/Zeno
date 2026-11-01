@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"testing"
 
 	generalarchiver "github.com/internetarchive/Zeno/v2/internal/pkg/archiver/general"
@@ -113,7 +112,7 @@ func TestExtractURLsFromHeader(t *testing.T) {
 				t.Errorf("unable to read response body: %v", err)
 			}
 
-			err = generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
+			err = generalarchiver.ProcessBody(URL, false, false, 0, t.TempDir(), nil)
 			if err != nil {
 				t.Errorf("ProcessBody() error = %v", err)
 			}

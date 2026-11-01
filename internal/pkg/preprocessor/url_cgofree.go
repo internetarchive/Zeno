@@ -42,15 +42,25 @@ func NormalizeURL(URL *models.URL, parentURL *models.URL) (err error) {
 				return err
 			}
 		}
-	} else {
-		if parsedURL.Scheme == "" {
-			parsedURL.Scheme = "http"
-		}
 
-		adaParse, err = goada.New(models.URLToString(parsedURL))
+		// Encode the resolved URL like an absolute one, so that a URL gets the same Raw
+		// whether it was found as a relative or an absolute link
+		resolvedURL := adaParse.Href()
+		adaParse.Free()
+
+		parsedURL, err = url.Parse(resolvedURL)
 		if err != nil {
 			return err
 		}
+	}
+
+	if parsedURL.Scheme == "" {
+		parsedURL.Scheme = "http"
+	}
+
+	adaParse, err = goada.New(models.URLToString(parsedURL))
+	if err != nil {
+		return err
 	}
 
 	adaParse.SetHash("")

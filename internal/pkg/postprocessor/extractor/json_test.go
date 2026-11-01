@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/ImVexed/fasturl"
@@ -98,7 +97,7 @@ func TestJSON(t *testing.T) {
 			var URL = new(models.URL)
 			URL.SetResponse(resp)
 
-			err := generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
+			err := generalarchiver.ProcessBody(URL, false, false, 0, t.TempDir(), nil)
 			if err != nil {
 				t.Errorf("ProcessBody() error = %v", err)
 			}
@@ -153,6 +152,8 @@ func TestIsValidURL(t *testing.T) {
 		{"Empty String", "", false},
 		{"A Word", "Days", false},
 		{"Hostname with query", "example.com?query=param", true},
+		{"URL in query", "https://example.com/checkout?returnUrl=https://example.org/page", true},
+		{"Text with URL in it", "see https://example.com/checkout?returnUrl=https://example.org/page", false},
 	}
 
 	for _, tt := range tests {

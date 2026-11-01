@@ -174,7 +174,7 @@ func URLToString(URL *url.URL) string {
 		// Do nothing. We don't want to encode the URL for signature purposes. :(
 		break
 	default:
-		URL.RawQuery = encodeQuery(URL.Query())
+		URL.RawQuery = encodeQuery(URL.RawQuery)
 	}
 
 	URL.Host, err = idna.ToASCII(URL.Host)
@@ -199,30 +199,99 @@ func URLToString(URL *url.URL) string {
 	return URL.String()
 }
 
-// Encode encodes the values into “URL encoded” form
-// from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=1002
-// REASON: it has been modified to not sort
-func encodeQuery(v url.Values) string {
-	if len(v) == 0 {
-		return ""
+// queryPair is a single unescaped key/value pair of a URL query.
+type queryPair struct {
+	Key      string
+	Value    string
+	HasValue bool   // false for a key without "=", e.g. "flag" in "?flag&a=1"
+	Raw      string // set instead of Key and Value when the pair can't be unescaped, e.g. "a=1;b=2" or "q=100%"
+}
+
+// splitQuery parses a raw query into its unescaped key/value pairs, in the order they appear.
+// from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=956
+// REASON: url.Values is a map, so it can't keep the order of the pairs, and url.ParseQuery drops
+// the pairs it can't unescape, so we would request another URL than the one the page links to
+func splitQuery(rawQuery string) []queryPair {
+	if rawQuery == "" {
+		return nil
 	}
 
+	// Sized for usual queries, but not from the number of "&" alone: empty pairs ("&&&&...") are dropped,
+	// so a long query of them would allocate a lot for nothing
+	pairs := make([]queryPair, 0, min(strings.Count(rawQuery, "&")+1, 16))
+
+	for rawQuery != "" {
+		var pair string
+		pair, rawQuery, _ = strings.Cut(rawQuery, "&")
+		if pair == "" {
+			continue
+		}
+		if strings.Contains(pair, ";") {
+			pairs = append(pairs, queryPair{Raw: pair})
+			continue
+		}
+
+		key, value, hasValue := strings.Cut(pair, "=")
+		key, err := url.QueryUnescape(key)
+		if err != nil {
+			pairs = append(pairs, queryPair{Raw: pair})
+			continue
+		}
+		value, err = url.QueryUnescape(value)
+		if err != nil {
+			pairs = append(pairs, queryPair{Raw: pair})
+			continue
+		}
+
+		pairs = append(pairs, queryPair{Key: key, Value: value, HasValue: hasValue})
+	}
+
+	return pairs
+}
+
+// escapeRawQueryPair percent-encodes the bytes that can't appear in a query and keeps everything
+// else as is, like browsers do with the query percent-encode set:
+// https://url.spec.whatwg.org/#special-query-percent-encode-set
+func escapeRawQueryPair(buf *strings.Builder, pair string) {
+	const upperhex = "0123456789ABCDEF"
+
+	for i := 0; i < len(pair); i++ {
+		c := pair[i]
+		switch {
+		case c <= ' ' || c >= 0x7F || c == '"' || c == '#' || c == '<' || c == '>' || c == '\'':
+			buf.WriteByte('%')
+			buf.WriteByte(upperhex[c>>4])
+			buf.WriteByte(upperhex[c&15])
+		default:
+			buf.WriteByte(c)
+		}
+	}
+}
+
+// Encode encodes the values into “URL encoded” form
+// from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=1002
+// REASON: it has been modified to keep the original order of the pairs instead of sorting them,
+// the order must be stable so that the same URL always gives the same string (seencheck, dedupe),
+// and to keep the keys without "=" and the pairs that can't be unescaped as they are, so that we
+// request the URL the page links to ("?flag" and not "?flag=", "?a=1;b=2" and not "?")
+func encodeQuery(rawQuery string) string {
 	var buf strings.Builder
+	buf.Grow(len(rawQuery))
 
-	first := true
+	for _, pair := range splitQuery(rawQuery) {
+		if buf.Len() > 0 {
+			buf.WriteByte('&')
+		}
 
-	for k, vs := range v {
-		keyEscaped := url.QueryEscape(k)
-		for _, v := range vs {
-			if !first {
-				buf.WriteByte('&')
-			}
+		if pair.Raw != "" {
+			escapeRawQueryPair(&buf, pair.Raw)
+			continue
+		}
 
-			first = false
-
-			buf.WriteString(keyEscaped)
+		buf.WriteString(url.QueryEscape(pair.Key))
+		if pair.HasValue {
 			buf.WriteByte('=')
-			buf.WriteString(url.QueryEscape(v))
+			buf.WriteString(url.QueryEscape(pair.Value))
 		}
 	}
 

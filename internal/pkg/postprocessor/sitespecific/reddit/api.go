@@ -1,6 +1,7 @@
 package reddit
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -197,7 +198,7 @@ func (RedditPostAPIOutlinkExtractor) Match(URL *models.URL) bool {
 	return strings.Contains(URL.String(), "reddit.com/api/info.json?id=t3_")
 }
 
-func (RedditPostAPIOutlinkExtractor) Extract(URL *models.URL) (outlinks []*models.URL, err error) {
+func (RedditPostAPIOutlinkExtractor) Extract(_ context.Context, URL *models.URL) (outlinks []*models.URL, err error) {
 	var permalinks []string
 
 	defer URL.RewindBody()

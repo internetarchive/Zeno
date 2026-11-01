@@ -120,3 +120,44 @@ func TestNormalizeURL(t *testing.T) {
 		})
 	}
 }
+
+// A URL must get the same Raw whether it was found as a relative or an absolute link (e.g. in a
+// redirect Location), and Raw must be its String(), because HQ's seencheck uses Raw and the local
+// seencheck uses String().
+func TestNormalizeURLRelativeAndAbsoluteGiveSameRaw(t *testing.T) {
+	config.Set(&config.Config{MaxURLLength: 4000, MaxSegmentRepetition: 3, MaxSegmentRepetitionThreshold: 2})
+
+	parentURL := &models.URL{Raw: "https://example.com/dir/page.html"}
+	parentURL.Parse()
+
+	tests := []struct {
+		relative    string
+		absolute    string
+		expectedURL string
+	}{
+		{"/next?x=a/b&y=c:d", "https://example.com/next?x=a/b&y=c:d", "https://example.com/next?x=a%2Fb&y=c%3Ad"},
+		{"next?b=2&a=1 2", "https://example.com/dir/next?b=2&a=1 2", "https://example.com/dir/next?b=2&a=1+2"},
+		{"/a?q=100%&c=é", "https://example.com/a?q=100%&c=é", "https://example.com/a?q=100%&c=%C3%A9"},
+	}
+
+	for _, tt := range tests {
+		relativeURL := &models.URL{Raw: tt.relative}
+		if err := NormalizeURL(relativeURL, parentURL); err != nil {
+			t.Fatalf("unable to normalize %s: %v", tt.relative, err)
+		}
+		absoluteURL := &models.URL{Raw: tt.absolute}
+		if err := NormalizeURL(absoluteURL, parentURL); err != nil {
+			t.Fatalf("unable to normalize %s: %v", tt.absolute, err)
+		}
+
+		if relativeURL.Raw != tt.expectedURL {
+			t.Errorf("relative %s: got %s, want %s", tt.relative, relativeURL.Raw, tt.expectedURL)
+		}
+		if absoluteURL.Raw != tt.expectedURL {
+			t.Errorf("absolute %s: got %s, want %s", tt.absolute, absoluteURL.Raw, tt.expectedURL)
+		}
+		if relativeURL.String() != relativeURL.Raw {
+			t.Errorf("relative %s: String() %s is not Raw %s", tt.relative, relativeURL.String(), relativeURL.Raw)
+		}
+	}
+}

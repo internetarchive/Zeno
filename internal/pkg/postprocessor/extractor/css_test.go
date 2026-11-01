@@ -2,7 +2,6 @@ package extractor
 
 import (
 	_ "embed"
-	"os"
 	"testing"
 	"time"
 
@@ -233,7 +232,7 @@ func BenchmarkExtractFromURLCSS(b *testing.B) {
 	url := &models.URL{
 		Raw: "http://test.css",
 	}
-	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", b.TempDir(), 2048, false, -1)
 	spooledTempFile.Write(utils.MustDecompressGzippedBytes(fontAwesomeCSSGZ))
 	url.SetBody(spooledTempFile)
 	url.Parse()

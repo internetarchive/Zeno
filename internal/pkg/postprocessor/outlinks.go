@@ -2,6 +2,7 @@ package postprocessor
 
 import (
 	"bufio"
+	"context"
 	"strings"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
@@ -17,7 +18,7 @@ import (
 type OutlinkExtractor interface {
 	Support(extractor.Mode) bool // Support checks if the extractor supports the given mode
 	Match(*models.URL) bool
-	Extract(*models.URL) ([]*models.URL, error)
+	Extract(context.Context, *models.URL) ([]*models.URL, error)
 }
 
 var outlinkExtractors = []OutlinkExtractor{
@@ -30,7 +31,7 @@ var outlinkExtractors = []OutlinkExtractor{
 	reddit.RedditPostAPIOutlinkExtractor{},
 }
 
-func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
+func extractOutlinks(ctx context.Context, item *models.Item) (outlinks []*models.URL, err error) {
 	var (
 		contentType string
 		logger      = log.NewFieldedLogger(&log.Fields{
@@ -61,7 +62,7 @@ func extractOutlinks(item *models.Item) (outlinks []*models.URL, err error) {
 		}
 
 		if p.Match(item.GetURL()) {
-			outlinks, err = p.Extract(item.GetURL())
+			outlinks, err = p.Extract(ctx, item.GetURL())
 			break
 		}
 	}

@@ -135,12 +135,12 @@ func ArchiveItem(item *models.Item, wg *sync.WaitGroup, guard chan struct{}, glo
 				maxRetry = min(maxRetry, botBlockMaxRetry)
 			}
 
-			if retry < maxRetry {
-				logger.Warn("retrying", "reason", retryReason, "retry", retry, "sleep_time", retrySleepTime, "status_code", resp.StatusCode, "url", req.URL)
+			if retry < config.Get().MaxRetry {
+				logger.Warn("retrying", "reason", retryReason, "retry", retry, "sleep_time", retrySleepTime, "status_code", resp.StatusCode)
 				time.Sleep(retrySleepTime)
 				continue
 			} else {
-				logger.Error("retries exceeded", "reason", retryReason, "status_code", resp.StatusCode, "url", req.URL)
+				logger.Error("retries exceeded", "reason", retryReason, "status_code", resp.StatusCode)
 				item.SetStatus(models.ItemFailed)
 				return
 			}
