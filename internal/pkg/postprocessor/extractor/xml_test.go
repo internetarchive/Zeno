@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 
@@ -169,7 +168,7 @@ func TestXML(t *testing.T) {
 			var URL = new(models.URL)
 			URL.SetResponse(resp)
 
-			err := generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
+			err := generalarchiver.ProcessBody(URL, false, false, 0, t.TempDir(), nil)
 			if err != nil {
 				t.Errorf("ProcessBody() error = %v", err)
 			}
@@ -311,7 +310,7 @@ func TestSitemapXMLOutlinkExtractor(t *testing.T) {
 				},
 			})
 
-			spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+			spooledTempFile := spooledtempfile.NewSpooledTempFile("test", t.TempDir(), 2048, false, -1)
 			spooledTempFile.Write([]byte(tc.xmlData))
 
 			URLObj.SetBody(spooledTempFile)

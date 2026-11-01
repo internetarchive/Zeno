@@ -36,7 +36,7 @@ func TestAzure(t *testing.T) {
     </Blobs>
     <NextMarker>dir/azure_files/test_100.txt</NextMarker>
 </EnumerationResults>`
-		URLObj := buildTestObjectStorageURLObj("http://example.com/devstoreaccount1/zeno?restype=container&comp=list&maxresults=1", xmlBody, http.Header{"Server": []string{"Windows-Azure-Blob/1.0"}})
+		URLObj := buildTestObjectStorageURLObj(t, "http://example.com/devstoreaccount1/zeno?restype=container&comp=list&maxresults=1", xmlBody, http.Header{"Server": []string{"Windows-Azure-Blob/1.0"}})
 		outlinks, err := azure(URLObj)
 		extractor := ObjectStorageOutlinkExtractor{}
 		outlinks2, err2 := extractor.Extract(t.Context(), URLObj) // indirectly call, for coverage testing
@@ -74,7 +74,7 @@ func TestAzure(t *testing.T) {
 
 	t.Run("invalid XML", func(t *testing.T) {
 		xmlBody := `<EnumerationResults><BadTag`
-		URLObj := buildTestObjectStorageURLObj("http://example.com/devstoreaccount1/zeno?restype=container&comp=list&maxresults=1", xmlBody, http.Header{"Server": []string{"Windows-Azure-Blob/1.0"}})
+		URLObj := buildTestObjectStorageURLObj(t, "http://example.com/devstoreaccount1/zeno?restype=container&comp=list&maxresults=1", xmlBody, http.Header{"Server": []string{"Windows-Azure-Blob/1.0"}})
 		_, err := azure(URLObj)
 		if err == nil {
 			t.Fatalf("expected error for invalid XML, got none")

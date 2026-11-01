@@ -2,6 +2,7 @@ package postprocessor
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
@@ -104,6 +105,20 @@ func postprocessItem(ctx context.Context, item *models.Item) []*models.Item {
 			if err != nil {
 				logger.Error("unable to extract assets", "err", err.Error())
 			} else {
+				// Domains crawl skips the depth and HTML checks above so that these items still give outlinks,
+				// but like in a normal crawl their own assets are not captured: pages found as assets (e.g. through
+				// <link> or <meta>) would otherwise capture other pages as assets, without any limit.
+				depth := item.GetDepthWithoutRedirections()
+				if domainscrawl.Enabled() && !extractor.IsEmbeddedCSS(item) && (depth > 2 || (depth == 1 && extractor.IsHTML(item.GetURL()))) {
+					logger.Debug("item is a child deeper than 2 or an HTML page found as an asset, not capturing its assets", "depth", depth)
+					assets = nil
+
+					// <style> @import links are added as children during the extraction itself
+					for _, child := range slices.Clone(item.GetChildren()) {
+						item.RemoveChild(child)
+					}
+				}
+
 				for i := range assets {
 					if assets[i] == nil {
 						logger.Warn("nil asset")
@@ -127,8 +142,8 @@ func postprocessItem(ctx context.Context, item *models.Item) []*models.Item {
 			if err != nil {
 				logger.Error("unable to extract outlinks", "err", err.Error())
 			} else {
-				// Append the outlinks found from the assets
-				newOutlinks = append(newOutlinks, outlinksFromAssets...)
+				// Append the outlinks found from the assets, --max-outlinks applies to all of them
+				newOutlinks = filterMaxOutlinks(append(newOutlinks, outlinksFromAssets...))
 
 				for i := range newOutlinks {
 					if newOutlinks[i] == nil {

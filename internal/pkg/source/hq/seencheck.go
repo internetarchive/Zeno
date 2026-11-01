@@ -98,7 +98,8 @@ func (s *HQ) SeencheckItem(item *models.Item) error {
 			continue
 		}
 
-		urlStr := items[i].GetURL().String()
+		// Must be the same string that was sent to HQ (and used for the cache lookup above)
+		urlStr := items[i].GetURL().Raw
 		_, notSeen := notSeenSet[urlStr]
 
 		if !notSeen {
