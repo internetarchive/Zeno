@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"io"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -28,7 +29,7 @@ func TestPDF(t *testing.T) {
 	var URL = new(models.URL)
 	URL.SetResponse(resp)
 
-	err := generalarchiver.ProcessBody(URL, false, false, 0, t.TempDir(), nil)
+	err := generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
 	if err != nil {
 		t.Errorf("ProcessBody() error = %v", err)
 	}
@@ -59,7 +60,7 @@ func TestCorruptPDF(t *testing.T) {
 	var URL = new(models.URL)
 	URL.SetResponse(resp)
 
-	err := generalarchiver.ProcessBody(URL, false, false, 0, t.TempDir(), nil)
+	err := generalarchiver.ProcessBody(URL, false, false, 0, os.TempDir(), nil)
 	if err != nil {
 		t.Errorf("ProcessBody() error = %v", err)
 	}

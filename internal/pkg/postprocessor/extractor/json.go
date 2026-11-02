@@ -2,7 +2,6 @@ package extractor
 
 import (
 	"encoding/json"
-	"net/url"
 	"strings"
 
 	"github.com/ImVexed/fasturl"
@@ -110,12 +109,7 @@ func findURLs(data any, links *[]string) {
 func isValidURL(str string) bool {
 	u, err := fasturl.ParseURL(str)
 	if err != nil {
-		// fasturl fails on some valid URLs, e.g. with another URL in their query ("?returnUrl=https://...")
-		if strings.ContainsAny(str, " \t\r\n") || !strings.Contains(str, "://") {
-			return false
-		}
-		parsed, err := url.Parse(str)
-		return err == nil && parsed.Scheme != "" && parsed.Host != ""
+		return false
 	}
 
 	// A URL is considered valid if it has a scheme and a host, or if it has a host and a path/query.
