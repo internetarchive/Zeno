@@ -169,13 +169,9 @@ func (u *URL) SetBase(base *url.URL) {
 func URLToString(URL *url.URL) string {
 	var err error
 
-	switch URL.Host {
-	case "external-preview.redd.it", "styles.redditmedia.com", "preview.redd.it":
-		// Do nothing. We don't want to encode the URL for signature purposes. :(
-		break
-	default:
-		URL.RawQuery = encodeQuery(URL.Query())
-	}
+	// The query is kept as written, it is not decoded and encoded again: browsers send it as is,
+	// and servers may not treat "a+b" and "a%20b", or "/" and "%2F", the same (e.g. signed URLs)
+	URL.RawQuery = escapeQuery(URL.RawQuery)
 
 	URL.Host, err = idna.ToASCII(URL.Host)
 	if err != nil {
@@ -199,30 +195,37 @@ func URLToString(URL *url.URL) string {
 	return URL.String()
 }
 
-// Encode encodes the values into “URL encoded” form
-// from: https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/net/url/url.go;l=1002
-// REASON: it has been modified to not sort
-func encodeQuery(v url.Values) string {
-	if len(v) == 0 {
-		return ""
+// escapeQuery percent-encodes the bytes that can't appear in a query and keeps everything else
+// as is, like browsers do with the special-query percent-encode set:
+// https://url.spec.whatwg.org/#special-query-percent-encode-set
+// URLs normalized by goada are already encoded this way, so it only changes URLs that were not.
+func escapeQuery(rawQuery string) string {
+	const upperhex = "0123456789ABCDEF"
+
+	shouldEscape := func(c byte) bool {
+		return c <= ' ' || c >= 0x7F || c == '"' || c == '#' || c == '<' || c == '>' || c == '\''
+	}
+
+	i := 0
+	for i < len(rawQuery) && !shouldEscape(rawQuery[i]) {
+		i++
+	}
+	if i == len(rawQuery) {
+		return rawQuery
 	}
 
 	var buf strings.Builder
+	buf.Grow(len(rawQuery) + 16)
+	buf.WriteString(rawQuery[:i])
 
-	first := true
-
-	for k, vs := range v {
-		keyEscaped := url.QueryEscape(k)
-		for _, v := range vs {
-			if !first {
-				buf.WriteByte('&')
-			}
-
-			first = false
-
-			buf.WriteString(keyEscaped)
-			buf.WriteByte('=')
-			buf.WriteString(url.QueryEscape(v))
+	for ; i < len(rawQuery); i++ {
+		c := rawQuery[i]
+		if shouldEscape(c) {
+			buf.WriteByte('%')
+			buf.WriteByte(upperhex[c>>4])
+			buf.WriteByte(upperhex[c&15])
+		} else {
+			buf.WriteByte(c)
 		}
 	}
 
