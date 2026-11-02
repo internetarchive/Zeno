@@ -2,6 +2,7 @@ package stats
 
 import (
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
@@ -276,20 +277,12 @@ func SeencheckFailuresIncr() {
 	}
 }
 
-// CFMitigatedIncr increments the CFMitigated counter by 1.
-func CFMitigatedIncr() {
-	globalStats.cfMitigated.Add(1)
+// BotBlockIncr increments the bot block page counter of the given service by 1.
+func BotBlockIncr(service string) {
+	count, _ := globalStats.botBlocks.LoadOrStore(service, new(atomic.Int64))
+	count.(*atomic.Int64).Add(1)
 
 	if globalPromStats != nil {
-		globalPromStats.cfMitigated.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
-	}
-}
-
-// AkamaiMitigatedIncr increments the AkamaiMitigated counter by 1.
-func AkamaiMitigatedIncr() {
-	globalStats.akamaiMitigated.Add(1)
-
-	if globalPromStats != nil {
-		globalPromStats.akamaiMitigated.WithLabelValues(config.Get().JobPrometheus, hostname, version).Inc()
+		globalPromStats.botBlocks.WithLabelValues(config.Get().JobPrometheus, hostname, version, service).Inc()
 	}
 }

@@ -25,8 +25,7 @@ type prometheusStats struct {
 	meanProcessBodyTime    *prometheus.HistogramVec // in ns
 	meanWaitOnFeedbackTime *prometheus.HistogramVec // in ns
 	warcWritingQueueSize   *prometheus.GaugeVec
-	cfMitigated            *prometheus.GaugeVec
-	akamaiMitigated        *prometheus.GaugeVec
+	botBlocks              *prometheus.CounterVec
 	seencheckFailures      *prometheus.CounterVec
 
 	// Dedup WARC metrics
@@ -133,13 +132,9 @@ func newPrometheusStats() *prometheusStats {
 			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "total_local_dedupe", Help: "Total number of local hash table hits"},
 			[]string{"project", "hostname", "version"},
 		),
-		cfMitigated: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "cf_challenge_pages_seen", Help: "Total number of CF challenge pages seen"},
-			[]string{"project", "hostname", "version"},
-		),
-		akamaiMitigated: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{Name: config.Get().PrometheusPrefix + "akamai_challenge_pages_seen", Help: "Total number of Akamai challenge pages seen"},
-			[]string{"project", "hostname", "version"},
+		botBlocks: prometheus.NewCounterVec(
+			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "botblock_pages_seen", Help: "Total number of bot block pages (challenge, captcha, block) seen, by service"},
+			[]string{"project", "hostname", "version", "service"},
 		),
 		seencheckFailures: prometheus.NewCounterVec(
 			prometheus.CounterOpts{Name: config.Get().PrometheusPrefix + "seencheck_failures", Help: "Total number of seencheck failures"},
@@ -164,8 +159,7 @@ func registerPrometheusMetrics() {
 	prometheus.MustRegister(globalPromStats.meanProcessBodyTime)
 	prometheus.MustRegister(globalPromStats.warcWritingQueueSize)
 	prometheus.MustRegister(globalPromStats.meanWaitOnFeedbackTime)
-	prometheus.MustRegister(globalPromStats.cfMitigated)
-	prometheus.MustRegister(globalPromStats.akamaiMitigated)
+	prometheus.MustRegister(globalPromStats.botBlocks)
 	prometheus.MustRegister(globalPromStats.seencheckFailures)
 
 	// Register dedup WARC metrics
