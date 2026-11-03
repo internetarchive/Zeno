@@ -231,6 +231,36 @@ func TestExtractSitemapOutlinks(t *testing.T) {
 			dropped: 1,
 		},
 		{
+			name: "Sitemap index, children dated by their URL for an old period are dropped whatever their lastmod",
+			body: `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<sitemap><loc>https://example.com/sitemap.xml?yyyy=2025&amp;mm=07&amp;dd=08</loc><lastmod>2026-10-27</lastmod></sitemap>
+	<sitemap><loc>https://example.com/sitemap.xml?dd=26&amp;yyyy=2026&amp;mm=10</loc></sitemap>
+	<sitemap><loc>https://example.com/sitemap-202308.xml</loc></sitemap>
+	<sitemap><loc>https://example.com/sitemap-202610.xml</loc></sitemap>
+	<sitemap><loc>https://example.com/sitemap-pt-post-2024-02.xml</loc></sitemap>
+	<sitemap><loc>https://example.com/sitemap-archive.xml?page=139</loc></sitemap>
+	<sitemap><loc>https://example.com/post-sitemap2019.xml</loc></sitemap>
+</sitemapindex>`,
+			maxAge: 72 * time.Hour,
+			expected: []string{
+				"https://example.com/sitemap.xml?dd=26&yyyy=2026&mm=10",
+				"https://example.com/sitemap-202610.xml",
+				"https://example.com/sitemap-archive.xml?page=139",
+				"https://example.com/post-sitemap2019.xml",
+			},
+			dropped: 3,
+		},
+		{
+			name: "Urlset entries aren't dropped for a date in their URL",
+			body: `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<url><loc>https://example.com/2019/03/01/old-story/</loc></url>
+</urlset>`,
+			maxAge:   72 * time.Hour,
+			expected: []string{"https://example.com/2019/03/01/old-story/"},
+		},
+		{
 			name: "Prefixed sitemap elements",
 			body: `<?xml version="1.0" encoding="UTF-8"?>
 <sm:urlset xmlns:sm="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -394,6 +424,45 @@ func TestParseSitemapRoot(t *testing.T) {
 		}
 		if doc.isIndex() != tt.isIndex {
 			t.Errorf("root %q: expected isIndex() = %v", doc.root, tt.isIndex)
+		}
+	}
+}
+
+func TestSitemapURLPeriodEnd(t *testing.T) {
+	tests := []struct {
+		rawURL   string
+		expected time.Time
+		ok       bool
+	}{
+		{"https://example.com/sitemap.xml?yyyy=2025&mm=07&dd=08", time.Date(2025, 7, 9, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/sitemap.xml?mm=12&dd=31&yyyy=2025", time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/sitemap.xml?year=2025&month=02", time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/sitemap.xml?YYYY=2024", time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/sitemap-202308.xml", time.Date(2023, 9, 1, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/sitemap-20230815.xml", time.Date(2023, 8, 16, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/sitemap-pt-page-2024-02.xml", time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/sitemap/2024/10/27.xml", time.Date(2024, 10, 28, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/sitemap-2023.xml", time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/2022/sitemap-2023-05.xml", time.Date(2023, 6, 1, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/sitemap.xml?yyyy=2025&mm=13", time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), true},
+		{"https://example.com/post-sitemap2019.xml", time.Time{}, false},
+		{"https://example.com/sitemap-archive.xml?page=139", time.Time{}, false},
+		{"https://example.com/sitemap/pages.xml?p=2019", time.Time{}, false},
+		{"https://example.com/sitemap-1850.xml", time.Time{}, false},
+		{"https://example.com/sitemap-2099.xml", time.Time{}, false},
+		{"https://example.com/sitemap.xml?yyyy=abc", time.Time{}, false},
+		{"https://example.com/sitemap.xml", time.Time{}, false},
+		{"https://2024.example.com/sitemap.xml", time.Time{}, false},
+	}
+
+	for _, tt := range tests {
+		got, ok := sitemapURLPeriodEnd(tt.rawURL, sitemapTestNow)
+		if ok != tt.ok {
+			t.Errorf("sitemapURLPeriodEnd(%q): expected ok=%v, got %v (%v)", tt.rawURL, tt.ok, ok, got)
+			continue
+		}
+		if ok && !got.Equal(tt.expected) {
+			t.Errorf("sitemapURLPeriodEnd(%q): expected %v, got %v", tt.rawURL, tt.expected, got)
 		}
 	}
 }

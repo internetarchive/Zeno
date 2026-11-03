@@ -3,6 +3,9 @@ package extractor
 import (
 	"encoding/xml"
 	"io"
+	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -59,6 +62,69 @@ func parseSitemapDate(value string) (time.Time, bool) {
 		}
 	}
 	return time.Time{}, false
+}
+
+// sitemapPathDate matches a year, optionally followed by a month and a day, in
+// a sitemap URL's path: sitemap-2023.xml, sitemap-202308.xml,
+// sitemap-pt-page-2024-02.xml, /sitemap/2024/10/27.xml... The year must follow
+// a separator so numbered sitemaps (post-sitemap2019.xml) don't match.
+var sitemapPathDate = regexp.MustCompile(`(?:^|[-_/.=])((?:19|20)\d{2})(?:[-_/.]?(0[1-9]|1[0-2])(?:[-_/.]?(0[1-9]|[12]\d|3[01]))?)?(?:[^0-9]|$)`)
+
+// sitemapURLPeriodEnd returns the end of the period a sitemap's URL is dated
+// for, from its query (yyyy=2025&mm=07&dd=08, year=2025&month=07) or else from
+// the last date in its path. A year alone ends on Jan 1 of the next year, a
+// month on the first of the next month, a day on the next day.
+func sitemapURLPeriodEnd(rawURL string, now time.Time) (time.Time, bool) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return time.Time{}, false
+	}
+
+	var year, month, day string
+	for key, values := range u.Query() {
+		if len(values) == 0 {
+			continue
+		}
+		switch strings.ToLower(key) {
+		case "yyyy", "year":
+			year = values[0]
+		case "mm", "month":
+			month = values[0]
+		case "dd", "day":
+			day = values[0]
+		}
+	}
+
+	if year == "" {
+		matches := sitemapPathDate.FindAllStringSubmatch(u.Path, -1)
+		if len(matches) == 0 {
+			return time.Time{}, false
+		}
+		last := matches[len(matches)-1]
+		year, month, day = last[1], last[2], last[3]
+	}
+
+	y, err := strconv.Atoi(year)
+	if err != nil || y < 1995 || y > now.Year()+1 {
+		return time.Time{}, false
+	}
+	if month == "" {
+		return time.Date(y+1, 1, 1, 0, 0, 0, 0, time.UTC), true
+	}
+
+	m, err := strconv.Atoi(month)
+	if err != nil || m < 1 || m > 12 {
+		return time.Date(y+1, 1, 1, 0, 0, 0, 0, time.UTC), true
+	}
+	if day == "" {
+		return time.Date(y, time.Month(m)+1, 1, 0, 0, 0, 0, time.UTC), true
+	}
+
+	d, err := strconv.Atoi(day)
+	if err != nil || d < 1 || d > 31 {
+		return time.Date(y, time.Month(m)+1, 1, 0, 0, 0, 0, time.UTC), true
+	}
+	return time.Date(y, time.Month(m), d+1, 0, 0, 0, 0, time.UTC), true
 }
 
 func isHTTPURL(value string) bool {
@@ -172,7 +238,10 @@ func parseSitemap(r io.Reader) (*sitemapDocument, error) {
 // index: every entry's <loc> and the media URLs attached to it. The <loc>s of a
 // sitemap index are marked with SetSitemapIndexChild. When maxAge is
 // positive, entries dated before now-maxAge are dropped along with their media.
-// Entries without a parseable date are always kept.
+// Entries without a parseable date are kept, except that a sitemap index's
+// children are also dropped when their URL is dated for a period that ended
+// before now-maxAge (e.g. sitemap.xml?yyyy=2025&mm=07&dd=08), whatever their
+// <lastmod>: a sitemap for an old day can't list new articles.
 //
 // Documents that IsSitemapXML matched but that are not a <urlset> or a
 // <sitemapindex> are extracted like any other XML document.
@@ -195,6 +264,13 @@ func extractSitemapOutlinks(URL *models.URL, maxAge time.Duration, now time.Time
 		if !cutoff.IsZero() && !entry.date.IsZero() && entry.date.Before(cutoff) {
 			dropped++
 			continue
+		}
+
+		if !cutoff.IsZero() && doc.isIndex() {
+			if periodEnd, ok := sitemapURLPeriodEnd(entry.loc, now); ok && !periodEnd.After(cutoff) {
+				dropped++
+				continue
+			}
 		}
 
 		if entry.loc != "" {
