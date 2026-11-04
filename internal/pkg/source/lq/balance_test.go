@@ -3,6 +3,8 @@ package lq
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -194,7 +196,7 @@ func TestGetFreshURLsExcludingHostsQueryPlan(t *testing.T) {
 	rows, err := client.dbWrite.Query(`EXPLAIN QUERY PLAN
 SELECT id, value, via, hops, status, timestamp, host FROM urls
 WHERE status = 'FRESH' AND host NOT IN (?, ?)
-ORDER BY hops ASC, timestamp ASC
+ORDER BY hops ASC, host_rank ASC, timestamp ASC
 LIMIT ?`, "a.com", "b.com", 10)
 	if err != nil {
 		t.Fatalf("EXPLAIN QUERY PLAN failed: %v", err)
@@ -218,61 +220,94 @@ LIMIT ?`, "a.com", "b.com", 10)
 	if strings.Contains(joined, "TEMP B-TREE") {
 		t.Errorf("GetFreshURLsExcludingHosts sorts in a temp b-tree, plan:\n%s", joined)
 	}
-	if !strings.Contains(joined, "urls_status_hops_timestamp") {
-		t.Errorf("GetFreshURLsExcludingHosts does not use urls_status_hops_timestamp, plan:\n%s", joined)
+	if !strings.Contains(joined, "urls_status_hops_host_rank_timestamp") {
+		t.Errorf("GetFreshURLsExcludingHosts does not use urls_status_hops_host_rank_timestamp, plan:\n%s", joined)
 	}
 }
 
-func TestAddHostColumnToOldDatabase(t *testing.T) {
-	db, err := sql.Open("sqlite3", "file:"+filepath.Join(t.TempDir(), "lq.db"))
-	if err != nil {
-		t.Fatalf("failed to open database: %v", err)
-	}
-	db.SetMaxOpenConns(1)
-	defer db.Close()
+// Schemas of lq.db files created by earlier versions.
+const (
+	schemaBeforeHost = `CREATE TABLE urls (
+    id TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL,
+    via TEXT DEFAULT '' NOT NULL,
+    hops INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'FRESH' CHECK (status IN ('FRESH', 'CLAIMED', 'DONE')),
+    timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+CREATE UNIQUE INDEX urls_value ON urls (value);
+CREATE INDEX urls_status ON urls (status);
+CREATE INDEX urls_status_hops_timestamp ON urls (status, hops ASC, timestamp ASC);`
+	schemaBeforeHostRank = `CREATE TABLE urls (
+    id TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL,
+    via TEXT DEFAULT '' NOT NULL,
+    hops INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'FRESH' CHECK (status IN ('FRESH', 'CLAIMED', 'DONE')),
+    timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    host TEXT DEFAULT '' NOT NULL
+);
+CREATE UNIQUE INDEX urls_value ON urls (value);
+CREATE INDEX urls_status ON urls (status);
+CREATE INDEX urls_status_hops_timestamp ON urls (status, hops ASC, timestamp ASC);`
+)
 
-	// The urls table as created before the host column existed
-	oldSchema := strings.Replace(ddl, ",\n    host TEXT DEFAULT '' NOT NULL", "", 1)
-	if oldSchema == ddl {
-		t.Fatal("failed to derive the old schema from schema.sql")
-	}
-	if _, err := db.Exec(oldSchema); err != nil {
-		t.Fatalf("failed to create old schema: %v", err)
-	}
-	if _, err := db.Exec("INSERT INTO urls (id, value) VALUES ('old', 'https://example.com/old')"); err != nil {
-		t.Fatalf("failed to insert old row: %v", err)
-	}
+func TestAddMissingColumnsToOldDatabase(t *testing.T) {
+	for name, oldSchema := range map[string]string{
+		"before host":      schemaBeforeHost,
+		"before host_rank": schemaBeforeHostRank,
+	} {
+		t.Run(name, func(t *testing.T) {
+			db, err := sql.Open("sqlite3", "file:"+filepath.Join(t.TempDir(), "lq.db"))
+			if err != nil {
+				t.Fatalf("failed to open database: %v", err)
+			}
+			db.SetMaxOpenConns(1)
+			defer db.Close()
 
-	for range 2 { // must be idempotent
-		if err := addHostColumn(db); err != nil {
-			t.Fatalf("addHostColumn failed: %v", err)
-		}
-		if _, err := db.Exec(ddl); err != nil {
-			t.Fatalf("failed to apply schema after migration: %v", err)
-		}
-	}
+			if _, err := db.Exec(oldSchema); err != nil {
+				t.Fatalf("failed to create old schema: %v", err)
+			}
+			if _, err := db.Exec("INSERT INTO urls (id, value) VALUES ('old', 'https://example.com/old')"); err != nil {
+				t.Fatalf("failed to insert old row: %v", err)
+			}
 
-	client := &lqClient{dbWrite: db, dbWriteSqlc: sqlc_model.New(db)}
-	if err := client.add(context.Background(), []sqlc_model.Url{{ID: "new", Value: "https://example.org/new"}}, false); err != nil {
-		t.Fatalf("add after migration failed: %v", err)
-	}
+			for range 2 { // must be idempotent
+				if err := addMissingColumns(db); err != nil {
+					t.Fatalf("addMissingColumns failed: %v", err)
+				}
+				if _, err := db.Exec(ddl); err != nil {
+					t.Fatalf("failed to apply schema after migration: %v", err)
+				}
+			}
 
-	urls, err := client.dbWriteSqlc.GetFreshURLs(context.Background(), 10)
-	if err != nil {
-		t.Fatalf("GetFreshURLs failed: %v", err)
-	}
-	hosts := make(map[string]string)
-	for _, u := range urls {
-		hosts[u.ID] = u.Host
-	}
-	if hosts["old"] != "" || hosts["new"] != "example.org" {
-		t.Errorf("unexpected hosts after migration: %v", hosts)
+			client := &lqClient{dbWrite: db, dbWriteSqlc: sqlc_model.New(db)}
+			if err := client.add(context.Background(), []sqlc_model.Url{
+				{ID: "new1", Value: "https://example.org/1"},
+				{ID: "new2", Value: "https://example.org/2"},
+			}, false); err != nil {
+				t.Fatalf("add after migration failed: %v", err)
+			}
+
+			urls, err := client.dbWriteSqlc.GetFreshURLs(context.Background(), 10)
+			if err != nil {
+				t.Fatalf("GetFreshURLs failed: %v", err)
+			}
+			got := make(map[string]string)
+			for _, u := range urls {
+				got[u.ID] = fmt.Sprintf("%s:%d", u.Host, u.HostRank)
+			}
+			want := map[string]string{"old": ":0", "new1": "example.org:0", "new2": "example.org:1"}
+			if !maps.Equal(got, want) {
+				t.Errorf("unexpected host:host_rank after migration: got %v, want %v", got, want)
+			}
+		})
 	}
 }
 
-func TestAddHostColumnToNewDatabase(t *testing.T) {
-	client := newTestClient(t) // schema already has the host column
-	if err := addHostColumn(client.dbWrite); err != nil {
-		t.Fatalf("addHostColumn failed on a current schema: %v", err)
+func TestAddMissingColumnsToNewDatabase(t *testing.T) {
+	client := newTestClient(t) // schema already has every column
+	if err := addMissingColumns(client.dbWrite); err != nil {
+		t.Fatalf("addMissingColumns failed on a current schema: %v", err)
 	}
 }

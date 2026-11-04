@@ -10,28 +10,34 @@ import (
 	"strings"
 )
 
-const addURL = `-- name: AddURL :exec
-INSERT INTO urls (id, value, via, hops, host)
-VALUES (?, ?, ?, ?, ?)
+const addURL = `-- name: AddURL :execrows
+INSERT INTO urls (id, value, via, hops, host, host_rank)
+VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT (value) DO NOTHING
 `
 
 type AddURLParams struct {
-	ID    string
-	Value string
-	Via   string
-	Hops  int64
-	Host  string
+	ID       string
+	Value    string
+	Via      string
+	Hops     int64
+	Host     string
+	HostRank int64
 }
 
-func (q *Queries) AddURL(ctx context.Context, arg AddURLParams) error {
-	_, err := q.db.ExecContext(ctx, addURL,
+func (q *Queries) AddURL(ctx context.Context, arg AddURLParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, addURL,
 		arg.ID,
 		arg.Value,
 		arg.Via,
 		arg.Hops,
 		arg.Host,
+		arg.HostRank,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const claimThisURL = `-- name: ClaimThisURL :exec
@@ -67,9 +73,9 @@ func (q *Queries) DoneURL(ctx context.Context, id string) error {
 }
 
 const getFreshURLs = `-- name: GetFreshURLs :many
-SELECT id, value, via, hops, status, timestamp, host FROM urls
+SELECT id, value, via, hops, status, timestamp, host, host_rank FROM urls
 WHERE status = 'FRESH'
-ORDER BY hops ASC, timestamp ASC
+ORDER BY hops ASC, host_rank ASC, timestamp ASC
 LIMIT ?
 `
 
@@ -90,6 +96,7 @@ func (q *Queries) GetFreshURLs(ctx context.Context, limit int64) ([]Url, error) 
 			&i.Status,
 			&i.Timestamp,
 			&i.Host,
+			&i.HostRank,
 		); err != nil {
 			return nil, err
 		}
@@ -105,9 +112,9 @@ func (q *Queries) GetFreshURLs(ctx context.Context, limit int64) ([]Url, error) 
 }
 
 const getFreshURLsExcludingHosts = `-- name: GetFreshURLsExcludingHosts :many
-SELECT id, value, via, hops, status, timestamp, host FROM urls
+SELECT id, value, via, hops, status, timestamp, host, host_rank FROM urls
 WHERE status = 'FRESH' AND host NOT IN (/*SLICE:hosts*/?)
-ORDER BY hops ASC, timestamp ASC
+ORDER BY hops ASC, host_rank ASC, timestamp ASC
 LIMIT ?
 `
 
@@ -144,6 +151,7 @@ func (q *Queries) GetFreshURLsExcludingHosts(ctx context.Context, arg GetFreshUR
 			&i.Status,
 			&i.Timestamp,
 			&i.Host,
+			&i.HostRank,
 		); err != nil {
 			return nil, err
 		}
@@ -156,6 +164,38 @@ func (q *Queries) GetFreshURLsExcludingHosts(ctx context.Context, arg GetFreshUR
 		return nil, err
 	}
 	return items, nil
+}
+
+const getHostRank = `-- name: GetHostRank :one
+SELECT CAST(COALESCE((SELECT next FROM host_ranks WHERE host = ? AND hops = ?), 0) AS INTEGER) AS next
+`
+
+type GetHostRankParams struct {
+	Host string
+	Hops int64
+}
+
+func (q *Queries) GetHostRank(ctx context.Context, arg GetHostRankParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getHostRank, arg.Host, arg.Hops)
+	var next int64
+	err := row.Scan(&next)
+	return next, err
+}
+
+const incrementHostRank = `-- name: IncrementHostRank :exec
+INSERT INTO host_ranks (host, hops, next)
+VALUES (?, ?, 1)
+ON CONFLICT (host, hops) DO UPDATE SET next = next + 1
+`
+
+type IncrementHostRankParams struct {
+	Host string
+	Hops int64
+}
+
+func (q *Queries) IncrementHostRank(ctx context.Context, arg IncrementHostRankParams) error {
+	_, err := q.db.ExecContext(ctx, incrementHostRank, arg.Host, arg.Hops)
+	return err
 }
 
 const resetURL = `-- name: ResetURL :exec

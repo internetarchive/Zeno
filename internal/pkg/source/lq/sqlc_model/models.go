@@ -4,6 +4,12 @@
 
 package sqlc_model
 
+type HostRank struct {
+	Host string
+	Hops int64
+	Next int64
+}
+
 type Url struct {
 	ID        string
 	Value     string
@@ -12,4 +18,5 @@ type Url struct {
 	Status    string
 	Timestamp int64
 	Host      string
+	HostRank  int64
 }

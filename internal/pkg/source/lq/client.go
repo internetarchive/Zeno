@@ -29,8 +29,8 @@ func initClient(job string) (*lqClient, error) {
 	}
 	dbWrite.SetMaxOpenConns(1)
 
-	if err := addHostColumn(dbWrite); err != nil {
-		logger.Error("error adding host column to lq database", "err", err.Error(), "func", "lq.Init")
+	if err := addMissingColumns(dbWrite); err != nil {
+		logger.Error("error adding columns to lq database", "err", err.Error(), "func", "lq.Init")
 		return nil, err
 	}
 
@@ -47,21 +47,36 @@ func initClient(job string) (*lqClient, error) {
 	}, nil
 }
 
-// addHostColumn adds the host column to a urls table created before it existed.
-// URLs queued before that have an empty host and are dispatched as before.
-func addHostColumn(db *sql.DB) error {
+// urlsColumnsAdded are the urls columns added after the table was first
+// created, in the order they were added.
+var urlsColumnsAdded = []struct{ name, definition string }{
+	// URLs queued before it existed have an empty host and are dispatched as before.
+	{"host", "host TEXT DEFAULT '' NOT NULL"},
+	// URLs queued before it existed have rank 0 and are dequeued first, by timestamp.
+	{"host_rank", "host_rank INTEGER NOT NULL DEFAULT 0"},
+}
+
+// addMissingColumns adds the columns in urlsColumnsAdded to a urls table created
+// before they existed. It does nothing to a new database.
+func addMissingColumns(db *sql.DB) error {
 	var tables int
 	if err := db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'urls'").Scan(&tables); err != nil || tables == 0 {
 		return err
 	}
 
-	var hostColumns int
-	if err := db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('urls') WHERE name = 'host'").Scan(&hostColumns); err != nil || hostColumns > 0 {
-		return err
+	for _, column := range urlsColumnsAdded {
+		var found int
+		if err := db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('urls') WHERE name = ?", column.name).Scan(&found); err != nil {
+			return err
+		}
+		if found > 0 {
+			continue
+		}
+		if _, err := db.Exec("ALTER TABLE urls ADD COLUMN " + column.definition); err != nil {
+			return err
+		}
 	}
-
-	_, err := db.Exec("ALTER TABLE urls ADD COLUMN host TEXT DEFAULT '' NOT NULL")
-	return err
+	return nil
 }
 
 func (client *lqClient) resetURL(ctx context.Context, seed string) error {
@@ -185,20 +200,44 @@ func (client *lqClient) add(ctx context.Context, urls []sqlc_model.Url, bypassSe
 		if url.ID == "" {
 			url.ID = uuid.New().String()
 		}
-		err = qtx.AddURL(ctx, sqlc_model.AddURLParams{
-			ID:    url.ID,
-			Value: url.Value,
-			Via:   url.Via,
-			Hops:  int64(url.Hops),
-			Host:  hostOf(url.Value),
+		host := hostOf(url.Value)
+
+		// host_rank is the URL's position among its host's URLs at the same hop, so
+		// dequeueing by (hops, host_rank) takes hosts in turn: every host's first URL,
+		// then every host's second URL... A host whose URLs are queued late is served
+		// right away instead of after every URL queued before it.
+		var rank int64
+		if host != "" {
+			rank, err = qtx.GetHostRank(ctx, sqlc_model.GetHostRankParams{Host: host, Hops: int64(url.Hops)})
+			if err != nil {
+				logger.Error("error getting host rank", "err", err.Error(), "func", "lq.Add", "host", host)
+				return err
+			}
+		}
+
+		added, err := qtx.AddURL(ctx, sqlc_model.AddURLParams{
+			ID:       url.ID,
+			Value:    url.Value,
+			Via:      url.Via,
+			Hops:     int64(url.Hops),
+			Host:     host,
+			HostRank: rank,
 		})
 		if err != nil {
-			if err.Error() == "sqlite3: constraint failed: UNIQUE constraint failed: urls.value" {
-				logger.Debug("URL.Value already exists in LQ", "value", url.Value, "via", url.Via)
-				continue
-			}
 			logger.Error("error adding URL", "err", err.Error(), "func", "lq.Add", "value", url.Value, "via", url.Via)
 			return err
+		}
+		if added == 0 {
+			logger.Debug("URL.Value already exists in LQ", "value", url.Value, "via", url.Via)
+			continue
+		}
+
+		// Only URLs actually queued take a rank, so duplicates don't push a host back.
+		if host != "" {
+			if err = qtx.IncrementHostRank(ctx, sqlc_model.IncrementHostRankParams{Host: host, Hops: int64(url.Hops)}); err != nil {
+				logger.Error("error incrementing host rank", "err", err.Error(), "func", "lq.Add", "host", host)
+				return err
+			}
 		}
 	}
 

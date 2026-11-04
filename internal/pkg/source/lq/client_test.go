@@ -7,11 +7,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/internetarchive/Zeno/v2/internal/pkg/log"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/source/lq/sqlc_model"
 )
 
 func newTestClient(t *testing.T) *lqClient {
 	t.Helper()
+
+	if logger == nil {
+		logger = log.NewFieldedLogger(&log.Fields{"component": "lq"}) // set by Start in a crawl
+	}
 
 	db, err := sql.Open("sqlite3", "file:"+filepath.Join(t.TempDir(), "lq.db"))
 	if err != nil {
@@ -35,11 +40,11 @@ func TestGetFreshURLsOrder(t *testing.T) {
 		testGetFreshURLsOrder(t, newTestClient(t))
 	})
 
-	// Scanning urls_status_hops_timestamp happens to return rows in order even
+	// Scanning urls_status_hops_host_rank_timestamp happens to return rows in order even
 	// without an ORDER BY, so drop it to check the query itself is ordered.
 	t.Run("without ordered index", func(t *testing.T) {
 		client := newTestClient(t)
-		if _, err := client.dbWrite.Exec("DROP INDEX urls_status_hops_timestamp"); err != nil {
+		if _, err := client.dbWrite.Exec("DROP INDEX urls_status_hops_host_rank_timestamp"); err != nil {
 			t.Fatalf("failed to drop index: %v", err)
 		}
 		testGetFreshURLsOrder(t, client)
@@ -111,11 +116,11 @@ func TestGetFreshURLsQueryPlan(t *testing.T) {
 	client := newTestClient(t)
 
 	// Same query as GetFreshURLs in query.sql. Dequeueing must not sort every
-	// FRESH row, which happens when no index covers (status, hops, timestamp).
+	// FRESH row, which happens when no index covers (status, hops, host_rank, timestamp).
 	rows, err := client.dbWrite.Query(`EXPLAIN QUERY PLAN
 SELECT id, value, via, hops, status, timestamp FROM urls
 WHERE status = 'FRESH'
-ORDER BY hops ASC, timestamp ASC
+ORDER BY hops ASC, host_rank ASC, timestamp ASC
 LIMIT ?`, 10)
 	if err != nil {
 		t.Fatalf("EXPLAIN QUERY PLAN failed: %v", err)
@@ -139,7 +144,59 @@ LIMIT ?`, 10)
 	if strings.Contains(joined, "TEMP B-TREE") {
 		t.Errorf("GetFreshURLs sorts in a temp b-tree, plan:\n%s", joined)
 	}
-	if !strings.Contains(joined, "urls_status_hops_timestamp") {
-		t.Errorf("GetFreshURLs does not use urls_status_hops_timestamp, plan:\n%s", joined)
+	if !strings.Contains(joined, "urls_status_hops_host_rank_timestamp") {
+		t.Errorf("GetFreshURLs does not use urls_status_hops_host_rank_timestamp, plan:\n%s", joined)
+	}
+}
+
+func TestAddRotatesHosts(t *testing.T) {
+	client := newTestClient(t)
+	ctx := context.Background()
+
+	add := func(hops int, values ...string) {
+		t.Helper()
+		var urls []sqlc_model.Url
+		for _, v := range values {
+			urls = append(urls, sqlc_model.Url{Value: v, Hops: int64(hops)})
+		}
+		if err := client.add(ctx, urls, false); err != nil {
+			t.Fatalf("add failed: %v", err)
+		}
+	}
+
+	// a.com queues a long run of hop-1 URLs first, b.com and c.com come later.
+	add(1, "https://a.com/1", "https://a.com/2", "https://a.com/3", "https://a.com/4")
+	add(1, "https://b.com/1", "https://b.com/2")
+	add(1, "https://a.com/2") // duplicate: must not take a rank
+	add(1, "https://c.com/1")
+	add(0, "https://a.com/") // ranks are per hop
+	add(1, "https://a.com/5")
+
+	urls, err := client.dbWriteSqlc.GetFreshURLs(ctx, 20)
+	if err != nil {
+		t.Fatalf("GetFreshURLs failed: %v", err)
+	}
+	var got []string
+	for _, u := range urls {
+		got = append(got, u.Value)
+	}
+	want := []string{
+		"https://a.com/",
+		"https://a.com/1", "https://b.com/1", "https://c.com/1",
+		"https://a.com/2", "https://b.com/2",
+		"https://a.com/3",
+		"https://a.com/4",
+		"https://a.com/5",
+	}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Errorf("dequeue order:\n got %v\nwant %v", got, want)
+	}
+
+	var rank int64
+	if err := client.dbWrite.QueryRow("SELECT host_rank FROM urls WHERE value = 'https://a.com/5'").Scan(&rank); err != nil {
+		t.Fatalf("failed to read host_rank: %v", err)
+	}
+	if rank != 4 {
+		t.Errorf("a.com/5 has host_rank %d, want 4 (the duplicate must not take a rank)", rank)
 	}
 }

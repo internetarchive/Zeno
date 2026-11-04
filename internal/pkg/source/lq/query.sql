@@ -1,13 +1,13 @@
 -- name: GetFreshURLs :many
 SELECT * FROM urls
 WHERE status = 'FRESH'
-ORDER BY hops ASC, timestamp ASC
+ORDER BY hops ASC, host_rank ASC, timestamp ASC
 LIMIT ?;
 
 -- name: GetFreshURLsExcludingHosts :many
 SELECT * FROM urls
 WHERE status = 'FRESH' AND host NOT IN (sqlc.slice('hosts'))
-ORDER BY hops ASC, timestamp ASC
+ORDER BY hops ASC, host_rank ASC, timestamp ASC
 LIMIT ?;
 
 -- name: ClaimThisURL :exec
@@ -20,9 +20,18 @@ UPDATE urls
 SET status = 'FRESH', timestamp = strftime('%s', 'now')
 WHERE id = ?;
 
--- name: AddURL :exec
-INSERT INTO urls (id, value, via, hops, host)
-VALUES (?, ?, ?, ?, ?);
+-- name: AddURL :execrows
+INSERT INTO urls (id, value, via, hops, host, host_rank)
+VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT (value) DO NOTHING;
+
+-- name: GetHostRank :one
+SELECT CAST(COALESCE((SELECT next FROM host_ranks WHERE host = ? AND hops = ?), 0) AS INTEGER) AS next;
+
+-- name: IncrementHostRank :exec
+INSERT INTO host_ranks (host, hops, next)
+VALUES (?, ?, 1)
+ON CONFLICT (host, hops) DO UPDATE SET next = next + 1;
 
 -- name: DoneURL :exec
 UPDATE urls
