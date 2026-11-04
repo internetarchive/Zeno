@@ -1,0 +1,28 @@
+{
+  "url": "https://github.githubassets.com/assets/ui-commands-internal-CmKEKVjd.js",
+  "status_code": 200,
+  "headers": {
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-type": "application/javascript",
+    "content-md5": "9ngSknGalvYaLARPJjb2LQ==",
+    "last-modified": "Mon, 12 Oct 2026 23:17:57 GMT",
+    "etag": "\"0x8DF28B70D67B2F2\"",
+    "server": "Windows-Azure-Web/1.0 Microsoft-HTTPAPI/2.0",
+    "via": "1.1 varnish, 1.1 varnish",
+    "accept-ranges": "bytes",
+    "age": "39669",
+    "date": "Tue, 13 Oct 2026 14:30:28 GMT",
+    "x-served-by": "cache-iad-kcgs7200102-IAD, cache-muc13955-MUC",
+    "x-cache": "HIT, MISS",
+    "x-cache-hits": "9, 0",
+    "vary": "Accept-Encoding",
+    "cross-origin-resource-policy": "cross-origin",
+    "access-control-allow-origin": "*",
+    "strict-transport-security": "max-age=31536000",
+    "timing-allow-origin": "*",
+    "x-fastly-request-id": "3f48b6b1b6425436471e67d0fe6eff867b7511e9",
+    "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+    "content-length": "140"
+  },
+  "body": "import\"./index-DU8Ous_x.js\";var e=`github`,t=`global-navigation`;export{e as n,t};\n//# sourceMappingURL=ui-commands-internal-CGtmk2Nh.js.map"
+}

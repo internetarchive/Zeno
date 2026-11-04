@@ -88,6 +88,13 @@ func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 			logger.Debug("extracted assets from CSS", logArgs...)
 		}
 		extractor.AddAtImportLinksToItemChild(item, atImportLinks)
+	case extractor.IsJSOrCss(item.GetURL()):
+		extr := extractor.SourceMapExtractor{}
+		assets, outlinks, err := extr.Extract(item)
+		if err != nil {
+			logger.Error("unable to extract assets", "err", err.Error())
+		}
+		return assets, outlinks, err
 	default:
 		contentType := item.GetURL().GetResponse().Header.Get("Content-Type")
 		logger.Debug("no extractor used for page", "content-type", contentType, "mime", item.GetURL().GetMIMEType().String())
