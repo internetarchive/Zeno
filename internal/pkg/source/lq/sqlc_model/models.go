@@ -10,6 +10,10 @@ type HostRank struct {
 	Next int64
 }
 
+type SeedDomain struct {
+	Domain string
+}
+
 type Url struct {
 	ID        string
 	Value     string

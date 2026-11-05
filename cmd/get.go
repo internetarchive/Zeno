@@ -118,6 +118,7 @@ func addRateLimitFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Duration("rate-limit-cleanup-frequency", time.Duration(5*time.Minute), "How often to run cleanup of stale buckets that are not accessed in the duration.")
 	getCmd.PersistentFlags().Int("max-inflight-per-host", 0, "Maximum number of URLs from the same host that the local queue dispatches at once. URLs over the limit stay queued until one finishes. 0 means no limit.")
 	getCmd.PersistentFlags().Bool("defer-rate-limited-hosts", false, "If turned on, workers aren't blocked waiting on a host that is being rate limited (e.g. after a 429): the local queue holds back its URLs, its assets are skipped, and failed requests to it wait out the penalty instead of retrying straight away.")
+	getCmd.PersistentFlags().Bool("lq-seed-domains-first", false, "If turned on, the local queue dispatches the URLs on the seeds' domains before the URLs on other domains at the same hop. A seed's domain is the registrable domain (e.g. example.co.uk) of a URL queued at hop 0.")
 }
 func addWARCFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().String("warc-prefix", "ZENO", "Prefix to use when naming the WARC files.")

@@ -138,6 +138,7 @@ type Config struct {
 	RateLimitCleanupFrequency time.Duration `mapstructure:"rate-limit-cleanup-frequency"`
 	MaxInflightPerHost        int           `mapstructure:"max-inflight-per-host"`
 	DeferRateLimitedHosts     bool          `mapstructure:"defer-rate-limited-hosts"`
+	LQSeedDomainsFirst        bool          `mapstructure:"lq-seed-domains-first"`
 
 	// Logging
 	NoStdoutLogging  bool   `mapstructure:"no-stdout-log"`

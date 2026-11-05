@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS host_ranks (
     next INTEGER NOT NULL DEFAULT 0, -- host_rank of the next URL queued for this host at this hop
     PRIMARY KEY (host, hops)
 );
+CREATE TABLE IF NOT EXISTS seed_domains ( -- with --lq-seed-domains-first, registrable domains of the URLs queued at hop 0
+    domain TEXT NOT NULL PRIMARY KEY
+);
 CREATE UNIQUE INDEX IF NOT EXISTS urls_value ON urls (value); -- for deduplication
 CREATE INDEX IF NOT EXISTS urls_status ON urls (status); -- for queueing
 DROP INDEX IF EXISTS urls_status_hops_timestamp;

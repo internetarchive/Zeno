@@ -41,3 +41,11 @@ WHERE id = ?;
 -- name: DeleteURL :exec
 DELETE FROM urls
 WHERE id = ?;
+
+-- name: AddSeedDomain :exec
+INSERT INTO seed_domains (domain)
+VALUES (?)
+ON CONFLICT (domain) DO NOTHING;
+
+-- name: IsSeedDomain :one
+SELECT CAST(EXISTS (SELECT 1 FROM seed_domains WHERE domain = ?) AS INTEGER) AS found;

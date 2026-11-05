@@ -10,6 +10,17 @@ import (
 	"strings"
 )
 
+const addSeedDomain = `-- name: AddSeedDomain :exec
+INSERT INTO seed_domains (domain)
+VALUES (?)
+ON CONFLICT (domain) DO NOTHING
+`
+
+func (q *Queries) AddSeedDomain(ctx context.Context, domain string) error {
+	_, err := q.db.ExecContext(ctx, addSeedDomain, domain)
+	return err
+}
+
 const addURL = `-- name: AddURL :execrows
 INSERT INTO urls (id, value, via, hops, host, host_rank)
 VALUES (?, ?, ?, ?, ?, ?)
@@ -196,6 +207,17 @@ type IncrementHostRankParams struct {
 func (q *Queries) IncrementHostRank(ctx context.Context, arg IncrementHostRankParams) error {
 	_, err := q.db.ExecContext(ctx, incrementHostRank, arg.Host, arg.Hops)
 	return err
+}
+
+const isSeedDomain = `-- name: IsSeedDomain :one
+SELECT CAST(EXISTS (SELECT 1 FROM seed_domains WHERE domain = ?) AS INTEGER) AS found
+`
+
+func (q *Queries) IsSeedDomain(ctx context.Context, domain string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, isSeedDomain, domain)
+	var found int64
+	err := row.Scan(&found)
+	return found, err
 }
 
 const resetURL = `-- name: ResetURL :exec

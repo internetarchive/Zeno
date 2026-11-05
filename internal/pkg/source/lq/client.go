@@ -4,10 +4,13 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"net/url"
 	"path"
 	"slices"
+	"strings"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
+	"golang.org/x/net/publicsuffix"
 
 	"github.com/google/uuid"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
@@ -17,6 +20,10 @@ import (
 type lqClient struct {
 	dbWrite     *sql.DB
 	dbWriteSqlc *sqlc_model.Queries
+
+	// seedDomainsFirst is --lq-seed-domains-first: off-site URLs are dequeued
+	// after the on-site ones at the same hop.
+	seedDomainsFirst bool
 }
 
 //go:embed schema.sql
@@ -42,8 +49,9 @@ func initClient(job string) (*lqClient, error) {
 	dbWriteSqlc := sqlc_model.New(dbWrite)
 
 	return &lqClient{
-		dbWrite:     dbWrite,
-		dbWriteSqlc: dbWriteSqlc,
+		dbWrite:          dbWrite,
+		dbWriteSqlc:      dbWriteSqlc,
+		seedDomainsFirst: config.Get().LQSeedDomainsFirst,
 	}, nil
 }
 
@@ -213,6 +221,17 @@ func (client *lqClient) add(ctx context.Context, urls []sqlc_model.Url, bypassSe
 				logger.Error("error getting host rank", "err", err.Error(), "func", "lq.Add", "host", host)
 				return err
 			}
+
+			if client.seedDomainsFirst {
+				offSite, err := client.isOffSite(ctx, qtx, url.Value, url.Hops)
+				if err != nil {
+					logger.Error("error checking seed domain", "err", err.Error(), "func", "lq.Add", "host", host)
+					return err
+				}
+				if offSite {
+					rank += offSiteRankOffset
+				}
+			}
 		}
 
 		added, err := qtx.AddURL(ctx, sqlc_model.AddURLParams{
@@ -246,6 +265,44 @@ func (client *lqClient) add(ctx context.Context, urls []sqlc_model.Url, bypassSe
 	}
 
 	return nil
+}
+
+// offSiteRankOffset is added to the host_rank of off-site URLs with
+// --lq-seed-domains-first, so they sort after every on-site URL at the same
+// hop while still taking their hosts in turn among themselves.
+const offSiteRankOffset = 1 << 40
+
+// isOffSite records the registrable domain of a URL queued at hop 0 as a seed
+// domain, and reports whether a URL at a later hop is on a domain no hop-0 URL
+// was queued on. A domain only counts from its first hop-0 URL on, so a URL
+// queued before it keeps its rank.
+func (client *lqClient) isOffSite(ctx context.Context, qtx *sqlc_model.Queries, value string, hops int64) (bool, error) {
+	domain := registrableDomain(value)
+	if domain == "" {
+		return false, nil
+	}
+
+	if hops == 0 {
+		return false, qtx.AddSeedDomain(ctx, domain)
+	}
+
+	found, err := qtx.IsSeedDomain(ctx, domain)
+	return found == 0, err
+}
+
+// registrableDomain returns the domain one level below the public suffix of a
+// URL's host (www.example.co.uk -> example.co.uk), or the host itself when it
+// has none (IP addresses, localhost...).
+func registrableDomain(value string) string {
+	u, err := url.Parse(value)
+	if err != nil {
+		return ""
+	}
+	host := strings.ToLower(u.Hostname())
+	if domain, err := publicsuffix.EffectiveTLDPlusOne(host); err == nil {
+		return domain
+	}
+	return host
 }
 
 func (client *lqClient) delete(ctx context.Context, urls []sqlc_model.Url, bypassSeencheck bool) error {

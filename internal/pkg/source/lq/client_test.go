@@ -200,3 +200,90 @@ func TestAddRotatesHosts(t *testing.T) {
 		t.Errorf("a.com/5 has host_rank %d, want 4 (the duplicate must not take a rank)", rank)
 	}
 }
+
+func TestAddSeedDomainsFirst(t *testing.T) {
+	ctx := context.Background()
+	queue := func(client *lqClient) []string {
+		t.Helper()
+		batches := []struct {
+			hops   int64
+			values []string
+		}{
+			{0, []string{"https://www.news.com/", "https://paper.co.uk/"}},
+			{1, []string{
+				"https://ads.example.net/1", // off-site, queued first
+				"https://www.news.com/a",
+				"https://other.org/1",
+				"https://cdn.news.com/img", // another host on a seed domain
+				"https://www.news.com/b",
+				"https://ads.example.net/2",
+				"https://www.paper.co.uk/x", // public suffix co.uk
+			}},
+		}
+		for _, b := range batches {
+			var urls []sqlc_model.Url
+			for _, v := range b.values {
+				urls = append(urls, sqlc_model.Url{Value: v, Hops: b.hops})
+			}
+			if err := client.add(ctx, urls, false); err != nil {
+				t.Fatalf("add failed: %v", err)
+			}
+		}
+		urls, err := client.dbWriteSqlc.GetFreshURLs(ctx, 20)
+		if err != nil {
+			t.Fatalf("GetFreshURLs failed: %v", err)
+		}
+		var got []string
+		for _, u := range urls {
+			got = append(got, u.Value)
+		}
+		return got
+	}
+
+	t.Run("on", func(t *testing.T) {
+		client := newTestClient(t)
+		client.seedDomainsFirst = true
+		want := []string{
+			"https://www.news.com/", "https://paper.co.uk/",
+			// on-site, hosts in turn
+			"https://www.news.com/a", "https://cdn.news.com/img", "https://www.paper.co.uk/x",
+			"https://www.news.com/b",
+			// then off-site, hosts in turn
+			"https://ads.example.net/1", "https://other.org/1",
+			"https://ads.example.net/2",
+		}
+		if got := queue(client); strings.Join(got, " ") != strings.Join(want, " ") {
+			t.Errorf("dequeue order:\n got %v\nwant %v", got, want)
+		}
+	})
+
+	t.Run("off", func(t *testing.T) {
+		client := newTestClient(t)
+		want := []string{
+			"https://www.news.com/", "https://paper.co.uk/",
+			"https://ads.example.net/1", "https://www.news.com/a", "https://other.org/1",
+			"https://cdn.news.com/img", "https://www.paper.co.uk/x",
+			"https://www.news.com/b", "https://ads.example.net/2",
+		}
+		if got := queue(client); strings.Join(got, " ") != strings.Join(want, " ") {
+			t.Errorf("dequeue order:\n got %v\nwant %v", got, want)
+		}
+	})
+}
+
+func TestRegistrableDomain(t *testing.T) {
+	for in, want := range map[string]string{
+		"https://www.example.com/a":        "example.com",
+		"https://News.Example.com:8443/":   "example.com",
+		"https://www.bbc.co.uk/news":       "bbc.co.uk",
+		"https://foo.github.io/x":          "foo.github.io", // github.io is a public suffix
+		"https://foo.substack.com/p/x":     "substack.com",  // substack.com is not
+		"http://137.229.93.113/video.mjpg": "137.229.93.113",
+		"http://localhost:8080/":           "localhost",
+		"::not a url":                      "",
+	} {
+		if got := registrableDomain(in); got != want {
+			t.Errorf("registrableDomain(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
