@@ -77,11 +77,17 @@ func postprocessItem(ctx context.Context, item *models.Item) []*models.Item {
 	// 2. the item is HTML that was extracted as an asset
 	//
 	// --disable-assets-capture is handled by shouldExtractAssets, so outlinks are still extracted.
-	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 && !extractor.IsEmbeddedCSS(item) {
+	//
+	// A domains crawl lifts both limits, but only for URLs it matches. Off-site HTML pulled in
+	// as an asset (iframes, embeds) would otherwise be parsed for assets of its own, and so on
+	// without end: on a single-site crawl this went 34 levels deep into unrelated sites, and
+	// made up most of what was archived.
+	inDomainsCrawl := domainscrawl.Enabled() && domainscrawl.Match(item.GetURL().String())
+	if !inDomainsCrawl && item.GetDepthWithoutRedirections() > 2 && !extractor.IsEmbeddedCSS(item) {
 		logger.Debug("item is a child and it's depth (without redirections) is more than 2")
 		item.SetStatus(models.ItemCompleted)
 		return outlinks
-	} else if !domainscrawl.Enabled() && (item.GetDepthWithoutRedirections() == 1 && strings.Contains(item.GetURL().GetMIMEType().String(), "html")) {
+	} else if !inDomainsCrawl && (item.GetDepthWithoutRedirections() == 1 && strings.Contains(item.GetURL().GetMIMEType().String(), "html")) {
 		logger.Debug("HTML got extracted as asset, skipping")
 		item.SetStatus(models.ItemCompleted)
 		return outlinks

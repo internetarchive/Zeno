@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
+	"github.com/internetarchive/Zeno/v2/internal/pkg/postprocessor/domainscrawl"
 	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/internetarchive/gowarc/pkg/spooledtempfile"
 )
@@ -68,6 +69,43 @@ func TestPostprocessItemDisableAssetsCapture(t *testing.T) {
 		}
 		if !disableAssets && !item.HasChildren() {
 			t.Errorf("disableAssets=false: expected the image as an asset, got no children")
+		}
+	}
+}
+
+// In a domains crawl, HTML extracted as an asset (e.g. from a canonical <link>) is
+// only parsed for assets of its own when the domains crawl matches it: off-site
+// HTML assets keep the usual limit, so they can't recurse into unrelated sites.
+func TestPostprocessItemDomainsCrawlHTMLAsset(t *testing.T) {
+	previous := config.Get()
+	config.Set(&config.Config{MaxHops: 0})
+	domainscrawl.Reset()
+	if err := domainscrawl.AddElements([]string{"example.com"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		domainscrawl.Reset()
+		config.Set(previous)
+	})
+
+	for _, tc := range []struct {
+		url        string
+		wantAssets bool
+	}{
+		{"https://www.example.com/embed.html", true},
+		{"https://other.org/original-article.html", false},
+	} {
+		seed := newArchivedHTMLItem(t, "https://www.example.com/article", "<html></html>")
+		child := newArchivedHTMLItem(t, tc.url, `<html><body><img src="/photo.jpg"></body></html>`)
+		if err := seed.AddChild(child, models.ItemGotChildren); err != nil {
+			t.Fatal(err)
+		}
+		child.SetStatus(models.ItemArchived)
+
+		postprocessItem(context.Background(), child)
+
+		if got := child.HasChildren(); got != tc.wantAssets {
+			t.Errorf("%s: extracted assets = %v, want %v", tc.url, got, tc.wantAssets)
 		}
 	}
 }
