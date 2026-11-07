@@ -6,6 +6,68 @@ import (
 	"testing"
 )
 
+func TestURLToStringKeepsQueryOrder(t *testing.T) {
+	raw := "https://example.com/doc.html?ZyActionD=ZyDocument&Client=EPA&Index=2011+Thru+2015%7C1995+Thru+1999&Query=600R05032&ImageQuality=r85g16/x150y150g16/i500&ZyEntry=1&SeekPage=b"
+
+	for range 20 {
+		u, err := NewURL(raw)
+		if err != nil {
+			t.Fatalf("error parsing URL: %v", err)
+		}
+
+		if actual := u.String(); actual != raw {
+			t.Fatalf("Expected %s, got %s", raw, actual)
+		}
+	}
+}
+
+func TestURLToStringKeepsKeysWithoutValue(t *testing.T) {
+	u, err := NewURL("https://example.com/image.png?-i+-r+85+D%3A%5CTIFF%5CA.TIF&flag&empty=&a=1")
+	if err != nil {
+		t.Fatalf("error parsing URL: %v", err)
+	}
+
+	expected := "https://example.com/image.png?-i+-r+85+D%3A%5CTIFF%5CA.TIF&flag&empty=&a=1"
+	if actual := u.String(); actual != expected {
+		t.Fatalf("Expected %s, got %s", expected, actual)
+	}
+}
+
+// The query is sent like a browser would send it: it is not decoded and encoded again, only the
+// bytes that can't appear in a query are escaped, and encoding the result again gives the same URL.
+func TestURLToStringKeepsQueryAsWritten(t *testing.T) {
+	tests := []struct {
+		raw      string
+		expected string
+	}{
+		{"http://example.com/a?q=a%20b&r=a+b&s=%7e&t=%2f&u=%41", "http://example.com/a?q=a%20b&r=a+b&s=%7e&t=%2f&u=%41"},
+		{"http://example.com/a?u=https://y.com/p?x=1&a=1,2&b=x:y&c=@$&d=!*()~", "http://example.com/a?u=https://y.com/p?x=1&a=1,2&b=x:y&c=@$&d=!*()~"},
+		{"http://example.com/a?a=1;b=2&c=3", "http://example.com/a?a=1;b=2&c=3"},
+		{"http://example.com/a?q=100%&c=3", "http://example.com/a?q=100%&c=3"},
+		{"http://example.com/a?bad=%zz&&x", "http://example.com/a?bad=%zz&&x"},
+		{"http://example.com/a?q=a b;c é&d='\"<>", "http://example.com/a?q=a%20b;c%20%C3%A9&d=%27%22%3C%3E"},
+		{"http://example.com/a?", "http://example.com/a?"},
+	}
+
+	for _, tt := range tests {
+		u, err := NewURL(tt.raw)
+		if err != nil {
+			t.Fatalf("error parsing URL: %v", err)
+		}
+		if actual := u.String(); actual != tt.expected {
+			t.Errorf("Expected %s, got %s", tt.expected, actual)
+		}
+
+		again, err := NewURL(u.String())
+		if err != nil {
+			t.Fatalf("error parsing URL: %v", err)
+		}
+		if actual := again.String(); actual != tt.expected {
+			t.Errorf("Expected %s when encoding again, got %s", tt.expected, actual)
+		}
+	}
+}
+
 func TestURLToStringPunycode(t *testing.T) {
 	u, err := NewURL("https://xn----8sbddjhbicfsohgbg1aeo.xn--p1ia/pic/file/map_of_sarlat.pdf")
 	if err != nil {
@@ -103,15 +165,15 @@ func TestURLwithSpacesandUnicode(t *testing.T) {
 		t.Fatalf("Error parsing URL: %v", err)
 	}
 
-	expected := "https://www.youtube.com/watch/0HBwC_wIFF4?t=18363%E7%9F%B3%E7%A5%9E%E8%A6%96%E7%82%B9%E3%80%90Minecraft%E3%80%91%E5%B9%B3%E6%97%A5%E3%82%82%E3%81%A9%E7%9C%9F%E3%82%93%E4%B8%AD%E3%81%AA%E3%82%93%E3%81%A0%E3%81%8B%E3%82%89%E6%97%A9%E3%81%8F%E5%AF%9D%E3%81%AA%E3%81%8D%E3%82%83%E3%80%90%E7%9F%B3%E7%A5%9E%E3%81%AE%E3%81%9E%E3%81%BF%EF%BC%8F%E3%81%AB%E3%81%98%E3%81%95%E3%82%93%E3%81%98%E6%89%80%E5%B1%9E%E3%80%91https%3A%2F%2Fwww.youtube.com%2Fwatch%2FL30uAR9X8Uw%3Ft%3D10100%E3%80%90%E5%80%89%E6%8C%81%E3%82%A8%E3%83%B3%E8%B6%B3%E4%B8%AD"
+	expected := "https://www.youtube.com/watch/0HBwC_wIFF4?t=18363%E7%9F%B3%E7%A5%9E%E8%A6%96%E7%82%B9%E3%80%90Minecraft%E3%80%91%E5%B9%B3%E6%97%A5%E3%82%82%E3%81%A9%E7%9C%9F%E3%82%93%E4%B8%AD%E3%81%AA%E3%82%93%E3%81%A0%E3%81%8B%E3%82%89%E6%97%A9%E3%81%8F%E5%AF%9D%E3%81%AA%E3%81%8D%E3%82%83%E3%80%90%E7%9F%B3%E7%A5%9E%E3%81%AE%E3%81%9E%E3%81%BF%EF%BC%8F%E3%81%AB%E3%81%98%E3%81%95%E3%82%93%E3%81%98%E6%89%80%E5%B1%9E%E3%80%91https://www.youtube.com/watch/L30uAR9X8Uw?t=10100%E3%80%90%E5%80%89%E6%8C%81%E3%82%A8%E3%83%B3%E8%B6%B3%E4%B8%AD"
 	actual := u.String()
 	if actual != expected {
 		t.Fatalf("Expected %s, got %s", expected, actual)
 	}
 }
 
-// For technical reasons we are not encoding Reddit URLs.
-func TestURLwithRedditOverride(t *testing.T) {
+// Signed URLs must stay as they are, or the signature doesn't match anymore.
+func TestURLwithRedditSignature(t *testing.T) {
 	u, err := NewURL("https://styles.redditmedia.com/t5_7wkhw/styles/profileIcon_8w6r6fr3rh2d1.jpeg?width=64&height=64&frame=1&auto=webp&crop=64:64,smart&s=6d8ab9b89c9b846c9eb65622db9ced4992dc0905")
 	if err != nil {
 		t.Fatalf("Error parsing URL: %v", err)

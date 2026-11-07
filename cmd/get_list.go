@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/internetarchive/Zeno/v2/internal/pkg/config"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/controler"
 	"github.com/internetarchive/Zeno/v2/internal/pkg/ui"
+	"github.com/internetarchive/Zeno/v2/pkg/models"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +22,8 @@ var getListCmd = &cobra.Command{
 	Long: `Archive URLs from one or more text files or URLs.
 Each file should contain one URL per line.
 Remote files (starting with http:// or https://) are supported.
-Empty lines and lines starting with # are ignored.`,
+Empty lines and lines starting with # are ignored.
+Lines that are not valid URLs are skipped with a warning.`,
 	Args: cobra.MinimumNArgs(1),
 	PreRunE: func(_ *cobra.Command, args []string) error {
 		if cfg == nil {
@@ -94,16 +97,7 @@ func readLocalURLList(file string) (urls []string, err error) {
 	}
 	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		urls = append(urls, line)
-	}
-
-	return urls, scanner.Err()
+	return readURLList(f, file)
 }
 
 // readRemoteURLList reads URLs from a remote file (http/https)
@@ -135,14 +129,31 @@ func readRemoteURLList(URL string) (urls []string, err error) {
 		return urls, fmt.Errorf("failed to download URL list: %s", resp.Status)
 	}
 
-	// Read file line by line
-	scanner := bufio.NewScanner(resp.Body)
+	return readURLList(resp.Body, URL)
+}
+
+// readURLList reads one URL per line, skipping the empty lines, the comments and the lines that
+// are not valid URLs: one invalid line (e.g. with a control character) must not stop the whole crawl.
+func readURLList(r io.Reader, source string) (urls []string, err error) {
+	scanner := bufio.NewScanner(r)
+	lineNumber := 0
+
 	for scanner.Scan() {
+		lineNumber++
+
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
+
+		// Same check as when the seeds are added to the queue
+		if _, err := models.NewURL(line); err != nil {
+			fmt.Fprintf(os.Stderr, "skipping invalid URL on line %d of %s: %v\n", lineNumber, source, err)
+			continue
+		}
+
 		urls = append(urls, line)
 	}
+
 	return urls, scanner.Err()
 }
