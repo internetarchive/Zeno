@@ -1,0 +1,28 @@
+{
+  "url": "https://en.wikipedia.org/w/load.php?lang=en&modules=startup&only=scripts&raw=1&skin=vector-2022",
+  "status_code": 200,
+  "headers": {
+    "date": "Tue, 13 Oct 2026 14:52:45 GMT",
+    "etag": "W/\"hnw4h\"",
+    "expires": "Tue, 13 Oct 2026 14:57:45 GMT",
+    "cache-control": "public, max-age=300, s-maxage=300, stale-while-revalidate=60",
+    "server": "ATS/9.2.15",
+    "x-content-type-options": "nosniff",
+    "sourcemap": "/w/load.php?lang=en&modules=startup&only=scripts&skin=vector-2022&sourcemap=1&version=hnw4h",
+    "content-type": "text/javascript; charset=utf-8",
+    "accept-ranges": "bytes",
+    "x-cache": "cp3070 miss, cp3070 hit/573",
+    "x-cache-status": "hit-front",
+    "strict-transport-security": "max-age=106384710; includeSubDomains; preload",
+    "report-to": "{ \"group\": \"wm_nel\", \"max_age\": 604800, \"endpoints\": [{ \"url\": \"https://intake-logging.wikimedia.org/v1/events?stream=w3c.reportingapi.network_error&schema_uri=/w3c/reportingapi/network_error/1.0.0\" }] }",
+    "nel": "{ \"report_to\": \"wm_nel\", \"max_age\": 604800, \"failure_fraction\": 0.05, \"success_fraction\": 0.0}",
+    "set-cookie": "WMF-Uniq=-6A9ArBpspleZ66jLNvYkQP4AAAAAFvdo7rqwJdd_LvnQ5cfQFw3y_fSARsauYlT;Domain=.wikipedia.org;Path=/;HttpOnly;secure;SameSite=None;Expires=Wed, 13 Oct 2027 00:00:00 GMT",
+    "x-client-ip": "77.3.29.195",
+    "vary": "Accept-Encoding,User-Agent",
+    "age": "0",
+    "content-length": "70566",
+    "x-request-id": "fe22f195-8d57-4c59-a10d-c6b74b6787f7",
+    "server-timing": "cache;desc=\"hit-front\", host;desc=\"cp3070\",co_id;desc=\"1578091648\""
+  },
+    "body": "import\"./index-DU8Ous_x.js\";var e=`github`,t=`global-navigation`;export{e as n,t};\n//# sourceMappingURL=ui-commands-internal-CGtmk2Nh.js.map"
+}
