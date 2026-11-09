@@ -16,6 +16,21 @@ import (
 	warc "github.com/internetarchive/gowarc"
 )
 
+type INAExtractor struct{}
+
+func (INAExtractor) Match(URL *models.URL) bool {
+	return IsAPIURL(URL)
+}
+
+func (INAExtractor) Extract(item *models.Item) (assets, outlinks []*models.URL, err error) {
+	assets, err = ExtractMedias(item.GetURL())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return assets, nil, err
+}
+
 var (
 	playerVersion     string
 	playerVersionLock sync.Mutex
@@ -176,6 +191,7 @@ func extractJWPlayerVersion(body string) string {
 	return ""
 }
 
+// TODO: Use the item obj directly instead of the URL
 func ExtractMedias(URL *models.URL) (assets []*models.URL, err error) {
 	defer URL.RewindBody()
 
