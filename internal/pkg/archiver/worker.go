@@ -71,8 +71,9 @@ func Start(inputChan, outputChan chan *models.Item) error {
 			logger.Info("bucket manager started")
 		}
 		if config.Get().Headless {
-			headless.Start()
+			onceErr = headless.Start()
 			logger.Info("headless browser started")
+			return
 		}
 
 		logger.Debug("initialized")
