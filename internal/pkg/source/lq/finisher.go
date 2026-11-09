@@ -59,8 +59,6 @@ func (s *LQ) finisher() {
 			// Close the batch channel to signal the dispatcher to finish.
 			close(batchCh)
 
-			s.wg.Done()
-
 			logger.Debug("closed")
 			return
 		}
