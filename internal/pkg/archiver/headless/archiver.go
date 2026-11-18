@@ -273,6 +273,10 @@ func archivePage(warcClient *warc.CustomHTTPClient, item *models.Item, seed *mod
 			resp.Body.Close()              // First, close the body, to stop downloading data anymore.
 			io.Copy(io.Discard, resp.Body) // Then, consume the buffer.
 
+			if botBlockService, isBotBlocked := reasoncode.BotBlockService(discardReason); isBotBlocked {
+				stats.BotBlockIncr(botBlockService)
+			}
+
 			logger.Warn("response was blocked by DiscardHook", "reason", discardReason, "status_code", resp.StatusCode)
 			hijack.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
 			return
